@@ -65,7 +65,7 @@ Filename fallback is:
 - baseline x64: `-baseline.node`, then unsuffixed `.node`;
 - non-x64: unsuffixed `.node` only.
 
-The published core package contains loader JS, declarations, and metadata but no `.node` files. Release publishing generates `@oh-my-pi/pi-natives-<platform>-<arch>` optional-dependency leaf packages and injects them at the same version into the core manifest. `LEAF_TARGETS` in `gen-npm-packages.ts` is the authoritative publish target list.
+The core package contains loader JS, declarations, and metadata but no `.node` files. `pnpm --dir packages/natives run gen:npm` generates `@oh-my-pi/pi-natives-<platform>-<arch>` leaf packages for a local npm-style install; releases ship the addons inside the standalone binaries and as the `natives-linux-x64.tar.gz` release asset instead of publishing to npm. `LEAF_TARGETS` in `gen-npm-packages.ts` is the authoritative target list.
 
 ### Candidate ownership and order
 

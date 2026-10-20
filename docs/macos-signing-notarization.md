@@ -1,11 +1,9 @@
 # macOS signing & notarization
 
-The compiled macOS `omp` binaries (served by build.stencil.so and attached to
-GitHub Releases) can be signed with a
-**Developer ID Application** certificate and **notarized** by Apple. This makes
-them eligible for Gatekeeper acceptance when the notarization ticket is
-available. The repository also maintains a Homebrew tap; formula installs
-have different quarantine behavior from browser downloads (see below).
+The compiled macOS `omp` binaries (attached to GitHub Releases) can be signed
+with a **Developer ID Application** certificate and **notarized** by Apple.
+This makes them eligible for Gatekeeper acceptance when the notarization
+ticket is available.
 
 Like every other release build, the macOS binaries are built and signed on
 Linux: the Darwin legs of the `release_binary` matrix
@@ -35,13 +33,8 @@ script signs with the Developer ID and notarizes; with none, it signs ad hoc
    `macos-15`) before anything publishes: `codesign --verify --strict`,
    then `--version` and `--smoke-test` under the final signature, which is the
    hardened-runtime launch check. When signing secrets are configured it also
-   asserts that the signature is not ad-hoc. `release_github` and
-   `release_build` (build.stencil.so) publish these same artifacts, so nothing
-   re-verifies the published assets.
-4. For non-canary releases, `release_brew` regenerates and pushes the tap formula,
-   pointing at the build.stencil.so downloads, once `release_build` has
-   published them. It skips when
-   `HOMEBREW_TAP_DEPLOY_KEY` is absent; that secret is separate from signing.
+   asserts that the signature is not ad-hoc. `release_github` publishes these
+   same artifacts, so nothing re-verifies the published assets.
 
 ### Why the entitlements are mandatory
 
@@ -74,13 +67,10 @@ What this means in practice:
 
 - `curl https://omp.sh/install | sh` — `curl` sets no quarantine bit, so
   Gatekeeper is not consulted.
-- Homebrew **formula** installs — Homebrew does not quarantine formula files, so
-  Gatekeeper is not consulted.
-- Anything that **quarantines** the binary (a browser download, or a Homebrew
-  **cask**) needs Apple's online ticket lookup. For an offline-distributable
-  artifact, wrap the binary in a stapleable, notarized **`.pkg` or `.dmg`**
-  (`rcodesign staple` works on those). That is not required for the
-  `curl`/formula paths.
+- Anything that **quarantines** the binary (a browser download) needs Apple's
+  online ticket lookup. For an offline-distributable artifact, wrap the binary
+  in a stapleable, notarized **`.pkg` or `.dmg`** (`rcodesign staple` works on
+  those). That is not required for the `curl` path.
 
 ## Required GitHub secrets
 
@@ -126,12 +116,12 @@ and Key ID.
 ```sh
 scripts/ci-macos-upload-secrets.sh ~/omp-signing --dry-run   # validate first
 scripts/ci-macos-upload-secrets.sh ~/omp-signing             # upload all five
-gh secret list --repo can1357/oh-my-pi                       # confirm
+gh secret list --repo Alex1990/oh-my-pi                       # confirm
 ```
 
 Re-run it whenever the certificate is renewed. `OMP_SIGNING_DIR` changes the
 default input directory; `OMP_REPO=owner/repo` changes the target repository
-(default `can1357/oh-my-pi`). The validation path requires macOS `security`;
+(default `Alex1990/oh-my-pi`). The validation path requires macOS `security`;
 uploading also requires an authenticated `gh` CLI.
 
 ### Finding your signing identity / Team ID (sanity check)

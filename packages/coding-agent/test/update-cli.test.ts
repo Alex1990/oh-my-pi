@@ -3,12 +3,10 @@ import * as nodeFs from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { BuildAnswer, BuildPatch, Fetch } from "@oh-my-pi/pi-coding-agent/cli/build-service";
+import type { BuildAnswer, Fetch } from "@oh-my-pi/pi-coding-agent/cli/build-service";
 import * as pluginCli from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import * as updateCli from "@oh-my-pi/pi-coding-agent/cli/update-cli";
 import {
-	type BinaryPatchApplier,
-	buildHomebrewUpdateArgs,
 	buildMiseForceInstallArgs,
 	buildMiseUpdateEnv,
 	buildMiseUpgradeArgs,
@@ -100,10 +98,11 @@ async function withPlatformAsync<T>(platform: NodeJS.Platform, fn: () => Promise
 	}
 }
 
-/** A checked build service answer offering `content` as `version`, without a patch unless overridden. */
+/** A checked release answer offering `content` as `version`. */
 function buildAnswer(version: string, content: string | Uint8Array, overrides: Partial<BuildAnswer> = {}): BuildAnswer {
 	return {
 		version,
+		tag: `v${version}`,
 		file: { name: "omp-linux-x64", size: Buffer.byteLength(content), sha256: bun.SHA256.hash(content, "hex") },
 		download: "https://r2.test/omp-linux-x64",
 		...overrides,
@@ -506,22 +505,6 @@ describe("update-cli install target detection", () => {
 		expect(method).toBe("binary");
 	});
 
-	it("uses Homebrew update when prioritized omp resolves into the Homebrew formula", async () => {
-		const dir = await makeTempDir();
-		const prefix = path.join(dir, "opt", "omp");
-		const linkedBin = path.join(dir, "bin");
-		await fs.mkdir(path.join(prefix, "bin"), { recursive: true });
-		await fs.mkdir(linkedBin, { recursive: true });
-		await bun.write(path.join(prefix, "bin", "omp"), "binary");
-		await fs.symlink(path.join(prefix, "bin", "omp"), path.join(linkedBin, "omp"));
-
-		const method = resolveUpdateMethodForTest(path.join(linkedBin, "omp"), "/Users/test/.local/share/pnpm", {
-			homebrewPrefix: prefix,
-		});
-
-		expect(method).toBe("brew");
-	});
-
 	it("uses mise update when prioritized omp is in an active mise bin path", () => {
 		const method = resolveUpdateMethodForTest(
 			"/Users/test/.local/share/mise/installs/github-can1357-oh-my-pi/latest/bin/omp",
@@ -544,19 +527,14 @@ describe("update-cli install target detection", () => {
 });
 
 describe("update-cli package manager commands", () => {
-	it("targets the Homebrew tap formula and switches to reinstall for forced updates", () => {
-		expect(buildHomebrewUpdateArgs(false)).toEqual(["upgrade", "can1357/tap/omp"]);
-		expect(buildHomebrewUpdateArgs(true)).toEqual(["reinstall", "can1357/tap/omp"]);
-	});
-
 	it("targets the mise GitHub backend and overrides release-age settings for attended updates", () => {
-		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:can1357/oh-my-pi", "--bump", "--before", "0s"]);
-		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:can1357/oh-my-pi", "--bump"]);
+		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:Alex1990/oh-my-pi", "--bump", "--before", "0s"]);
+		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:Alex1990/oh-my-pi", "--bump"]);
 		expect(buildMiseUpdateEnv({ PATH: "/bin", MISE_MINIMUM_RELEASE_AGE: "24h" })).toEqual({
 			PATH: "/bin",
 			MISE_MINIMUM_RELEASE_AGE: "0s",
 		});
-		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:can1357/oh-my-pi@15.10.5"]);
+		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:Alex1990/oh-my-pi@15.10.5"]);
 	});
 
 	it.skipIf(!miseBinary)("overrides per-tool release age during actual mise upgrade resolution", async () => {
@@ -580,7 +558,7 @@ describe("update-cli package manager commands", () => {
 			await bun.write(
 				path.join(root, "mise.toml"),
 				`[tools]
-"github:can1357/oh-my-pi" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
+"github:Alex1990/oh-my-pi" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
 `,
 			);
 			const env = {
@@ -611,11 +589,11 @@ describe("update-cli package manager commands", () => {
 				return stdout + stderr;
 			};
 
-			const blocked = await run(["upgrade", "github:can1357/oh-my-pi", "--bump", "--dry-run"]);
-			expect(blocked).not.toContain("Would install github:can1357/oh-my-pi@2.0.0");
+			const blocked = await run(["upgrade", "github:Alex1990/oh-my-pi", "--bump", "--dry-run"]);
+			expect(blocked).not.toContain("Would install github:Alex1990/oh-my-pi@2.0.0");
 
 			const allowed = await run([...buildMiseUpgradeArgs(), "--dry-run"]);
-			expect(allowed).toContain("Would install github:can1357/oh-my-pi@2.0.0");
+			expect(allowed).toContain("Would install github:Alex1990/oh-my-pi@2.0.0");
 		} finally {
 			server.stop(true);
 		}
@@ -1072,106 +1050,6 @@ describe("update-cli release binary integrity", () => {
 		const newResidue = (await fs.readdir(dir)).filter(name => name.endsWith(".new"));
 		expect(newResidue).toEqual([]);
 	});
-});
-
-describe("update-cli build patches", () => {
-	const installed = "installed omp 18.8.8";
-	const next = "omp 18.8.9, rebuilt from the patch";
-	const patchBytes = "HDIFFSF20 patch from 18.8.8 to 18.8.9";
-	const patchUrl = "https://r2.test/patches/18.8.8-18.8.9";
-
-	function patchedBuild(patch: Partial<BuildPatch> = {}): BuildAnswer {
-		return buildAnswer("18.8.9", next, {
-			patch: {
-				fromSha256: bun.SHA256.hash(installed, "hex"),
-				fromVersion: "18.8.8",
-				size: Buffer.byteLength(patchBytes),
-				sha256: bun.SHA256.hash(patchBytes, "hex"),
-				url: patchUrl,
-				...patch,
-			},
-		});
-	}
-
-	/** Install `build` over a file holding `installed`, recording every URL fetched. */
-	async function install(
-		build: BuildAnswer,
-		applyPatch: BinaryPatchApplier,
-		patchBody = patchBytes,
-	): Promise<{ dir: string; targetPath: string; requested: string[] }> {
-		vi.spyOn(console, "log").mockImplementation(() => {});
-		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
-		await bun.write(targetPath, installed);
-		const requested: string[] = [];
-		const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
-			const requestUrl = String(input);
-			requested.push(requestUrl);
-			if (requestUrl === patchUrl) return new Response(patchBody);
-			if (requestUrl === build.download) return new Response(next);
-			throw new Error(`Unexpected request: ${requestUrl}`);
-		};
-		await updateViaBinaryAt(targetPath, build, {
-			fetchImpl,
-			applyPatch,
-			verifyInstalledVersion: async version => ({ ok: true, actual: version, path: targetPath }),
-		});
-		return { dir, targetPath, requested };
-	}
-
-	/** Stands in for HDiffPatch: writes `output` when handed the installed base and the downloaded patch. */
-	function applier(output = next): BinaryPatchApplier & Mock<BinaryPatchApplier> {
-		return vi.fn(async (oldPath: string, patchPath: string, outPath: string) => {
-			expect(await bun.file(oldPath).text()).toBe(installed);
-			expect(await bun.file(patchPath).text()).toBe(patchBytes);
-			await bun.write(outPath, output);
-			return Buffer.byteLength(output);
-		});
-	}
-
-	async function residue(dir: string): Promise<string[]> {
-		return (await fs.readdir(dir)).filter(name => /\.(new|bak|patch)$/.test(name));
-	}
-
-	it("builds the new binary from the patch when the installed file is its base", async () => {
-		const applyPatch = applier();
-
-		const { dir, targetPath, requested } = await install(patchedBuild(), applyPatch);
-
-		expect(await bun.file(targetPath).text()).toBe(next);
-		expect(requested).toEqual([patchUrl]);
-		expect(applyPatch).toHaveBeenCalledTimes(1);
-		if (process.platform !== "win32") expect((await fs.stat(targetPath)).mode & 0o777).toBe(0o755);
-		expect(await residue(dir)).toEqual([]);
-	});
-
-	const fallbacks: Array<{
-		when: string;
-		patch?: Partial<BuildPatch>;
-		patchBody?: string;
-		applyPatch?: BinaryPatchApplier;
-	}> = [
-		{ when: "the installed file is not the patch's base", patch: { fromSha256: bun.SHA256.hash("another", "hex") } },
-		{ when: "the downloaded patch does not match its digest", patchBody: "x".repeat(Buffer.byteLength(patchBytes)) },
-		{
-			when: "the patch cannot be applied",
-			applyPatch: async () => {
-				throw new Error("patch made for other old data");
-			},
-		},
-		{ when: "the patched file does not match the build", applyPatch: applier("corrupted patch output") },
-	];
-	for (const { when, patch, patchBody, applyPatch } of fallbacks) {
-		it(`downloads the whole file when ${when}`, async () => {
-			const build = patchedBuild(patch);
-
-			const { dir, targetPath, requested } = await install(build, applyPatch ?? applier(), patchBody);
-
-			expect(await bun.file(targetPath).text()).toBe(next);
-			expect(requested.at(-1)).toBe(build.download);
-			expect(await residue(dir)).toEqual([]);
-		});
-	}
 });
 
 describe("update-cli binary replacement", () => {

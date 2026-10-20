@@ -29,7 +29,7 @@ Two commands serve different purposes:
 - `pnpm --dir packages/natives run build:bindings` runs napi-rs for the host, installs a local variant addon and generated declarations, and regenerates explicit ESM/enum exports. Use this when the Rust public type surface changes.
 - `pnpm --dir packages/natives run build` invokes `scripts/bazel-natives.ts host --dest native`. The host target builds through the local cargo/napi-rs backend by default and therefore also regenerates declarations and exports; `OMP_NATIVE_BUILD_BACKEND=bazel` opts into Bazel, which leaves those committed files unchanged.
 
-Release builds use Bazel targets and publish `.node` files in platform leaf packages. The core publish rewrite removes addons and injects lockstep optional dependencies generated from `LEAF_TARGETS` in `gen-npm-packages.ts`.
+Release builds use Bazel targets and embed the `.node` files in the standalone binaries; `gen:npm` can also package them as platform leaf packages for a local npm-style install.
 
 ## Design the N-API boundary
 

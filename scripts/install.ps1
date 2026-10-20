@@ -2,17 +2,16 @@
 # Usage: irm https://omp.sh/install.ps1 | iex
 #
 # Or with options:
-#   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Source
 #   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Binary
 #   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Source -Ref v18.8.9
 #   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Source -Ref main
 #   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Binary -Ref v18.8.9
 #
 # -Ref takes any tag/commit/branch with -Source; binary installs take a release
-# tag (v<version>). Prebuilt distributions come from the build service
-# ($env:PI_BUILD_URL, default https://build.stencil.so): a Windows launcher and
-# the shared `cli.js` payload it runs on Node.js, each checked against its
-# sha256 before install.
+# tag (v<version>). Prebuilt distributions come from GitHub Releases: a Windows
+# launcher and the shared `cli.js` payload it runs on Node.js, each checked
+# against the release's `SHA256SUMS.txt` before install. `$env:OMP_RELEASE_REPO`
+# selects the repository and `$env:OMP_RELEASE_BASE` overrides the release base.
 
 param(
     [switch]$Source,
@@ -30,10 +29,9 @@ if ($PSVersionTable.PSVersion -lt [version]"5.1") {
     throw "Windows PowerShell 5.1 or newer is required (found $($PSVersionTable.PSVersion)). Install PowerShell 7 from https://aka.ms/powershell and re-run the installer."
 }
 
-$Repo = "can1357/oh-my-pi"
-$Package = "@oh-my-pi/pi-coding-agent"
+$Repo = if ($env:OMP_RELEASE_REPO) { $env:OMP_RELEASE_REPO.Trim("/") } else { "Alex1990/oh-my-pi" }
 $InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\omp" }
-$BuildUrl = if ($env:PI_BUILD_URL) { $env:PI_BUILD_URL.TrimEnd("/") } else { "https://build.stencil.so" }
+$ReleaseBase = if ($env:OMP_RELEASE_BASE) { $env:OMP_RELEASE_BASE.TrimEnd("/") } else { "https://github.com/$Repo/releases" }
 # Windows PowerShell 5.1 (.NET Framework) does not reliably resolve
 # [System.Runtime.InteropServices.RuntimeInformation] without an
 # assembly-qualified name, while PowerShell 7+ (Core) loads that type from a
@@ -48,9 +46,9 @@ $RawArchitecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW643
 if (-not $RawArchitecture) {
     throw "Unable to determine Windows architecture"
 }
-$BuildTarget = switch ($RawArchitecture.ToUpperInvariant()) {
-    "AMD64" { "windows-x86_64" }
-    "ARM64" { "windows-arm64" }
+$AssetName = switch ($RawArchitecture.ToUpperInvariant()) {
+    "AMD64" { "omp-windows-x64.cmd" }
+    "ARM64" { "omp-windows-arm64.cmd" }
     default { throw "Unsupported Windows architecture: $RawArchitecture" }
 }
 $MinimumNodeVersion = "22.12.0"
@@ -291,60 +289,56 @@ function Install-Pnpm {
 
 function Install-ViaPnpm {
     Write-Host "Installing via pnpm..."
-    if ($Ref) {
-        if (-not (Test-GitInstalled)) {
-            throw "git is required for -Ref when installing from source"
-        }
+    if (-not $Ref) {
+        throw "-Source requires -Ref <tag>; prebuilt installs need no options."
+    }
+    if (-not (Test-GitInstalled)) {
+        throw "git is required for -Ref when installing from source"
+    }
 
-        $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("omp-install-" + [System.Guid]::NewGuid().ToString("N"))
-        New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("omp-install-" + [System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
 
-        try {
-            $repoUrl = "https://github.com/$Repo.git"
-            Invoke-Native { git clone --depth 1 --branch $Ref $repoUrl $tmpRoot 2>&1 | Out-Null }
-            if ($LASTEXITCODE -ne 0) {
-                Invoke-Native { git clone $repoUrl $tmpRoot 2>&1 | Out-Null }
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to clone $repoUrl"
-                }
-                Push-Location $tmpRoot
-                try {
-                    Invoke-Native { git checkout $Ref 2>&1 | Out-Null }
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Failed to checkout $Ref"
-                    }
-                } finally {
-                    Pop-Location
-                }
-            }
-
-            # Pull LFS files
-            if (Test-GitLfsInstalled) {
-                Push-Location $tmpRoot
-                try {
-                    Invoke-Native { git lfs pull 2>&1 | Out-Null }
-                } finally {
-                    Pop-Location
-                }
-            }
-
-            $packagePath = Join-Path $tmpRoot "packages\coding-agent"
-            if (-not (Test-Path $packagePath)) {
-                throw "Expected package at $packagePath"
-            }
-
-            Invoke-Native { pnpm add -g $packagePath }
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to install from $packagePath via pnpm"
-            }
-        } finally {
-            Remove-Item -Recurse -Force $tmpRoot -ErrorAction SilentlyContinue
-        }
-    } else {
-        Invoke-Native { pnpm add -g $Package }
+    try {
+        $repoUrl = "https://github.com/$Repo.git"
+        Invoke-Native { git clone --depth 1 --branch $Ref $repoUrl $tmpRoot 2>&1 | Out-Null }
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to install $Package via pnpm"
+            Invoke-Native { git clone $repoUrl $tmpRoot 2>&1 | Out-Null }
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to clone $repoUrl"
+            }
+            Push-Location $tmpRoot
+            try {
+                Invoke-Native { git checkout $Ref 2>&1 | Out-Null }
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to checkout $Ref"
+                }
+            } finally {
+                Pop-Location
+            }
         }
+
+        # Pull LFS files
+        if (Test-GitLfsInstalled) {
+            Push-Location $tmpRoot
+            try {
+                Invoke-Native { git lfs pull 2>&1 | Out-Null }
+            } finally {
+                Pop-Location
+            }
+        }
+
+        $packagePath = Join-Path $tmpRoot "packages\coding-agent"
+        if (-not (Test-Path $packagePath)) {
+            throw "Expected package at $packagePath"
+        }
+
+        Invoke-Native { pnpm add -g $packagePath }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install from $packagePath via pnpm"
+        }
+    } finally {
+        Remove-Item -Recurse -Force $tmpRoot -ErrorAction SilentlyContinue
     }
 
     Write-Host ""
@@ -360,50 +354,56 @@ function Install-Binary {
         if ($Ref -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?)$') {
             throw "Binary installs take a release tag (v<version>) for -Ref, got: $Ref`nFor branch/commit installs, use -Source with -Ref."
         }
-        $RequestedVersion = $Matches[1]
-        Write-Host "Fetching omp $RequestedVersion..."
-        $ApiUrl = "$BuildUrl/api/products/omp/versions/$RequestedVersion/$BuildTarget"
+        $Version = $Matches[1]
+        $ReleasePath = "download/$Ref"
+        Write-Host "Fetching omp $Version..."
     } else {
+        $Version = ""
+        $ReleasePath = "latest/download"
         Write-Host "Fetching latest release..."
-        $ApiUrl = "$BuildUrl/api/products/omp/latest/${BuildTarget}?channel=stable"
     }
+    $AssetUrl = "$ReleaseBase/$ReleasePath/$AssetName"
+    $SumsUrl = "$ReleaseBase/$ReleasePath/SHA256SUMS.txt"
     try {
-        $Answer = Invoke-RestMethod -Uri $ApiUrl -TimeoutSec 60
+        $Sums = (Invoke-WebRequest -Uri $SumsUrl -TimeoutSec 60 -UseBasicParsing).Content
     } catch {
-        throw "Failed to resolve an omp build for $BuildTarget from ${ApiUrl}: $_"
+        throw "Failed to fetch ${SumsUrl}: $_"
     }
-
-    $Version = $Answer.build.version
-    $BuildId = "$($Answer.build.id)"
-    $BinaryName = $Answer.file.name
-    $ExpectedSha256 = "$($Answer.file.sha256)".ToLowerInvariant()
-    $CliFile = @($Answer.build.files) | Where-Object { $_.name -eq "cli.js" } | Select-Object -First 1
-    $CliSha256 = if ($CliFile) { "$($CliFile.sha256)".ToLowerInvariant() } else { "" }
-    $DownloadUrl = $Answer.download
-    if (-not $Version -or -not $BuildId -or -not $BinaryName -or -not $DownloadUrl -or
-        $ExpectedSha256 -notmatch '^[0-9a-f]{64}$' -or $CliSha256 -notmatch '^[0-9a-f]{64}$') {
-        throw "Unexpected answer from $ApiUrl"
+    $Checksums = @{}
+    foreach ($line in ($Sums -split "`r?`n")) {
+        if ($line -match '^([0-9a-fA-F]{64})\s+\*?(.+)$') {
+            $Checksums[$Matches[2].Trim()] = $Matches[1].ToLowerInvariant()
+        }
     }
-    Write-Host "Using version: $Version"
+    $ExpectedSha256 = $Checksums[$AssetName]
+    $CliSha256 = $Checksums["cli.js"]
+    if (-not $ExpectedSha256 -or -not $CliSha256) {
+        throw "No checksum for $AssetName or cli.js in $SumsUrl"
+    }
+    if ($Version) {
+        Write-Host "Using version: $Version"
+    } else {
+        Write-Host "Using the latest release"
+    }
 
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
     # Download next to the destinations and move them into place only once the
     # checksums match, so a bad download never replaces a working omp.
-    Write-Host "Downloading $BinaryName..."
+    Write-Host "Downloading $AssetName..."
     $OutPath = Join-Path $InstallDir "omp.cmd"
     $CliPath = Join-Path $InstallDir "cli.js"
     $DownloadPath = Join-Path $InstallDir ".omp.download.cmd"
     $CliDownloadPath = Join-Path $InstallDir ".cli.download.js"
-    $CliUrl = "$BuildUrl/d/omp/$([uri]::EscapeDataString($BuildId))/cli.js"
+    $CliUrl = "$ReleaseBase/$ReleasePath/cli.js"
     try {
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath -TimeoutSec 900
+        Invoke-WebRequest -Uri $AssetUrl -OutFile $DownloadPath -TimeoutSec 900 -UseBasicParsing
         $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $DownloadPath).Hash.ToLowerInvariant()
         if ($ActualSha256 -ne $ExpectedSha256) {
-            throw "Checksum mismatch for ${BinaryName}: expected $ExpectedSha256, got $ActualSha256"
+            throw "Checksum mismatch for ${AssetName}: expected $ExpectedSha256, got $ActualSha256"
         }
         Write-Host "Downloading cli.js..."
-        Invoke-WebRequest -Uri $CliUrl -OutFile $CliDownloadPath -TimeoutSec 900
+        Invoke-WebRequest -Uri $CliUrl -OutFile $CliDownloadPath -TimeoutSec 900 -UseBasicParsing
         $CliActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CliDownloadPath).Hash.ToLowerInvariant()
         if ($CliActualSha256 -ne $CliSha256) {
             throw "Checksum mismatch for cli.js: expected $CliSha256, got $CliActualSha256"
@@ -442,7 +442,7 @@ function Install-Binary {
 }
 
 # Main logic
-if ($Ref -and -not $Source -and -not $Binary) {
+if ($Ref -and -not $Source) {
     $Source = $true
 }
 
@@ -453,15 +453,8 @@ if ($Source) {
     Assert-NodeVersion $MinimumNodeVersion
     Install-Pnpm
     Install-ViaPnpm
-} elseif ($Binary) {
-    Install-Binary
 } else {
-    # Default: use the registry when a usable Node.js is available, otherwise
-    # fetch the prebuilt launcher and cli.js.
-    if ((Test-NodeInstalled) -and (Test-NodeVersion $MinimumNodeVersion)) {
-        Install-Pnpm
-        Install-ViaPnpm
-    } else {
-        Install-Binary
-    }
+    # Default (and -Binary): the prebuilt launcher and cli.js from the latest
+    # release. `-Source -Ref <tag>` builds from a checkout instead.
+    Install-Binary
 }

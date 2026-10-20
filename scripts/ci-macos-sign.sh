@@ -23,9 +23,9 @@
 #
 # A bare Mach-O executable cannot be stapled (stapling only supports .app/.pkg/
 # .dmg), so the notarization ticket is served online: Gatekeeper fetches it by
-# cdhash on first assessment. `curl` downloads and Homebrew *formula* installs do
-# not set the quarantine bit, so they never invoke Gatekeeper; for an offline,
-# quarantined cask we would need a stapleable .pkg/.dmg wrapper (follow-up).
+# cdhash on first assessment. `curl` downloads do not set the quarantine bit,
+# so they never invoke Gatekeeper; for an offline, quarantined download we would
+# need a stapleable .pkg/.dmg wrapper (follow-up).
 # Apple's `codesign --verify --strict` and the launch check under the final
 # signature run on a macOS runner afterwards (release_smoke in
 # .github/workflows/ci.yml); notarization itself rejects a malformed signature

@@ -61,16 +61,11 @@ on:
          - "patches/**"
          - ".github/**"
    workflow_dispatch:
-      inputs:
-         skip_npm:
-            description: "Skip npm publish"
-            type: boolean
-            default: false
 
 # Release runs publish a `v*` tag pushed atomically with main HEAD; sharing
 # the cheap branch-wide `CI-refs/heads/main` group meant a later main push
 # silently cancelled the in-flight release and left the tag without a GitHub
-# Release or npm publish (#2564). Detect release runs at workflow-scheduling
+# Release (#2564). Detect release runs at workflow-scheduling
 # time via the release-script commit subject (`chore: bump version to vX.Y.Z`),
 # via `v*` tag-ref dispatches, and via manual dispatches whose tag-on-HEAD
 # status is only known after checkout; scope them to a per-sha group with no
@@ -116,8 +111,8 @@ jobs:
       outputs:
          is-release: ${{ steps.detect.outputs.is-release }}
          release-tag: ${{ steps.detect.outputs.release-tag }}
-         # Canary tags publish to npm's canary dist-tag (derived script-side), mark
-         # the GitHub release prerelease, and skip the stable-only brew tap.
+         # Canary tags mark the GitHub release prerelease and are what `omp
+         # update --canary` resolves.
          channel: ${{ steps.detect.outputs.channel }}
       steps:
          # Only a main-branch run needs tags fetched, so `git tag --points-at
@@ -271,7 +266,8 @@ jobs:
    # toolchain and build settings plus crates/** and BUILD.bazel). With no
    # exact entry (the PR changes native inputs, or main has not built this
    # state yet) they take main's newest entry, and with no entry at all the
-   # latest npm release. The workspace loader skips its version sentinel for
+   # latest release's `natives-linux-x64.tar.gz` asset. The workspace loader
+   # skips its version sentinel for
    # workspace loads, so any of these load under a newer checkout. Testing
    # against main's build instead of the last release keeps merged-but-
    # unreleased native fixes from failing every PR that did not touch Rust
@@ -306,7 +302,7 @@ jobs:
               echo "prefix=natives-linux-x64-v1-" >> "$GITHUB_OUTPUT"
               echo "key=natives-linux-x64-v1-$NATIVE_INPUTS_HASH" >> "$GITHUB_OUTPUT"
 
-         # ---- PR path: main-built addons from actions/cache, else npm ----
+         # ---- PR path: main-built addons from actions/cache, else release ----
          # `ci-natives` is a plain workspace-relative path on purpose: the
          # cache version hashes the literal path list, so kata (save) and
          # hosted (restore) must spell it identically, and upload-artifact
@@ -320,17 +316,17 @@ jobs:
               key: ${{ steps.natives-key.outputs.key }}
               restore-keys: |
                  ${{ steps.natives-key.outputs.prefix }}
-         - name: Fetch release native addons (npm)
+         - name: Fetch release native addons (GitHub release)
            if: github.event_name == 'pull_request' && steps.natives-cache.outputs.cache-matched-key == ''
            shell: bash
            run: |
               set -euo pipefail
-              tarball="$(npm view @oh-my-pi/pi-natives-linux-x64@latest dist.tarball)"
-              echo "Fetching $tarball"
-              curl -fsSL --retry 3 "$tarball" | tar -xz -C "$RUNNER_TEMP"
+              url="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/natives-linux-x64.tar.gz"
+              echo "Fetching $url"
+              curl -fsSL --retry 3 "$url" | tar -xz -C "$RUNNER_TEMP"
               mkdir -p ci-natives/natives-linux-x64-baseline ci-natives/natives-linux-x64-modern
-              cp "$RUNNER_TEMP/package/pi_natives.linux-x64-baseline.node" ci-natives/natives-linux-x64-baseline/
-              cp "$RUNNER_TEMP/package/pi_natives.linux-x64-modern.node" ci-natives/natives-linux-x64-modern/
+              cp "$RUNNER_TEMP"/natives-linux-x64-baseline/*.node ci-natives/natives-linux-x64-baseline/
+              cp "$RUNNER_TEMP"/natives-linux-x64-modern/*.node ci-natives/natives-linux-x64-modern/
          # Make the addon source visible whenever it is not source-matched,
          # instead of leaving a reviewer to wonder which addons the tests ran.
          - name: Report native addon source
@@ -345,7 +341,7 @@ jobs:
               elif [ -n "$MATCHED" ]; then
                 echo "::notice title=Native addons not source-matched::No main build matches this PR's native sources; testing against main's newest addon build ($MATCHED). Native changes are validated post-merge on main and at release."
               else
-                echo "::notice title=Native addons from npm::No main-built addon cache entry is available; testing against the latest npm release addons."
+                echo "::notice title=Native addons from release::No main-built addon cache entry is available; testing against the latest release addons."
               fi
 
          # ---- main path: bazel build of the linux-x64 pair ----
@@ -768,8 +764,7 @@ jobs:
    # whose artifacts supply their addons. The Node bundle is platform
    # independent, so each target only names its launcher; release_smoke then
    # runs each binary on its own platform.
-   # Publishing (npm leaves, GitHub release, build.stencil.so, core npm) is gated on
-   # release_gate downstream.
+   # Publishing (the GitHub release) is gated on release_gate downstream.
    release_binary:
       name: "Release binary: ${{ matrix.target_id }}"
       if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
@@ -857,7 +852,7 @@ jobs:
    # Every release binary is cross-built on Linux (release_binary); this runs
    # each one on its own platform before anything publishes: download the
    # artifact, then `--version` and `--smoke-test` in a throwaway home. These
-   # are the exact bytes release_github and release_build publish, so no job
+   # are the exact bytes release_github publishes, so no job
    # re-verifies the published assets.
    release_smoke:
       name: "Smoke release binary: ${{ matrix.target_id }}"
@@ -935,81 +930,6 @@ jobs:
               & $env:BINARY --smoke-test
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-   # Publishes the six @oh-my-pi/pi-natives-<tag> leaf packages once
-   # validation passes and every binary built. Runs on one linux runner: leaf
-   # publishing is platform-agnostic file packaging (gen-npm-packages reads
-   # packages/natives/native), so no per-platform runners are needed.
-   release_native_leaves:
-      name: Publish native leaf packages
-      if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
-         needs.release_gate.result == 'success' &&
-         needs.release_binary.result == 'success' &&
-         needs.release_smoke.result == 'success' &&
-         !inputs.skip_npm }}
-      needs: [release_metadata, release_gate, release_binary, release_smoke]
-      runs-on: ubuntu-22.04
-      # id-token lets npm mint the OIDC token for trusted publishing; the
-      # NODE_AUTH_TOKEN below is the fallback for unconfigured packages.
-      permissions:
-         id-token: write
-         contents: read
-      steps:
-         - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-         - uses: ./.github/actions/pnpm-install
-         - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-           with:
-              node-version: "24"
-              registry-url: "https://registry.npmjs.org"
-         # The release script shells out to npm; pin npm 11 for
-         # trusted-publishing support instead of relying on the bundled one.
-         - name: Ensure npm supports trusted publishing
-           run: npm install -g npm@11.17.0
-         # Every leaf's addon from the native_addons artifacts (gnu targets
-         # only — musl reuses the linux filenames and has no leaf package).
-         - name: Install native addons
-           uses: ./.github/actions/native-artifacts
-           with:
-              targets: linux-x64-baseline linux-x64-modern linux-arm64 darwin-x64-baseline darwin-arm64 win32-x64-baseline win32-arm64
-         - name: Publish native leaf packages
-           env:
-              # Fallback auth: setup-node wrote an .npmrc referencing
-              # NODE_AUTH_TOKEN; npm uses it only when OIDC has no trusted
-              # publisher for the package (or on a first publish).
-              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-           # The six leaves are independent: each process generates its own
-           # packages/natives/npm/<tag> dir and packs into a private temp dir,
-           # and the legal payload is tracked in packages/natives, so nothing
-           # shared is written. Serially they cost ~140 s on the release
-           # critical path. Every leaf runs to completion so one failure does
-           # not strand the others half-published; reruns skip published ones.
-           run: |
-              set -uo pipefail
-              logs="$RUNNER_TEMP/native-leaf-logs"
-              mkdir -p "$logs"
-              tags=(linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64 win32-arm64)
-              pids=()
-              for tag in "${tags[@]}"; do
-                pnpm run ci:release:publish-native-leaf "$tag" >"$logs/$tag.log" 2>&1 &
-                pids+=("$!")
-              done
-              failed=()
-              for i in "${!tags[@]}"; do
-                tag="${tags[$i]}"
-                if wait "${pids[$i]}"; then
-                  status=ok
-                else
-                  status="failed (exit $?)"
-                  failed+=("$tag")
-                fi
-                echo "::group::$tag: $status"
-                cat "$logs/$tag.log"
-                echo "::endgroup::"
-              done
-              if [ "${#failed[@]}" -gt 0 ]; then
-                echo "::error title=Native leaf publish::failed: ${failed[*]}"
-                exit 1
-              fi
-
    release_github:
       name: Publish GitHub release
       if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
@@ -1038,6 +958,16 @@ jobs:
               pattern: omp-binary-*
               path: packages/coding-agent/binaries
               merge-multiple: true
+         # The linux-x64 pair is also a release asset: PR runs with no
+         # actions/cache entry for their native sources restore it instead of
+         # asking every contributor to build Rust.
+         - name: Download linux-x64 native addons
+           uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+           with:
+              name: natives-linux-x64
+              path: native-addons
+         - name: Package linux-x64 native addons
+           run: tar -czf packages/coding-agent/binaries/natives-linux-x64.tar.gz -C native-addons .
          # Bundles the extension with the workspace toolchain installed above.
          - name: Build browser relay artifacts
            run: pnpm --dir packages/browser-relay run build
@@ -1049,6 +979,7 @@ jobs:
               pnpm run ci:release:checksums SHA256SUMS.txt \
                 packages/coding-agent/binaries/omp-* \
                 packages/coding-agent/binaries/cli.js \
+                packages/coding-agent/binaries/natives-linux-x64.tar.gz \
                 packages/browser-relay/dist/omp-browser-relay-extension.zip \
                 LICENSE \
                 THIRD-PARTY-NOTICES.txt
@@ -1060,6 +991,7 @@ jobs:
               files: |
                  packages/coding-agent/binaries/omp-*
                  packages/coding-agent/binaries/cli.js
+                 packages/coding-agent/binaries/natives-linux-x64.tar.gz
                  packages/browser-relay/dist/omp-browser-relay-extension.zip
                  LICENSE
                  THIRD-PARTY-NOTICES.txt
@@ -1067,124 +999,3 @@ jobs:
               body_path: release-notes.md
               generate_release_notes: true
 
-   # Publishes the release binaries to build.stencil.so, which serves them
-   # (with binary patches between releases) to `omp update`, the install
-   # scripts' binary mode, and the Homebrew formula. Canary tags upload to the
-   # canary channel (derived script-side). Not gated on skip_npm: binary
-   # clients never read npm.
-   release_build:
-      name: Publish to build.stencil.so
-      if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
-         needs.release_gate.result == 'success' &&
-         needs.release_binary.result == 'success' &&
-         needs.release_smoke.result == 'success' &&
-         needs.release_github.result == 'success' }}
-      needs: [release_metadata, release_gate, release_binary, release_smoke, release_github]
-      runs-on: ubuntu-22.04
-      # `id-token: write` lets the upload mint the GitHub OIDC token (audience
-      # build.stencil.so) the service authenticates the publisher with.
-      permissions:
-         id-token: write
-         contents: read
-      steps:
-         - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-         - uses: ./.github/actions/pnpm-install
-         - name: Download release binaries
-           uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-           with:
-              pattern: omp-binary-*
-              path: packages/coding-agent/binaries
-              merge-multiple: true
-         - name: Publish to build.stencil.so
-           run: |
-              node --experimental-transform-types scripts/ci-build-upload.ts \
-                "${{ needs.release_metadata.outputs.release-tag }}" \
-                packages/coding-agent/binaries/omp-* \
-                packages/coding-agent/binaries/cli.js
-
-   release_npm:
-      name: Publish to npm
-      if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
-         needs.release_binary.result == 'success' &&
-         needs.release_smoke.result == 'success' &&
-         needs.release_build.result == 'success' &&
-         needs.release_native_leaves.result == 'success' &&
-         !inputs.skip_npm }}
-      # release_native_leaves must finish first: the core package lists the
-      # leaf packages as lockstep-versioned optionalDependencies, so installs
-      # resolve them the moment the core version is live. release_build too:
-      # binary updates install what build.stencil.so published (update-cli.ts),
-      # so the build service must lead npm.
-      needs: [release_metadata, release_binary, release_smoke, release_build, release_native_leaves]
-      runs-on: ubuntu-22.04
-      # `id-token: write` lets npm mint the GitHub OIDC token it exchanges for a
-      # short-lived publish token (trusted publishing + provenance). When a
-      # package has no matching trusted publisher configured, npm silently falls
-      # back to NODE_AUTH_TOKEN below — which also covers first-ever publishes.
-      permissions:
-         id-token: write
-         contents: read
-      steps:
-         - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-         - uses: ./.github/actions/pnpm-install
-         - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-           with:
-              node-version: "24"
-              registry-url: "https://registry.npmjs.org"
-         # The release script shells out to npm; pin npm 11 for
-         # trusted-publishing support instead of relying on the bundled one.
-         - name: Ensure npm supports trusted publishing
-           run: npm install -g npm@11.17.0
-         # The prepack executes workspace code which loads the Linux x64
-         # addon, so install the native_addons job's artifact before publishing.
-         - name: Install prebuilt native addons
-           uses: ./.github/actions/native-artifacts
-           with:
-              targets: linux-x64-baseline linux-x64-modern
-         - name: Publish to npm
-           env:
-              # Fallback auth: setup-node wrote an .npmrc referencing
-              # NODE_AUTH_TOKEN; npm uses it only when OIDC has no trusted
-              # publisher for the package (or on a first publish).
-              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-           run: pnpm run ci:release:publish
-
-   # Regenerate the Homebrew tap formula (can1357/homebrew-tap) from the build
-   # release_build just published to build.stencil.so and push it; the formula
-   # downloads from there. release_smoke already ran those binaries on their
-   # own platforms. No-ops when HOMEBREW_TAP_DEPLOY_KEY is unset, so a release
-   # never blocks on tap access.
-   release_brew:
-      name: Update Homebrew tap
-      if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
-         needs.release_metadata.outputs.channel != 'canary' &&
-         needs.release_build.result == 'success' }}
-      needs: [release_metadata, release_build]
-      runs-on: ubuntu-22.04
-      env:
-         HAS_TAP_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY != '' }}
-      steps:
-         - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-           if: env.HAS_TAP_KEY == 'true'
-         - uses: ./.github/actions/pnpm-install
-           if: env.HAS_TAP_KEY == 'true'
-         - name: Check out the Homebrew tap
-           if: env.HAS_TAP_KEY == 'true'
-           uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-           with:
-              repository: can1357/homebrew-tap
-              ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
-              path: homebrew-tap
-         - name: Regenerate and push the formula
-           if: env.HAS_TAP_KEY == 'true'
-           run: |
-              node --experimental-transform-types scripts/ci-update-brew-formula.ts "${{ needs.release_metadata.outputs.release-tag }}" --out homebrew-tap/Formula/omp.rb
-              cd homebrew-tap
-              if git diff --quiet -- Formula/omp.rb; then
-                echo "formula already up to date for ${{ needs.release_metadata.outputs.release-tag }}"
-                exit 0
-              fi
-              git -c user.name="github-actions[bot]" \
-                  -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-                  commit -m "omp ${{ needs.release_metadata.outputs.release-tag }}" -- Formula/omp.rb
-              git push origin HEAD:main

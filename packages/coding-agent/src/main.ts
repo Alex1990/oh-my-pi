@@ -41,7 +41,7 @@ import { processFileArguments } from "./cli/file-processor";
 import { buildInitialMessage } from "./cli/initial-message";
 import { formatKeyHint } from "@oh-my-pi/pi-tui/app-keybindings";
 import type { SessionPickerOptions } from "@oh-my-pi/pi-tui/apps/session-picker";
-import { fetchBuild, UPSTREAM_PRODUCT } from "./cli/build-service";
+import { fetchBuild } from "./cli/build-service";
 import { applyStartupCwd } from "./cli/startup-cwd";
 import { getLatestRelease, isSourceCheckout, managedInstallName } from "./cli/update-cli";
 import { findConfigFile } from "./config";
@@ -243,19 +243,14 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 	if (!cfgStartupCheckUpdate.get(settings)) {
 		return;
 	}
-	// A locally built fork has no upstream update channel: its binaries are not
-	// published under this identity, and installing an upstream build would move
-	// the config root back to ~/.omp.
-	if (APP_NAME !== UPSTREAM_PRODUCT) return;
 	try {
 		// Checkouts update through git and a manager (Tern) updates its omp itself:
 		// "run oyp update" would be wrong advice for both.
 		if (isSourceCheckout() || (await managedInstallName(process.execPath))) return;
 		const channel = cfgUpdateChannel.get(settings);
-		// A compiled binary updates from the build service; naming the running
-		// version lets the service prepare the patch `oyp update` will then use.
+		// A compiled binary updates from GitHub Releases.
 		const { version } = isCompiledBinary()
-			? await fetchBuild({ channel }, { timeoutMs: 5_000, fromVersion: currentVersion })
+			? await fetchBuild({ channel }, { timeoutMs: 5_000 })
 			: await getLatestRelease({ timeoutMs: 5_000, channel });
 		return bun.semver.order(version, currentVersion) > 0 ? version : undefined;
 	} catch {

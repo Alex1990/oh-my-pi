@@ -6,24 +6,24 @@ set -e
 #        curl -fsSL https://omp.sh/install | sh -s -- --binary --ref v18.8.9
 #
 # Options:
-#   --source       Install via pnpm (installs Node.js and pnpm if needed)
+#   --source       Build from a git checkout via pnpm (requires --ref <tag>)
 #   --binary       Always install prebuilt binary
 #   --ref <ref>    Install specific tag/commit/branch (source mode); binary
 #                  mode takes a release tag (v<version>)
 #   -r <ref>       Shorthand for --ref
 #
-# Prebuilt distributions come from the build service (PI_BUILD_URL, default
-# https://build.stencil.so): a platform launcher plus the shared `cli.js`
-# payload the launcher runs on Node.js. Both are checked against the service's
-# sha256 before install.
+# Prebuilt distributions come from GitHub Releases: a platform launcher plus
+# the shared `cli.js` payload the launcher runs on Node.js. Both are checked
+# against the release's `SHA256SUMS.txt` before install. `OMP_RELEASE_REPO`
+# selects the repository and `OMP_RELEASE_BASE` overrides the release base
+# (mirrors and tests).
 
-REPO="can1357/oh-my-pi"
-PACKAGE="@oh-my-pi/pi-coding-agent"
-INSTALL_DIR="${PI_INSTALL_DIR:-$HOME/.local/bin}"
-BUILD_URL="${PI_BUILD_URL:-https://build.stencil.so}"
-while [ "${BUILD_URL%/}" != "$BUILD_URL" ]; do
-    BUILD_URL="${BUILD_URL%/}"
+REPO="${OMP_RELEASE_REPO:-Alex1990/oh-my-pi}"
+RELEASE_BASE="${OMP_RELEASE_BASE:-https://github.com/${REPO}/releases}"
+while [ "${RELEASE_BASE%/}" != "$RELEASE_BASE" ]; do
+    RELEASE_BASE="${RELEASE_BASE%/}"
 done
+INSTALL_DIR="${PI_INSTALL_DIR:-$HOME/.local/bin}"
 MIN_NODE_VERSION="22.12.0"
 PNPM_VERSION="10.18.0"
 
@@ -260,74 +260,45 @@ has_git_lfs() {
     command -v git-lfs >/dev/null 2>&1
 }
 
-# Install via pnpm
+# Install from a source checkout via pnpm
 install_via_pnpm() {
     echo "Installing via pnpm..."
-    if [ -n "$REF" ]; then
-        if ! has_git; then
-            echo "git is required for --ref when installing from source"
-            exit 1
-        fi
-
-        TMP_DIR="$(mktemp -d)"
-        trap 'rm -rf "$TMP_DIR"' EXIT
-
-        if git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMP_DIR" >/dev/null 2>&1; then
-            :
-        else
-            git clone "https://github.com/${REPO}.git" "$TMP_DIR"
-            (cd "$TMP_DIR" && git checkout "$REF")
-        fi
-
-        # Pull LFS files
-        if has_git_lfs; then
-            (cd "$TMP_DIR" && git lfs pull)
-        fi
-
-        if [ ! -d "$TMP_DIR/packages/coding-agent" ]; then
-            echo "Expected package at ${TMP_DIR}/packages/coding-agent"
-            exit 1
-        fi
-
-        pnpm add -g "$TMP_DIR/packages/coding-agent" || {
-            echo "Failed to install from source"
-            exit 1
-        }
-    else
-        pnpm add -g "$PACKAGE" || {
-            echo "Failed to install $PACKAGE"
-            exit 1
-        }
+    if [ -z "$REF" ]; then
+        echo "--source requires --ref <tag>; prebuilt installs need no options."
+        exit 1
     fi
+    if ! has_git; then
+        echo "git is required for --ref when installing from source"
+        exit 1
+    fi
+
+    TMP_DIR="$(mktemp -d)"
+    trap 'rm -rf "$TMP_DIR"' EXIT
+
+    if git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMP_DIR" >/dev/null 2>&1; then
+        :
+    else
+        git clone "https://github.com/${REPO}.git" "$TMP_DIR"
+        (cd "$TMP_DIR" && git checkout "$REF")
+    fi
+
+    # Pull LFS files
+    if has_git_lfs; then
+        (cd "$TMP_DIR" && git lfs pull)
+    fi
+
+    if [ ! -d "$TMP_DIR/packages/coding-agent" ]; then
+        echo "Expected package at ${TMP_DIR}/packages/coding-agent"
+        exit 1
+    fi
+
+    pnpm add -g "$TMP_DIR/packages/coding-agent" || {
+        echo "Failed to install from source"
+        exit 1
+    }
     echo ""
     echo "✓ Installed omp via pnpm"
     echo "Run 'omp' to get started!"
-}
-
-# The string value of field "$1" in the one-line JSON on stdin (last
-# occurrence). Escaped quotes inside JSON strings never end in `"<key>"`, so
-# string contents cannot fake a key.
-json_string() {
-    sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"
-}
-
-# The members of the build service answer's top-level `file` object (the
-# requested target's file). `build.files[]` lists every target's file under the
-# `files` key, so its sha256s never match here.
-json_file_object() {
-    sed -n 's/.*"file"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p'
-}
-
-# The members of the build service answer's top-level `files` array: one
-# object per uploaded file, including the shared `cli.js` payload.
-json_files_array() {
-    sed -n 's/.*"files"[[:space:]]*:[[:space:]]*\[\([^]]*\)\].*/\1/p'
-}
-
-# The object in JSON array "$2" whose `name` is "$1". Entries never nest, so
-# `[^{}]*` cannot cross into the neighbouring object.
-json_object_named() {
-    printf '%s' "$2" | sed -n "s/.*{\([^{}]*\"name\"[[:space:]]*:[[:space:]]*\"$1\"[^{}]*\)}.*/\1/p"
 }
 
 # Hex sha256 of file "$1".
@@ -339,7 +310,7 @@ sha256_of() {
     fi
 }
 
-# Install binary from the build service
+# Install the prebuilt binary and cli.js from the GitHub release
 install_binary() {
     if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
         echo "sha256sum or shasum is required to verify the downloaded binary"
@@ -352,14 +323,13 @@ install_binary() {
 
     case "$OS" in
         Linux)  PLATFORM="linux" ;;
-        Darwin) PLATFORM="macos" ;;
+        Darwin) PLATFORM="darwin" ;;
         *)      echo "Unsupported OS: $OS"; exit 1 ;;
     esac
 
     case "$ARCH" in
-        x64)   TARGET_ARCH="x86_64" ;;
-        arm64) TARGET_ARCH="arm64" ;;
-        *)     echo "Unsupported architecture: $ARCH"; exit 1 ;;
+        x64|arm64) TARGET_ARCH="$ARCH" ;;
+        *)         echo "Unsupported architecture: $ARCH"; exit 1 ;;
     esac
 
     if [ "$PLATFORM" = "linux" ]; then
@@ -375,35 +345,34 @@ install_binary() {
             echo "For branch/commit installs, use --source with --ref."
             exit 1
         fi
-        echo "Fetching omp ${REF#v}..."
-        API_URL="${BUILD_URL}/api/products/omp/versions/${REF#v}/${TARGET}"
+        RELEASE_PATH="download/${REF}"
+        VERSION="${REF#v}"
+        echo "Fetching omp ${VERSION}..."
     else
+        RELEASE_PATH="latest/download"
+        VERSION=""
         echo "Fetching latest release..."
-        API_URL="${BUILD_URL}/api/products/omp/latest/${TARGET}?channel=stable"
     fi
-    if ! BUILD_JSON=$(curl -fsSL --connect-timeout 10 --max-time 60 "$API_URL"); then
-        echo "Failed to resolve an omp build for ${TARGET} from ${API_URL}"
+    ASSET_NAME="omp-${TARGET}"
+    ASSET_URL="${RELEASE_BASE}/${RELEASE_PATH}/${ASSET_NAME}"
+    SUMS_URL="${RELEASE_BASE}/${RELEASE_PATH}/SHA256SUMS.txt"
+    if ! RELEASE_SUMS=$(curl -fsSL --connect-timeout 10 --max-time 60 "$SUMS_URL"); then
+        echo "Failed to fetch ${SUMS_URL}"
         exit 1
     fi
-    BUILD_JSON=$(printf '%s' "$BUILD_JSON" | tr -d '\r\n')
-
-    VERSION=$(printf '%s\n' "$BUILD_JSON" | json_string version)
-    BUILD_ID=$(printf '%s\n' "$BUILD_JSON" | json_string id)
-    FILE_JSON=$(printf '%s\n' "$BUILD_JSON" | json_file_object)
-    BINARY=$(printf '%s\n' "$FILE_JSON" | json_string name)
-    EXPECTED_SHA256=$(printf '%s\n' "$FILE_JSON" | json_string sha256)
-    FILES_JSON=$(printf '%s\n' "$BUILD_JSON" | json_files_array)
-    CLI_JSON=$(json_object_named "cli.js" "$FILES_JSON")
-    CLI_SHA256=$(printf '%s\n' "$CLI_JSON" | json_string sha256)
-    # Go's JSON encoder writes `&` in the presigned URL as \u0026.
-    DOWNLOAD_URL=$(printf '%s\n' "$BUILD_JSON" | json_string download | sed 's/\\u0026/\&/g')
-    if [ -z "$VERSION" ] || [ -z "$BUILD_ID" ] || [ -z "$BINARY" ] || [ -z "$DOWNLOAD_URL" ] ||
-        ! printf '%s\n' "$EXPECTED_SHA256" | grep -Eq '^[0-9a-f]{64}$' ||
-        ! printf '%s\n' "$CLI_SHA256" | grep -Eq '^[0-9a-f]{64}$'; then
-        echo "Unexpected answer from ${API_URL}"
+    EXPECTED_SHA256=$(printf '%s\n' "$RELEASE_SUMS" |
+        awk -v name="$ASSET_NAME" '$1 ~ /^[0-9a-fA-F]{64}$/ && ($2 == name || $2 == "*" name) { print tolower($1); exit }')
+    CLI_SHA256=$(printf '%s\n' "$RELEASE_SUMS" |
+        awk '$1 ~ /^[0-9a-fA-F]{64}$/ && ($2 == "cli.js" || $2 == "*cli.js") { print tolower($1); exit }')
+    if [ -z "$EXPECTED_SHA256" ] || [ -z "$CLI_SHA256" ]; then
+        echo "No checksum for ${ASSET_NAME} or cli.js in ${SUMS_URL}"
         exit 1
     fi
-    echo "Using version: $VERSION"
+    if [ -n "$VERSION" ]; then
+        echo "Using version: $VERSION"
+    else
+        echo "Using the latest release"
+    fi
 
     mkdir -p "$INSTALL_DIR"
     # Download next to the destinations and move them into place only once the
@@ -411,16 +380,16 @@ install_binary() {
     DOWNLOAD_PATH="${INSTALL_DIR}/.omp.download.$$"
     CLI_DOWNLOAD_PATH="${INSTALL_DIR}/.cli.download.$$"
     trap 'rm -f "$DOWNLOAD_PATH" "$CLI_DOWNLOAD_PATH"' EXIT
-    echo "Downloading ${BINARY}..."
-    curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+    echo "Downloading ${ASSET_NAME}..."
+    curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$ASSET_URL" -o "$DOWNLOAD_PATH"
     ACTUAL_SHA256="$(sha256_of "$DOWNLOAD_PATH")"
     if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
-        echo "Checksum mismatch for ${BINARY}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
+        echo "Checksum mismatch for ${ASSET_NAME}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
         exit 1
     fi
     echo "Downloading cli.js..."
     curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 \
-        "${BUILD_URL}/d/omp/${BUILD_ID}/cli.js" -o "$CLI_DOWNLOAD_PATH"
+        "${RELEASE_BASE}/${RELEASE_PATH}/cli.js" -o "$CLI_DOWNLOAD_PATH"
     CLI_ACTUAL_SHA256="$(sha256_of "$CLI_DOWNLOAD_PATH")"
     if [ "$CLI_ACTUAL_SHA256" != "$CLI_SHA256" ]; then
         echo "Checksum mismatch for cli.js: expected ${CLI_SHA256}, got ${CLI_ACTUAL_SHA256}"
@@ -501,19 +470,10 @@ case "$MODE" in
         install_binary
         ;;
     *)
-        # Default: install from the registry when a usable Node.js matches the
-        # host architecture; otherwise fetch the prebuilt launcher and cli.js
-        # (installing Node.js when the host has none).
-        if has_node && node_version_ok && node_arch_matches_host; then
-            if ! command -v pnpm >/dev/null 2>&1; then
-                install_pnpm
-            fi
-            install_via_pnpm
-        else
-            if has_node && ! node_arch_matches_host; then
-                echo "Detected node with architecture '$(node_arch)' on a '$(host_arch)' host; using the prebuilt payload instead."
-            fi
-            install_binary
-        fi
+        # Default: the prebuilt launcher and cli.js from the latest release
+        # (installing Node.js when the host has none). Release artifacts are
+        # the only distribution channel; `--source --ref <tag>` builds from a
+        # checkout instead.
+        install_binary
         ;;
 esac

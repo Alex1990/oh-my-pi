@@ -1,98 +1,88 @@
 import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type BuildHost,
+	checksumFor,
 	fetchBuild,
 	isMuslLinuxForTest,
-	parseBuildAnswer,
+	parseRelease,
+	releaseApiBase,
+	releaseRepo,
 	resolveBuildHost,
 } from "@oh-my-pi/pi-coding-agent/cli/build-service";
-import { VERSION } from "@oh-my-pi/pi-utils";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { APP_NAME } from "@oh-my-pi/pi-utils";
 
 const fileName = "omp-darwin-arm64";
 const sha = (text: string) => bun.SHA256.hash(text, "hex");
 
-/** A well-formed `latest` answer, with `overrides` merged over the top level. */
-function answer(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-	return {
-		build: { id: "20261011-120000-abcdef0", version: "18.8.9", channel: "stable" },
-		file: { name: fileName, platform: "macos", arch: "arm64", kind: "binary", size: 205_765_664, sha256: sha("new") },
-		download: "https://r2.test/omp/18.8.9/omp-darwin-arm64?X-Amz-Signature=x",
-		patch: {
-			format: "file",
-			from: "20261001-120000-1234567",
-			from_sha256: sha("old"),
-			size: 6_700_636,
-			sha256: sha("patch"),
-			url: "https://r2.test/patches/p?X-Amz-Signature=y",
+function assets(): Array<Record<string, unknown>> {
+	return [
+		{
+			name: fileName,
+			size: 205_765_664,
+			browser_download_url: `https://github.com/o/r/releases/download/v18.8.9/${fileName}`,
 		},
-		...overrides,
-	};
+		{
+			name: "cli.js",
+			size: 12_345,
+			browser_download_url: "https://github.com/o/r/releases/download/v18.8.9/cli.js",
+		},
+		{
+			name: "SHA256SUMS.txt",
+			size: 200,
+			browser_download_url: "https://github.com/o/r/releases/download/v18.8.9/SHA256SUMS.txt",
+		},
+	];
 }
 
-describe("build service answers", () => {
-	it("keeps a complete file patch and the version the check named as installed", () => {
-		const parsed = parseBuildAnswer(answer(), fileName, "18.8.8");
+/** A well-formed GitHub release, with `overrides` merged over the top level. */
+function release(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+	return { tag_name: "v18.8.9", draft: false, prerelease: false, assets: assets(), ...overrides };
+}
 
-		expect(parsed).toEqual({
+const sums = `${sha("new")}  ${fileName}\n${sha("cli")}  cli.js\n`;
+
+describe("release answers", () => {
+	it("keeps the version, tag, asset size, checksum, and download URL", () => {
+		expect(parseRelease(release(), fileName, sums)).toEqual({
 			version: "18.8.9",
+			tag: "v18.8.9",
 			file: { name: fileName, size: 205_765_664, sha256: sha("new") },
-			download: "https://r2.test/omp/18.8.9/omp-darwin-arm64?X-Amz-Signature=x",
-			patch: {
-				fromSha256: sha("old"),
-				fromVersion: "18.8.8",
-				size: 6_700_636,
-				sha256: sha("patch"),
-				url: "https://r2.test/patches/p?X-Amz-Signature=y",
-			},
+			download: `https://github.com/o/r/releases/download/v18.8.9/${fileName}`,
 		});
 	});
 
-	it("rejects answers that cannot be installed safely", () => {
-		const file = (fields: Record<string, unknown>) => ({ file: { ...(answer().file as object), ...fields } });
-		expect(() => parseBuildAnswer(answer(file({ sha256: sha("new").toUpperCase() })), fileName)).toThrow(
-			"invalid sha256",
-		);
-		expect(() => parseBuildAnswer(answer(file({ sha256: "abc" })), fileName)).toThrow("invalid sha256");
-		expect(() => parseBuildAnswer(answer(file({ size: 0 })), fileName)).toThrow("invalid size");
-		expect(() => parseBuildAnswer(answer(file({ name: "omp-darwin-x64" })), fileName)).toThrow(
-			"omp-darwin-x64 is not omp-darwin-arm64",
-		);
-		expect(() => parseBuildAnswer(answer({ download: "http://r2.test/omp" }), fileName)).toThrow("no HTTPS download");
-		expect(() => parseBuildAnswer(answer({ build: { version: "latest" } }), fileName)).toThrow("no valid version");
+	it("rejects releases that cannot be installed safely", () => {
+		expect(() => parseRelease(release({ tag_name: "latest" }), fileName, sums)).toThrow("no valid tag");
+		expect(() => parseRelease(release({ draft: true }), fileName, sums)).toThrow("draft");
+		expect(() => parseRelease(release({ assets: [] }), fileName, sums)).toThrow(`no ${fileName} asset`);
+		expect(() =>
+			parseRelease(release({ assets: assets().filter(asset => asset.name !== "SHA256SUMS.txt") }), fileName, sums),
+		).toThrow("no SHA256SUMS.txt asset");
+		expect(() => parseRelease(release(), fileName, "")).toThrow(`SHA256SUMS.txt has no entry for ${fileName}`);
+		expect(() =>
+			parseRelease(
+				release({
+					assets: [{ name: fileName, size: 1, browser_download_url: `http://github.com/${fileName}` }],
+				}),
+				fileName,
+				sums,
+			),
+		).toThrow("no HTTPS download");
 	});
 
-	it("installs the whole file when the patch is incomplete or not a file patch", () => {
-		const { url: _url, ...withoutUrl } = answer().patch as Record<string, unknown>;
-		expect(parseBuildAnswer(answer({ patch: withoutUrl }), fileName).patch).toBeUndefined();
-		expect(
-			parseBuildAnswer(answer({ patch: { ...(answer().patch as object), format: "tree" } }), fileName).patch,
-		).toBeUndefined();
-		expect(
-			parseBuildAnswer(answer({ patch: { ...(answer().patch as object), url: "http://r2.test/p" } }), fileName)
-				.patch,
-		).toBeUndefined();
+	it("accepts binary-mode checksum lines and never cross-matches a different asset", () => {
+		expect(checksumFor(`${sha("new").toUpperCase()} *${fileName}\n`, fileName)).toBe(sha("new"));
+		expect(checksumFor(`${sha("other")}  omp-darwin-x64\n`, fileName)).toBeUndefined();
 	});
 });
 
-describe("build service targets", () => {
-	it("maps platform, architecture, and libc to the service target and release file name", () => {
-		expect(resolveBuildHost("darwin", "arm64", false)).toEqual({
-			target: "macos-arm64",
-			fileName: "omp-darwin-arm64",
-		});
-		expect(resolveBuildHost("linux", "x64", true)).toEqual({
-			target: "linux-musl-x86_64",
-			fileName: "omp-linux-musl-x64",
-		});
-		expect(resolveBuildHost("linux", "arm64", false)).toEqual({
-			target: "linux-arm64",
-			fileName: "omp-linux-arm64",
-		});
-		expect(resolveBuildHost("win32", "x64", false)).toEqual({
-			target: "windows-x86_64",
-			fileName: "omp-windows-x64.exe",
-		});
+describe("release targets", () => {
+	it("maps platform, architecture, and libc to the release asset name", () => {
+		expect(resolveBuildHost("darwin", "arm64", false)).toEqual({ fileName: "omp-darwin-arm64" });
+		expect(resolveBuildHost("linux", "x64", true)).toEqual({ fileName: "omp-linux-musl-x64" });
+		expect(resolveBuildHost("linux", "arm64", false)).toEqual({ fileName: "omp-linux-arm64" });
+		expect(resolveBuildHost("win32", "x64", false)).toEqual({ fileName: "omp-windows-x64.cmd" });
 	});
 
 	it("does not mistake an installed musl loader for a glibc host", () => {
@@ -117,67 +107,93 @@ describe("build service targets", () => {
 });
 
 describe("fetchBuild", () => {
-	const host: BuildHost = { target: "macos-arm64", fileName };
-	const previousUrl = process.env.PI_BUILD_URL;
+	const host: BuildHost = { fileName };
+	const previousApi = process.env.OMP_RELEASE_API;
+	const previousRepo = process.env.OMP_RELEASE_REPO;
 
 	afterEach(() => {
-		if (previousUrl === undefined) delete process.env.PI_BUILD_URL;
-		else process.env.PI_BUILD_URL = previousUrl;
+		if (previousApi === undefined) delete process.env.OMP_RELEASE_API;
+		else process.env.OMP_RELEASE_API = previousApi;
+		if (previousRepo === undefined) delete process.env.OMP_RELEASE_REPO;
+		else process.env.OMP_RELEASE_REPO = previousRepo;
 	});
 
-	it("asks the configured origin for the channel's newest build, naming the installed version", async () => {
-		process.env.PI_BUILD_URL = "https://build.test/";
-		const requests: Array<{ url: string; userAgent: string | null; signal: AbortSignal | null | undefined }> = [];
-
+	it("asks the configured API for the newest stable release", async () => {
+		process.env.OMP_RELEASE_API = "https://api.test/repos/o/r/";
+		const requests: Array<string> = [];
 		const build = await fetchBuild(
-			{ channel: "canary" },
+			{ channel: "stable" },
 			{
 				host,
-				fromVersion: "18.8.8",
-				fetchImpl: async (input, init) => {
-					requests.push({
-						url: String(input),
-						userAgent: new Headers(init?.headers).get("User-Agent"),
-						signal: init?.signal,
-					});
-					return Response.json(answer());
+				fetchImpl: async input => {
+					const url = String(input);
+					requests.push(url);
+					return url.endsWith("/SHA256SUMS.txt") ? new Response(sums) : Response.json(release());
 				},
 			},
 		);
 
-		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toBe(
-			"https://build.test/api/products/omp/latest/macos-arm64?channel=canary&from_version=18.8.8",
-		);
-		expect(requests[0].userAgent).toBe(`omp/${VERSION}`);
-		expect(requests[0].signal).toBeInstanceOf(AbortSignal);
-		expect(build.patch?.fromVersion).toBe("18.8.8");
+		expect(requests).toEqual([
+			"https://api.test/repos/o/r/releases/latest",
+			"https://github.com/o/r/releases/download/v18.8.9/SHA256SUMS.txt",
+		]);
+		expect(build.version).toBe("18.8.9");
 	});
 
-	it("asks for one exact version without a channel", async () => {
-		delete process.env.PI_BUILD_URL;
-		let url = "";
-
+	it("asks for one exact version by tag", async () => {
+		process.env.OMP_RELEASE_API = "https://api.test/repos/o/r";
+		const requests: string[] = [];
 		await fetchBuild(
 			{ version: "18.8.9" },
 			{
 				host,
 				fetchImpl: async input => {
-					url = String(input);
-					return Response.json(answer());
+					const url = String(input);
+					requests.push(url);
+					return url.endsWith("/SHA256SUMS.txt") ? new Response(sums) : Response.json(release());
 				},
 			},
 		);
-
-		expect(url).toBe("https://build.stencil.so/api/products/omp/versions/18.8.9/macos-arm64");
+		expect(requests[0]).toBe("https://api.test/repos/o/r/releases/tags/v18.8.9");
 	});
 
-	it("names the target when nothing is published for it", async () => {
+	it("takes the newest prerelease on the canary channel, skipping drafts", async () => {
+		process.env.OMP_RELEASE_API = "https://api.test/repos/o/r";
+		let listUrl = "";
+		const build = await fetchBuild(
+			{ channel: "canary" },
+			{
+				host,
+				fetchImpl: async input => {
+					const url = String(input);
+					if (url.endsWith("/SHA256SUMS.txt")) return new Response(sums);
+					listUrl = url;
+					return Response.json([
+						release({ tag_name: "v19.0.0" }),
+						release({ tag_name: "v19.1.0-canary.2", prerelease: true }),
+						release({ tag_name: "v19.2.0-canary.3", prerelease: true, draft: true }),
+					]);
+				},
+			},
+		);
+		expect(listUrl).toBe("https://api.test/repos/o/r/releases?per_page=30");
+		expect(build.version).toBe("19.1.0-canary.2");
+	});
+
+	it("reports a missing release and a missing canary", async () => {
+		process.env.OMP_RELEASE_API = "https://api.test/repos/o/r";
 		await expect(
-			fetchBuild(
-				{ channel: "stable" },
-				{ host, fetchImpl: async () => Response.json({ error: "no_build" }, { status: 404 }) },
-			),
-		).rejects.toThrow("No omp stable build for macos-arm64 is published");
+			fetchBuild({ channel: "stable" }, { host, fetchImpl: async () => new Response("", { status: 404 }) }),
+		).rejects.toThrow("No stable release is published.");
+		await expect(
+			fetchBuild({ channel: "canary" }, { host, fetchImpl: async () => Response.json([]) }),
+		).rejects.toThrow(`No canary release is published. Try \`${APP_NAME} update --stable\`.`);
+	});
+
+	it("defaults to the release repository", () => {
+		delete process.env.OMP_RELEASE_API;
+		delete process.env.OMP_RELEASE_REPO;
+		expect(releaseRepo()).toBe("Alex1990/oh-my-pi");
+		expect(releaseApiBase()).toBe("https://api.github.com/repos/Alex1990/oh-my-pi");
 	});
 });

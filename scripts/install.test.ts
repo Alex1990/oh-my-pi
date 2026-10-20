@@ -5,14 +5,14 @@ import * as path from "node:path";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
-// install.sh binary mode against a fake build service. The host is faked as
+// install.sh binary mode against a fake GitHub release. The host is faked as
 // musl Linux x64 by shadowing uname/ldd via PATH; MSYS sh on Windows prepends
 // /usr/bin, so the stubs never win there.
 
 const repoRoot = path.join(import.meta.dirname, "..");
 const BINARY = '#!/bin/sh\necho "omp/1.0.0"\n';
 const CLI_JS = 'console.log("omp/1.0.0");\n';
-const BUILDS = "/d/omp/20261010-171748-fa5ff4a";
+const ASSET = "omp-linux-musl-x64";
 const cleanups: (() => Promise<void> | void)[] = [];
 
 afterEach(async () => {
@@ -24,85 +24,31 @@ function sha256(text: string): string {
 }
 
 /**
- * A build service answering every update check with version 1.0.0 of
- * `omp-linux-musl-x64`, whose `file` object carries `fileSha256`, plus the
- * shared `cli.js` bundle in `build.files[]`. Every other sha256 in the answer
- * (other targets in `build.files[]`, the patch, a JSON snippet in the notes) is
- * wrong, and the `download` URL holds a `\u0026` escape the way Go's encoder
- * writes presigned URLs.
+ * A fake GitHub release answering `SHA256SUMS.txt`, the host asset, and
+ * `cli.js`. Both `latest/download` and `download/<tag>` layouts are served, so
+ * the tests can assert which one the installer chose.
  */
-function startService(fileSha256: string, cliSha256 = sha256(CLI_JS)): { url: string; requests: string[] } {
+async function startRelease(
+	options: { binarySha?: string; cliSha?: string } = {},
+): Promise<{ base: string; requests: string[] }> {
+	const binarySha = options.binarySha ?? sha256(BINARY);
+	const cliSha = options.cliSha ?? sha256(CLI_JS);
 	const requests: string[] = [];
-	const server = serve({
+	const server = await serve({
 		port: 0,
 		fetch(request) {
 			const url = new URL(request.url);
-			requests.push(url.pathname + url.search);
-			if (url.pathname === "/dl/omp-linux-musl-x64") {
-				return url.searchParams.get("b") === "2"
-					? new Response(BINARY)
-					: new Response("bad query", { status: 403 });
+			requests.push(url.pathname);
+			if (url.pathname.endsWith("/SHA256SUMS.txt")) {
+				return new Response(`${binarySha}  ${ASSET}\n${cliSha}  cli.js\n`);
 			}
-			if (url.pathname === `${BUILDS}/cli.js`) return new Response(CLI_JS);
-			if (url.pathname.startsWith("/d/omp/")) return new Response("no such file", { status: 404 });
-			if (!url.pathname.startsWith("/api/products/omp/"))
-				return Response.json({ error: "no_build" }, { status: 404 });
-			const decoy = "0".repeat(64);
-			const answer = {
-				build: {
-					id: "20261010-171748-fa5ff4a",
-					product: "omp",
-					version: "1.0.0",
-					channel: "stable",
-					notes: `Answers look like {"file":{"sha256":"${decoy}"},"version":"9.9.9"}`,
-					files: [
-						{
-							name: "omp-linux-x64",
-							platform: "linux",
-							arch: "x86_64",
-							sha256: decoy,
-						},
-						{
-							name: "omp-linux-musl-x64",
-							platform: "linux-musl",
-							arch: "x86_64",
-							sha256: decoy,
-						},
-						{
-							name: "cli.js",
-							platform: "any",
-							arch: "any",
-							sha256: cliSha256,
-						},
-					],
-				},
-				file: {
-					name: "omp-linux-musl-x64",
-					platform: "linux-musl",
-					arch: "x86_64",
-					kind: "archive",
-					size: BINARY.length,
-					sha256: fileSha256,
-					url: "/d/omp/20261010-171748-fa5ff4a/omp-linux-musl-x64",
-				},
-				download: `${server.url.origin}/dl/omp-linux-musl-x64?a=1&b=2`,
-				patch: {
-					format: "file",
-					from: "20261009-000000-0000000",
-					from_sha256: decoy,
-					size: 1,
-					sha256: "f".repeat(64),
-					url: `${server.url.origin}/patch`,
-				},
-			};
-			return new Response(JSON.stringify(answer).replaceAll("&", "\\u0026"), {
-				headers: { "Content-Type": "application/json" },
-			});
+			if (url.pathname.endsWith(`/${ASSET}`)) return new Response(BINARY);
+			if (url.pathname.endsWith("/cli.js")) return new Response(CLI_JS);
+			return new Response("no such asset", { status: 404 });
 		},
 	});
 	cleanups.push(() => server.stop(true));
-	// Trailing slashes on PI_BUILD_URL are trimmed.
-	return { url: `${server.url.origin}/`, requests };
+	return { base: `${server.url.origin}/releases`, requests };
 }
 
 async function writeExecutable(file: string, content: string): Promise<void> {
@@ -111,7 +57,7 @@ async function writeExecutable(file: string, content: string): Promise<void> {
 }
 
 async function runInstall(
-	buildUrl: string,
+	releaseBase: string,
 	args: string[],
 ): Promise<{
 	exitCode: number;
@@ -132,7 +78,7 @@ async function runInstall(
 			PATH: `${binDir}:${process.env.PATH ?? ""}`,
 			HOME: dir,
 			PI_INSTALL_DIR: installDir,
-			PI_BUILD_URL: buildUrl,
+			OMP_RELEASE_BASE: releaseBase,
 		},
 		stdout: "pipe",
 		stderr: "pipe",
@@ -146,45 +92,49 @@ async function runInstall(
 }
 
 describe.skipIf(process.platform === "win32")("install.sh binary mode", () => {
-	test("installs the host target's build, verified against the answer's file sha256", async () => {
-		const service = startService(sha256(BINARY));
-		const result = await runInstall(service.url, ["--binary"]);
+	test("installs the latest release's asset, verified against SHA256SUMS.txt", async () => {
+		const release = await startRelease();
+		const result = await runInstall(release.base, ["--binary"]);
 
 		expect(result.exitCode, result.stdout + result.stderr).toBe(0);
-		expect(service.requests[0]).toBe("/api/products/omp/latest/linux-musl-x86_64?channel=stable");
-		expect(result.stdout).toContain("Using version: 1.0.0");
+		expect(release.requests).toContain("/releases/latest/download/SHA256SUMS.txt");
+		expect(release.requests).toContain(`/releases/latest/download/${ASSET}`);
+		expect(release.requests).toContain("/releases/latest/download/cli.js");
+		expect(result.stdout).toContain("Using the latest release");
 		expect((await fs.readdir(result.installDir)).sort()).toEqual(["cli.js", "omp"]);
 		expect(await bun.file(path.join(result.installDir, "omp")).text()).toBe(BINARY);
 		expect(await bun.file(path.join(result.installDir, "cli.js")).text()).toBe(CLI_JS);
 	});
 
-	test("refuses a download whose sha256 differs from the answer's file object", async () => {
-		const service = startService(sha256("something else"));
-		const result = await runInstall(service.url, ["--binary"]);
+	test("refuses a download whose sha256 differs from SHA256SUMS.txt", async () => {
+		const release = await startRelease({ binarySha: sha256("something else") });
+		const result = await runInstall(release.base, ["--binary"]);
 
 		expect(result.exitCode).not.toBe(0);
-		expect(result.stdout).toContain("Checksum mismatch for omp-linux-musl-x64");
+		expect(result.stdout).toContain(`Checksum mismatch for ${ASSET}`);
 		expect(await fs.readdir(result.installDir)).toEqual([]);
 	});
 
-	test("refuses a cli.js whose sha256 differs from the answer's build file entry", async () => {
-		const service = startService(sha256(BINARY), sha256("another bundle"));
-		const result = await runInstall(service.url, ["--binary"]);
+	test("refuses a cli.js whose sha256 differs from SHA256SUMS.txt", async () => {
+		const release = await startRelease({ cliSha: sha256("another bundle") });
+		const result = await runInstall(release.base, ["--binary"]);
 
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stdout).toContain("Checksum mismatch for cli.js");
 		expect(await fs.readdir(result.installDir)).toEqual([]);
 	});
 
-	test("--ref resolves a release tag through the versions endpoint and rejects other refs", async () => {
-		const service = startService(sha256(BINARY));
-		const tagged = await runInstall(service.url, ["--binary", "--ref", "v1.0.0"]);
+	test("--ref resolves the tagged release and rejects non-tag refs", async () => {
+		const release = await startRelease();
+		const tagged = await runInstall(release.base, ["--binary", "--ref", "v1.0.0"]);
 		expect(tagged.exitCode, tagged.stdout + tagged.stderr).toBe(0);
-		expect(service.requests[0]).toBe("/api/products/omp/versions/1.0.0/linux-musl-x86_64");
+		expect(release.requests).toContain("/releases/download/v1.0.0/SHA256SUMS.txt");
+		expect(release.requests).toContain(`/releases/download/v1.0.0/${ASSET}`);
+		expect(tagged.stdout).toContain("Using version: 1.0.0");
 
-		const branch = await runInstall(service.url, ["--binary", "--ref", "main"]);
+		const branch = await runInstall(release.base, ["--binary", "--ref", "main"]);
 		expect(branch.exitCode).toBe(1);
 		expect(branch.stdout).toContain("use --source with --ref");
-		expect(service.requests).toHaveLength(2);
+		expect(release.requests).toHaveLength(3);
 	});
 });

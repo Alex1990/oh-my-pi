@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-run
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { removeWithRetries, VERSION } from "@oh-my-pi/pi-utils";
+import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { currentBuildHost } from "../../src/cli/build-service";
 import { fixedNpmRegistry } from "../../src/cli/npm-registry";
 import { getLatestRelease, runUpdateCommand } from "../../src/cli/update-cli";
@@ -17,14 +17,14 @@ type FetchInit = RequestInit;
 
 describe("runUpdateCommand version source", () => {
 	const previousPath = process.env.PATH;
-	const previousBuildUrl = process.env.PI_BUILD_URL;
+	const previousApi = process.env.OMP_RELEASE_API;
 	const dirs: string[] = [];
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
 		process.env.PATH = previousPath;
-		if (previousBuildUrl === undefined) delete process.env.PI_BUILD_URL;
-		else process.env.PI_BUILD_URL = previousBuildUrl;
+		if (previousApi === undefined) delete process.env.OMP_RELEASE_API;
+		else process.env.OMP_RELEASE_API = previousApi;
 		await Promise.all(dirs.splice(0).map(dir => removeWithRetries(dir)));
 	});
 
@@ -70,44 +70,48 @@ describe("runUpdateCommand version source", () => {
 
 	it("checks npm, with a timeout, when no standalone binary is on PATH", async () => {
 		await isolatePath();
-		process.env.PI_BUILD_URL = "https://build.test";
 		quiet();
 		const requests = stubFetch(() => Response.json({ version: "999.0.0" }));
 
 		await runUpdateCommand({ force: false, check: true });
 
 		expect(requests.length).toBeGreaterThan(0);
-		expect(requests.some(request => request.url.startsWith("https://build.test/"))).toBe(false);
 		for (const request of requests) expect(request.signal).toBeInstanceOf(AbortSignal);
 	});
 
 	it.skipIf(process.platform === "win32")(
-		"updates a standalone binary from the build service without asking npm",
+		"updates a standalone binary from GitHub Releases without asking npm",
 		async () => {
 			const dir = await isolatePath();
 			const ompPath = path.join(dir, "omp");
 			await bun.write(ompPath, "#!/bin/sh\necho omp/1.0.0\n");
 			await fs.chmod(ompPath, 0o755);
 			const next = "#!/bin/sh\necho omp/999.0.0\n";
-			const { target, fileName } = await currentBuildHost();
-			process.env.PI_BUILD_URL = "https://build.test";
-			const check = `https://build.test/api/products/omp/latest/${target}?channel=stable&from_version=${VERSION}`;
+			const { fileName } = await currentBuildHost();
+			process.env.OMP_RELEASE_API = "https://api.test/repos/o/r";
+			const api = "https://api.test/repos/o/r/releases/latest";
+			const sumsUrl = "https://r2.test/SHA256SUMS.txt";
+			const download = "https://r2.test/omp";
 			const { logs } = quiet();
 			const requests = stubFetch(url => {
-				if (url === check) {
+				if (url === api) {
 					return Response.json({
-						build: { version: "999.0.0" },
-						file: { name: fileName, size: Buffer.byteLength(next), sha256: bun.SHA256.hash(next, "hex") },
-						download: "https://r2.test/omp",
+						tag_name: "v999.0.0",
+						draft: false,
+						assets: [
+							{ name: fileName, size: Buffer.byteLength(next), browser_download_url: download },
+							{ name: "SHA256SUMS.txt", size: 100, browser_download_url: sumsUrl },
+						],
 					});
 				}
-				if (url === "https://r2.test/omp") return new Response(next);
+				if (url === sumsUrl) return new Response(`${bun.SHA256.hash(next, "hex")}  ${fileName}\n`);
+				if (url === download) return new Response(next);
 				return new Response(null, { status: 404 });
 			});
 
 			await runUpdateCommand({ force: false, check: false });
 
-			expect(requests.map(request => request.url)).toEqual([check, "https://r2.test/omp"]);
+			expect(requests.map(request => request.url)).toEqual([api, sumsUrl, download]);
 			expect(await bun.file(ompPath).text()).toBe(next);
 			expect(logs.some(line => line.includes("Updated to 999.0.0"))).toBe(true);
 		},

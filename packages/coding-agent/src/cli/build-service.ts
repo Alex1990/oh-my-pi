@@ -1,30 +1,22 @@
 /**
- * Client for Stencil's build service, the source of omp's standalone binaries.
+ * Resolve omp's standalone binaries from GitHub Releases.
  *
  * `oyp update` on a standalone binary install, the binary takeover of a
  * package-manager install, and the startup update check of a compiled binary
- * all ask the service which build to install ({@link fetchBuild}):
+ * all ask GitHub which release to install ({@link fetchBuild}):
  *
- * - `GET {origin}/api/products/omp/latest/{target}?channel=stable|canary` for
- *   the newest build on a channel;
- * - `GET {origin}/api/products/omp/versions/{version}/{target}` for one exact
- *   version.
+ * - the newest stable release (`/releases/latest`);
+ * - the newest prerelease (`/releases`, canary channel);
+ * - one exact tag (`/releases/tags/v<version>`).
  *
- * omp is a public product, so no token is sent. The origin is `PI_BUILD_URL`
- * ({@link DEFAULT_BUILD_URL} when unset). `{target}` is
- * `{macos|linux|linux-musl|windows}-{arm64|x86_64}` ({@link resolveBuildHost}).
- * Requests carry `User-Agent: omp/<version>`, which the service counts in its
- * update-check statistics.
+ * Every release publishes the platform launchers (`omp-<os>-<arch>`), the
+ * shared `cli.js` bundle, and `SHA256SUMS.txt`. The checksum file is the trust
+ * anchor: the binary's SHA-256 is read from it rather than from the asset
+ * metadata.
  *
- * Adding `from_version=<installed version>` makes the answer carry an
- * HDiffPatch patch from that version's file to the answered one when the
- * service has it; when it does not yet, the service starts making it
- * (`patch_pending`) so a later check finds it.
- *
- * An answer is checked before anything in it is used ({@link parseBuildAnswer}):
- * a malformed answer is an error, a malformed `patch` is dropped so the whole
- * file still installs. `404 {"error":"no_build"}` means nothing is published
- * for the target (on the channel, or at the version).
+ * The repository is `OMP_RELEASE_REPO` ({@link DEFAULT_RELEASE_REPO} when
+ * unset). `OMP_RELEASE_API` overrides the API base for tests and mirrors.
+ * Requests carry `User-Agent: omp/<version>`.
  */
 import * as fs from "node:fs";
 import { $env, APP_NAME, isRecord, VERSION } from "@oh-my-pi/pi-utils";
@@ -40,64 +32,52 @@ export type UpdateChannel = "stable" | "canary";
 
 export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
-/** Build service origin used when `PI_BUILD_URL` is unset. */
-export const DEFAULT_BUILD_URL = "https://build.stencil.so";
+/** Repository that hosts omp's releases. */
+export const DEFAULT_RELEASE_REPO = "Alex1990/oh-my-pi";
 
-/** The product omp's builds are published under. */
+/** The product name upstream builds are published under. */
 export const UPSTREAM_PRODUCT = "omp";
-const PRODUCT = UPSTREAM_PRODUCT;
 
-const BUILD_CHECK_TIMEOUT_MS = 30_000;
-
-/** Build service origin: `PI_BUILD_URL` without trailing slashes, else {@link DEFAULT_BUILD_URL}. */
-export function buildServiceUrl(): string {
-	const configured = ($env.PI_BUILD_URL ?? "").trim().replace(/\/+$/, "");
-	return configured || DEFAULT_BUILD_URL;
+/** Release repository: `OMP_RELEASE_REPO`, else {@link DEFAULT_RELEASE_REPO}. */
+export function releaseRepo(): string {
+	const configured = ($env.OMP_RELEASE_REPO ?? "").trim().replace(/^\/+|\/+$/g, "");
+	return configured || DEFAULT_RELEASE_REPO;
 }
 
-/** Where this host's builds live on the build service. */
+/** GitHub API repository base; `OMP_RELEASE_API` overrides it for tests and mirrors. */
+export function releaseApiBase(): string {
+	const configured = ($env.OMP_RELEASE_API ?? "").trim().replace(/\/+$/, "");
+	return configured || `https://api.github.com/repos/${releaseRepo()}`;
+}
+
+const BUILD_CHECK_TIMEOUT_MS = 30_000;
+const CHECKSUM_FILE = "SHA256SUMS.txt";
+
+/** Where this host's builds live in a release. */
 export interface BuildHost {
-	/** Build service target, e.g. `macos-arm64` or `linux-musl-x86_64`. */
-	target: string;
-	/** Name of the target's file, the release asset name (e.g. `omp-darwin-arm64`). */
+	/** Release asset name for this host, e.g. `omp-darwin-arm64` or `omp-windows-x64.cmd`. */
 	fileName: string;
 }
 
-/** The build service target and file name for a platform, architecture, and libc. */
+/** The release asset name for a platform, architecture, and libc. */
 export function resolveBuildHost(platform: NodeJS.Platform, arch: string, musl: boolean): BuildHost {
-	let targetOs: string;
 	let fileOs: string;
 	switch (platform) {
 		case "darwin":
-			targetOs = "macos";
 			fileOs = "darwin";
 			break;
 		case "linux":
-			targetOs = musl ? "linux-musl" : "linux";
-			fileOs = targetOs;
+			fileOs = musl ? "linux-musl" : "linux";
 			break;
 		case "win32":
-			targetOs = "windows";
 			fileOs = "windows";
 			break;
 		default:
 			throw new Error(`Unsupported platform: ${platform}`);
 	}
-	let targetArch: string;
-	switch (arch) {
-		case "x64":
-			targetArch = "x86_64";
-			break;
-		case "arm64":
-			targetArch = "arm64";
-			break;
-		default:
-			throw new Error(`Unsupported architecture: ${arch}`);
-	}
-	return {
-		target: `${targetOs}-${targetArch}`,
-		fileName: `${PRODUCT}-${fileOs}-${arch}${platform === "win32" ? ".exe" : ""}`,
-	};
+	if (arch !== "x64" && arch !== "arm64") throw new Error(`Unsupported architecture: ${arch}`);
+	const suffix = platform === "win32" ? ".cmd" : "";
+	return { fileName: `${UPSTREAM_PRODUCT}-${fileOs}-${arch}${suffix}` };
 }
 
 /**
@@ -149,7 +129,7 @@ export function currentBuildHost(): Promise<BuildHost> {
 	return currentHost;
 }
 
-/** The answered build's file for this host. */
+/** The answered release's file for this host. */
 export interface BuildFile {
 	name: string;
 	size: number;
@@ -157,37 +137,20 @@ export interface BuildFile {
 	sha256: string;
 }
 
-/** HDiffPatch single-stream patch (`HDIFFSF20`) from an installed file to {@link BuildFile}. */
-export interface BuildPatch {
-	/** Lowercase hex SHA-256 of the file the patch applies to. */
-	fromSha256: string;
-	/** Version the check named as installed (`from_version`), for progress output. */
-	fromVersion?: string;
-	size: number;
-	/** Lowercase hex SHA-256 of the patch itself. */
-	sha256: string;
-	/** Presigned HTTPS URL of the patch. */
-	url: string;
-}
-
-/** A checked build service answer. */
+/** A checked GitHub release answer. */
 export interface BuildAnswer {
 	version: string;
+	/** Release tag as published, e.g. `v18.8.9`. */
+	tag: string;
 	file: BuildFile;
-	/** Presigned HTTPS URL of the whole file, valid for minutes. */
+	/** HTTPS URL of the whole file. */
 	download: string;
-	patch?: BuildPatch;
 }
 
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-const SHA256_HEX = /^[0-9a-f]{64}$/;
 
 function isSize(value: unknown): value is number {
 	return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
-}
-
-function isSha256(value: unknown): value is string {
-	return typeof value === "string" && SHA256_HEX.test(value);
 }
 
 function isHttpsUrl(value: unknown): value is string {
@@ -199,106 +162,154 @@ function isHttpsUrl(value: unknown): value is string {
 	}
 }
 
-/** The answer's patch when it is a complete `file` patch; anything else installs the whole file. */
-function parseBuildPatch(patch: unknown, fromVersion: string | undefined): BuildPatch | undefined {
-	if (!isRecord(patch) || patch.format !== "file") return undefined;
-	if (!isSha256(patch.from_sha256) || !isSize(patch.size) || !isSha256(patch.sha256) || !isHttpsUrl(patch.url)) {
-		return undefined;
-	}
-	return { fromSha256: patch.from_sha256, fromVersion, size: patch.size, sha256: patch.sha256, url: patch.url };
+interface ReleaseAsset {
+	name: string;
+	size: number;
+	download: string;
+}
+
+/** Tag of a release, or undefined when it is not a `v<semver>` release. */
+function releaseVersion(tag: unknown): string | undefined {
+	if (typeof tag !== "string") return undefined;
+	const version = tag.startsWith("v") ? tag.slice(1) : tag;
+	return SEMVER.test(version) ? version : undefined;
 }
 
 /**
- * Check a build service answer for the file named `fileName`.
+ * Check a GitHub release payload for `fileName`.
  *
- * Throws when the answer cannot be installed safely: a version that is not
- * semver, a file other than `fileName`, a size or SHA-256 that is not exact,
- * or a download that is not HTTPS. A `patch` is kept only when it is a
- * complete `format: "file"` patch; any other patch is dropped, not an error.
- * `fromVersion` is the `from_version` the check sent.
+ * Throws when the release cannot be installed safely: a tag that is not
+ * semver, a missing or malformed asset, a download that is not HTTPS, or a
+ * missing checksum manifest. The checksum is looked up by exact file name.
  */
-export function parseBuildAnswer(body: unknown, fileName: string, fromVersion?: string): BuildAnswer {
-	if (!isRecord(body) || !isRecord(body.build)) throw new Error("answer has no build");
-	const version = body.build.version;
-	if (typeof version !== "string" || !SEMVER.test(version)) throw new Error("build has no valid version");
-	const file = body.file;
-	if (!isRecord(file)) throw new Error("answer has no file");
-	if (file.name !== fileName) throw new Error(`answered file ${String(file.name)} is not ${fileName}`);
-	if (!isSize(file.size)) throw new Error(`${fileName} has an invalid size`);
-	if (!isSha256(file.sha256)) throw new Error(`${fileName} has an invalid sha256`);
-	if (!isHttpsUrl(body.download)) throw new Error(`${fileName} has no HTTPS download`);
+export function parseRelease(body: unknown, fileName: string, checksums: string): BuildAnswer {
+	if (!isRecord(body)) throw new Error("release answer is not an object");
+	const tag = body.tag_name;
+	const version = releaseVersion(tag);
+	if (typeof tag !== "string" || !version) throw new Error("release has no valid tag");
+	if (body.draft === true) throw new Error(`release ${tag} is a draft`);
+	const assets = body.assets;
+	if (!Array.isArray(assets)) throw new Error("release has no assets");
+	let file: ReleaseAsset | undefined;
+	let checksumAsset: ReleaseAsset | undefined;
+	for (const asset of assets) {
+		if (!isRecord(asset)) continue;
+		const name = asset.name;
+		const size = asset.size;
+		const download = asset.browser_download_url;
+		if (typeof name !== "string" || !isSize(size) || typeof download !== "string") continue;
+		if (name === fileName) file = { name, size, download };
+		else if (name === CHECKSUM_FILE) checksumAsset = { name, size, download };
+	}
+	if (!file) throw new Error(`release ${tag} has no ${fileName} asset`);
+	if (!isHttpsUrl(file.download)) throw new Error(`${fileName} has no HTTPS download`);
+	if (!checksumAsset) throw new Error(`release ${tag} has no ${CHECKSUM_FILE} asset`);
+	const sha256 = checksumFor(checksums, fileName);
+	if (!sha256) throw new Error(`${CHECKSUM_FILE} has no entry for ${fileName}`);
 	return {
 		version,
-		file: { name: fileName, size: file.size, sha256: file.sha256 },
-		download: body.download,
-		patch: parseBuildPatch(body.patch, fromVersion),
+		tag,
+		file: { name: fileName, size: file.size, sha256 },
+		download: file.download,
 	};
 }
 
-/** Which build to ask for: the newest on a channel, or one exact version. */
+/** The SHA-256 a `sha256sum`-compatible manifest lists for `fileName`. */
+export function checksumFor(manifest: string, fileName: string): string | undefined {
+	for (const line of manifest.split(/\r?\n/)) {
+		const match = /^([0-9a-fA-F]{64})\s+\*?(.+)$/.exec(line.trim());
+		if (match && match[2] === fileName) return match[1].toLowerCase();
+	}
+	return undefined;
+}
+
+/** Which release to ask for: the newest on a channel, or one exact version. */
 export type BuildSelector = { channel: UpdateChannel } | { version: string };
 
 export interface FetchBuildOptions {
-	/** Installed version to ask a patch from (`from_version`). */
-	fromVersion?: string;
 	timeoutMs?: number;
 	fetchImpl?: Fetch;
 	/** Defaults to {@link currentBuildHost}. */
 	host?: BuildHost;
 }
 
-/** Ask the build service for a build of this host's target ({@link BuildSelector}). */
-export async function fetchBuild(selector: BuildSelector, options: FetchBuildOptions = {}): Promise<BuildAnswer> {
-	const host = options.host ?? (await currentBuildHost());
-	const origin = buildServiceUrl();
+async function fetchJson(url: string, options: FetchBuildOptions, what: string): Promise<unknown> {
 	const timeoutMs = options.timeoutMs ?? BUILD_CHECK_TIMEOUT_MS;
-	const route =
-		"channel" in selector
-			? `latest/${host.target}`
-			: `versions/${encodeURIComponent(selector.version)}/${host.target}`;
-	const url = new URL(`${origin}/api/products/${PRODUCT}/${route}`);
-	if ("channel" in selector) url.searchParams.set("channel", selector.channel);
-	if (options.fromVersion) url.searchParams.set("from_version", options.fromVersion);
-	const what = `${APP_NAME} ${"channel" in selector ? `${selector.channel} build` : `build ${selector.version}`} for ${host.target}`;
-
+	const headers: Record<string, string> = {
+		Accept: "application/vnd.github+json",
+		"User-Agent": `${APP_NAME}/${VERSION}`,
+	};
+	const token = ($env.GITHUB_TOKEN ?? "").trim();
+	if (token) headers.Authorization = `Bearer ${token}`;
 	const mapError = (err: unknown): unknown => {
 		if (isTimeoutError(err)) {
-			return new Error(`Timed out asking ${origin} for the ${what} after ${Math.round(timeoutMs / 1000)}s`, {
+			return new Error(`Timed out asking GitHub for the ${what} after ${Math.round(timeoutMs / 1000)}s`, {
 				cause: err,
 			});
 		}
 		if (isUnsupportedProxyError(err)) return new Error(unsupportedProxyMessage(), { cause: err });
 		return err;
 	};
-
 	let response: Response;
 	let body: unknown;
 	try {
 		response = await (options.fetchImpl ?? fetch)(url, {
-			headers: { Accept: "application/json", "User-Agent": `${APP_NAME}/${VERSION}` },
+			headers,
 			signal: withTimeoutSignal(timeoutMs),
 		});
 		try {
 			body = await response.json();
 		} catch (err) {
-			// A malformed body is reported below; body-read timeouts and resets surface.
 			if (!(err instanceof SyntaxError)) throw err;
 		}
 	} catch (err) {
 		throw mapError(err);
 	}
+	if (response.status === 404) throw new Error(`No ${what} is published.`);
+	if (!response.ok) throw new Error(`GitHub answered ${response.status} ${response.statusText} for the ${what}`);
+	return body;
+}
 
-	if (response.status === 404 && isRecord(body) && body.error === "no_build") {
-		const hint =
-			"channel" in selector && selector.channel === "canary" ? ` Try \`${APP_NAME} update --stable\`.` : "";
-		throw new Error(`No ${what} is published on ${origin} yet.${hint}`);
+async function fetchChecksums(url: string, options: FetchBuildOptions): Promise<string> {
+	const timeoutMs = options.timeoutMs ?? BUILD_CHECK_TIMEOUT_MS;
+	const headers = { "User-Agent": `${APP_NAME}/${VERSION}` };
+	const response = await (options.fetchImpl ?? fetch)(url, { headers, signal: withTimeoutSignal(timeoutMs) });
+	if (!response.ok) throw new Error(`GitHub answered ${response.status} ${response.statusText} for ${CHECKSUM_FILE}`);
+	return response.text();
+}
+
+/** The release for `selector`, checked to be installable for this host. */
+async function findRelease(selector: BuildSelector, options: FetchBuildOptions): Promise<unknown> {
+	const api = releaseApiBase();
+	if ("version" in selector) {
+		const version = selector.version.replace(/^v/, "");
+		if (!SEMVER.test(version)) throw new Error(`${selector.version} is not a release version`);
+		return fetchJson(`${api}/releases/tags/v${encodeURIComponent(version)}`, options, `${version} release`);
 	}
-	if (!response.ok) {
-		throw new Error(`${origin} answered ${response.status} ${response.statusText} for the ${what}`);
+	if (selector.channel === "stable") {
+		return fetchJson(`${api}/releases/latest`, options, "stable release");
 	}
+	const url = `${api}/releases?per_page=30`;
+	const body = await fetchJson(url, options, "canary release");
+	if (!Array.isArray(body)) throw new Error("GitHub releases answer is not a list");
+	const canary = body.find(release => isRecord(release) && release.prerelease === true && release.draft !== true);
+	if (!canary) throw new Error(`No canary release is published. Try \`${APP_NAME} update --stable\`.`);
+	return canary;
+}
+
+/** Ask GitHub for a release of this host's target ({@link BuildSelector}). */
+export async function fetchBuild(selector: BuildSelector, options: FetchBuildOptions = {}): Promise<BuildAnswer> {
+	const host = options.host ?? (await currentBuildHost());
+	const release = await findRelease(selector, options);
+	if (!isRecord(release) || !Array.isArray(release.assets)) throw new Error("GitHub release answer is malformed");
+	const checksumAsset = release.assets.find(asset => isRecord(asset) && asset.name === CHECKSUM_FILE);
+	if (!isRecord(checksumAsset) || typeof checksumAsset.browser_download_url !== "string") {
+		throw new Error(`release has no ${CHECKSUM_FILE} asset`);
+	}
+	const checksums = await fetchChecksums(checksumAsset.browser_download_url, options);
 	try {
-		return parseBuildAnswer(body, host.fileName, options.fromVersion);
+		return parseRelease(release, host.fileName, checksums);
 	} catch (err) {
-		throw new Error(`Invalid answer from ${origin} for the ${what}: ${err instanceof Error ? err.message : err}`);
+		throw new Error(`Invalid release answer: ${err instanceof Error ? err.message : err}`);
 	}
 }

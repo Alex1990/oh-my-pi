@@ -25,12 +25,11 @@ const packageJsonGlob = new Glob("packages/*/package.json");
 const cargoTomlGlob = new Glob("crates/*/Cargo.toml");
 /**
  * Strict explicit-version guard: three numeric dot-segments with an optional
- * leading `v` and NO prerelease suffix. Prereleases are rejected because the
- * downstream publish (`scripts/ci-release-publish.ts`) runs `npm publish` with
- * no `--tag`, which would promote a prerelease to the npm `latest` dist-tag —
- * hitting every unqualified install and the `/latest` endpoint `omp update`
- * reads. Bump keywords (major/minor/patch) are handled separately and must not
- * be routed through this check.
+ * leading `v` and NO prerelease suffix. An explicit version cuts a stable
+ * release, which GitHub's `/releases/latest` lookup and every unqualified
+ * install resolve; prereleases must go through the `canary` keyword instead.
+ * Bump keywords (major/minor/patch) are handled separately and must not be
+ * routed through this check.
  *
  * Returns the normalized bare version (leading `v` stripped) when accepted, or
  * `null` when rejected. Callers must use the returned value for all writes so

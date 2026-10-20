@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/can1357/oh-my-pi/blob/main/assets/hero.png?raw=true" alt="omp">
+  <img src="https://raw.githubusercontent.com/Alex1990/oh-my-pi/main/assets/hero.png" alt="omp">
 </p>
 
 <p align="center">
@@ -8,10 +8,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent"><img src="https://img.shields.io/npm/v/@oh-my-pi/pi-coding-agent?style=flat&colorA=222222&colorB=CB3837" alt="npm version"></a>
-  <a href="https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
-  <a href="https://github.com/can1357/oh-my-pi/actions"><img src="https://img.shields.io/github/actions/workflow/status/can1357/oh-my-pi/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
-  <a href="https://github.com/can1357/oh-my-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/can1357/oh-my-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
+  <a href="https://github.com/Alex1990/oh-my-pi/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
+  <a href="https://github.com/Alex1990/oh-my-pi/actions"><img src="https://img.shields.io/github/actions/workflow/status/Alex1990/oh-my-pi/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
+  <a href="https://github.com/Alex1990/oh-my-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Alex1990/oh-my-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&colorA=222222&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-DEA584?style=flat&colorA=222222&logo=rust&logoColor=white" alt="Rust"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/runtime-Node.js%2024-339933?style=flat&colorA=222222&logo=node.js&logoColor=white" alt="Node.js"></a>
@@ -40,37 +39,25 @@ The most capable agent surface that ships. Continuously tuned by real-world use 
 curl -fsSL https://omp.sh/install | sh
 ```
 
-Without a usable Node.js runtime (or with `--binary`), the install scripts fetch the prebuilt bundle from `build.stencil.so` and check its SHA-256 before installing it. Pin a release with `curl -fsSL https://omp.sh/install | sh -s -- --binary --ref v<version>` (PowerShell: `-Binary -Ref v<version>`).
+Without a usable Node.js runtime (or with `--binary`), the install scripts download the prebuilt launcher and `cli.js` from the latest GitHub Release and verify them against the release's `SHA256SUMS.txt`. Pin a release with `curl -fsSL https://omp.sh/install | sh -s -- --binary --ref v<version>` (PowerShell: `-Binary -Ref v<version>`).
 
 > **Alpine / musl:** the prebuilt musl binary links `libstdc++`/`libgcc` dynamically, which stock Alpine does not ship. Install them first: `apk add libstdc++ libgcc`.
-
-**Homebrew**
-
-```sh
-brew install can1357/tap/omp
-```
-
-**pnpm (recommended)**
-
-```sh
-pnpm add -g @oh-my-pi/pi-coding-agent
-```
 
 **Nix**
 
 ```sh
 # Run without installing
-nix run github:can1357/oh-my-pi
+nix run github:Alex1990/oh-my-pi
 
 # Or install into the active profile (Nix < 2.30: `nix profile install`)
-nix profile add github:can1357/oh-my-pi
+nix profile add github:Alex1990/oh-my-pi
 ```
 
 Flake consumers can use `packages.<system>.omp`, `overlays.default`, `nixosModules.default`, or `homeManagerModules.default`. A Home Manager configuration can install OMP and own its settings declaratively:
 
 ```nix
 {
-  inputs.omp.url = "github:can1357/oh-my-pi";
+  inputs.omp.url = "github:Alex1990/oh-my-pi";
 
   # In your Home Manager module:
   imports = [ inputs.omp.homeManagerModules.default ];
