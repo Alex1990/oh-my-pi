@@ -14,7 +14,7 @@ on:
       paths:
          - "pnpm-lock.yaml"
          - "pnpm-workspace.yaml"
-         - ".github/actions/bun-install/**"
+         - ".github/actions/pnpm-install/**"
          - ".github/workflows/pnpm-cache-warm.yml"
    workflow_dispatch:
 
@@ -33,4 +33,4 @@ jobs:
       runs-on: ubuntu-22.04
       steps:
          - uses: actions/checkout@v4
-         - uses: ./.github/actions/bun-install
+         - uses: ./.github/actions/pnpm-install

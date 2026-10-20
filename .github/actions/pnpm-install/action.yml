@@ -2,8 +2,7 @@ name: "Node install (shared pnpm store)"
 description: >
    Ensure Node 24 and pnpm 10 are available, then run
    `pnpm install --frozen-lockfile` with the pnpm store cached by
-   actions/setup-node. The directory keeps its historical `bun-install` name so
-   existing `uses:` paths stay valid.
+   actions/setup-node.
 
 runs:
    using: composite

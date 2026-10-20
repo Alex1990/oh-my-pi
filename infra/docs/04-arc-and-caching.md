@@ -437,18 +437,18 @@ immutable download cache and sparse index at
 Source extraction, lock files, Cargo git checkouts, and `target/` remain
 job-local; virtio-fs does not propagate Cargo's file locks safely across VMs.
 
-**(c) Bun package store** -
-[`.github/actions/bun-install`](../../.github/actions/bun-install/action.yml)
-wraps `bun install --frozen-lockfile`. On omp-kata, the pod template mounts
-`runner-cache:/bun-store` at Bun's default store path
-(`/home/runner/.bun/install/cache`), so the action only ensures the directory
-exists before running Bun. Off-infra it still uses stock `actions/cache@v4` for
-the same store path.
+**(c) pnpm package store** -
+[`.github/actions/pnpm-install`](../../.github/actions/pnpm-install/action.yml)
+sets up pnpm 10 and Node 24, then wraps `pnpm install --frozen-lockfile`.
+Off-infra, `actions/setup-node`'s `cache: pnpm` restores the store from the
+GitHub Actions cache. A failed install is retried once against a fresh
+job-local store directory, so a corrupt shared entry cannot wedge the job. On
+omp-kata the shared store comes from the pod-template mount.
 
 `node_modules` is deliberately not shared. It is lockfile-, platform-, script-,
 and workspace-state-sensitive, and concurrent jobs would write through the same
-tree. The clean VM still runs `bun install --frozen-lockfile`; it just reuses the
-package tarball/extract store.
+tree. The clean VM still runs `pnpm install --frozen-lockfile`; it just reuses
+the package tarball/extract store.
 
 ### 5d. Poisoning boundary and pressure
 
