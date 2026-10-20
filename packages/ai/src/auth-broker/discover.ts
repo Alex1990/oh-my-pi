@@ -52,7 +52,7 @@ export interface DiscoverAuthStorageOptions {
 	authStorageOptions?: Omit<AuthStorageOptions, "accountPolicies" | "configValueResolver" | "sourceLabel">;
 }
 
-/** Path to the local bearer token file. Created by `omp auth-broker token`. */
+/** Path to the local bearer token file. Created by `oyp auth-broker token`. */
 export function getAuthBrokerTokenFilePath(): string {
 	return path.join(getConfigRootDir(), "auth-broker.token");
 }

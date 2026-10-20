@@ -43,8 +43,8 @@ describe("native executable custom tool discovery", () => {
 		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-builtin-tools-"));
 		const home = path.join(root, "home");
 		project = path.join(root, "project");
-		projectTools = path.join(project, ".omp", "tools");
-		userTools = path.join(home, ".omp", "agent", "tools");
+		projectTools = path.join(project, ".oyp", "tools");
+		userTools = path.join(home, ".oyp", "agent", "tools");
 		process.env.HOME = home;
 		vi.spyOn(os, "homedir").mockReturnValue(home);
 		setAgentDir(path.dirname(userTools));

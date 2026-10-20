@@ -593,7 +593,7 @@ export async function runCli(argv: string[]): Promise<void> {
 // is admitted via `!bun.isMainThread`.
 if (isProcessEntry || !bun.isMainThread) {
 	const postmortem: typeof Postmortem | undefined = isProcessEntry ? Postmortem : undefined;
-	// A one-shot CLI run (`omp --help | head`, `omp --version | true`, `omp <sub> | grep -m1`)
+	// A one-shot CLI run (`oyp --help | head`, `oyp --version | true`, `oyp <sub> | grep -m1`)
 	// whose stdout consumer closes before the write drains gets an EPIPE that Bun surfaces as
 	// an unhandled rejection. Treat a vanished stdout peer as an ordinary Unix disconnect
 	// (graceful exit) rather than the fatal path. Interactive launches register their own

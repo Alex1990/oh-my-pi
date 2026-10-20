@@ -79,7 +79,7 @@ describe("PluginManager.install load validation", () => {
 		vi.spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		vi.spyOn(piUtils, "getPluginsNodeModules").mockReturnValue(pluginsNodeModules);
 		vi.spyOn(piUtils, "getPluginsPackageJson").mockReturnValue(pluginsPkgJson);
-		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "omp-plugins.lock.json"));
+		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "oyp-plugins.lock.json"));
 		vi.spyOn(piUtils, "getProjectDir").mockReturnValue(tmpRoot);
 		vi.spyOn(piUtils, "getProjectPluginOverridesPath").mockReturnValue(path.join(tmpRoot, "plugin-overrides.json"));
 	});
@@ -285,7 +285,7 @@ describe("PluginManager.install load validation", () => {
 		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies ?? {}).toEqual({});
 		expect(await bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).exists()).toBe(false);
-		expect(await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).exists()).toBe(false);
 	});
 
 	test("restores the previous package tree when reinstall validation fails", async () => {
@@ -294,7 +294,7 @@ describe("PluginManager.install load validation", () => {
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: { "broken-plugin": "1.0.0" } }, null, 2),
 		);
 		await bun.write(
-			path.join(tmpRoot, "omp-plugins.lock.json"),
+			path.join(tmpRoot, "oyp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "broken-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
 				null,
@@ -345,7 +345,7 @@ describe("PluginManager.install load validation", () => {
 		).text();
 		expect(restoredExtension).toContain("old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
-		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
+		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["broken-plugin"]).toEqual({ version: "1.0.0", enabledFeatures: null, enabled: true });
 	});
 
@@ -359,7 +359,7 @@ describe("PluginManager.install load validation", () => {
 			),
 		);
 		await bun.write(
-			path.join(tmpRoot, "omp-plugins.lock.json"),
+			path.join(tmpRoot, "oyp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "git-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
 				null,
@@ -423,7 +423,7 @@ describe("PluginManager.install load validation", () => {
 		).text();
 		expect(restoredExtension).toContain("git-old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
-		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
+		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["git-plugin"]).toEqual({ version: "1.0.0", enabledFeatures: null, enabled: true });
 	});
 
@@ -473,7 +473,7 @@ describe("PluginManager.install load validation", () => {
 		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies ?? {}).toEqual({});
 		expect(await bun.file(path.join(pluginsNodeModules, "partial-plugin", "package.json")).exists()).toBe(false);
-		expect(await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).exists()).toBe(false);
 	});
 
 	test("restores bun.lock when a git reinstall fails validation (#3069 follow-up)", async () => {
@@ -495,7 +495,7 @@ describe("PluginManager.install load validation", () => {
 		const ORIGINAL_LOCK = '# bun.lock\n"git-plugin": "github:org/plugin#sha-v1"\n';
 		await bun.write(bunLockPath, ORIGINAL_LOCK);
 		await bun.write(
-			path.join(tmpRoot, "omp-plugins.lock.json"),
+			path.join(tmpRoot, "oyp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "git-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
 				null,

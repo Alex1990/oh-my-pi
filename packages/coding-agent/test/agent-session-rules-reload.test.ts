@@ -84,10 +84,10 @@ async function expectStickyRuleReload(
 	const original = `ORIGINAL_STICKY_${marker}`;
 	const updated = `UPDATED_STICKY_${marker}`;
 	// User scope: `<agentDir>/RULES.md` via the process-global getAgentDir().
-	// Project scope: nearest `.omp/RULES.md` walking up from cwd.
+	// Project scope: nearest `.oyp/RULES.md` walking up from cwd.
 	if (opts.scope === "user") setAgentDir(tempDir.path());
 	const rulesMd =
-		opts.scope === "user" ? path.join(tempDir.path(), "RULES.md") : path.join(tempDir.path(), ".omp", "RULES.md");
+		opts.scope === "user" ? path.join(tempDir.path(), "RULES.md") : path.join(tempDir.path(), ".oyp", "RULES.md");
 	if (opts.seedInitial) {
 		await fs.mkdir(path.dirname(rulesMd), { recursive: true });
 		await fs.writeFile(rulesMd, original);
@@ -153,8 +153,8 @@ describe("AgentSession session-local rule snapshot reload on session reset", () 
 		const marker = bun.nanoseconds().toString(36);
 		const body = `RULEBOOK_BODY_${marker}`;
 		const ruleName = `reload-book-${marker}`;
-		// Empty `.omp/rules/` keeps the project config scope present without any rulebook rule yet.
-		const rulesDir = path.join(tempDir.path(), ".omp", "rules");
+		// Empty `.oyp/rules/` keeps the project config scope present without any rulebook rule yet.
+		const rulesDir = path.join(tempDir.path(), ".oyp", "rules");
 		await fs.mkdir(rulesDir, { recursive: true });
 
 		const { session, authStorage } = await createReloadSession(tempDir);

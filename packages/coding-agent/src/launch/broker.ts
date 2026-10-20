@@ -378,7 +378,7 @@ async function holdsLiveForeignLease(pidPath: string, endpoint: string): Promise
  * Claim the one-broker-per-scope lease. The native lock is process-owned, so
  * the OS releases it however the broker dies — a crashed broker can never wedge
  * the scope behind a stale lease again (issue #11080). `broker.pid` stays as
- * human-readable metadata for `omp ps` and dead-scope pruning.
+ * human-readable metadata for `oyp ps` and dead-scope pruning.
  */
 async function acquireBrokerLease(runtimeDir: string, endpoint: string): Promise<BrokerLease | null> {
 	const pidPath = path.join(runtimeDir, PID_FILE);
@@ -1624,7 +1624,7 @@ export async function startDaemonBrokerFromEnvironment(options: DaemonBrokerStar
 	const lease = await acquireBrokerLease(runtimeDir, endpoint);
 	if (!lease) return;
 	setProcessName("omp daemon broker");
-	// Record the scope's project dir so `omp ps` can map this hash-keyed runtime
+	// Record the scope's project dir so `oyp ps` can map this hash-keyed runtime
 	// dir back to its project offline.
 	void writeDaemonScopeMeta(runtimeDir, projectDir).catch(error => {
 		logger.warn("Failed to record daemon scope metadata", {

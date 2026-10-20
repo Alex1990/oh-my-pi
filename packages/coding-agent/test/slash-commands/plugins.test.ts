@@ -37,7 +37,7 @@ describe("/plugins live enable and disable", () => {
 		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-plugins-slash-"));
 		pluginsDir = path.join(root, "plugins");
 		registryPath = path.join(pluginsDir, "installed_plugins.json");
-		lockPath = path.join(pluginsDir, "omp-plugins.lock.json");
+		lockPath = path.join(pluginsDir, "oyp-plugins.lock.json");
 		spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		spyOn(piUtils, "getPluginsLockfile").mockReturnValue(lockPath);
 		spyOn(piUtils, "getMarketplacesRegistryPath").mockReturnValue(path.join(root, "marketplaces.json"));

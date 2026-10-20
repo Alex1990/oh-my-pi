@@ -22,7 +22,7 @@ describe("headless startup resume", () => {
 				},
 			});
 			try {
-				const agentDir = tempDir.join("home", ".omp", "agent");
+				const agentDir = tempDir.join("home", ".oyp", "agent");
 				await bun.write(
 					path.join(agentDir, "models.yml"),
 					JSON.stringify({
@@ -186,7 +186,7 @@ describe("headless runtime session switch", () => {
 				return Response.json({ error: { message: "Loopback provider" } }, { status: 400 });
 			},
 		});
-		const agentDir = path.join(cwd, "home", ".omp", "agent");
+		const agentDir = path.join(cwd, "home", ".oyp", "agent");
 		await bun.write(
 			path.join(agentDir, "models.yml"),
 			JSON.stringify({

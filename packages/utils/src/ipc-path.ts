@@ -13,5 +13,5 @@ export function resolveLocalSocketPath(socketPath: string): string {
 	if (process.platform !== "win32") return socketPath;
 	if (socketPath.startsWith(PIPE_PREFIX)) return socketPath;
 	const digest = createHash("sha256").update(socketPath).digest("hex").slice(0, 32);
-	return `${PIPE_PREFIX}omp-${digest}`;
+	return `${PIPE_PREFIX}oyp-${digest}`;
 }

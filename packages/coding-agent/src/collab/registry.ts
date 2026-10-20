@@ -128,7 +128,7 @@ export interface CollabRegistryOptions {
 
 export interface CollabPublishOptions extends CollabRegistryOptions {
 	/**
-	 * Identity recorded in the metadata and matched by `omp collab link <id>`.
+	 * Identity recorded in the metadata and matched by `oyp collab link <id>`.
 	 * Defaults to a fresh random ID; a host that rotates rooms passes its
 	 * process-lifetime instance ID so the replacement room keeps the same id.
 	 * The metadata file and endpoint are always named per publication, so a
@@ -156,7 +156,7 @@ export class CollabLinkError extends Error {
 
 /**
  * Discovery metadata directory. Deliberately under the profile-independent
- * config root (`~/.omp/run/collab-hosts`) — unlike the launch broker's
+ * config root (`~/.oyp/run/collab-hosts`) — unlike the launch broker's
  * profile-scoped runtime dir — so hosts started under any profile are
  * discoverable from any other (issue #6099 user story 18).
  */
@@ -359,7 +359,7 @@ function handleConnection(
  * The registry must be a real directory; POSIX also verifies its owner.
  * Both publication and listing check this: listing prunes malformed
  * entries, so following a symlink into an unrelated directory would let a
- * planted link turn `omp collab list` into a deletion tool.
+ * planted link turn `oyp collab list` into a deletion tool.
  */
 async function assertPrivateDir(dir: string): Promise<fs.Stats | null> {
 	const stat = await fs.promises.lstat(dir);

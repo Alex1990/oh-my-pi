@@ -47,7 +47,7 @@ describe("set_event_filter over RPC", () => {
 		});
 		const home = dir.path();
 		await bun.write(
-			join(home, ".omp/agent/models.yml"),
+			join(home, ".oyp/agent/models.yml"),
 			`providers:\n  anthropic:\n    baseUrl: http://127.0.0.1:${server.port}\n    apiKey: test-dummy-key\n`,
 		);
 		const child = bun.spawn(
@@ -72,7 +72,7 @@ describe("set_event_filter over RPC", () => {
 					PATH: process.env.PATH,
 					XDG_CONFIG_HOME: home,
 					XDG_DATA_HOME: home,
-					PI_CODING_AGENT_DIR: join(home, ".omp/agent"),
+					PI_CODING_AGENT_DIR: join(home, ".oyp/agent"),
 					NO_COLOR: "1",
 				},
 				stdin: "pipe",

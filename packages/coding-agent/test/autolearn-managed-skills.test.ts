@@ -27,7 +27,7 @@ describe("managed-skills primitives", () => {
 		originalAgentDir = getAgentDir();
 		tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "omp-managed-skills-"));
 		spyOn(os, "homedir").mockReturnValue(tempHome);
-		setAgentDir(path.join(tempHome, ".omp", "agent"));
+		setAgentDir(path.join(tempHome, ".oyp", "agent"));
 	});
 
 	afterEach(async () => {
@@ -130,7 +130,7 @@ describe("managed-skills primitives", () => {
 				writeManagedSkill({ action: "create", name: "../skills/evil", description: "d", body: "b" }),
 			).rejects.toThrow();
 			// Nothing leaked into an authored skills dir.
-			const authoredEvil = path.join(tempHome, ".omp", "agent", "skills", "evil", "SKILL.md");
+			const authoredEvil = path.join(tempHome, ".oyp", "agent", "skills", "evil", "SKILL.md");
 			expect(await bun.file(authoredEvil).exists()).toBe(false);
 		});
 

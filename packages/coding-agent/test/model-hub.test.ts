@@ -944,7 +944,7 @@ describe("ModelHub", () => {
 					`modelRoleStorage: project\nmodelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
 				await bun.write(
-					path.join(cwd, ".omp", "config.yml"),
+					path.join(cwd, ".oyp", "config.yml"),
 					`modelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
 				await bun.write(overlayPath, "modelRoles:\n  default: null\n  smol: null\n");

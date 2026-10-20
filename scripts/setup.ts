@@ -57,25 +57,29 @@ function linkOmpWindows(repoRoot: string): number {
 		// fall through to the default below
 	}
 	if (!globalBin) globalBin = process.env.PNPM_HOME ?? path.join(os.homedir(), ".local", "share", "pnpm");
-	const linkPath = path.join(globalBin, "omp");
+	const linkPaths = ["oyp"].map(name => path.join(globalBin, name));
 	try {
 		fs.mkdirSync(globalBin, { recursive: true });
-		try {
-			fs.unlinkSync(linkPath);
-		} catch {
-			// nothing to replace
+		for (const linkPath of linkPaths) {
+			try {
+				fs.unlinkSync(linkPath);
+			} catch {
+				// nothing to replace
+			}
+			fs.symlinkSync(target, linkPath, "file");
+			console.log(`link-omp: linked ${linkPath} -> ${target}`);
 		}
-		fs.symlinkSync(target, linkPath, "file");
-		console.log(`link-omp: linked ${linkPath} -> ${target}`);
 		return 0;
 	} catch (error) {
 		console.error(`link-omp: symlink failed (${error}), falling back to copy`);
 		try {
-			fs.copyFileSync(target, linkPath);
-			console.log(`link-omp: copied ${target} -> ${linkPath}`);
+			for (const linkPath of linkPaths) {
+				fs.copyFileSync(target, linkPath);
+				console.log(`link-omp: copied ${target} -> ${linkPath}`);
+			}
 			return 0;
 		} catch (copyError) {
-			console.error(`link-omp: copy failed: ${copyError}`);
+			console.error(`link-omp: copy failed (${copyError})`);
 			return 1;
 		}
 	}
@@ -85,12 +89,12 @@ const steps: Step[] = [
 	{ label: "pnpm install", cmd: ["pnpm", "install"] },
 	{ label: "build:native", cmd: ["pnpm", "run", "build:native", ...passthrough] },
 	{ label: "coding-agent link", cmd: ["pnpm", "--dir", "packages/coding-agent", "link"] },
-	{ label: "link omp", cmd: ["sh", "scripts/link-omp.sh"] },
+	{ label: "link oyp", cmd: ["sh", "scripts/link-omp.sh"] },
 ];
 
 for (const step of steps) {
 	console.log(`\n▶ ${step.label}`);
-	if (step.label === "link omp" && process.platform === "win32") {
+	if (step.label === "link oyp" && process.platform === "win32") {
 		const exitCode = linkOmpWindows(repoRoot);
 		if (exitCode !== 0) {
 			console.error(`\nsetup step "${step.label}" failed (exit ${exitCode})`);

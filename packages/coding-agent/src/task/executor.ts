@@ -536,7 +536,7 @@ export interface ExecutorOptions {
 	preloadedPreparedExtensions?: readonly PreparedExtension[];
 	/**
 	 * Parent's discovered custom-tool source paths. Forwarded to skip the
-	 * `.omp/tools/` FS scan in the subagent; the subagent then re-binds each
+	 * `.oyp/tools/` FS scan in the subagent; the subagent then re-binds each
 	 * tool against its own `CustomToolAPI` (cwd, exec, pushPendingAction, UI).
 	 */
 	preloadedCustomToolPaths?: ToolPathWithSource[];
@@ -3636,7 +3636,7 @@ export interface FollowUpTurnOptions {
 	message: string;
 	/**
 	 * Go on with the turn the previous process left unfinished instead of sending
-	 * `message` (`omp --restore`: {@link AgentSession.restoreInterruptedTurn}).
+	 * `message` (`oyp --restore`: {@link AgentSession.restoreInterruptedTurn}).
 	 */
 	restore?: boolean;
 	index?: number;

@@ -72,7 +72,7 @@ function formatConsoleArgs(args: unknown[]): string {
 
 /** Serves ACP over stdio until the peer disconnects, then awaits session teardown before exit. */
 export async function runAcpMode(createSession: AcpSessionFactory, initialSession?: AgentSession): Promise<void> {
-	// Humans who run `omp acp` by hand see a silent process and assume it is
+	// Humans who run `oyp acp` by hand see a silent process and assume it is
 	// broken (stdout is the JSON-RPC transport, so nothing may be printed
 	// there). When stdin is a TTY no ACP client is attached — say so on stderr
 	// before the transport starts.

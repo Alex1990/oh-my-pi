@@ -59,7 +59,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		spyOn(piUtils, "getPluginsNodeModules").mockReturnValue(path.join(pluginsDir, "node_modules"));
 		spyOn(piUtils, "getPluginsPackageJson").mockReturnValue(path.join(pluginsDir, "package.json"));
-		spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "omp-plugins.lock.json"));
+		spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "oyp-plugins.lock.json"));
 		spyOn(piUtils, "getProjectDir").mockReturnValue(tmpRoot);
 		spyOn(piUtils, "getProjectPluginOverridesPath").mockReturnValue(path.join(tmpRoot, "plugin-overrides.json"));
 		// runPluginCommand always builds a MarketplaceManager to enumerate
@@ -126,7 +126,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 	test("link dry-run leaves filesystem state untouched", async () => {
 		const localPlugin = await createLocalPlugin(tmpRoot);
 		const linkTarget = path.join(tmpRoot, "plugins", "node_modules", "kimi-datasource");
-		const lockfile = path.join(tmpRoot, "omp-plugins.lock.json");
+		const lockfile = path.join(tmpRoot, "oyp-plugins.lock.json");
 
 		await runPluginCommand({ action: "link", args: [localPlugin], flags: { dryRun: true, json: true } });
 
@@ -148,7 +148,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		expect(stat.isSymbolicLink()).toBe(true);
 		expect(await fs.readlink(linkTarget)).toBe(localPlugin);
 
-		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
+		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["kimi-datasource"]).toEqual({
 			version: "1.0.0",
 			enabledFeatures: null,
@@ -225,7 +225,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		const checks = await manager.doctor({ fix: true });
 
 		expect(checks.find(check => check.name === "orphan:kimi-datasource")).toBeUndefined();
-		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
+		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["kimi-datasource"]).toEqual({
 			version: "1.0.0",
 			enabledFeatures: null,

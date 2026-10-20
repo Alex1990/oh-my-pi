@@ -802,10 +802,10 @@ export class PluginManager {
 
 	/**
 	 * Resolve a plugin from the active project plugin root
-	 * (`<anchor>/.omp/plugins`). Project npm/link/marketplace installs all record
+	 * (`<anchor>/.oyp/plugins`). Project npm/link/marketplace installs all record
 	 * their runtime state and `node_modules` symlink there — invisible to the
 	 * user-root lookup — so this reads the project's own `package.json`
-	 * dependencies plus `omp-plugins.lock.json`, and resolves the package from
+	 * dependencies plus `oyp-plugins.lock.json`, and resolves the package from
 	 * the project `node_modules`. Returns undefined when there is no active
 	 * project, when it coincides with the user root, or when the package is not
 	 * installed there.
@@ -820,7 +820,7 @@ export class PluginManager {
 		if (normalizePathForComparison(projectRoot) === normalizePathForComparison(getPluginsDir())) return undefined;
 		const [projectDeps, projectConfig] = await Promise.all([
 			this.#readDeps(path.join(projectRoot, "package.json")),
-			this.#readRuntimeConfigAt(path.join(projectRoot, "omp-plugins.lock.json")),
+			this.#readRuntimeConfigAt(path.join(projectRoot, "oyp-plugins.lock.json")),
 		]);
 		if (!this.#collectInstalledNames(projectDeps, projectConfig).has(name)) return undefined;
 		return this.#resolvePlugin(name, path.join(projectRoot, "node_modules", name), projectConfig, projectOverrides);
@@ -1121,7 +1121,7 @@ export class PluginManager {
 					status: fixed ? "ok" : "error",
 					message: fixed
 						? `Reconciled version drift: node_modules now matches lock v${recordedVersion}`
-						: `Version drift: lock records v${recordedVersion} but node_modules has v${pluginPkg.version} (run \`omp plugin install ${name} --force\`)`,
+						: `Version drift: lock records v${recordedVersion} but node_modules has v${pluginPkg.version} (run \`oyp plugin install ${name} --force\`)`,
 					fixed,
 				});
 				if (fixed) {

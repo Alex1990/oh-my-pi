@@ -408,7 +408,7 @@ function textResult(result: AgentToolResult<LspToolDetails>): string {
 }
 
 /**
- * `loadConfig` walks the user config directories (~/.omp/agent, ~/.pi/agent,
+ * `loadConfig` walks the user config directories (~/.oyp/agent, ~/.pi/agent,
  * ~/.claude), which resolve from os.homedir(). A developer with a real
  * lsp.json there flips loadConfig off its auto-detect path onto the override
  * path, where their rootMarkers replace the packaged ones — so these tests
@@ -534,14 +534,14 @@ describe("lsp regressions", () => {
 		const syncedFilePath = path.join(tempDir.path(), "unsaved.gd");
 		try {
 			await bun.write(
-				path.join(tempDir.path(), ".omp", "lsp.json"),
+				path.join(tempDir.path(), ".oyp", "lsp.json"),
 				JSON.stringify({
 					servers: {
 						"fake-gd": {
 							command: process.execPath,
 							fileTypes: [".gd"],
 							languageId: "gdscript",
-							rootMarkers: [".omp"],
+							rootMarkers: [".oyp"],
 						},
 					},
 				}),
@@ -5040,9 +5040,9 @@ describe("lsp regressions", () => {
 			// empty discovery result. The on-disk config below appears afterwards,
 			// so only `reload`'s cache invalidation can surface it.
 			lspConfig.configCache.set(cwd, { servers: {}, idleTimeoutMs: undefined });
-			fs.mkdirSync(path.join(cwd, ".omp"), { recursive: true });
+			fs.mkdirSync(path.join(cwd, ".oyp"), { recursive: true });
 			fs.writeFileSync(path.join(cwd, "package.json"), "{}");
-			fs.writeFileSync(path.join(cwd, ".omp", "lsp.json"), JSON.stringify({ servers: { "test-lsp": server } }));
+			fs.writeFileSync(path.join(cwd, ".oyp", "lsp.json"), JSON.stringify({ servers: { "test-lsp": server } }));
 
 			const client = { proc: { kill: vi.fn() }, config: server, openFiles: new Map() } as unknown as LspClient;
 			vi.spyOn(lspClient, "getOrCreateClient").mockResolvedValue(client);
@@ -5118,9 +5118,9 @@ describe("lsp regressions", () => {
 		expect(output).toContain("typescript-language-server (ready)");
 	});
 
-	it("reload * invalidates the per-cwd config cache so newly written .omp/lsp.json is observed", async () => {
+	it("reload * invalidates the per-cwd config cache so newly written .oyp/lsp.json is observed", async () => {
 		// #3546: `getConfig` caches the first `loadConfig` result per cwd
-		// permanently. Creating `.omp/lsp.json` after the first LSP call left
+		// permanently. Creating `.oyp/lsp.json` after the first LSP call left
 		// the tool stuck on "No language servers configured" until the process
 		// restarted. `reload *` (the user's explicit refresh) must invalidate
 		// that cache so subsequent calls observe the fresh config from disk.
@@ -5131,10 +5131,10 @@ describe("lsp regressions", () => {
 			// Seed the cache as the first LSP call would have, then write the
 			// config file afterwards: only invalidation can make it visible.
 			lspConfig.configCache.set(cwd, empty);
-			fs.mkdirSync(path.join(cwd, ".omp"), { recursive: true });
+			fs.mkdirSync(path.join(cwd, ".oyp"), { recursive: true });
 			fs.writeFileSync(path.join(cwd, ".python-root"), "");
 			fs.writeFileSync(
-				path.join(cwd, ".omp", "lsp.json"),
+				path.join(cwd, ".oyp", "lsp.json"),
 				JSON.stringify({
 					"fake-pylsp": { command: process.execPath, fileTypes: [".py"], rootMarkers: [".python-root"] },
 				}),

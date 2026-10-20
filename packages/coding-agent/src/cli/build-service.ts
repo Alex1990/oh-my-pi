@@ -1,7 +1,7 @@
 /**
  * Client for Stencil's build service, the source of omp's standalone binaries.
  *
- * `omp update` on a standalone binary install, the binary takeover of a
+ * `oyp update` on a standalone binary install, the binary takeover of a
  * package-manager install, and the startup update check of a compiled binary
  * all ask the service which build to install ({@link fetchBuild}):
  *
@@ -44,7 +44,8 @@ export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promi
 export const DEFAULT_BUILD_URL = "https://build.stencil.so";
 
 /** The product omp's builds are published under. */
-const PRODUCT = "omp";
+export const UPSTREAM_PRODUCT = "omp";
+const PRODUCT = UPSTREAM_PRODUCT;
 
 const BUILD_CHECK_TIMEOUT_MS = 30_000;
 
@@ -95,7 +96,7 @@ export function resolveBuildHost(platform: NodeJS.Platform, arch: string, musl: 
 	}
 	return {
 		target: `${targetOs}-${targetArch}`,
-		fileName: `${APP_NAME}-${fileOs}-${arch}${platform === "win32" ? ".exe" : ""}`,
+		fileName: `${PRODUCT}-${fileOs}-${arch}${platform === "win32" ? ".exe" : ""}`,
 	};
 }
 

@@ -462,7 +462,7 @@ export async function clearPageStorage(page: Page, kind: string, signal?: AbortS
 	await untilAborted(signal, () => page.evaluate(clearStorageInPage, kind));
 }
 
-/** Where `tab.saveState()` writes: the requested path, else `~/.omp/browser-state/<tab>.json`. */
+/** Where `tab.saveState()` writes: the requested path, else `~/.oyp/browser-state/<tab>.json`. */
 export function storageStatePath(tabName: string, requestedPath: string | undefined, cwd: string): string {
 	const safeName = tabName.replace(/[^A-Za-z0-9._-]/g, "_");
 	const fileName = safeName === "." || safeName === ".." ? "_" : safeName || "main";

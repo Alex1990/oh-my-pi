@@ -394,11 +394,11 @@ describe("structured subagent primitive", () => {
 
 		try {
 			await bun.write(
-				path.join(projectDir, ".omp", "config.yml"),
+				path.join(projectDir, ".oyp", "config.yml"),
 				"task:\n  agentModelOverrides:\n    hot-worker: xai-oauth/grok-4.6:medium\n  enableEffort: false\nretry:\n  modelFallback: false\n",
 			);
 			await bun.write(
-				path.join(projectDir, ".omp", "agents", "hot-worker.md"),
+				path.join(projectDir, ".oyp", "agents", "hot-worker.md"),
 				"---\nname: hot-worker\ndescription: Newly added worker.\nmodel: openai/gpt-4o\n---\n\nInspect the assignment.\n",
 			);
 
@@ -448,7 +448,7 @@ describe("structured subagent primitive", () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-task-tier-reload-"));
 		const projectDir = path.join(root, "project");
 		const agentDir = path.join(root, "agent");
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
+		await fs.mkdir(path.join(projectDir, ".oyp"), { recursive: true });
 		await fs.mkdir(agentDir, { recursive: true });
 		const liveSettings = await Settings.loadIsolated({ cwd: projectDir, agentDir });
 		const liveSession = session({ cwd: projectDir, settings: liveSettings });
@@ -1305,7 +1305,7 @@ describe("agent frontmatter structured opt-in", () => {
 		await fs.mkdir(home, { recursive: true });
 		restoreEnvValue("HOME", home);
 		vi.spyOn(os, "homedir").mockReturnValue(home);
-		setAgentDir(path.join(home, ".omp", "agent"));
+		setAgentDir(path.join(home, ".oyp", "agent"));
 		AgentRegistry.resetGlobalForTests();
 		AgentLifecycleManager.resetGlobalForTests();
 		registerMockApi(MOCK_API_SOURCE);
@@ -1330,10 +1330,10 @@ describe("agent frontmatter structured opt-in", () => {
 	])(
 		"task.structured=$setting: yield and schema follow the agent opt-in",
 		async ({ setting, structured }) => {
-			// Under the isolated HOME so project discovery stops before the developer's real ~/.omp.
+			// Under the isolated HOME so project discovery stops before the developer's real ~/.oyp.
 			const cwd = path.join(root, "home", "work");
 			await fs.mkdir(cwd, { recursive: true });
-			const agentsDir = path.join(root, "home", ".omp", "agent", "agents");
+			const agentsDir = path.join(root, "home", ".oyp", "agent", "agents");
 			await bun.write(path.join(agentsDir, "reporter.md"), agentFile("reporter", true));
 			await bun.write(path.join(agentsDir, "plain.md"), agentFile("plain", false));
 

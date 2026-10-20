@@ -1,5 +1,5 @@
 /**
- * `omp auth-gateway stdio`: the gateway's routes as JSON lines on stdin and
+ * `oyp auth-gateway stdio`: the gateway's routes as JSON lines on stdin and
  * stdout (`serveAuthGatewayStdio`), for a parent process that wants omp's
  * inference without an HTTP listener or a bearer token.
  *

@@ -98,7 +98,7 @@ describe("SelectorController model hub writes", () => {
 	it("switches the session to the project default when its already-assigned chip is picked", async () => {
 		const agentDir = tempDir.join("agent");
 		await bun.write(
-			tempDir.join(".omp", "config.yml"),
+			tempDir.join(".oyp", "config.yml"),
 			YAML.stringify({ modelRoles: { default: "anthropic/claude-opus-4-5" } }),
 		);
 		const settings = await Settings.init({ agentDir, cwd: tempDir.path() });

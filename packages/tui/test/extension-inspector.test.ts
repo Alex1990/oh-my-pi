@@ -32,18 +32,18 @@ function systemdExtension(): Extension {
 		name: "systemd",
 		displayName: "systemd",
 		description: "systemd custom tool",
-		path: "/home/sf/.omp/agent/tools/systemd.ts",
+		path: "/home/sf/.oyp/agent/tools/systemd.ts",
 		source: userSource(),
 		state: "active",
 		raw: {
 			name: "systemd",
 			description: "systemd custom tool",
-			path: "/home/sf/.omp/agent/tools/systemd.ts",
+			path: "/home/sf/.oyp/agent/tools/systemd.ts",
 		},
 	};
 }
 
-function systemdFactory(sourcePath = "/home/sf/.omp/agent/tools/systemd.ts") {
+function systemdFactory(sourcePath = "/home/sf/.oyp/agent/tools/systemd.ts") {
 	return [
 		{
 			name: "systemd_inspect",
@@ -97,13 +97,13 @@ function toolExtension(): Extension {
 		name: "gmail_send",
 		displayName: "gmail_send",
 		description: "gmail_send custom tool",
-		path: "/home/sf/worlds/personal/.omp/tools/gmail_send.ts",
+		path: "/home/sf/worlds/personal/.oyp/tools/gmail_send.ts",
 		source: projectSource(),
 		state: "active",
 		raw: {
 			name: "gmail_send",
 			description: "gmail_send custom tool",
-			path: "/home/sf/worlds/personal/.omp/tools/gmail_send.ts",
+			path: "/home/sf/worlds/personal/.oyp/tools/gmail_send.ts",
 		},
 	};
 }
@@ -134,7 +134,7 @@ function commandExtension(): Extension {
 		name: "triage",
 		displayName: "triage",
 		trigger: "/triage",
-		path: "/home/sf/worlds/_template/.omp/commands/triage.md",
+		path: "/home/sf/worlds/_template/.oyp/commands/triage.md",
 		source: userSource(),
 		state: "active",
 		raw: {
@@ -152,7 +152,7 @@ function skillExtension(): Extension {
 		name: "hcom",
 		displayName: "hcom",
 		description: "Named agent sessions that mail, wake, and resume across processes.",
-		path: "/home/sf/.omp/agent/skills/hcom/SKILL.md",
+		path: "/home/sf/.oyp/agent/skills/hcom/SKILL.md",
 		source: userSource(),
 		state: "active",
 		raw: {
@@ -174,7 +174,7 @@ function listedSkillExtension(): Extension {
 		name: "fresh-drive",
 		displayName: "fresh-drive",
 		description: "Drive Fresh terminal IDE via CLI.",
-		path: "/home/sf/.omp/agent/skills/fresh-drive/SKILL.md",
+		path: "/home/sf/.oyp/agent/skills/fresh-drive/SKILL.md",
 		source: userSource(),
 		state: "active",
 		raw: {
@@ -327,14 +327,14 @@ describe("tool inspector", () => {
 			listLiveTools: () => [
 				{
 					name: "systemd_inspect\ninjected",
-					sourcePath: "/home/sf/.omp/agent/tools/systemd.ts",
+					sourcePath: "/home/sf/.oyp/agent/tools/systemd.ts",
 					label: "inspect\nlabel",
 					description: "Read systemd state.",
 					parameters: { type: "object", properties: {} },
 				},
 				{
 					name: "systemd_control",
-					sourcePath: "/home/sf/.omp/agent/tools/systemd.ts",
+					sourcePath: "/home/sf/.oyp/agent/tools/systemd.ts",
 					description: "Mutate units.",
 					parameters: { type: "object", properties: {} },
 				},
@@ -403,7 +403,7 @@ describe("tool inspector", () => {
 		expect(
 			projectListHint({
 				...toolExtension(),
-				path: "C:/repo/.omp/tools/x.ts",
+				path: "C:/repo/.oyp/tools/x.ts",
 			}),
 		).toBe("repo");
 	});
@@ -452,11 +452,11 @@ describe("tool inspector", () => {
 			[
 				{
 					...systemdExtension(),
-					path: "/home/sf/worlds/personal/.omp/tools/systemd.ts",
+					path: "/home/sf/worlds/personal/.oyp/tools/systemd.ts",
 					source: projectSource(),
 				},
 			],
-			{ toolSource: systemdSource("/home/sf/worlds/personal/.omp/tools/systemd.ts") },
+			{ toolSource: systemdSource("/home/sf/worlds/personal/.oyp/tools/systemd.ts") },
 		);
 		list.setFocused(true);
 		const text = bun.stripANSI(list.render(80).join("\n"));
@@ -683,7 +683,7 @@ describe("tool inspector", () => {
 				label: "Gmail Send",
 				description: "Send an email via gog for an authorized personal Gmail account.",
 				source: "extension",
-				sourcePath: "/home/sf/worlds/personal/.omp/tools/gmail_send.ts",
+				sourcePath: "/home/sf/worlds/personal/.oyp/tools/gmail_send.ts",
 				parameters: { type: "object", properties: { to: { type: "string" } } },
 			}),
 		});
@@ -691,11 +691,11 @@ describe("tool inspector", () => {
 			...toolExtension(),
 			state: "shadowed",
 			shadowedBy: "gmail_send",
-			path: "/home/sf/.omp/agent/tools/gmail_send.ts",
+			path: "/home/sf/.oyp/agent/tools/gmail_send.ts",
 			raw: {
 				name: "gmail_send",
 				description: "gmail_send custom tool",
-				path: "/home/sf/.omp/agent/tools/gmail_send.ts",
+				path: "/home/sf/.oyp/agent/tools/gmail_send.ts",
 				_shadowed: true,
 			},
 		});
@@ -792,7 +792,7 @@ describe("skill inspector", () => {
 		const list = new ExtensionList([
 			{
 				...listedSkillExtension(),
-				path: "/home/sf/worlds/personal/.omp/skills/gog-google/SKILL.md",
+				path: "/home/sf/worlds/personal/.oyp/skills/gog-google/SKILL.md",
 				source: projectSource(),
 			},
 		]);
@@ -902,7 +902,7 @@ describe("tool file header", () => {
  *
  * Hidden unless an agent tools: list (or --tools) names it.
  *
- * Symlink: ~/.omp/agent/tools/cloak.ts → this file.
+ * Symlink: ~/.oyp/agent/tools/cloak.ts → this file.
  */
 export default function cloakTool() {}
 `);

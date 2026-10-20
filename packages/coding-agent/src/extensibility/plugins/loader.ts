@@ -49,7 +49,7 @@ registerPluginCacheInvalidator(clearEnabledPluginsCache);
 /**
  * Load plugin runtime config from lock file.
  *
- * `home` controls which `<plugins>/omp-plugins.lock.json` is read — pass it
+ * `home` controls which `<plugins>/oyp-plugins.lock.json` is read — pass it
  * through whenever the caller is loading plugins for a tempdir-rooted
  * scenario (tests, discovery sub-surfaces that need to mirror an alternate
  * `LoadContext.home`).
@@ -99,7 +99,7 @@ function isUnreadableRoot(err: unknown): boolean {
 
 /**
  * Per-root enumeration of plugins from `<root>/node_modules`,
- * `<root>/package.json#dependencies`, and `<root>/omp-plugins.lock.json#plugins`.
+ * `<root>/package.json#dependencies`, and `<root>/oyp-plugins.lock.json#plugins`.
  * Honors `projectOverrides.disabled` and `projectOverrides.features`. Returns an
  * empty array when the root has no `node_modules` yet.
  */
@@ -128,7 +128,7 @@ async function collectPluginsAtRoot(
 		if (!isEnoent(err)) throw err;
 	}
 
-	const lockPath = path.join(root, "omp-plugins.lock.json");
+	const lockPath = path.join(root, "oyp-plugins.lock.json");
 	let runtimeConfig: PluginRuntimeConfig;
 	try {
 		runtimeConfig = normalizePluginRuntimeConfig(await bun.file(lockPath).json());
@@ -164,7 +164,7 @@ async function collectPluginsAtRoot(
 	const plugins: ScopedInstalledPlugin[] = [];
 	for (const name of names) {
 		// When a package manifest exists, a lockfile-only entry is legitimate
-		// only for linked plugins (`omp plugin link`, marketplace runtime
+		// only for linked plugins (`oyp plugin link`, marketplace runtime
 		// registration), which are symlinks into node_modules. Without a
 		// manifest, retain the established lockfile-only directory layout.
 		if (hasPackageManifest && !depsKeys.includes(name) && !(await isSymlink(path.join(nodeModulesPath, name)))) {
@@ -231,10 +231,10 @@ async function collectPluginsAtRoot(
  * Get list of enabled plugins with their resolved configurations.
  *
  * Enumerates two plugin roots in order: the user root
- * (`getPluginsDir(home)`) and, when a project anchor (`.omp/` or `.git/`)
+ * (`getPluginsDir(home)`) and, when a project anchor (`.oyp/` or `.git/`)
  * exists at or above `cwd`, the project root
- * (`<projectAnchor>/.omp/plugins`). Each root contributes the union of its
- * `package.json#dependencies` and `omp-plugins.lock.json#plugins`. Project
+ * (`<projectAnchor>/.oyp/plugins`). Each root contributes the union of its
+ * `package.json#dependencies` and `oyp-plugins.lock.json#plugins`. Project
  * entries shadow user entries with the same package name, matching the
  * shadow semantics of `MarketplaceManager.listInstalledPlugins`.
  *

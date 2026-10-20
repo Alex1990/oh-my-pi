@@ -80,7 +80,7 @@ Options:
       --tools <a,b,c>           omp tool allowlist (default ${DEFAULT_TOOLS.join(",")})
       --env <KEY[=VALUE]>       Extra env for the omp process only (repeatable; bare KEY forwards the host value)
       --jobs-dir <path>         Artifacts directory (default <repo>/runs/tb)
-      --gateway-url <url>       Local omp auth gateway (default http://127.0.0.1:4000)
+      --gateway-url <url>       Local oyp auth gateway (default http://127.0.0.1:4000)
       --gateway-token <token>   Gateway token (default no-auth)
       --openrouter-variant <v>  Vendor routing: floor (default), nitro, default, online, exacto
       --rebuild-agent           Rebuild cached omp binaries

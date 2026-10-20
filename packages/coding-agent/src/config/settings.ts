@@ -592,7 +592,7 @@ export class Settings {
 	#global: RawSettings = {};
 	/** Project settings from .claude/settings.yml etc */
 	#project: RawSettings = {};
-	/** Last successfully loaded native .omp/config.yml contents. */
+	/** Last successfully loaded native .oyp/config.yml contents. */
 	#projectFileSettings: RawSettings = {};
 	/** Logical config paths whose malformed targets were moved aside. */
 	#quarantinedYamlTargets = new Map<string, string>();
@@ -1576,7 +1576,7 @@ export class Settings {
 	}
 
 	/**
-	 * Raw project settings layer (`.claude/settings.yml`, `.omp/config.yml`,
+	 * Raw project settings layer (`.claude/settings.yml`, `.oyp/config.yml`,
 	 * etc.), deep-cloned. Companion to {@link getGlobalSettings} for the legacy
 	 * pi `SettingsManager` shim's `getProjectSettings()`; an {@link overlay}
 	 * likewise reports its parent's layer under its own.
@@ -1613,7 +1613,7 @@ export class Settings {
 	/**
 	 * Provenance of the effective `extensions` array for extension-root
 	 * sub-discovery. `"project"` only when a project settings provider owns it
-	 * (any of `.omp/config.yml`, `.omp/settings.json`, `.claude/settings.json`,
+	 * (any of `.oyp/config.yml`, `.oyp/settings.json`, `.claude/settings.json`,
 	 * … — all merged into the project layer) and no higher user-level layer (a
 	 * `--config` overlay or a runtime override) replaces it; otherwise `"user"`.
 	 * Callers pass this into {@link EffectiveExtensionRoots.configuredLevel} so

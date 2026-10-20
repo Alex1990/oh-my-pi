@@ -32,13 +32,13 @@ export interface CollabLinkCommandArgs {
 	registry?: CollabListOptions;
 }
 
-/** Versioned top-level JSON shape for `omp collab list --json`. */
+/** Versioned top-level JSON shape for `oyp collab list --json`. */
 export interface CollabListJsonOutput {
 	version: number;
 	hosts: CollabHostSnapshot[];
 }
 
-/** Versioned capability response for `omp collab link --json`. */
+/** Versioned capability response for `oyp collab link --json`. */
 export interface CollabLinkJsonOutput extends CollabResolvedLink {
 	version: number;
 }
@@ -83,7 +83,7 @@ export async function runCollabListCommand(
 		print(`${host.instanceId}  ${session}  ${chalk.dim(cwd)}`);
 		print(`  ${chalk.dim(details.join(" · "))}`);
 	}
-	print(chalk.dim("Get a link: omp collab link <instanceId|pid> [--view]"));
+	print(chalk.dim("Get a link: oyp collab link <instanceId|pid> [--view]"));
 }
 
 export async function runCollabLinkCommand(

@@ -7,7 +7,7 @@ import { DEFAULT_STREAM_URL } from "@oh-my-pi/pi-wire";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 
-// Live streaming (omp stream)
+// Live streaming (oyp stream)
 export const cfgStreamServerUrl = register({
 	id: "stream.serverUrl",
 	type: "string",
@@ -17,7 +17,7 @@ export const cfgStreamServerUrl = register({
 		group: "Stream",
 		label: "Stream Server",
 		description:
-			"Live stream server used by `omp stream` (https://host[:port]); viewers watch at <base>/<your Stencil username>",
+			"Live stream server used by `oyp stream` (https://host[:port]); viewers watch at <base>/<your Stencil username>",
 	},
 });
 

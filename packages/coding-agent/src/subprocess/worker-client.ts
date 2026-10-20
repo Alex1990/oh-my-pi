@@ -235,7 +235,7 @@ export function workerEnvFromParent(overlay?: Record<string, string>): Record<st
 
 /**
  * `LD_LIBRARY_PATH` overlay that lets a dlopen'd native addon find its C++
- * runtime. The ONNX addons installed on demand under `~/.omp/agent/cache/**`
+ * runtime. The ONNX addons installed on demand under `~/.oyp/agent/cache/**`
  * are `process.dlopen`'d and need `libstdc++.so.6` / `libgcc_s.so.1`; because
  * each addon carries its own `DT_RUNPATH`, an RPATH on our executable cannot
  * satisfy them, so the path has to come from the environment. On distros where
@@ -580,7 +580,7 @@ export function logWorkerMessage(message: WorkerLogMessage): void {
 }
 
 /**
- * Drive the ping/pong readiness probe wired into `omp --smoke-test`: send one
+ * Drive the ping/pong readiness probe wired into `oyp --smoke-test`: send one
  * `ping`, resolve on the first `pong` (ignoring `log` chatter), and reject on
  * any other message, a worker error, or the timeout. Always tears the handle
  * down on the way out. `label` prefixes the failure messages.

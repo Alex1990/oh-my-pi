@@ -118,7 +118,7 @@ it("keeps non-computer selectors isolated in a compiled single-entry worker host
 	const outfile = path.join(tempDir.path(), process.platform === "win32" ? "worker-host.exe" : "worker-host");
 	// The loader probes the executable's directory last. Place the workspace
 	// addons there so the compiled host resolves the same binaries the source
-	// checkout runs with, instead of depending on a pre-populated ~/.omp cache.
+	// checkout runs with, instead of depending on a pre-populated ~/.oyp cache.
 	const addonDir = path.resolve(packageDir, "../natives/native");
 	for (const name of fs.readdirSync(addonDir)) {
 		if (name.endsWith(".node")) fs.copyFileSync(path.join(addonDir, name), path.join(tempDir.path(), name));

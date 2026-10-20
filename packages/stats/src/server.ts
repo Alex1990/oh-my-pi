@@ -379,7 +379,7 @@ async function createDashboardServer(port: number, hostname: string): Promise<Se
 			const url = new URL(req.url);
 			const path = url.pathname;
 
-			// The identity header lets another omp session's reuse probe positively
+			// The identity header lets another oyp session's reuse probe positively
 			// recognize this dashboard without allowing cross-origin API reads.
 			const dashboardHeaders: Record<string, string> = {
 				[STATS_DASHBOARD_HEADER]: STATS_DASHBOARD_SECURITY_VERSION,

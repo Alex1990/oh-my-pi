@@ -302,7 +302,7 @@ ${dispatch.join("\n")}
 }
 complete -F _omp ${bin}`);
 	parts.push("");
-	return `${parts.join("\n")}\n`;
+	return `${parts.join("\n")}\n`.replaceAll("_omp", `_${bashFn(bin)}`);
 }
 
 function bashFn(name: string): string {
@@ -453,7 +453,7 @@ else
 	compdef _omp ${bin}
 fi`);
 	parts.push("");
-	return `${parts.join("\n")}\n`;
+	return `${parts.join("\n")}\n`.replaceAll("_omp", `_${bashFn(bin)}`);
 }
 
 // --- fish ---------------------------------------------------------------------
@@ -550,5 +550,5 @@ function generateFish(spec: CompletionSpec): string {
 		}
 	}
 	lines.push("");
-	return `${lines.join("\n")}\n`;
+	return `${lines.join("\n")}\n`.replaceAll("__fish_omp", `__fish_${bashFn(bin)}`);
 }

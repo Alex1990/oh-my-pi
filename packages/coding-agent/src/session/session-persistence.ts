@@ -131,7 +131,7 @@ function externalizeImagePayloadSync(
 /**
  * Drop every image ref remembered for `blobStore`, so the next persist checks
  * each blob on disk again. Call when a session write failed: a ref whose line
- * never reached a session file is unreferenced, so `omp gc` may collect its blob.
+ * never reached a session file is unreferenced, so `oyp gc` may collect its blob.
  */
 export function forgetExternalizedImages(blobStore: BlobStore): void {
 	externalizedImageRefs.delete(blobStore);

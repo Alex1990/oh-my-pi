@@ -2559,7 +2559,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		// custom messages, branch summaries, and compaction summaries) and the user
 		// set no explicit `mode_change` (which #reconcileModeFromSession just
 		// restored). SDK startup metadata and extension `custom` state entries are
-		// ignored. This way `omp --continue` (or auto-resume) that finds no recent
+		// ignored. This way `oyp --continue` (or auto-resume) that finds no recent
 		// session and creates a fresh one still honors the default, while a session
 		// with restored context or an explicit mode keeps its reconciled mode. Not
 		// part of the switch reconciler above: the plan-approval → execution handoff
@@ -8317,7 +8317,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			await active.stop();
 			this.statusLine.setRecording(false);
 			this.showStatus(
-				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: omp play · share: omp clip`,
+				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: omp play · share: oyp clip`,
 			);
 			return;
 		}

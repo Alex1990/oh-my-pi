@@ -99,7 +99,7 @@ async function runConfigSet(tempDir: TempDir, settingsInit: SettingsInitMode): P
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),
 	]);
-	return { exitCode, stdout, stderr, configPath: path.join(home, ".omp", "agent", "config.yml") };
+	return { exitCode, stdout, stderr, configPath: path.join(home, ".oyp", "agent", "config.yml") };
 }
 
 // Each case cold-starts the CLI graph in a child process; the budget covers that transpile.
@@ -110,7 +110,7 @@ describe("one-shot CLI command settlement", () => {
 
 		expect(run.exitCode, run.stderr).toBe(1);
 		// Names the stalled subcommand so automation logs show what failed, without its arguments.
-		expect(run.stderr).toContain(`\`omp config\` ${DIAGNOSTIC}`);
+		expect(run.stderr).toContain(`\`oyp config\` ${DIAGNOSTIC}`);
 		expect(run.stderr).not.toContain("collab.autoStart");
 		expect(run.stdout).toBe("");
 		expect(fs.existsSync(run.configPath)).toBe(false);

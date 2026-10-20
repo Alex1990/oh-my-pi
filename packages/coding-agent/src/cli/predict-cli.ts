@@ -1,5 +1,5 @@
 /**
- * `omp predict`: type a prompt and watch every word-completion engine's ghost
+ * `oyp predict`: type a prompt and watch every word-completion engine's ghost
  * text side by side.
  *
  * Each lane runs the composer's own {@link WordCompletionProvider} (prose

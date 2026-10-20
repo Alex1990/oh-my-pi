@@ -1073,13 +1073,13 @@ export async function isForeignUserConfigRoot(root: string, configDirName: strin
  * Resolve the active project registry path by walking up from `cwd`.
  *
  * Walk order:
- * 1. Walk up from `cwd` looking for the nearest directory containing `.omp/`.
- *    The first match returns `<dir>/.omp/plugins/installed_plugins.json`.
- * 2. If no `.omp/` is found, rescan from `cwd` upward looking for `.git`.
- *    The git root is used as an anchor: `<gitRoot>/.omp/plugins/installed_plugins.json`.
+ * 1. Walk up from `cwd` looking for the nearest directory containing `.oyp/`.
+ *    The first match returns `<dir>/.oyp/plugins/installed_plugins.json`.
+ * 2. If no `.oyp/` is found, rescan from `cwd` upward looking for `.git`.
+ *    The git root is used as an anchor: `<gitRoot>/.oyp/plugins/installed_plugins.json`.
  * 3. Stop before home or a temporary root in either pass. If neither anchor is
  *    found below that ceiling, return `null` — no project context is active.
- * Inactive `.omp/agent/` layouts are skipped only above the nearest git root,
+ * Inactive `.oyp/agent/` layouts are skipped only above the nearest git root,
  * or throughout an unanchored walk, so repo-local agent directories stay project scope.
  *
  * This is the single source of truth for "active project root" used by install,
@@ -1110,7 +1110,7 @@ async function resolveProjectRegistryPath(cwd: string, ceilings: ReadonlySet<str
 		dir = parent;
 	}
 
-	// Existing .omp/ directories still win, even above the git root, except foreign user roots.
+	// Existing .oyp/ directories still win, even above the git root, except foreign user roots.
 	const configDirName = getConfigDirName();
 	let aboveGitRoot = nearestGitRoot === null;
 	dir = path.resolve(cwd);
@@ -1137,11 +1137,11 @@ async function resolveProjectRegistryPath(cwd: string, ceilings: ReadonlySet<str
 }
 
 /**
- * Like resolveActiveProjectRegistryPath, but falls back to `<cwd>/.omp/plugins/installed_plugins.json`
- * when no project anchor (.omp/ or .git/) is found.
+ * Like resolveActiveProjectRegistryPath, but falls back to `<cwd>/.oyp/plugins/installed_plugins.json`
+ * when no project anchor (.oyp/ or .git/) is found.
  *
  * Use this when the caller accepts an explicit --scope project so that installing into a freshly
- * bootstrapped directory (no .omp/ or .git/ yet) works: writeInstalledPluginsRegistry auto-creates
+ * bootstrapped directory (no .oyp/ or .git/ yet) works: writeInstalledPluginsRegistry auto-creates
  * the directory tree on first write.
  *
  * Returns undefined when cwd is a discovery ceiling or user config root, so the
@@ -1151,7 +1151,7 @@ export async function resolveOrDefaultProjectRegistryPath(cwd: string): Promise<
 	const ceilings = getProjectDiscoveryCeilings();
 	const resolved = await resolveProjectRegistryPath(cwd, ceilings);
 	if (resolved) return resolved;
-	// A cwd containing .omp/ at or below a git root already resolved above.
+	// A cwd containing .oyp/ at or below a git root already resolved above.
 	if (
 		ceilings.has(normalizePathForComparison(cwd)) ||
 		isUserConfigRoot(cwd) ||
@@ -1216,7 +1216,7 @@ export function registerPluginCacheInvalidator(invalidator: () => void): void {
 
 /**
  * List all installed Claude Code plugin roots from its active plugin cache and
- * ~/.omp/plugins/installed_plugins.json, plus the nearest project registry when present.
+ * ~/.oyp/plugins/installed_plugins.json, plus the nearest project registry when present.
  *
  * Results are cached per Claude and OMP config directories, project registry, and canonical active project.
  */
@@ -1387,7 +1387,7 @@ async function loadClaudePluginRoots({
 	}
 
 	// ── Project-scoped OMP registry ────────────────────────────────────────
-	// Loaded from the nearest .omp/plugins/installed_plugins.json relative to cwd.
+	// Loaded from the nearest .oyp/plugins/installed_plugins.json relative to cwd.
 	// Project entries take precedence over user entries for the same plugin ID.
 	if (resolvedProjectPath) {
 		const projectContent = await readFile(resolvedProjectPath);

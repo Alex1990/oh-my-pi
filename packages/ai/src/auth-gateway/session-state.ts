@@ -6,7 +6,7 @@
  * sticky `strictToolsDisabled` / `fastModeDisabled` /
  * `replayUnsignedThinkingDisabled` flags and dropped-thinking-prefix set,
  * OpenAI's strict-tools and reasoning-effort fallbacks, Codex's WebSocket and
- * turn-state sessions. An in-process omp session owns that `Map` for its whole
+ * turn-state sessions. An in-process oyp session owns that `Map` for its whole
  * lifetime, so a grammar-too-large 400 or a fast-mode rejection costs one
  * wasted round-trip per session rather than one per turn.
  *

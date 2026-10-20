@@ -31,7 +31,7 @@ describe("ModelRegistry", () => {
 		authStorage = await AuthStorage.create(":memory:");
 		// Construct with an explicit modelsPath inside the temp dir so the
 		// constructor's #loadModels read returns "not-found" rather than
-		// touching the host's ~/.omp/agent/models.yaml. isTestRuntime()
+		// touching the host's ~/.oyp/agent/models.yaml. isTestRuntime()
 		// auto-stubs #fetch in the constructor.
 		registry = new ModelRegistry(authStorage, path.join(tmpDir, "models.yaml"));
 	});

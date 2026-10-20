@@ -1,10 +1,10 @@
 /**
  * Hand a session to another machine.
  *
- * `omp session pack <session> <out.tar>` writes a self-contained archive,
- * `omp session unpack <archive.tar> --cwd <dir>` lands it in `<dir>`'s session
+ * `oyp session pack <session> <out.tar>` writes a self-contained archive,
+ * `oyp session unpack <archive.tar> --cwd <dir>` lands it in `<dir>`'s session
  * directory (printing the session file path as the only stdout line), and
- * `omp session moved <session> --to <label>` marks the copy left behind stale
+ * `oyp session moved <session> --to <label>` marks the copy left behind stale
  * so resuming it forks instead of continuing it.
  */
 import chalk from "@oh-my-pi/pi-utils/chalk";
@@ -24,9 +24,9 @@ const ACTIONS = ["pack", "unpack", "moved"] as const;
 type SessionAction = (typeof ACTIONS)[number];
 
 const USAGE: Record<SessionAction, string> = {
-	pack: "omp session pack <session> <out.tar>",
-	unpack: "omp session unpack <archive.tar> --cwd <dir>",
-	moved: "omp session moved <session> --to <label>",
+	pack: "oyp session pack <session> <out.tar>",
+	unpack: "oyp session unpack <archive.tar> --cwd <dir>",
+	moved: "oyp session moved <session> --to <label>",
 };
 
 const UNPACK_NOTE: Record<UnpackMode, string> = {
@@ -64,9 +64,9 @@ export default class Session extends Command {
 	};
 
 	static examples = [
-		"# Pack a session with its artifacts and image blobs\n  omp session pack ~/.omp/agent/sessions/<project>/<file>.jsonl /tmp/session.tar",
-		"# Unpack it on another machine; prints the session file path\n  omp session unpack /tmp/session.tar --cwd ~/src/project",
-		"# Mark the local copy stale; resuming it later forks it\n  omp session moved <file>.jsonl --to cloud",
+		"# Pack a session with its artifacts and image blobs\n  oyp session pack ~/.oyp/agent/sessions/<project>/<file>.jsonl /tmp/session.tar",
+		"# Unpack it on another machine; prints the session file path\n  oyp session unpack /tmp/session.tar --cwd ~/src/project",
+		"# Mark the local copy stale; resuming it later forks it\n  oyp session moved <file>.jsonl --to cloud",
 	];
 
 	async run(): Promise<void> {

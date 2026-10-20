@@ -38,7 +38,7 @@ describe("managed-skills discovery", () => {
 		tempCwd = path.join(tempHome, "work");
 		await fs.mkdir(tempCwd, { recursive: true });
 		spyOn(os, "homedir").mockReturnValue(tempHome);
-		setAgentDir(path.join(tempHome, ".omp", "agent"));
+		setAgentDir(path.join(tempHome, ".oyp", "agent"));
 		managedDir = getManagedSkillsDir();
 		// Authored user skills live in the sibling `skills/` dir under .../agent.
 		authoredDir = path.join(path.dirname(managedDir), "skills");

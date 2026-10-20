@@ -312,7 +312,7 @@ function assertNotShorterReadProjection(
 	const payloadLength = writeContent === rawContent ? rawPayloadLength : lfNormalizedLength(writeContent);
 	if (payloadLength >= lfNormalizedLength(currentContent)) return;
 	throw new ToolError(
-		`Refusing to overwrite '${displayPath}' with an incomplete read projection: the content ends with an omp read truncation notice and covers less than the current source, so it would discard unseen content. Re-read the omitted ranges and write the complete file, or use edit for a partial change.`,
+		`Refusing to overwrite '${displayPath}' with an incomplete read projection: the content ends with an oyp read truncation notice and covers less than the current source, so it would discard unseen content. Re-read the omitted ranges and write the complete file, or use edit for a partial change.`,
 	);
 }
 

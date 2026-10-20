@@ -946,7 +946,7 @@ class NavigationTimeoutError extends ToolError {}
 /** The page's renderer crashed; every later call on the page stalls until its timeout. */
 class RendererCrashedError extends ToolError {}
 
-/** Chrome ended the debugger attachment the page is driven through (omp browser relay); the page itself lives on. */
+/** Chrome ended the debugger attachment the page is driven through (oyp browser relay); the page itself lives on. */
 class DebuggerDetachedError extends ToolError {
 	constructor(
 		readonly reason: string,
@@ -1569,7 +1569,7 @@ export class WorkerCore {
 	 * fails or stalls, so this worker runs nothing more and the supervisor re-adopts the tab on a new one.
 	 */
 	#debuggerDetached: string | undefined;
-	/** The omp browser relay's `OMP.debuggerDetached` event, sent to the page's sessions ahead of their detach. */
+	/** The oyp browser relay's `OMP.debuggerDetached` event, sent to the page's sessions ahead of their detach. */
 	readonly #onDebuggerDetached = (params: unknown): void => {
 		if (this.#debuggerDetached !== undefined) return;
 		const reason = isRecord(params) && typeof params.reason === "string" ? params.reason : "no reason given";
@@ -1811,7 +1811,7 @@ export class WorkerCore {
 	}
 
 	/**
-	 * Tell the omp browser relay this worker drives the adopted page, so the
+	 * Tell the oyp browser relay this worker drives the adopted page, so the
 	 * relay adds it to the per-window "omp" tab group. Best-effort: plain CDP
 	 * backends (real Chrome, cmux) reject the relay-private method.
 	 */

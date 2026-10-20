@@ -48,7 +48,7 @@ describe("HookSelectorComponent", () => {
 
 	it("wraps outlined option text without omitting the tail", () => {
 		const options = [
-			"Option A: Move to OMP-native only by migrating reusable shared AI instructions into .omp/AGENTS.md, .omp/rules, .omp/skills, and .omp/agents while deliberately not creating a root .github directory.",
+			"Option A: Move to OMP-native only by migrating reusable shared AI instructions into .oyp/AGENTS.md, .oyp/rules, .oyp/skills, and .oyp/agents while deliberately not creating a root .github directory.",
 			"Option B: Keep dual support by migrating canonical instructions into .omp while also maintaining a root .github/copilot-instructions.md compatibility bridge for editors that do not understand OMP resources yet.",
 		];
 		const component = new HookSelectorComponent(
@@ -75,7 +75,7 @@ describe("HookSelectorComponent", () => {
 			{
 				label: "Use existing local credentials",
 				description:
-					"Authenticate via the provider keys and OAuth state already configured under ~/.omp without opening a new browser-based setup flow.",
+					"Authenticate via the provider keys and OAuth state already configured under ~/.oyp without opening a new browser-based setup flow.",
 			},
 			{
 				label: "Set up omp in terminal",

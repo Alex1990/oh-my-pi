@@ -18,7 +18,7 @@ const githubServer = {
 	_source: {
 		provider: "native",
 		providerName: "OMP (User)",
-		path: "/home/sf/.omp/agent/mcp.json",
+		path: "/home/sf/.oyp/agent/mcp.json",
 		level: "user" as const,
 	},
 } satisfies MCPServerDisplay;
@@ -186,7 +186,7 @@ describe("MCP inspector runtime join", () => {
 			...mcpExtension(),
 			raw: {
 				...githubServer,
-				command: "/home/sf/worlds/personal/.omp/bin/gog-mcp-readonly",
+				command: "/home/sf/worlds/personal/.oyp/bin/gog-mcp-readonly",
 			},
 		});
 		const text = bun.stripANSI(panel.render(42).join("\n"));
@@ -282,7 +282,7 @@ describe("MCP inspector runtime join", () => {
 			kind: "mcp",
 			name: "linear",
 			displayName: "linear",
-			path: "/home/sf/.omp/agent/mcp.json",
+			path: "/home/sf/.oyp/agent/mcp.json",
 			source: {
 				provider: "native",
 				providerName: "OMP (User)",
@@ -296,7 +296,7 @@ describe("MCP inspector runtime join", () => {
 				_source: {
 					provider: "native",
 					providerName: "OMP (User)",
-					path: "/home/sf/.omp/agent/mcp.json",
+					path: "/home/sf/.oyp/agent/mcp.json",
 					level: "user",
 				},
 			},
@@ -344,7 +344,7 @@ describe("MCP list runtime join", () => {
 		const shadowed: Extension = {
 			...mcpExtension("shadowed"),
 			id: "mcp:github",
-			path: "/home/sf/.omp/agent/mcp.json",
+			path: "/home/sf/.oyp/agent/mcp.json",
 			shadowedBy: "github",
 			raw: { ...githubServer, command: "/usr/bin/shadowed-github" },
 		};
@@ -375,7 +375,7 @@ describe("MCP list runtime join", () => {
 		const shadowed: Extension = {
 			...mcpExtension("shadowed"),
 			id: "mcp:github",
-			path: "/home/sf/.omp/agent/mcp.json",
+			path: "/home/sf/.oyp/agent/mcp.json",
 			shadowedBy: "github",
 			raw: { ...githubServer, command: "/usr/bin/shadowed-github" },
 		};
@@ -403,7 +403,7 @@ describe("MCP list runtime join", () => {
 		const loser: Extension = {
 			...mcpExtension("disabled"),
 			id: "mcp:github",
-			path: "/home/sf/.omp/agent/mcp.json",
+			path: "/home/sf/.oyp/agent/mcp.json",
 			disabledReason: "item-disabled",
 			raw: { ...githubServer, enabled: false, _shadowed: true, command: "/usr/bin/shadowed-github" },
 		};

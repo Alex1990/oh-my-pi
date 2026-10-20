@@ -184,7 +184,7 @@ describe("installer", () => {
 		project = path.join(tempHome, "work", "proj");
 		await fs.mkdir(path.join(project, ".git"), { recursive: true });
 		vi.spyOn(os, "homedir").mockReturnValue(tempHome);
-		setAgentDir(path.join(tempHome, ".omp", "agent"));
+		setAgentDir(path.join(tempHome, ".oyp", "agent"));
 		client = await SkillshareClient.create({ registryUrl: "https://skills.test" });
 		registry = { pk: packument([], {}), tarballs: {}, files: [] };
 		vi.spyOn(client, "packument").mockImplementation(async () => registry.pk);
@@ -231,10 +231,10 @@ describe("installer", () => {
 
 		expect(changes).toEqual([{ id: ID, from: undefined, to: "1.1.0", range: "^1.1.0", restored: false }]);
 		expect(confirmations).toEqual([`${ID}@1.1.0:scripts/run.sh`]);
-		expect(await readSkillsManifest(path.join(project, ".omp", "skills.json"))).toEqual({
+		expect(await readSkillsManifest(path.join(project, ".oyp", "skills.json"))).toEqual({
 			skills: { [ID]: "^1.1.0" },
 		});
-		const lock = await readSkillsLock(path.join(project, ".omp", "skills.lock.json"));
+		const lock = await readSkillsLock(path.join(project, ".oyp", "skills.lock.json"));
 		expect(lock.skills[ID]).toEqual({
 			version: "1.1.0",
 			integrity: computeIntegrity(tgz),
@@ -262,8 +262,8 @@ describe("installer", () => {
 		).rejects.toThrow(/integrity mismatch/);
 
 		await expect(fs.stat(getSkillshareStoreDir())).rejects.toThrow();
-		expect(await bun.file(path.join(project, ".omp", "skills.json")).exists()).toBe(false);
-		expect(await bun.file(path.join(project, ".omp", "skills.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(project, ".oyp", "skills.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(project, ".oyp", "skills.lock.json")).exists()).toBe(false);
 	});
 
 	it("declining the scripts prompt downloads nothing", async () => {

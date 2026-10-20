@@ -20,7 +20,7 @@ describe("omp read MCP resources", () => {
 		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-mcp-"));
 		projectDir = path.join(root, "project");
 		agentDir = path.join(root, "agent");
-		const localSkillDir = path.join(projectDir, ".omp", "skills", "local-skill");
+		const localSkillDir = path.join(projectDir, ".oyp", "skills", "local-skill");
 		await Promise.all([fs.mkdir(localSkillDir, { recursive: true }), fs.mkdir(agentDir)]);
 		await bun.write(
 			path.join(localSkillDir, "SKILL.md"),

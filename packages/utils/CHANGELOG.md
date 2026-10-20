@@ -4,6 +4,7 @@
 
 ### Breaking Changes
 
+- `APP_NAME` is now `oyp` and `CONFIG_DIR_NAME` is `.oyp`, so every derived path (config root, logs, caches, install id, sessions, plugin lock) lives under `~/.oyp` and `./.oyp`
 - Runtime helpers now run on Node.js: new modules `node-runtime`, `node-serve`, `net-compat`, `worker`, `sqlite-compat`, `node-archive`, `node-image`, `node-build`, `ffi`, `shell`, `package-manager` and `test-runtime` replace Bun's globals (`Bun.file`, `Bun.serve`, `bun:sqlite`, `bun:ffi`, `bun:test`, `Bun.$`, …)
 
 ## [18.12.2] - 2026-10-18

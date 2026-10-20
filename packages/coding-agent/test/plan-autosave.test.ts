@@ -68,7 +68,7 @@ describe("resolvePlanAutosaveDir", () => {
 			path.join(cwd, "docs", "plans"),
 		);
 		expect(resolvePlanAutosaveDir(Settings.isolated({ "plan.autosaveDir": "   " }), cwd)).toBe(
-			path.join(cwd, ".omp", "plans"),
+			path.join(cwd, ".oyp", "plans"),
 		);
 	});
 });
@@ -84,7 +84,7 @@ describe("autosaveApprovedPlan", () => {
 			planContent: "# Plan\n",
 		});
 		expect(result).toBeNull();
-		expect(await bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(cwd, ".oyp", "plans", "AUTH_PLAN.md")).exists()).toBe(false);
 	});
 
 	it("saves the approved plan under the default dir", async () => {
@@ -96,7 +96,7 @@ describe("autosaveApprovedPlan", () => {
 			title: "Auth storage",
 			planContent: "# Plan\n\nShip it.\n",
 		});
-		expect(result).toBe(path.join(cwd, ".omp", "plans", "AUTH_STORAGE_PLAN.md"));
+		expect(result).toBe(path.join(cwd, ".oyp", "plans", "AUTH_STORAGE_PLAN.md"));
 		expect(await bun.file(result!).text()).toBe("# Plan\n\nShip it.\n");
 	});
 
@@ -105,8 +105,8 @@ describe("autosaveApprovedPlan", () => {
 		const settings = Settings.isolated({ "plan.autosave": true });
 		const first = await autosaveApprovedPlan({ settings, cwd, title: "Auth", planContent: "# v1\n" });
 		const second = await autosaveApprovedPlan({ settings, cwd, title: "Auth", planContent: "# v2\n" });
-		expect(first).toBe(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md"));
-		expect(second).toBe(path.join(cwd, ".omp", "plans", "AUTH_PLAN-1.md"));
+		expect(first).toBe(path.join(cwd, ".oyp", "plans", "AUTH_PLAN.md"));
+		expect(second).toBe(path.join(cwd, ".oyp", "plans", "AUTH_PLAN-1.md"));
 		expect(await bun.file(first!).text()).toBe("# v1\n");
 		expect(await bun.file(second!).text()).toBe("# v2\n");
 	});
@@ -205,7 +205,7 @@ describe("plan-yolo approval autosave", () => {
 		expect(result.details).toMatchObject({ planFilePath: "local://auth-plan.md", title: "auth", planExists: true });
 		expect(result.content[0]?.text).toBe(`Plan approved. Implementing now with ${target.id}.`);
 		expect(result.content[0]?.text).not.toContain(cwd);
-		expect(await bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).text()).toBe("# Plan\n\nYolo.\n");
+		expect(await bun.file(path.join(cwd, ".oyp", "plans", "AUTH_PLAN.md")).text()).toBe("# Plan\n\nYolo.\n");
 		expect(t.notices).toContainEqual({
 			level: "info",
 			message: expect.stringContaining("Plan autosaved to"),

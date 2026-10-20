@@ -31,7 +31,7 @@ beforeEach(async () => {
 	originalAgentDir = getAgentDir();
 	tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "omp-skill-list-home-"));
 	osMock.homedir = () => tempHome;
-	setAgentDir(path.join(tempHome, ".omp", "agent"));
+	setAgentDir(path.join(tempHome, ".oyp", "agent"));
 });
 
 afterEach(async () => {
@@ -124,7 +124,7 @@ describe("handleSkillList", () => {
 			);
 		}
 		await bun.write(
-			path.join(directory, ".omp", "config.yml"),
+			path.join(directory, ".oyp", "config.yml"),
 			"skills:\n  customDirectories:\n    - first\n    - second\n",
 		);
 

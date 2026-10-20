@@ -238,7 +238,7 @@ const CHROMIUM_FLATPAK_IDS: Record<string, true> = {
  * `--remote-debugging-port` when the default user-data-dir is in use: the
  * browser opens as usual, nothing listens, and attach waits out its timeout.
  * Chromium-family browsers therefore get a stable omp-owned profile under
- * `~/.omp/browser-profiles/<exe slug>` unless the caller already picked one.
+ * `~/.oyp/browser-profiles/<exe slug>` unless the caller already picked one.
  * That profile is also what lets a second instance start beside the user's
  * running default-profile browser instead of handing off to it. Electron apps
  * are left untouched: `--user-data-dir` would relocate their app data.
@@ -592,7 +592,7 @@ export function describeRelayTargets(targets: readonly RelayTarget[]): string {
 /** The pages of the user's Chrome the relay at `relayJson` can adopt. */
 export async function listRelayTargets(relayJson: string, signal?: AbortSignal): Promise<RelayTarget[]> {
 	const entries = await fetchRelayEntries(relayJson, signal);
-	if (!entries) throw new ToolError(`omp browser relay at ${relayJson} did not list its pages (GET /json failed).`);
+	if (!entries) throw new ToolError(`oyp browser relay at ${relayJson} did not list its pages (GET /json failed).`);
 	return relayTargets(entries);
 }
 

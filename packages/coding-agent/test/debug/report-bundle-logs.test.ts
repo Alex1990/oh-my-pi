@@ -21,7 +21,7 @@ function restoreEnv(name: string, value: string | undefined): void {
 
 // Points the logs dir at `root`. XDG_STATE_HOME is only honored on Linux/macOS;
 // elsewhere the config root follows the home dir, so redirect that instead —
-// otherwise the test reads and writes the user's real ~/.omp/logs.
+// otherwise the test reads and writes the user's real ~/.oyp/logs.
 async function isolateLogsRoot(root: string): Promise<void> {
 	if (process.platform === "linux" || process.platform === "darwin") {
 		const xdgStateHome = path.join(root, "state");

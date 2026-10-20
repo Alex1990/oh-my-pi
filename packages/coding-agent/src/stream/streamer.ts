@@ -142,7 +142,7 @@ export class StreamMuxHost {
 			);
 		} catch (error) {
 			if (error instanceof Error && "code" in error && error.code === "EADDRINUSE") {
-				throw new Error(`another omp stream process is already running for this directory (${endpoint})`);
+				throw new Error(`another oyp stream process is already running for this directory (${endpoint})`);
 			}
 			throw error;
 		}

@@ -584,10 +584,10 @@ describe("sanitizeDisplayLines", () => {
 
 describe("sanitizeDisplayWarning", () => {
 	it("strips terminal controls, expands tabs, flattens lines, and shortens home paths", () => {
-		const filePath = path.join(os.homedir(), ".omp", "WATCHDOG.yml");
+		const filePath = path.join(os.homedir(), ".oyp", "WATCHDOG.yml");
 		const warning = sanitizeDisplayWarning(`${filePath}: advisor "\x1b[31mBad\tName\x1b[0m\nfollow-up" dropped`);
 
-		expect(warning).toContain("~/.omp/WATCHDOG.yml");
+		expect(warning).toContain("~/.oyp/WATCHDOG.yml");
 		expect(warning).toContain('advisor "Bad   Name follow-up" dropped');
 		expect(warning).not.toContain(filePath);
 		expect(warning).not.toContain("\x1b");
@@ -598,14 +598,14 @@ describe("sanitizeDisplayWarning", () => {
 
 describe("shortenEmbeddedPaths", () => {
 	it("shortens home paths containing spaces before tokenizing", () => {
-		expect(shortenEmbeddedPaths("/Users/Jane Smith/.omp/WATCHDOG.yml: failed", "/Users/Jane Smith")).toBe(
-			"~/.omp/WATCHDOG.yml: failed",
+		expect(shortenEmbeddedPaths("/Users/Jane Smith/.oyp/WATCHDOG.yml: failed", "/Users/Jane Smith")).toBe(
+			"~/.oyp/WATCHDOG.yml: failed",
 		);
 	});
 
 	it("preserves sibling paths outside the home boundary", () => {
 		const home = "/Users/Jane";
-		const sibling = "/Users/Jane2/.omp/WATCHDOG.yml: failed";
+		const sibling = "/Users/Jane2/.oyp/WATCHDOG.yml: failed";
 		expect(shortenEmbeddedPaths(sibling, home)).toBe(sibling);
 	});
 

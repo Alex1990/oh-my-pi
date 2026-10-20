@@ -1,7 +1,7 @@
 /**
  * SSH CLI command handlers.
  *
- * Handles `omp ssh <command>` subcommands for SSH host configuration management.
+ * Handles `oyp ssh <command>` subcommands for SSH host configuration management.
  */
 
 import { getSSHConfigPath } from "@oh-my-pi/pi-utils";

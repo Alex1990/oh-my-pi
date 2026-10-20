@@ -664,7 +664,7 @@ export class TernTab implements InProcessRunTab {
 			}
 			if (this.#events.length > EVENT_LOG_LIMIT) this.#events.splice(0, this.#events.length - EVENT_LOG_LIMIT);
 			if (typeof answer.dropped === "number" && answer.dropped > 0) {
-				logger.debug("Tern dropped browser events before omp read them", { dropped: answer.dropped });
+				logger.debug("Tern dropped browser events before oyp read them", { dropped: answer.dropped });
 			}
 		})();
 		this.#pulling = pulling;

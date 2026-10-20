@@ -84,7 +84,7 @@ export interface AuthGatewayE2EStatus {
 
 export const AUTH_GATEWAY_E2E_URL = bun.env.OMP_E2E_GATEWAY_URL ?? "http://127.0.0.1:4000";
 
-const AUTH_GATEWAY_TOKEN_PATH = path.join(os.homedir(), ".omp", "auth-gateway.token");
+const AUTH_GATEWAY_TOKEN_PATH = path.join(os.homedir(), ".oyp", "auth-gateway.token");
 const AUTH_GATEWAY_HEALTH_TIMEOUT_MS = 500;
 
 let authGatewayE2EStatus: Promise<AuthGatewayE2EStatus> | undefined;

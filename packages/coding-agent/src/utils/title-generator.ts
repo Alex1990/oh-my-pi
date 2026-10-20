@@ -694,7 +694,7 @@ let reportedCwd: string | undefined;
  * Name the live session's source. Every session title update (start, new
  * session, resume, cwd switch) and {@link reportTernSession} re-read it and, in
  * Tern, report what changed: the file, so Tern's daemon can relaunch
- * `omp --resume <file>` after it restarts, and the directory, which Tern names
+ * `oyp --resume <file>` after it restarts, and the directory, which Tern names
  * in omp's composer bar.
  */
 export function setTerminalSessionSource(source: TerminalSessionSource | undefined): void {

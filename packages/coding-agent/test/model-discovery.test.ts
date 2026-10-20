@@ -54,7 +54,7 @@ describe("ModelRegistry runtime discovery", () => {
 		delete bun.env.OLLAMA_HOST;
 		delete bun.env.OLLAMA_CONTEXT_LENGTH;
 		delete bun.env.ANTHROPIC_API_KEY;
-		// The developer's shell or ~/.omp/agent/.env must not redirect llama.cpp discovery probes.
+		// The developer's shell or ~/.oyp/agent/.env must not redirect llama.cpp discovery probes.
 		originalLlamaCppBaseUrl = bun.env.LLAMA_CPP_BASE_URL;
 		delete bun.env.LLAMA_CPP_BASE_URL;
 		tempDir = path.join(os.tmpdir(), `pi-test-model-registry-${Snowflake.next()}`);

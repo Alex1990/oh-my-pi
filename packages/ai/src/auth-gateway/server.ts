@@ -1,5 +1,5 @@
 /**
- * omp auth-gateway router and HTTP server.
+ * oyp auth-gateway router and HTTP server.
  *
  * Accepts any provider-format request (OpenAI chat-completions, Anthropic
  * messages, OpenAI Responses) and dispatches through pi-ai's `streamSimple()`

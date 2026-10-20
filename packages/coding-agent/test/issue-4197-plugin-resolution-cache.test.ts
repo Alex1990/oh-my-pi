@@ -31,12 +31,12 @@ test("getEnabledPlugins caches repeated discovery for the same cwd and home unti
 	tempRoots.push(root);
 	const home = path.join(root, "home");
 	const cwd = path.join(root, "project");
-	const pluginsDir = path.join(home, ".omp", "plugins");
+	const pluginsDir = path.join(home, ".oyp", "plugins");
 	const pluginPackageJson = path.join(pluginsDir, "node_modules", "omp-cache-repro", "package.json");
 	await fs.mkdir(path.dirname(pluginPackageJson), { recursive: true });
 	await fs.mkdir(cwd, { recursive: true });
 	await writeJson(path.join(pluginsDir, "package.json"), { dependencies: { "omp-cache-repro": "1.0.0" } });
-	await writeJson(path.join(pluginsDir, "omp-plugins.lock.json"), {
+	await writeJson(path.join(pluginsDir, "oyp-plugins.lock.json"), {
 		plugins: { "omp-cache-repro": { version: "1.0.0", enabled: true, enabledFeatures: null } },
 		settings: {},
 	});

@@ -1,7 +1,7 @@
 /**
  * omp-side access to IDA databases hosted by broker-supervised daemons (`host.ts`).
  *
- * Every open database is one `omp.ida.<id>` daemon in the project's daemon broker, so `omp ps`
+ * Every open database is one `omp.ida.<id>` daemon in the project's daemon broker, so `oyp ps`
  * lists, stops, and tails it, and every omp process in the project shares it. This module starts
  * hosts on demand (evicting the least recently used idle one beyond `ida.maxOpen`), attaches to
  * hosts other processes started, and forwards requests over each host's socket.
@@ -81,7 +81,7 @@ class HostConnection {
 			reason => {
 				if (reason) logger.debug("IDA host connection error", { name, error: reason });
 				this.#open = false;
-				const error = new IdaHostGoneError(`IDA host ${name} exited; see \`omp ps logs ${name}\``);
+				const error = new IdaHostGoneError(`IDA host ${name} exited; see \`oyp ps logs ${name}\``);
 				for (const entry of this.#pending.values()) entry.reject(error);
 				this.#pending.clear();
 				onClose();
@@ -101,7 +101,7 @@ class HostConnection {
 	call(request: IdaHostRequest): Promise<unknown> {
 		if (!this.#open) {
 			return Promise.reject(
-				new IdaHostGoneError(`IDA host ${this.#name} exited; see \`omp ps logs ${this.#name}\``),
+				new IdaHostGoneError(`IDA host ${this.#name} exited; see \`oyp ps logs ${this.#name}\``),
 			);
 		}
 		const entry = Promise.withResolvers<unknown>();
@@ -140,7 +140,7 @@ class HostConnection {
  * last reported {@link IdaHostStatus}. Shared by every agent in the process.
  */
 export class IdaDatabase {
-	/** Broker daemon name (`omp ps` row, `omp ps logs <name>`). */
+	/** Broker daemon name (`oyp ps` row, `oyp ps logs <name>`). */
 	readonly name: string;
 	readonly #conn: HostConnection;
 	#status: IdaHostStatus;
@@ -342,7 +342,7 @@ async function startHost(
 			spec: {
 				name,
 				application: spawn.cmd[0]!,
-				// The trailing ref is ignored by the host; it labels the `omp ps` COMMAND column.
+				// The trailing ref is ignored by the host; it labels the `oyp ps` COMMAND column.
 				args: [...spawn.cmd.slice(1), idbRef(loc)],
 				env: { [IDA_HOST_CONFIG_ENV]: JSON.stringify(config) },
 				cwd: spawn.cwd ?? broker.projectDir,
@@ -362,7 +362,7 @@ async function startHost(
 	}
 	if (TERMINAL_STATES[started.state]) {
 		const reason = started.exitReason ?? `code ${started.exitCode}`;
-		throw new ToolError(`IDA host ${name} exited during startup (${reason}); see \`omp ps logs ${name}\``);
+		throw new ToolError(`IDA host ${name} exited during startup (${reason}); see \`oyp ps logs ${name}\``);
 	}
 }
 
@@ -380,7 +380,7 @@ async function openIdaDatabase(session: ToolSession, loc: IdbLocation): Promise<
 		});
 		if (db) return db;
 		if (attempt === ENSURE_ATTEMPTS) {
-			throw new ToolError(`IDA host ${name} did not come up; see \`omp ps logs ${name}\``);
+			throw new ToolError(`IDA host ${name} did not come up; see \`oyp ps logs ${name}\``);
 		}
 		const existing = await describeQuietly(broker, name, HOST_LABEL);
 		if (existing && !TERMINAL_STATES[existing.state]) {
@@ -432,7 +432,7 @@ export async function acquireIdaDatabase(
 		const since = await openingSince(session, name);
 		const age = since === undefined ? "" : ` for ${Math.round((Date.now() - since) / 60_000)}m`;
 		throw new ToolError(
-			`IDA is still analyzing ${idbRef(loc)} (opening${age}); the analysis continues in \`${name}\`. Retry later, or stop it with \`omp ps stop ${name}\``,
+			`IDA is still analyzing ${idbRef(loc)} (opening${age}); the analysis continues in \`${name}\`. Retry later, or stop it with \`oyp ps stop ${name}\``,
 		);
 	}
 }

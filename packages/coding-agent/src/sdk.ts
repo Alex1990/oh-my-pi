@@ -546,7 +546,7 @@ export interface CreateAgentSessionOptions {
 	cwd?: string;
 	/** Additional workspace directories beyond cwd (multi-root), absolute or cwd-relative. */
 	additionalDirectories?: string[];
-	/** Global config directory. Default: ~/.omp/agent */
+	/** Global config directory. Default: ~/.oyp/agent */
 	agentDir?: string;
 	/** Spawns to allow. Default: "*" */
 	spawns?: string;
@@ -721,7 +721,7 @@ export interface CreateAgentSessionOptions {
 	 */
 	preloadedPreparedExtensions?: readonly PreparedExtension[];
 	/**
-	 * Pre-discovered custom-tool source paths from `.omp/tools/`, `.claude/tools/`,
+	 * Pre-discovered custom-tool source paths from `.oyp/tools/`, `.claude/tools/`,
 	 * plugins, etc. When provided, the filesystem-scan inside
 	 * `discoverCustomToolPaths()` is skipped — subagents inherit the parent's
 	 * scan result and call `loadCustomTools()` themselves so each session binds
@@ -751,7 +751,7 @@ export interface CreateAgentSessionOptions {
 	contextFiles?: Array<{ path: string; content: string }>;
 	/** Pre-built workspace tree (skips re-scanning; passed by parents to subagents). */
 	workspaceTree?: WorkspaceTree;
-	/** Prompt templates. Default: discovered from cwd/.omp/prompts/ + agentDir/prompts/ */
+	/** Prompt templates. Default: discovered from cwd/.oyp/prompts/ + agentDir/prompts/ */
 	promptTemplates?: PromptTemplate[];
 	/** File-based slash commands. Default: discovered from commands/ directories */
 	slashCommands?: FileSlashCommand[];
@@ -1117,13 +1117,13 @@ export async function loadSessionExtensions(
 /**
  * Load discovered/configured extensions and register their providers into
  * `modelRegistry`, then discover the dynamic provider catalogs. One-shot CLIs
- * (`omp bench`, dry-balance) build a bare {@link ModelRegistry} that only knows
+ * (`oyp bench`, dry-balance) build a bare {@link ModelRegistry} that only knows
  * built-in catalog providers; without this, providers contributed by an
  * extension (e.g. a custom OpenAI-compatible provider under
- * `~/.omp/agent/extensions/`) never reach model resolution. Mirrors the
- * session / `omp models` path: drain the queued provider registrations, then
+ * `~/.oyp/agent/extensions/`) never reach model resolution. Mirrors the
+ * session / `oyp models` path: drain the queued provider registrations, then
  * `refreshRuntimeProviders` so dynamically-discovered models exist before
- * selectors are resolved, unless `discoverModels: false` (e.g. `omp usage`,
+ * selectors are resolved, unless `discoverModels: false` (e.g. `oyp usage`,
  * which needs only registered usage providers).
  */
 export async function loadCliExtensionProviders(
@@ -2687,7 +2687,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 		let customToolPaths: ToolPathWithSource[] = [];
 		const inlineExtensions: ExtensionFactory[] = [];
 		if (!restrictToolNames) {
-			// Discover custom tools from `.omp/tools/`, `.claude/tools/`, plugins, etc.
+			// Discover custom tools from `.oyp/tools/`, `.claude/tools/`, plugins, etc.
 			// Subagents reuse the parent's scan via `preloadedCustomToolPaths` to skip
 			// the FS walk, but ALWAYS re-call `loadCustomTools` here so factories bind
 			// to THIS session's `CustomToolAPI` (cwd, exec, pushPendingAction, UI).
@@ -2836,7 +2836,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 		// Hydrate cached runtime (extension) provider catalogs before model
 		// resolution. Dynamic-only providers have no synchronous registration side
 		// effect, so a cold --model/provider resume must see the same fresh SQLite
-		// cache that `omp models find` uses before the online refresh continues in
+		// cache that `oyp models find` uses before the online refresh continues in
 		// the background.
 		await modelRegistry.refreshRuntimeProviders("offline");
 		// Online runtime discovery must not steal the event loop from the first UI

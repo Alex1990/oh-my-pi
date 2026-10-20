@@ -40,7 +40,7 @@ describe("PluginManager.install npm idempotency", () => {
 		vi.spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		vi.spyOn(piUtils, "getPluginsNodeModules").mockReturnValue(pluginsNodeModules);
 		vi.spyOn(piUtils, "getPluginsPackageJson").mockReturnValue(pluginsPkgJson);
-		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "omp-plugins.lock.json"));
+		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "oyp-plugins.lock.json"));
 		vi.spyOn(piUtils, "getProjectDir").mockReturnValue(tmpRoot);
 		vi.spyOn(piUtils, "getProjectPluginOverridesPath").mockReturnValue(path.join(tmpRoot, "plugin-overrides.json"));
 	});

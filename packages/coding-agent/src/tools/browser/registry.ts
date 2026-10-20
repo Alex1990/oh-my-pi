@@ -288,17 +288,17 @@ async function openBrowserHandle(kind: BrowserKind, opts: AcquireBrowserOptions)
 		}
 		if (outcome === "unreachable") {
 			throw new ToolError(
-				`omp browser relay is not reachable at ${cdpUrl}. Start it with \`omp browser-relay\` (or check the endpoint), and make sure the OMP Browser Relay extension is loaded in Chrome.`,
+				`oyp browser relay is not reachable at ${cdpUrl}. Start it with \`oyp browser-relay\` (or check the endpoint), and make sure the OMP Browser Relay extension is loaded in Chrome.`,
 			);
 		}
 		if (outcome === "no-extension") {
 			throw new ToolError(
-				`omp browser relay is serving at ${cdpUrl} but its extension never connected. Install it with \`omp browser-relay install\` and check the toolbar badge shows "on".`,
+				`oyp browser relay is serving at ${cdpUrl} but its extension never connected. Install it with \`oyp browser-relay install\` and check the toolbar badge shows "on".`,
 			);
 		}
 		if (outcome === "extension-gone") {
 			throw new ToolError(
-				`omp browser relay is serving at ${cdpUrl} but its extension disconnected and has not come back. Open Chrome with the OMP Browser Relay extension and check the toolbar badge shows "on".`,
+				`oyp browser relay is serving at ${cdpUrl} but its extension disconnected and has not come back. Open Chrome with the OMP Browser Relay extension and check the toolbar badge shows "on".`,
 			);
 		}
 		if (outcome === "outdated-relay") {
@@ -308,7 +308,7 @@ async function openBrowserHandle(kind: BrowserKind, opts: AcquireBrowserOptions)
 		}
 		if (outcome === "outdated-extension") {
 			throw new ToolError(
-				"The OMP Browser Relay extension is out of date. Run `omp browser-relay install` and reload the extension in Chrome.",
+				"The OMP Browser Relay extension is out of date. Run `oyp browser-relay install` and reload the extension in Chrome.",
 			);
 		}
 		const puppeteer = await loadPuppeteer();
@@ -500,7 +500,7 @@ async function openSharedHeadlessHandle(
 		});
 		if (!shared) {
 			throw new ToolError(
-				`Shared browser daemon unavailable (broker start or Chromium launch failed); check \`omp ps\` for omp.browser.* daemons and ${getLogsDir()} for details`,
+				`Shared browser daemon unavailable (broker start or Chromium launch failed); check \`oyp ps\` for omp.browser.* daemons and ${getLogsDir()} for details`,
 			);
 		}
 		const puppeteer = await loadPuppeteer();

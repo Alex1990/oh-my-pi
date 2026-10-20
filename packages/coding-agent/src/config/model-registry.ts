@@ -279,7 +279,7 @@ function selectProviderModels<T extends { provider: string }>(models: T[], provi
  * Online discovery (`strategy: "online"`) is independent of credential minting:
  * opening `/models` and hovering a provider fetch catalogs without re-running
  * `!command` helpers. Pass `refreshCommandCredentials` only for explicit user
- * refresh (`omp models refresh`, TUI F5).
+ * refresh (`oyp models refresh`, TUI F5).
  */
 export interface ModelRegistryRefreshOptions {
 	refreshCommandCredentials?: boolean;
@@ -3177,7 +3177,7 @@ export class ModelRegistry {
 	 * Whether an unresolved selector on `provider` may still be supplied by
 	 * discovery this process has not finished. Two states qualify:
 	 * - `idle`: a config-declared provider with a cold cache has no catalog yet
-	 *   (e.g. after `omp update` bumps the cache namespace, #10048).
+	 *   (e.g. after `oyp update` bumps the cache namespace, #10048).
 	 * - `cached`/`unavailable` while the initial background refresh is in
 	 *   flight: startup replayed a cache row or fell back to the bundled
 	 *   catalog, and that refresh may still add ids (a cold namespace after an
@@ -3226,7 +3226,7 @@ export class ModelRegistry {
 	 * discovered model that defines one.
 	 *
 	 * The overrides lead because a model-derived answer is only available once
-	 * discovery has populated the registry. `omp usage` builds a `ModelRegistry`
+	 * discovery has populated the registry. `oyp usage` builds a `ModelRegistry`
 	 * and probes credentials immediately, and providers whose roster is
 	 * discovery-only (no bundled rows) have no model to read a URL from at that
 	 * point — so deriving solely from models returned `undefined` cache-cold and

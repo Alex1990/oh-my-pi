@@ -1,7 +1,7 @@
 /**
  * CDP façade over `chrome.debugger`.
  *
- * Puppeteer clients (the omp browser tool: one supervisor connection plus one
+ * Puppeteer clients (the oyp browser tool: one supervisor connection plus one
  * per tab worker) connect to this bridge as if it were Chrome's browser
  * debugging endpoint. Chrome only allows a single debugger attachment per tab,
  * so the bridge owns ONE `chrome.debugger` attachment per tab (via the
@@ -385,7 +385,7 @@ export class RelayBridge {
 		return this.#extensionGoneSince === null ? null : Date.now() - this.#extensionGoneSince;
 	}
 
-	/** Downstream CDP clients (omp browser sessions, puppeteer) connected right now. */
+	/** Downstream CDP clients (oyp browser sessions, puppeteer) connected right now. */
 	get cdpClientCount(): number {
 		return this.#conns.size;
 	}
@@ -1177,7 +1177,7 @@ export class RelayBridge {
 				this.#reply(conn, msg, {});
 				return;
 			case "Target.createBrowserContext":
-				this.#replyError(conn, msg, "Browser contexts are not supported by the omp browser relay");
+				this.#replyError(conn, msg, "Browser contexts are not supported by the oyp browser relay");
 				return;
 			default:
 				this.#replyError(conn, msg, `'${msg.method}' wasn't found`, CDP_ERROR_METHOD_NOT_FOUND);

@@ -1,7 +1,7 @@
 /**
  * Update CLI command handler.
  *
- * Handles `omp update` to check for and install updates.
+ * Handles `oyp update` to check for and install updates.
  * Uses the installer that owns the active omp executable when it can be detected.
  */
 import { createHash } from "node:crypto";
@@ -32,7 +32,14 @@ import {
 	unsupportedProxyMessage,
 	withTimeoutSignal,
 } from "../utils/fetch-timeout";
-import { type BuildAnswer, type BuildPatch, type Fetch, fetchBuild, type UpdateChannel } from "./build-service";
+import {
+	type BuildAnswer,
+	type BuildPatch,
+	type Fetch,
+	fetchBuild,
+	type UpdateChannel,
+	UPSTREAM_PRODUCT,
+} from "./build-service";
 import {
 	DEFAULT_NPM_REGISTRY,
 	loadNpmRegistryResolver,
@@ -387,7 +394,7 @@ export function isSourceCheckout(): boolean {
  *
  * A manager (Tern) keeps `manager.json` (`{"manager": "tern", "name": "Tern"}`) two
  * directories above every binary it installs (`<root>/versions/<version>`,
- * `<root>/bin/omp.exe`) and updates them itself, so `omp update` must leave them alone.
+ * `<root>/bin/omp.exe`) and updates them itself, so `oyp update` must leave them alone.
  * A missing or unreadable manifest means unmanaged.
  */
 export async function managedInstallName(binaryPath: string): Promise<string | undefined> {
@@ -856,7 +863,7 @@ function resolveOmpPath(): string | undefined {
 }
 
 /**
- * Parse the version a launcher reports from `omp --version` output
+ * Parse the version a launcher reports from `oyp --version` output
  * (`omp/X.Y.Z`, or a prerelease such as `omp/X.Y.Z-canary.1`).
  *
  * The prerelease suffix is preserved so a correctly installed canary build
@@ -1166,7 +1173,7 @@ function buildVersionedPackageInstallArgs(
  *   divergence class as #1686). pnpm resolves metadata on every invocation
  *   — there is no manifest snapshot to bypass, so no cache flag is needed.
  *
- * Together these flags make `omp update` produce exactly the registry lookup
+ * Together these flags make `oyp update` produce exactly the registry lookup
  * the version check just performed. See #1686.
  *
  * Also pins {@link NATIVES_PACKAGE} and the platform-specific
@@ -1695,7 +1702,7 @@ export async function updateViaBinaryAt(
 	} = {},
 ): Promise<void> {
 	if (options.validateExistingTarget) await validateExistingUpdateTarget(targetPath);
-	// Unique per attempt so two overlapping `omp update` runs never share a temp
+	// Unique per attempt so two overlapping `oyp update` runs never share a temp
 	// or backup path. A fixed temp name (`<binary>.new`) let the second run's
 	// pre-download unlink delete the first run's still-downloading temp file; the
 	// first kept writing to its open fd (size + digest still passed), then chmod
@@ -1710,7 +1717,7 @@ export async function updateViaBinaryAt(
 	await downloadBuild(build, { basePath: targetPath, patchPath: `${targetPath}.${attempt}.patch`, tempPath }, options);
 
 	// Serialize the target swap and stale-artifact sweep per target so two
-	// overlapping `omp update` runs never replace the same binary concurrently
+	// overlapping `oyp update` runs never replace the same binary concurrently
 	// or reclaim each other's live backup/temp files. The download above writes
 	// to a unique temp path and is safe to overlap; only the swap is shared.
 	const verification = await withFileLock(targetPath, async () => {
@@ -1881,7 +1888,7 @@ function persistChannel(channel: UpdateChannel): void {
 type BinaryUpdateTarget = Extract<UpdateTarget, { method: "binary" }>;
 type ManagedUpdateTarget = Exclude<UpdateTarget, { method: "binary" }>;
 
-/** What `omp update` was asked to do, after resolving the channel. */
+/** What `oyp update` was asked to do, after resolving the channel. */
 interface UpdateRequest {
 	force: boolean;
 	check: boolean;
@@ -2060,6 +2067,11 @@ export async function runUpdateCommand(opts: {
 	check: boolean;
 	channel?: UpdateChannel;
 }): Promise<void> {
+	if (APP_NAME !== UPSTREAM_PRODUCT) {
+		throw new Error(
+			`${APP_NAME} is a locally built fork; self-update would replace it with an upstream ${UPSTREAM_PRODUCT} build that writes to ~/.${UPSTREAM_PRODUCT}. Rebuild from the source repository instead.`,
+		);
+	}
 	const ompPath = resolveOmpPath();
 	const manager = ompPath ? await managedInstallName(ompPath) : undefined;
 	if (manager) {

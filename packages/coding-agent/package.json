@@ -28,7 +28,7 @@
 		"directory": "packages/coding-agent"
 	},
 	"bin": {
-		"omp": "dist/cli.js"
+		"oyp": "dist/cli.js"
 	},
 	"files": [
 		"src",

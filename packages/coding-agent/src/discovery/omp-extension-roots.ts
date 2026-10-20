@@ -176,7 +176,7 @@ async function readSettingsExtensions(settingsPath: string): Promise<string[] | 
 	return readExtensionsArray(parsed?.extensions);
 }
 
-/** Project native config filename; matches the single `.omp/config.yml` the settings loader reads. */
+/** Project native config filename; matches the single `.oyp/config.yml` the settings loader reads. */
 const PROJECT_CONFIG_FILENAMES = ["config.yml"] as const;
 
 interface YamlExtensions {

@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 /**
- * `omp ttsr` — inspect and test Time-Traveling Stream Rules.
+ * `oyp ttsr` — inspect and test Time-Traveling Stream Rules.
  *
- * `omp ttsr test` feeds a snippet (inline, --file, or stdin) through the real
- * TTSR matching pipeline and reports which rules would trigger. `omp ttsr list`
+ * `oyp ttsr test` feeds a snippet (inline, --file, or stdin) through the real
+ * TTSR matching pipeline and reports which rules would trigger. `oyp ttsr list`
  * shows every TTSR-registered rule the current project/user config would load.
  */
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
@@ -62,18 +62,18 @@ export default class Ttsr extends Command {
 	};
 
 	static examples = [
-		"omp ttsr list",
-		"omp ttsr test 'const x: any = 1'",
-		"omp ttsr test src/foo.ts",
-		"omp ttsr test --file src/foo.ts",
-		"omp ttsr test --file src/foo.ts --source text",
-		"omp ttsr test --rule .omp/rules/no-any.md --source tool --path src/foo.ts 'const x: any = 1'",
-		"omp ttsr test --agent scout 'const x: any = 1'",
-		"echo 'Box::leak(&mut v)' | omp ttsr test --file - --path src/lib.rs",
-		"omp ttsr test --source tool --tool edit --path src/foo.ts 'const x: any = 1'",
-		"omp ttsr scan",
-		"omp ttsr scan src/",
-		"omp ttsr scan -r .omp/rules/no-any.md src/",
+		"oyp ttsr list",
+		"oyp ttsr test 'const x: any = 1'",
+		"oyp ttsr test src/foo.ts",
+		"oyp ttsr test --file src/foo.ts",
+		"oyp ttsr test --file src/foo.ts --source text",
+		"oyp ttsr test --rule .oyp/rules/no-any.md --source tool --path src/foo.ts 'const x: any = 1'",
+		"oyp ttsr test --agent scout 'const x: any = 1'",
+		"echo 'Box::leak(&mut v)' | oyp ttsr test --file - --path src/lib.rs",
+		"oyp ttsr test --source tool --tool edit --path src/foo.ts 'const x: any = 1'",
+		"oyp ttsr scan",
+		"oyp ttsr scan src/",
+		"oyp ttsr scan -r .oyp/rules/no-any.md src/",
 	];
 
 	async run(): Promise<void> {
@@ -81,7 +81,7 @@ export default class Ttsr extends Command {
 		const action = (args.action ?? "list") as (typeof TTSR_ACTIONS)[number];
 
 		// A positional that resolves to an existing file is a snippet file, not
-		// inline text — so `omp ttsr test src/foo.ts` works without --file.
+		// inline text — so `oyp ttsr test src/foo.ts` works without --file.
 		// --file always wins over the positional.
 		let file = flags.file;
 		let snippet = args.snippet;

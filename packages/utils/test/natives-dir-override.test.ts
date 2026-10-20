@@ -101,6 +101,6 @@ describe("native directory override", () => {
 		["relative", "relative/natives"],
 	])("keeps the existing cache root when the override is %s", (_label, override) => {
 		process.env.PI_NATIVES_DIR = override;
-		expect(getNativesDir()).toBe(path.join(home, ".omp", "natives"));
+		expect(getNativesDir()).toBe(path.join(home, ".oyp", "natives"));
 	});
 });

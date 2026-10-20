@@ -1,5 +1,5 @@
 /**
- * `omp if-bench` — instruction-following and working-memory benchmark.
+ * `oyp if-bench` — instruction-following and working-memory benchmark.
  *
  * One cacheable conversation per model: turn N issues N glyph actions over the
  * array the model itself reported last turn, while a `nya{1,N}` directive
@@ -65,7 +65,7 @@ export async function runIfBenchCommand(
 	deps: IfBenchDependencies = {},
 ): Promise<IfBenchSummary> {
 	if (command.models.length === 0) {
-		throw new Error("Pass at least one model selector, e.g. `omp if-bench opus gpt-5.2`");
+		throw new Error("Pass at least one model selector, e.g. `oyp if-bench opus gpt-5.2`");
 	}
 	const maxTurns = positiveInteger("turns", command.flags.turns, DEFAULT_TURNS);
 	const arrayLength = positiveInteger("length", command.flags.length, DEFAULT_ARRAY_LENGTH);

@@ -31,7 +31,7 @@ async function plantRoot(prefix: string): Promise<{ home: string; cwd: string; m
 	tempRoots.push(root);
 	const home = path.join(root, "home");
 	const cwd = path.join(root, "project");
-	const pluginsDir = path.join(home, ".omp", "plugins");
+	const pluginsDir = path.join(home, ".oyp", "plugins");
 	await fs.mkdir(cwd, { recursive: true });
 
 	const declaredDir = path.join(pluginsDir, "node_modules", "declared-plugin");
@@ -44,7 +44,7 @@ async function plantRoot(prefix: string): Promise<{ home: string; cwd: string; m
 
 	const manifest = path.join(pluginsDir, "package.json");
 	await writeJson(manifest, { dependencies: { "declared-plugin": "1.0.0" } });
-	await writeJson(path.join(pluginsDir, "omp-plugins.lock.json"), {
+	await writeJson(path.join(pluginsDir, "oyp-plugins.lock.json"), {
 		plugins: { "declared-plugin": { version: "1.0.0", enabled: true, enabledFeatures: null } },
 		settings: {},
 	});

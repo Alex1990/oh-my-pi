@@ -1,6 +1,6 @@
 /**
  * How soon an account's saved rate-limit resets expire, and whether anything
- * will spend them first. Shared by `omp usage` and the TUI status line so both
+ * will spend them first. Shared by `oyp usage` and the TUI status line so both
  * warn about the accounts the salvage planners would act on.
  */
 import type {
@@ -139,7 +139,7 @@ function spendableNow(
 }
 
 /**
- * What an open interactive omp session does with an account's soonest expiring saved
+ * What an open interactive oyp session does with an account's soonest expiring saved
  * reset. `kind` comes from the provider's `autoRedeem` setting alone: `auto`
  * spends it by its last five minutes if the provider still allows it then,
  * `ask` prompts first, `off` leaves it. `eligibleNow` is the salvage planner's

@@ -150,7 +150,7 @@ describe("PluginManager.install with git sources", () => {
 		vi.spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		vi.spyOn(piUtils, "getPluginsNodeModules").mockReturnValue(pluginsNodeModules);
 		vi.spyOn(piUtils, "getPluginsPackageJson").mockReturnValue(pluginsPkgJson);
-		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "omp-plugins.lock.json"));
+		vi.spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "oyp-plugins.lock.json"));
 		vi.spyOn(piUtils, "getProjectDir").mockReturnValue(tmpRoot);
 		vi.spyOn(piUtils, "getProjectPluginOverridesPath").mockReturnValue(path.join(tmpRoot, "plugin-overrides.json"));
 	});
@@ -831,7 +831,7 @@ describe("PluginManager.install with git sources", () => {
 			};
 			const installedManifest = path.join(
 				home,
-				".omp",
+				".oyp",
 				"plugins",
 				"node_modules",
 				"@test",
@@ -879,7 +879,7 @@ describe("PluginManager.install with git sources", () => {
 		await fs.mkdir(seedDir, { recursive: true });
 		await bun.write(path.join(seedDir, "package.json"), JSON.stringify({ name: "ida-mcp", version: "1.0.0" }));
 		await bun.write(
-			path.join(tmpRoot, "omp-plugins.lock.json"),
+			path.join(tmpRoot, "oyp-plugins.lock.json"),
 			JSON.stringify({
 				plugins: { "ida-mcp": { version: "1.0.0", enabledFeatures: null, enabled: false } },
 				settings: {},
@@ -909,7 +909,7 @@ describe("PluginManager.install with git sources", () => {
 			[process.execPath, "pm", "cache"],
 			[process.execPath, "update", "ida-mcp"],
 		]);
-		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
+		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["ida-mcp"]).toEqual({ version: "2.0.0", enabledFeatures: null, enabled: false });
 	});
 

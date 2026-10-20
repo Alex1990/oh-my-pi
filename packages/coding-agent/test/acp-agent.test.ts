@@ -809,7 +809,7 @@ describe("ACP agent", () => {
 		expect(result.content[0]?.text).toMatch(/Plan approved/);
 		expect(result.content[0]?.text).not.toContain(harness.cwdA);
 		expect(result.content[0]?.text).not.toContain("autosaved to");
-		const saved = path.join(harness.cwdA, ".omp", "plans", "WORDS_COUNTER_PLAN.md");
+		const saved = path.join(harness.cwdA, ".oyp", "plans", "WORDS_COUNTER_PLAN.md");
 		expect(await bun.file(saved).text()).toBe("# Words Counter\n\nFile contents.");
 		expect(session.planModeState).toBeUndefined();
 
@@ -1934,7 +1934,7 @@ describe("ACP agent", () => {
 
 	it("refreshes task agent descriptions on ACP /reload-plugins", async () => {
 		const harness = await createHarness();
-		const agentDir = path.join(harness.cwdA, ".omp", "agents");
+		const agentDir = path.join(harness.cwdA, ".oyp", "agents");
 		const agentFile = path.join(agentDir, "acp-reload-agent.md");
 		await fs.promises.mkdir(agentDir, { recursive: true });
 		await fs.promises.writeFile(

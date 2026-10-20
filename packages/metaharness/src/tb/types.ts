@@ -103,7 +103,7 @@ export type OpenRouterVariant = "default" | "nitro" | "floor" | "online" | "exac
 export interface GatewayConfig {
 	/** Local gateway URL; each trial rewrites it to its guest-visible tunnel endpoint. */
 	url: string;
-	/** Gateway bearer (`omp auth-gateway token`); `"no-auth"` when the gateway runs open. */
+	/** Gateway bearer (`oyp auth-gateway token`); `"no-auth"` when the gateway runs open. */
 	token: string;
 	/** Provider ids routed through the gateway (derived from the model pool). */
 	providers: string[];

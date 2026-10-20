@@ -27,7 +27,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
  *
  * Only interactive processes download (the composer on first use through
  * {@link prefetchSmolLmWeights}, shown in the download HUD, or
- * `omp tiny-models download smollm`); the prediction daemon just checks
+ * `oyp tiny-models download smollm`); the prediction daemon just checks
  * {@link smolLmWeightsReady} and serves ngram until then.
  */
 

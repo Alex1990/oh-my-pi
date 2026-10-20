@@ -34,7 +34,7 @@ const EMPTY_MODEL_TAGS_RECORD: ModelTagsSettings = {};
 const EMPTY_MODEL_PRESETS_RECORD: Record<string, ModelPreset> = {};
 const EMPTY_AUTH_ACCOUNT_POLICIES: AuthAccountPolicies = [];
 
-// Auth broker — credentials proxied through a remote `omp auth-broker serve`
+// Auth broker — credentials proxied through a remote `oyp auth-broker serve`
 // host. Hidden from the UI; populate via env vars or hand-edited config.yml. Env takes
 // precedence so per-machine overrides remain trivial. The connection itself is resolved by
 // `@oh-my-pi/pi-ai/auth-broker/discover` from env + global config.yml only (project layers
@@ -100,7 +100,7 @@ export const cfgModelRoleStorage = register({
 			{
 				value: "project",
 				label: "Per-project",
-				description: "Save project role models in .omp/config.yml; missing project roles use global defaults",
+				description: "Save project role models in .oyp/config.yml; missing project roles use global defaults",
 			},
 		],
 	},

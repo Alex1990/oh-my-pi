@@ -11396,7 +11396,7 @@ export class AgentSession implements SettingsScope {
 	}
 
 	/**
-	 * Go on with the turn the previous process was in when it ended (`omp --restore`).
+	 * Go on with the turn the previous process was in when it ended (`oyp --restore`).
 	 *
 	 * A turn cut off without an exit record (a crash, SIGKILL or power loss records
 	 * none) is first closed the way exit recovery closes one whose exit was recorded:

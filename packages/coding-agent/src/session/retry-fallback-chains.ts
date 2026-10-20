@@ -242,7 +242,7 @@ function providerScopedPool(
  *
  * `options.isDiscoveryPending` suppresses "unknown model" warnings for
  * selectors whose provider discovery has not settled yet: a cold discovery
- * cache after `omp update` bumps the cache namespace (#10048), or a startup
+ * cache after `oyp update` bumps the cache namespace (#10048), or a startup
  * cache replay the pending online refresh may still extend. Such selectors
  * are re-checked once background discovery settles. Logging is the caller's
  * responsibility so a post-discovery re-run does not double-log persistent

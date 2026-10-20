@@ -47,7 +47,7 @@ export interface StatsJudge extends Judge {
 	primaryModel(): Model | undefined;
 }
 
-/** Lazily resolves the host judge on first estimate/run so `omp stats` startup stays fast. */
+/** Lazily resolves the host judge on first estimate/run so `oyp stats` startup stays fast. */
 export type StatsJudgeProvider = () => Promise<StatsJudge>;
 
 /**
@@ -80,7 +80,7 @@ const ATTEMPTS_PER_TEXT = 3;
 const CIRCUIT_BREAKER_FAILURES = 25;
 
 const NO_PROVIDER_REASON =
-	"This dashboard was started without a judge (standalone omp-stats). Run `omp stats` to classify.";
+	"This dashboard was started without a judge (standalone omp-stats). Run `oyp stats` to classify.";
 const NO_MODEL_REASON = "No judge model is available. Configure the `judge` model role.";
 
 let judgeProvider: StatsJudgeProvider | undefined;

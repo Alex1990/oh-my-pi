@@ -45,7 +45,7 @@ describe("concurrent ACP sessions", () => {
 	it("redact each session's requests per its own project's secrets.enabled", async () => {
 		using launchDir = TempDir.createSync("@pi-acp-effects-launch-");
 		using projectDir = TempDir.createSync("@pi-acp-effects-project-");
-		await bun.write(projectDir.join(".omp/config.yml"), "secrets:\n  enabled: true\n");
+		await bun.write(projectDir.join(".oyp/config.yml"), "secrets:\n  enabled: true\n");
 		// What the provider's credential-redaction pass does to a token in each request it builds.
 		const requests: Array<{ context: string; credential: string }> = [];
 		registerCustomApi(API, (_model, context) => {

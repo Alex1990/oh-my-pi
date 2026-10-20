@@ -98,7 +98,7 @@ describe("omp setup python", () => {
 			const interpreter = path.join(cwd, "configured-python");
 			await bun.write(interpreter, "#!/bin/sh\nexit 0\n");
 			await fs.chmod(interpreter, 0o755);
-			await bun.write(path.join(cwd, ".omp", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
+			await bun.write(path.join(cwd, ".oyp", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
 
 			const result = await runSetupPython(cwd);
 

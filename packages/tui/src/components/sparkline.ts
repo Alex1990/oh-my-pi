@@ -1,6 +1,6 @@
 /**
  * One-row block sparklines (`▁▂▃▅▇█`) for ANSI renderers: the usage history
- * in `omp usage`, a job widget's series in the `wait` card and status line.
+ * in `oyp usage`, a job widget's series in the `wait` card and status line.
  */
 
 /** Block glyphs from lowest to highest. */

@@ -4,6 +4,7 @@
 
 ### Breaking Changes
 
+- Renamed the CLI identity to `oyp`: the command is now `oyp`, user configuration lives in `~/.oyp`, and project configuration in `.oyp`, so it can coexist with an upstream `omp` install; self-update and startup update checks are disabled for this fork
 - omp now runs on **Node.js** (>= 22.12) instead of Bun: the workspace is managed with **pnpm**, `bun:test` suites run on **Vitest**, and packaged builds start a Node process with the Rust addons loaded through napi
 - Bun-only runtime APIs (`bun:sqlite`, `bun:ffi`, `Bun.serve`, `Bun.$`, `Bun.connect`, …) are replaced by Node implementations under `@oh-my-pi/pi-utils/*`; `Bun.serve`/`Bun.connect` callers must now `await` the async `serve()`/`connect()`
 - Release artifacts are a Node launcher (`omp-<target>` / `omp-<target>.cmd`) plus a shared `cli.js` bundle instead of one compiled executable per platform
