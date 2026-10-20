@@ -57,20 +57,22 @@ import {
 } from "./browser/settings";
 import { cfgToolsMaxTimeout } from "./settings";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import {
+	buildAriaSnapshotScript as buildAriaSnapshotScriptImpl,
+	parseAriaRefSelector as parseAriaRefSelectorImpl,
+} from "./browser/aria/aria-snapshot";
+import { createBrowserPreludeDefinition } from "./browser/prelude-definition";
 
 export type { AriaSnapshotOptions } from "./browser/aria/aria-snapshot";
 
 /** First-use boundary for the generated Playwright ARIA evaluator bundle. */
 export function buildAriaSnapshotScript(selector: string | undefined, options: AriaSnapshotOptions = {}): string {
-	return require("./browser/aria/aria-snapshot").buildAriaSnapshotScript(selector, options);
+	return buildAriaSnapshotScriptImpl(selector, options);
 }
 
 /** First-use boundary for ARIA-ref parsing; keeps evaluator construction out of tool registration. */
 export function parseAriaRefSelector(selector: string): string | null {
-	return require("./browser/aria/aria-snapshot").parseAriaRefSelector(selector);
+	return parseAriaRefSelectorImpl(selector);
 }
 
 export { cmuxSnapshotToObservation, mapWaitUntil, resolveCmuxKind, serializeEval } from "./browser/cmux/rpc";
@@ -253,9 +255,6 @@ function chromiumKind(params: BrowserParams, session: ToolSession): BrowserKind 
 
 /** Create the enabled-only browser host prelude for one tool session. */
 export function createBrowserPrelude(session: ToolSession): EvalPreludeDefinition {
-	// Eval-first-use boundary: source/declaration assets stay unloaded until a
-	// JavaScript or Python kernel actually asks for its enabled preludes.
-	const { createBrowserPreludeDefinition } = require("./browser/prelude-definition");
 	return createBrowserPreludeDefinition(session, {
 		invoke: (parameters: unknown, context: EvalPreludeContext) => invokeBrowser(session, parameters, context),
 		status: describeBrowserCall,

@@ -9,6 +9,7 @@ import type { EvalPreludeContext, EvalPreludeDefinition } from "../eval/preludes
 import computerUsePrompt from "../prompts/system/computer-use.md" with { type: "text" };
 import { enforceInlineByteCap } from "@oh-my-pi/pi-tui/tools/streaming-output";
 import { type ComputerCallStep, isReadOnlyComputerCall, renderComputerCall } from "./computer/call";
+import { computerPreludeAssets } from "./computer/prelude-definition";
 import { type ComputerScreenshot, type ComputerSessionSnapshot, screenStateNotice } from "./computer/protocol";
 import {
 	type ComputerController,
@@ -31,9 +32,6 @@ import {
 	cfgToolsMaxTimeout,
 } from "./settings";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 // Image transports that cannot preserve native screenshot detail resize frames
 // without returning transformed dimensions. Keep their native coordinate frames
@@ -135,9 +133,6 @@ export function createComputerPrelude(
 ): EvalPreludeDefinition {
 	const controller = createController(session);
 	const unregisterOwner = registerComputerController(session.getEvalKernelOwnerId?.() ?? undefined, controller);
-	// Eval-first-use boundary: source/declaration assets stay unloaded until a
-	// JavaScript or Python kernel actually asks for its enabled preludes.
-	const { computerPreludeAssets } = require("./computer/prelude-definition");
 	let closed = false;
 	const lifetime: ComputerLifetime = {
 		isClosed: () => closed,
