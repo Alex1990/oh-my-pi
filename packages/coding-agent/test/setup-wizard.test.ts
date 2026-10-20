@@ -34,6 +34,18 @@ function fakeContextWithConfiguredModel(): InteractiveModeContext {
 		session: {
 			modelRegistry: {
 				getAvailable: () => [{ provider: "configured", id: "model" }],
+				getAll: () => [{ provider: "configured", id: "model" }],
+			},
+		},
+	} as unknown as InteractiveModeContext;
+}
+
+function fakeContextWithoutModels(): InteractiveModeContext {
+	return {
+		session: {
+			modelRegistry: {
+				getAvailable: () => [],
+				getAll: () => [],
 			},
 		},
 	} as unknown as InteractiveModeContext;
@@ -58,9 +70,11 @@ afterEach(async () => {
 });
 
 describe("setup wizard scene selection", () => {
-	it("runs all v1 scenes for a new user", async () => {
-		const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithConfiguredModel(), { isTTY: true });
-		expect(scenes.map(scene => scene.id)).toEqual(ALL_SCENES.map(scene => scene.id));
+	it("runs every onboarding scene except sign-in for a new user", async () => {
+		// A fresh install with no credentials still must not be pushed into
+		// provider sign-in; the model scene explains how to configure one later.
+		const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithoutModels(), { isTTY: true });
+		expect(scenes.map(scene => scene.id)).toEqual(ALL_SCENES.map(scene => scene.id).filter(id => id !== "providers"));
 	});
 
 	it("keeps CURRENT_SETUP_VERSION in sync with the highest scene minVersion", () => {
@@ -109,9 +123,9 @@ describe("setup wizard scene selection", () => {
 	it("drops the glyph scene once the terminal renders omp's bundled icons in-band", async () => {
 		setTerminalGlyphProtocol(true);
 		try {
-			const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithConfiguredModel(), { isTTY: true });
+			const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithoutModels(), { isTTY: true });
 			expect(scenes.map(scene => scene.id)).toEqual(
-				ALL_SCENES.map(scene => scene.id).filter(id => id !== "glyph-mode"),
+				ALL_SCENES.map(scene => scene.id).filter(id => id !== "glyph-mode" && id !== "providers"),
 			);
 		} finally {
 			setTerminalGlyphProtocol(false);

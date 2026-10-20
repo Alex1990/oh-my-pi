@@ -81,11 +81,17 @@ export interface SetupSceneController extends Component {
 	routeMouse?(event: SgrMouseEvent, line: number, col: number): void;
 }
 
+/** Why the wizard is running; scenes can keep data-driven skips out of an explicit `omp setup`. */
+export interface SetupSceneRunContext {
+	/** Force mode (the explicit setup command): the user asked to run onboarding. */
+	force: boolean;
+}
+
 /** Versioned onboarding scene definition. */
 export interface SetupScene {
 	id: string;
 	title: string;
 	minVersion: number;
-	shouldRun?(ctx: SetupHost): boolean | Promise<boolean>;
+	shouldRun?(ctx: SetupHost, run: SetupSceneRunContext): boolean | Promise<boolean>;
 	mount(host: SetupSceneHost): SetupSceneController;
 }

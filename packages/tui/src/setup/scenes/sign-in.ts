@@ -480,10 +480,19 @@ export class SignInScene implements SetupSceneController {
 	}
 }
 
-/** Onboarding scene for provider sign-in. */
+/**
+ * Onboarding scene for provider sign-in.
+ *
+ * A cold launch never routes the user into sign-in — not even a fresh install
+ * with no stored credentials or configured API key. Signing in is a deliberate
+ * action (`/login` or an explicit setup run, carried here as `force`), so
+ * onboarding must not recommend OpenAI or any other provider at startup.
+ * `/login` and the explicit setup command both open this scene on demand.
+ */
 export const providersSetupScene: SetupScene = {
 	id: "providers",
 	title: "Sign in to your providers",
 	minVersion: 1,
+	shouldRun: (_ctx, run) => run.force,
 	mount: host => new SignInScene(host),
 };

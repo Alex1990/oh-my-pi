@@ -58,7 +58,7 @@ export async function selectSetupScenes(
 		if (!options.force && scene.minVersion <= storedVersion) continue;
 		if (scene.shouldRun) {
 			if (!ctx) continue;
-			if (!(await scene.shouldRun(ctx))) continue;
+			if (!(await scene.shouldRun(ctx, { force: options.force === true }))) continue;
 		}
 		selected.push(scene);
 	}
