@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { Lexer, type Token } from "@oh-my-pi/pi-utils/marked";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";

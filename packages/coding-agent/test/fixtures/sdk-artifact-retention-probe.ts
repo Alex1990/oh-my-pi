@@ -1,14 +1,17 @@
-import { heapStats } from "bun:jsc";
+import { heapStats } from "@oh-my-pi/pi-utils/jsc-compat";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const manager = SessionManager.inMemory();
 
 async function collectHeapSize(): Promise<number> {
 	for (let pass = 0; pass < 3; pass++) {
-		await Bun.sleep(0);
-		Bun.gc(true);
+		await bun.sleep(0);
+		bun.gc(true);
 	}
-	return heapStats().heapSize;
+	// V8 reports large string payloads as external memory, unlike JSC's heapSize.
+	const stats = heapStats();
+	return stats.heapSize + stats.extraMemorySize;
 }
 
 async function saveBulkArtifact(): Promise<void> {

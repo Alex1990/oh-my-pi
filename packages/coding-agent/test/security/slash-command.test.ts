@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,8 +11,9 @@ import type { ToolSession } from "../../src/tools";
 import { SecurityScanTool } from "../../src/tools/security-scan";
 
 import { cfgSecurityEnabled } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SARIF_FIXTURE = path.join(import.meta.dir, "..", "fixtures", "security", "generic-results.sarif");
+const SARIF_FIXTURE = path.join(import.meta.dirname, "..", "fixtures", "security", "generic-results.sarif");
 let temporaryRoot = "";
 let repositoryRoot = "";
 let previousStateHome: string | undefined;
@@ -132,7 +133,7 @@ describe("/security", () => {
 		if (!scan) throw new Error("expected imported scan");
 		await command(`export ${scan.id} --output exported.sarif --format sarif`);
 		expect((await fs.stat(repositoryRoot)).mode & 0o777).toBe(0o755);
-		expect(JSON.parse(await Bun.file(path.join(repositoryRoot, "exported.sarif")).text())).toHaveProperty("version");
+		expect(JSON.parse(await bun.file(path.join(repositoryRoot, "exported.sarif")).text())).toHaveProperty("version");
 	});
 
 	test("validate returns a static OMP-native residual prompt", async () => {

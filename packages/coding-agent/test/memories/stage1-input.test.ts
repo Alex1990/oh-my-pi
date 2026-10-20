@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildStage1RolloutItems } from "@oh-my-pi/pi-coding-agent/memories";
 import { parseJsonlLenient } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Reference: the whole-file read + stringify + head/tail truncation the streaming builder replaces. */
 function referenceItems(raw: string, tokenLimit: number): string {
@@ -52,7 +53,7 @@ describe("buildStage1RolloutItems", () => {
 
 	async function expectParity(raw: string, limits: number[]): Promise<void> {
 		const filePath = path.join(tempDir, "rollout.jsonl");
-		await Bun.write(filePath, raw);
+		await bun.write(filePath, raw);
 		for (const limit of limits) {
 			expect(await buildStage1RolloutItems(filePath, limit)).toBe(referenceItems(raw, limit));
 		}

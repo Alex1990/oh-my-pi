@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,9 +7,10 @@ import { parseSessionEntries, type SessionHeader } from "@oh-my-pi/pi-coding-age
 import { RpcClient } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import { removeWithRetries, withTimeout } from "@oh-my-pi/pi-utils";
 import { rejectionOf } from "./helpers/rejection";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function readSessionFile(sessionFile: string): Promise<{ header: SessionHeader; messageIds: string[] }> {
-	const entries = parseSessionEntries(await Bun.file(sessionFile).text());
+	const entries = parseSessionEntries(await bun.file(sessionFile).text());
 	return {
 		header: entries[0] as SessionHeader,
 		messageIds: entries.flatMap(entry => (entry.type === "message" ? [entry.id] : [])),
@@ -23,7 +24,7 @@ describe("RPC fork", () => {
 	beforeEach(async () => {
 		directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-fork-"));
 		client = new RpcClient({
-			command: [process.execPath, path.join(import.meta.dir, "fixtures", "fork-rpc-agent.ts"), directory],
+			command: [process.execPath, path.join(import.meta.dirname, "fixtures", "fork-rpc-agent.ts"), directory],
 			cwd: directory,
 			env: { PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1" },
 		});

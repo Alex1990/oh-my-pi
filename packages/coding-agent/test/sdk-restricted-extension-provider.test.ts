@@ -1,5 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
-import { $ } from "bun";
+import { afterAll, afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +19,7 @@ import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { __resetDirsFromEnvForTests, removeSyncWithRetries, setAgentDir, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function restoreEnv(key: string, value: string | undefined): void {
 	if (value === undefined) {
@@ -190,9 +191,9 @@ describe("restricted sessions sharing extension providers", () => {
 	test("rebinds inherited policy to restricted children and their descendants", async () => {
 		const blocked = path.join(tempDir, "blocked.txt");
 		const allowed = path.join(tempDir, "allowed.txt");
-		await Bun.write(blocked, "private fixture");
-		await Bun.write(allowed, "allowed fixture");
-		await Bun.write(path.join(tempDir, "untrusted.mjs"), "throw new Error('New extension path executed');");
+		await bun.write(blocked, "private fixture");
+		await bun.write(allowed, "allowed fixture");
+		await bun.write(path.join(tempDir, "untrusted.mjs"), "throw new Error('New extension path executed');");
 		const policy: ExtensionFactory = pi => {
 			let initialized = false;
 			pi.on("session_start", () => {
@@ -236,7 +237,7 @@ describe("restricted sessions sharing extension providers", () => {
 
 	test("ignores inherited extension tools and replacements, including late registration", async () => {
 		const allowed = path.join(tempDir, "allowed.txt");
-		await Bun.write(allowed, "built-in reader");
+		await bun.write(allowed, "built-in reader");
 		await withRestrictedChild(
 			pi => {
 				const register = (name: string) =>
@@ -272,7 +273,7 @@ describe("restricted sessions sharing extension providers", () => {
 
 	test("fails closed when inherited tool policy throws, times out, or is cancelled", async () => {
 		const blocked = path.join(tempDir, "blocked.txt");
-		await Bun.write(blocked, "must not be read");
+		await bun.write(blocked, "must not be read");
 		cfgExtensionHandlersToolCallTimeoutMs.set(settings, 25);
 		await withRestrictedChild(
 			pi => {

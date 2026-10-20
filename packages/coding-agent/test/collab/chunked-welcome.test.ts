@@ -10,7 +10,7 @@
  * forwarding contract exactly; only the TUI context and the network transport
  * are stubbed.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabGuestLink } from "@oh-my-pi/pi-coding-agent/collab/guest";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
@@ -20,6 +20,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // In-memory transport: shared FakeWebSocket + InMemoryRelay harness (see
 // ./helpers/in-memory-relay), mirroring the relay's forwarding contract.
@@ -282,14 +283,14 @@ describe("collab chunked welcome (#3144)", () => {
 
 	it("rejects the pending join when snapshot resume fails", async () => {
 		const failure = new Error("replica write failed during snapshot resume");
-		const writeSpy = spyOn(Bun, "write").mockRejectedValue(failure);
+		const writeSpy = spyOn(bun, "write").mockRejectedValue(failure);
 		const guest = new CollabGuestLink(makeFailingGuestContext(failure));
 		const joinAttempt = guest.join(host.link);
 		try {
 			await expect(
 				Promise.race([
 					joinAttempt,
-					Bun.sleep(250).then(() => {
+					bun.sleep(250).then(() => {
 						throw new Error("join did not reject");
 					}),
 				]),

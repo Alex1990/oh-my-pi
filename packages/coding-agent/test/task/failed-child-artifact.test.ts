@@ -5,7 +5,7 @@
  * A call that ran several children is an error when any one of them failed
  * this way, the same as a one-child call.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
@@ -23,6 +23,7 @@ import type { AgentDefinition } from "@oh-my-pi/pi-coding-agent/task/types";
 import type { SingleResult, TaskParams } from "@oh-my-pi/pi-tui/tools/task";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const AGENT: AgentDefinition = {
 	name: "worker",
@@ -40,7 +41,7 @@ const BLOCKING_AGENT: AgentDefinition = {
 };
 
 async function initRepo(dir: string): Promise<void> {
-	const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: dir, stdout: "ignore" });
+	const git = (...args: string[]) => bun.spawnSync(["git", ...args], { cwd: dir, stdout: "ignore" });
 	git("init", "-q");
 	await fs.writeFile(path.join(dir, "README.md"), "seed\n");
 	git("add", "README.md");

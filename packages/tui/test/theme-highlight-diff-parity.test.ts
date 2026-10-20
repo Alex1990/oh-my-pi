@@ -1,5 +1,6 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, highlightCode, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const unifiedDiffChunks = [
 	[
@@ -42,7 +43,7 @@ describe("diff highlighter chunk parity", () => {
 			});
 			chunkedLines.push("");
 
-			expect(Bun.stripANSI(wholeBlock.join("\n"))).toBe(completeDiff);
+			expect(bun.stripANSI(wholeBlock.join("\n"))).toBe(completeDiff);
 			expect(wholeBlock.join("\n")).not.toBe(completeDiff);
 			expect(chunkedLines.map(line => line.replace(/^\x1b\[39m/u, ""))).toEqual(
 				wholeBlock.map(line => line.replace(/^\x1b\[39m/u, "")),

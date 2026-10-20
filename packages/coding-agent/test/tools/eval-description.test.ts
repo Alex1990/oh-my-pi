@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { Tool as AiTool } from "@oh-my-pi/pi-ai";
 import { toolWireSchema } from "@oh-my-pi/pi-ai/utils/schema";
@@ -10,6 +10,7 @@ import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 
 import { cfgEvalPy } from "@oh-my-pi/pi-coding-agent/eval/settings";
 import { cfgTaskMaxRecursionDepth } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(opts: {
 	spawns?: string | null;
@@ -104,13 +105,13 @@ describe("eval tool description", () => {
 
 	it("renders helper syntax only for available runtimes", () => {
 		const jsOnly = getEvalDocTopics({ py: false, js: true });
-		expect(jsOnly.helpers).toContain("%bun add");
+		expect(jsOnly.helpers).toContain("%npm add");
 		expect(jsOnly.helpers).not.toContain("%pip install");
 		expect(jsOnly.helpers).toContain("await budget.total()");
 		expect(jsOnly.helpers).toContain("tool(fn, {");
 		const pyOnly = getEvalDocTopics({ py: true, js: false });
 		expect(pyOnly.helpers).toContain("%pip install");
-		expect(pyOnly.helpers).not.toContain("%bun add");
+		expect(pyOnly.helpers).not.toContain("%npm add");
 		expect(pyOnly.helpers).toContain("@tool / tool(fn");
 		expect(pyOnly.helpers).not.toContain("await budget.total()");
 	});
@@ -180,15 +181,15 @@ describe("eval tool dynamic schema", () => {
 	beforeEach(() => {
 		savedEnv = {};
 		for (const flag of EVAL_ENV_FLAGS) {
-			savedEnv[flag] = Bun.env[flag];
-			delete Bun.env[flag];
+			savedEnv[flag] = bun.env[flag];
+			delete bun.env[flag];
 		}
 	});
 	afterEach(() => {
 		for (const flag of EVAL_ENV_FLAGS) {
 			const prior = savedEnv[flag];
-			if (prior === undefined) delete Bun.env[flag];
-			else Bun.env[flag] = prior;
+			if (prior === undefined) delete bun.env[flag];
+			else bun.env[flag] = prior;
 		}
 	});
 

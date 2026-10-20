@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { $ } from "bun";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const cli = path.resolve(import.meta.dir, "../../src/cli.ts");
+const cli = path.resolve(import.meta.dirname, "../../src/cli.ts");
 
 describe.skipIf(process.platform === "win32")("worktree add checkout hooks", () => {
 	let root: string;
@@ -18,7 +19,7 @@ describe.skipIf(process.platform === "win32")("worktree add checkout hooks", () 
 		await $`git -C ${repo} -c user.name=Probe -c user.email=probe@example.invalid -c commit.gpgsign=false commit --allow-empty -qm probe`.quiet();
 		hooks = path.join(repo, ".git", "hooks");
 		await $`git -C ${repo} config core.hooksPath ${hooks}`.quiet();
-		await Bun.write(path.join(repo, "local-probe.txt"), "untracked file to exercise clone fallback\n");
+		await bun.write(path.join(repo, "local-probe.txt"), "untracked file to exercise clone fallback\n");
 	});
 
 	afterEach(async () => {
@@ -27,7 +28,7 @@ describe.skipIf(process.platform === "win32")("worktree add checkout hooks", () 
 
 	async function hook(script: string): Promise<void> {
 		const file = path.join(hooks, "post-checkout");
-		await Bun.write(file, `#!/bin/sh\n${script}\n`);
+		await bun.write(file, `#!/bin/sh\n${script}\n`);
 		await fs.chmod(file, 0o755);
 	}
 
@@ -41,7 +42,7 @@ describe.skipIf(process.platform === "win32")("worktree add checkout hooks", () 
 		await hook('printf "%s\\n" "$PWD" "$1" "$2" "$3" > .post-checkout-ran; echo hook-output');
 		const { worktree, result } = await add("linked");
 		const head = (await $`git -C ${repo} rev-parse HEAD`.text()).trim();
-		const marker = (await Bun.file(path.join(worktree, ".post-checkout-ran")).text()).trim().split("\n");
+		const marker = (await bun.file(path.join(worktree, ".post-checkout-ran")).text()).trim().split("\n");
 
 		expect(result.exitCode).toBe(0);
 		expect(marker).toEqual([worktree, "0".repeat(head.length), head, "1"]);

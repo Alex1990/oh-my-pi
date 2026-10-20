@@ -11,7 +11,7 @@
  * The fixtures below cover both inputs and the round-trip helper the
  * dashboard's MCP toggle uses.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,7 @@ import { initializeWithSettings, reset as resetDiscoveryCache } from "@oh-my-pi/
 import { readMCPConfigFile, setMcpServerEnabled, setServerDisabled } from "@oh-my-pi/pi-coding-agent/mcp/config-writer";
 import { loadAllExtensions } from "@oh-my-pi/pi-coding-agent/modes/components/extensions/state-manager";
 import { __resetDirsFromEnvForTests, getMCPConfigPath, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("loadAllExtensions MCP parity with /mcp list (issue #3827)", () => {
 	let projectDir = "";
@@ -137,7 +138,7 @@ describe("loadAllExtensions MCP parity with /mcp list (issue #3827)", () => {
 		// denylist, simulating a server that's been toggled off multiple ways.
 		const projectMcpPath = path.join(projectDir, ".omp", "mcp.json");
 		const initial = await readMCPConfigFile(projectMcpPath);
-		await Bun.write(
+		await bun.write(
 			projectMcpPath,
 			JSON.stringify({
 				...initial,
@@ -187,7 +188,7 @@ describe("loadAllExtensions MCP parity with /mcp list (issue #3827)", () => {
 
 	test("dashboard re-enable updates the row's non-primary source mcp.json before denylisting", async () => {
 		const alternatePath = path.join(projectDir, ".omp", ".mcp.json");
-		await Bun.write(
+		await bun.write(
 			alternatePath,
 			JSON.stringify({
 				mcpServers: {
@@ -223,7 +224,7 @@ describe("loadAllExtensions MCP parity with /mcp list (issue #3827)", () => {
 		// opencode.json, but the user-level enabledServers allowlist still has
 		// to flip the row active. Modeled after the codex review on PR #3829.
 		const opencodePath = path.join(projectDir, "opencode.json");
-		await Bun.write(
+		await bun.write(
 			opencodePath,
 			JSON.stringify({
 				mcp: {
@@ -255,7 +256,7 @@ describe("loadAllExtensions MCP parity with /mcp list (issue #3827)", () => {
 		});
 
 		// opencode.json MUST stay untouched.
-		const opencodeRaw = JSON.parse(await Bun.file(opencodePath).text()) as {
+		const opencodeRaw = JSON.parse(await bun.file(opencodePath).text()) as {
 			mcp: { "opencode-server": { enabled: boolean } };
 		};
 		expect(opencodeRaw.mcp["opencode-server"].enabled).toBe(false);

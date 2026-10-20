@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Type, type } from "@oh-my-pi/omptype";
 import * as wireSchemas from "@oh-my-pi/pi-ai/auth-broker/wire-schemas";
 

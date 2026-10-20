@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatJavaScriptForDisplay } from "@oh-my-pi/pi-tui/tools/eval-format/javascript";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("formatJavaScriptForDisplay", () => {
 	it("expands compact control flow and keeps short objects and arrays inline", () => {
@@ -118,12 +119,16 @@ describe("formatJavaScriptForDisplay", () => {
 		const literal = (entries: number) =>
 			`const xs = [ ${Array.from({ length: entries }, (_, i) => `{id:${i},name:"n${i}"}`).join(", ")} ]`;
 		const elapsed = (source: string): number => {
-			const start = Bun.nanoseconds();
+			const start = bun.nanoseconds();
 			formatJavaScriptForDisplay(source);
-			return Bun.nanoseconds() - start;
+			return bun.nanoseconds() - start;
 		};
 		const small = literal(1_000);
 		const large = literal(16_000);
+		// Warm the formatter first: without it the large run pays for V8 compiling
+		// the hot loop and the ratio reflects compilation, not complexity.
+		elapsed(small);
+		elapsed(large);
 		const smallNs = Math.min(elapsed(small), elapsed(small), elapsed(small));
 		// 16 times the entries: quadratic brace classification takes ~256 times as long.
 		let largeNs = Number.POSITIVE_INFINITY;

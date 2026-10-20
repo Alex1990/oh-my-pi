@@ -14,7 +14,7 @@
  *     re-scans the branch, and reports the FIRST out-of-order violation
  *     (the earliest turn message whose later sibling is already persisted).
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { planTurnPersistence, sessionMessagePersistenceKey } from "@oh-my-pi/pi-coding-agent/session/turn-persistence";
 

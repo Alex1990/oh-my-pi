@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
@@ -13,9 +13,10 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import * as modelHubModule from "@oh-my-pi/pi-tui/overlays/model-hub";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const model = (id: string) => getBundledModel("anthropic", id) as Model;
 
@@ -41,7 +42,7 @@ describe("SelectorController model hub writes", () => {
 		authStorage.close();
 		AgentStorage.close();
 		// SQLite keeps agent.db open until GC finalizes its statements; Windows cannot delete an open file.
-		Bun.gc(true);
+		bun.gc(true);
 		tempDir.removeSync();
 	});
 
@@ -81,7 +82,7 @@ describe("SelectorController model hub writes", () => {
 	it("saves only the edited fallback chain, never the chains a --config overlay supplies", async () => {
 		const agentDir = tempDir.join("agent");
 		const overlayPath = tempDir.join("overlay.yml");
-		await Bun.write(overlayPath, YAML.stringify({ retry: { fallbackChains: { smol: ["overlay/cheap"] } } }));
+		await bun.write(overlayPath, YAML.stringify({ retry: { fallbackChains: { smol: ["overlay/cheap"] } } }));
 		// The global instance, as in the app: the hub's status text reads the global settings.
 		const settings = await Settings.init({ agentDir, cwd: tempDir.path(), configFiles: [overlayPath] });
 		const { controller, showError } = start(settings, model("claude-sonnet-4-5"));
@@ -90,13 +91,13 @@ describe("SelectorController model hub writes", () => {
 		await settings.flush();
 
 		expect(showError).not.toHaveBeenCalled();
-		const saved = YAML.parse(await Bun.file(path.join(agentDir, "config.yml")).text()) as RawSettings;
+		const saved = YAML.parse(await bun.file(path.join(agentDir, "config.yml")).text()) as RawSettings;
 		expect(saved).toEqual({ retry: { fallbackChains: { slow: ["user/slow-fallback"] } } });
 	});
 
 	it("switches the session to the project default when its already-assigned chip is picked", async () => {
 		const agentDir = tempDir.join("agent");
-		await Bun.write(
+		await bun.write(
 			tempDir.join(".omp", "config.yml"),
 			YAML.stringify({ modelRoles: { default: "anthropic/claude-opus-4-5" } }),
 		);

@@ -4,7 +4,7 @@
 // treats `description` as optional but enforces minLength 1 when present, so
 // serializing the pruned "" made AWS reject the whole request with HTTP 400.
 // The provider must omit the key instead of sending an empty string.
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { streamBedrock } from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import type { Context, Model, Tool } from "@oh-my-pi/pi-ai/types";

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { type Context, type Model, type ModelSpec, OPENAI_MAX_OUTPUT_TOKENS } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Output-token wire policy for OpenAI-family providers:
 //   - Non-aggregator completions + non-OpenRouter responses: clamp to
@@ -47,8 +48,8 @@ async function drainResponses(
 	model: Model<"openai-responses" | "openrouter">,
 	maxTokens?: number,
 ): Promise<Record<string, unknown>> {
-	const previousOpenRouterResponses = Bun.env.PI_OPENROUTER_RESPONSES;
-	if (model.api === "openrouter") Bun.env.PI_OPENROUTER_RESPONSES = "1";
+	const previousOpenRouterResponses = bun.env.PI_OPENROUTER_RESPONSES;
+	if (model.api === "openrouter") bun.env.PI_OPENROUTER_RESPONSES = "1";
 	try {
 		const { fetchMock, captured } = captureResponsesBody();
 		const apiKey =
@@ -66,9 +67,9 @@ async function drainResponses(
 		return captured;
 	} finally {
 		if (previousOpenRouterResponses === undefined) {
-			delete Bun.env.PI_OPENROUTER_RESPONSES;
+			delete bun.env.PI_OPENROUTER_RESPONSES;
 		} else {
-			Bun.env.PI_OPENROUTER_RESPONSES = previousOpenRouterResponses;
+			bun.env.PI_OPENROUTER_RESPONSES = previousOpenRouterResponses;
 		}
 	}
 }

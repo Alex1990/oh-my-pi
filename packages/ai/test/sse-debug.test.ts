@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { RawSseEvent } from "@oh-my-pi/pi-ai/types";
 import { notifyRawSseEvent } from "@oh-my-pi/pi-ai/utils/sse-debug";
 

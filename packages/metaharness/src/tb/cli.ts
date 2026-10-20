@@ -9,7 +9,7 @@ import { TbStore, type TbSummaryRow } from "./store";
 import { runTrial } from "./trial";
 import type { AgentConfig, GatewayConfig, OpenRouterVariant, TbTask, TrialResult, TrialRow, VmonConfig } from "./types";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "../../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 
 const FLASH_POOL = [
 	"openrouter/inclusionai/ling-3.0-flash",

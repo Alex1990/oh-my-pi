@@ -10,6 +10,7 @@ import { isRecord } from "@oh-my-pi/pi-utils";
 import { createConfigHeaderResolver } from "./resolve-config-value";
 import { SPECIAL_MODEL_MANAGER_PROVIDER_IDS } from "./model-provider-discovery";
 import type { ModelOverride } from "./models-config-schema";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /** Provider override config (baseUrl, headers, apiKey, compat, transport). */
 export interface ProviderOverride {
 	baseUrl?: string;
@@ -118,7 +119,7 @@ export function mergeDiscoveredModel<TApi extends Api>(
 			...(supportsTools !== undefined ? { supportsTools } : {}),
 			compat: mergeCompat(model.compatConfig, providerOverride?.compat),
 		} as ModelSpec<TApi>);
-		return Bun.deepEquals(merged, model) ? model : merged;
+		return bun.deepEquals(merged, model) ? model : merged;
 	}
 	if (providerOverride) {
 		const merged = buildModel({
@@ -136,7 +137,7 @@ export function mergeDiscoveredModel<TApi extends Api>(
 			),
 			compat: mergeCompat(model.compatConfig, providerOverride.compat),
 		} as ModelSpec<TApi>);
-		return Bun.deepEquals(merged, model) ? model : merged;
+		return bun.deepEquals(merged, model) ? model : merged;
 	}
 	return model;
 }

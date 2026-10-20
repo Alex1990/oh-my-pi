@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import type { AgentSession, AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/
 import { CREDENTIAL_DISABLED_NOTICE_SOURCE } from "@oh-my-pi/pi-coding-agent/session/credential-disabled-notice";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SessionDirs {
 	cwd: string;
@@ -130,7 +131,7 @@ describe("createAgentSession credential_disabled subscription", () => {
 	 * Make an inline extension factory whose `credential_disabled` handler resolves a fresh
 	 * promise on every event. The returned `next()` produces a promise that resolves to the
 	 * next event the extension observes. Drives test-side awaiting without relying on
-	 * arbitrary `Bun.sleep` settling.
+	 * arbitrary `bun.sleep` settling.
 	 */
 	const makeRecordingExtension = () => {
 		const events: CredentialDisabledEvent[] = [];

@@ -6,11 +6,12 @@
  * components return the identical array so containers can memoize.
  */
 
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { createCompactionSummaryMessage } from "@oh-my-pi/pi-agent-core/compaction";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { CompactionSummaryMessageComponent } from "@oh-my-pi/pi-tui/chat/compaction-summary-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(() => {
 	initTheme();
@@ -28,10 +29,10 @@ describe("CompactionSummaryMessageComponent", () => {
 	it("collapsed: a single full-width divider carrying the expand affordance", () => {
 		const lines = makeComponent().render(80);
 		expect(lines.length).toBe(3); // breathing room above and below the rule
-		const rule = Bun.stripANSI(lines[1]);
+		const rule = bun.stripANSI(lines[1]);
 		expect(rule).toContain("compacted");
 		// The rule spans the full width and hides the summary body.
-		expect(Bun.stringWidth(rule)).toBe(80);
+		expect(bun.stringWidth(rule)).toBe(80);
 		expect(rule).not.toContain(SUMMARY);
 	});
 
@@ -42,7 +43,7 @@ describe("CompactionSummaryMessageComponent", () => {
 				tokensAfter: 20_000,
 			}),
 		);
-		const rule = Bun.stripANSI(component.render(80)[1]);
+		const rule = bun.stripANSI(component.render(80)[1]);
 		expect(rule).toContain("remote-compacted");
 		expect(rule).toContain("256K→20K");
 	});
@@ -51,7 +52,7 @@ describe("CompactionSummaryMessageComponent", () => {
 		const component = new CompactionSummaryMessageComponent(
 			createCompactionSummaryMessage(SUMMARY, 84_000, new Date().toISOString(), { method: "handoff" }),
 		);
-		const rule = Bun.stripANSI(component.render(80)[1]);
+		const rule = bun.stripANSI(component.render(80)[1]);
 		expect(rule).toContain("handed-off");
 		// No tokensAfter recorded → no amount badge.
 		expect(rule).not.toContain("→");
@@ -65,7 +66,7 @@ describe("CompactionSummaryMessageComponent", () => {
 			}),
 		);
 		component.setExpanded(true);
-		const text = Bun.stripANSI(component.render(80).join("\n"));
+		const text = bun.stripANSI(component.render(80).join("\n"));
 		expect(text).toContain("Compacted to 48,573 tokens");
 		expect(text).not.toContain("Compacted from 0");
 	});
@@ -73,7 +74,7 @@ describe("CompactionSummaryMessageComponent", () => {
 	it("expanded: reveals the summary (and snapcompact frame count) below the divider", () => {
 		const component = makeComponent([{ type: "image", data: "ZmFrZQ==", mimeType: "image/png" }]);
 		component.setExpanded(true);
-		const text = Bun.stripANSI(component.render(80).join("\n"));
+		const text = bun.stripANSI(component.render(80).join("\n"));
 		expect(text).toContain("compacted");
 		expect(text).toContain(SUMMARY);
 		expect(text).toContain("tokens");
@@ -82,7 +83,7 @@ describe("CompactionSummaryMessageComponent", () => {
 
 	it("degrades to a bare label when the viewport is too narrow for a framed rule", () => {
 		const lines = makeComponent().render(10);
-		expect(Bun.stripANSI(lines[1])).toContain("compacted");
+		expect(bun.stripANSI(lines[1])).toContain("compacted");
 	});
 
 	it("honors the same-reference render cache and busts it on expansion toggle", () => {

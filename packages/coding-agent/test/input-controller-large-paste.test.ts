@@ -1,4 +1,5 @@
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Large-paste menu: when a paste reaches the configured `paste.largeMenuThreshold` line count,
  * the editor's `onLargePaste` hook routes through `InputController.handleLargePaste`, which offers
@@ -6,7 +7,7 @@ import { removeWithRetries } from "@oh-my-pi/pi-utils";
  * Below the threshold (or when disabled) the editor keeps its default collapse-to-`[Paste]`-marker behavior.
  */
 
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -179,20 +180,20 @@ describe("InputController.presentLargePasteMenu file attachment", () => {
 		expect(spies.insertText).toHaveBeenCalledWith("local://paste-1.md ");
 		expect(spies.insertTextAttachment).not.toHaveBeenCalled();
 		// resolveLocalRoot maps an artifacts dir to "<dir>/local"; the reference resolves there.
-		const saved = await Bun.file(path.join(dir, "local", "paste-1.md")).text();
+		const saved = await bun.file(path.join(dir, "local", "paste-1.md")).text();
 		expect(saved).toBe("line one\nline two");
 	});
 
 	it("does not overwrite an existing paste file", async () => {
 		dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-paste-test-"));
-		await Bun.write(path.join(dir, "local", "paste-1.md"), "previous");
+		await bun.write(path.join(dir, "local", "paste-1.md"), "previous");
 		const { controller, spies } = createContext({ choice: "Attach as local file", artifactsDir: dir });
 
 		await controller.presentLargePasteMenu("fresh", 1);
 
 		expect(spies.insertText).toHaveBeenCalledWith("local://paste-2.md ");
-		expect(await Bun.file(path.join(dir, "local", "paste-1.md")).text()).toBe("previous");
-		expect(await Bun.file(path.join(dir, "local", "paste-2.md")).text()).toBe("fresh");
+		expect(await bun.file(path.join(dir, "local", "paste-1.md")).text()).toBe("previous");
+		expect(await bun.file(path.join(dir, "local", "paste-2.md")).text()).toBe("fresh");
 	});
 
 	it("recalls a paste-file reference without deleting or overwriting its content", async () => {
@@ -209,7 +210,7 @@ describe("InputController.presentLargePasteMenu file attachment", () => {
 		editor.onSubmit = submitted;
 		editor.handleInput("\r");
 		expect(submitted).toHaveBeenCalledWith("local://paste-1.md");
-		expect(await Bun.file(path.join(dir, "local", "paste-1.md")).text()).toBe("first file\nsecond line");
-		expect(await Bun.file(path.join(dir, "local", "paste-2.md")).text()).toBe("another paste");
+		expect(await bun.file(path.join(dir, "local", "paste-1.md")).text()).toBe("first file\nsecond line");
+		expect(await bun.file(path.join(dir, "local", "paste-2.md")).text()).toBe("another paste");
 	});
 });

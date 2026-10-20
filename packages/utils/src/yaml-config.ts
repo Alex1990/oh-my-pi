@@ -1,4 +1,4 @@
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 
 const YAML_MAPPING_HEADER_TRAILING_SPACE = /: +$/gm;
 

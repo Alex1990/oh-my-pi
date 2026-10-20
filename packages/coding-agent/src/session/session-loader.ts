@@ -25,6 +25,7 @@ import {
 	type SessionTitleUpdate,
 	titleUpdateFromSlot,
 } from "./session-title-slot";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LF = new Uint8Array([0x0a]);
 
@@ -215,7 +216,7 @@ export async function visitEntriesFromFileStream(
 	const yieldEveryEntries = Math.max(0, options.yieldEveryEntries ?? STREAM_YIELD_ENTRIES);
 	const maxBytes = Math.max(0, options.maxBytes ?? Number.POSITIVE_INFINITY);
 	// Bytes, not text: a multibyte UTF-8 sequence straddling a chunk boundary
-	// stays intact, and Bun.JSONL.parseChunk takes typed arrays directly. Only
+	// stays intact, and bun.JSONL.parseChunk takes typed arrays directly. Only
 	// the unconsumed remainder is held (≤ one record + a chunk), so the ≥8MiB
 	// memory guard holds — the file is never fully loaded.
 	const sink = new ConcatSink();
@@ -230,7 +231,7 @@ export async function visitEntriesFromFileStream(
 		}
 		bytesSinceYield = 0;
 		entriesSinceYield = 0;
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	};
 
 	const hasPayload = (bytes: Uint8Array, start: number, end: number): boolean => {
@@ -260,7 +261,7 @@ export async function visitEntriesFromFileStream(
 				stopped = true;
 				break;
 			}
-			const { values, error, read, done } = Bun.JSONL.parseChunk(buffer);
+			const { values, error, read, done } = bun.JSONL.parseChunk(buffer);
 			for (const value of values) {
 				if (recordsSeen >= maxRecords) {
 					stopped = true;
@@ -326,7 +327,7 @@ export async function visitEntriesFromFileStream(
 	};
 
 	try {
-		const file = Bun.file(filePath);
+		const file = bun.file(filePath);
 		const source = Number.isFinite(maxBytes) ? file.slice(0, maxBytes) : file;
 		for await (const chunk of source.stream()) {
 			if (stopped) break;

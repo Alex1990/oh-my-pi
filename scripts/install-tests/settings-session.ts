@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // Run the supplied CLI, never import the SDK into this driver. Extensions must
 // cross the same package boundary as an installed user's extension.
 const cli = process.argv.slice(2).map(arg => (arg.includes("/") ? path.resolve(arg) : arg));
-assert(cli.length > 0, "Usage: bun scripts/install-tests/settings-session.ts <cli> [cli entrypoint]");
+assert(
+	cli.length > 0,
+	"Usage: node --experimental-transform-types scripts/install-tests/settings-session.ts <cli> [cli entrypoint]",
+);
 const work = await fs.mkdtemp(path.join(os.tmpdir(), "omp-settings-session-"));
 const cwd = path.join(work, "project");
 const agentDir = path.join(work, "agent");
@@ -18,7 +23,7 @@ const resultPath = path.join(work, "result.json");
 // final assistant message verbatim, so each reply names the model it ran on.
 // The tiny role (task labels) has its own model so only agent turns are recorded.
 const requestedModels: string[] = [];
-const server = Bun.serve({
+const server = serve({
 	hostname: "127.0.0.1",
 	port: 0,
 	async fetch(request) {
@@ -39,12 +44,12 @@ try {
 	await Promise.all([cwd, agentDir, path.join(work, "home")].map(dir => fs.mkdir(dir, { recursive: true })));
 	for (const name of ["a", "b"]) {
 		const agents = path.join(work, `extension-${name}`, "agents");
-		await Bun.write(
+		await bun.write(
 			path.join(agents, `only-${name}.md`),
 			`---\nname: only-${name}\ndescription: Installed session fixture ${name}.\nmodel: fixture/fallback\nblocking: true\ntools: []\n---\nReturn the fixture result.\n`,
 		);
 	}
-	await Bun.write(
+	await bun.write(
 		extensionPath,
 		`const fixture = ${JSON.stringify({ work, cwd, agentDir, resultPath, baseUrl: server.url.href })};\n` +
 			String.raw`
@@ -146,7 +151,7 @@ export default function (api) {
 				await b;
 				assert.deepEqual(failures, []);
 				assert.deepEqual(checked, ["a", "b"]);
-				await Bun.write(fixture.resultPath, JSON.stringify(checked));
+				await bun.write(fixture.resultPath, JSON.stringify(checked));
 			} finally {
 				disposedA.resolve();
 				for (const session of sessions) await session.dispose();
@@ -157,7 +162,7 @@ export default function (api) {
 }
 `,
 	);
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			...cli,
 			"--no-extensions",
@@ -180,6 +185,7 @@ export default function (api) {
 			// plugins or user configuration can make a broken fixture succeed.
 			env: {
 				PATH: process.env.PATH,
+				NODE_OPTIONS: process.env.NODE_OPTIONS,
 				HOME: path.join(work, "home"),
 				XDG_DATA_HOME: path.join(work, "xdg"),
 				PI_CODING_AGENT_DIR: agentDir,
@@ -197,7 +203,7 @@ export default function (api) {
 		new Response(child.stderr).text(),
 	]);
 	assert.equal(exitCode, 0, `Settings session CLI failed (${exitCode})\n${stdout}\n${stderr}`);
-	const result = await Bun.file(resultPath)
+	const result = await bun.file(resultPath)
 		.json()
 		.catch(error => {
 			throw new Error(`Settings session probe did not complete\n${stdout}\n${stderr}`, { cause: error });

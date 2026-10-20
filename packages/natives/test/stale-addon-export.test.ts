@@ -11,7 +11,7 @@
  * addon an absent export is not version drift, and callers use exactly that
  * absence as a capability probe, so it must stay `undefined`.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 // Side-effect import: loads the real addon, so `nativeAddonStatus()` below
 // reflects this tree's build rather than an injected fixture.
 import "../native";

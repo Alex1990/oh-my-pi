@@ -7,6 +7,7 @@ import * as fs from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
+import { testSocketPath } from "./socket-path";
 
 /** What a handler answers: `{ ok }`, `{ error }`, or `null` to never answer. */
 export type FakeAnswer = { ok: unknown } | { error: { kind: string; message: string } } | null;
@@ -58,7 +59,7 @@ export async function startFakeDaemon(
 	} = {},
 ): Promise<FakeDaemon> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "tern-fake-"));
-	const socketPath = path.join(dir, "daemon.sock");
+	const socketPath = testSocketPath(dir, "daemon");
 	const hellos: Uint8Array[] = [];
 	const requests: FakeRequest[] = [];
 	const forks: FakeRequest[] = [];

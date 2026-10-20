@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import type { SessionData } from "../src/export/html";
@@ -12,10 +12,13 @@ import {
 import { SecretObfuscator } from "../src/secrets/obfuscator";
 import type { SessionEntry, SessionHeader } from "../src/session/session-entries";
 import { SessionManager } from "../src/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 const IV_LENGTH = 12;
 const TEST_MAX_SEALED_BYTES = 4_000;
-const CLI_ENTRY = path.join(import.meta.dir, "..", "src", "cli.ts");
+const CLI_ENTRY = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 async function makeKey(): Promise<CryptoKey> {
 	const bytes = new Uint8Array(32);
@@ -30,7 +33,7 @@ async function open(key: CryptoKey, sealed: Uint8Array<ArrayBuffer>): Promise<Se
 		key,
 		sealed.subarray(IV_LENGTH),
 	);
-	return JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(plain))));
+	return JSON.parse(new TextDecoder().decode(bun.gunzipSync(new Uint8Array(plain))));
 }
 
 function messageEntry(id: string, parentId: string | null, text: string): SessionEntry {
@@ -593,14 +596,14 @@ describe("shareSession", () => {
 			providerPromptCacheKey: "private-explicit-affinity",
 			taskPromptCacheKey: "private-parent-provider-session:reviewer",
 		};
-		await Bun.write(
+		await bun.write(
 			file,
 			`${[header, messageEntry("e1", null, "share me")].map(entry => JSON.stringify(entry)).join("\n")}\n`,
 		);
 		const sm = await SessionManager.open(file);
-		const persisted = await Bun.file(file).text();
+		const persisted = await bun.file(file).text();
 		let uploaded: Uint8Array<ArrayBuffer> | undefined;
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			async fetch(req) {
 				uploaded = new Uint8Array(await req.arrayBuffer());
@@ -627,7 +630,7 @@ describe("shareSession", () => {
 				expect(opened.entries).toEqual(sm.getEntries());
 			}
 			expect(sm.getHeader()).toMatchObject(header);
-			expect(await Bun.file(file).text()).toBe(persisted);
+			expect(await bun.file(file).text()).toBe(persisted);
 			expect((await SessionManager.open(file)).getHeader()).toMatchObject(header);
 		} finally {
 			server.stop(true);
@@ -643,7 +646,7 @@ describe("shareSession", () => {
 		} as unknown as SessionManager;
 
 		let uploaded: Uint8Array<ArrayBuffer> | null = null;
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			async fetch(req) {
 				if (req.method !== "POST") return new Response("nope", { status: 405 });
@@ -680,7 +683,7 @@ describe("share command", () => {
 		using tempDir = TempDir.createSync("@omp-share-missing-");
 		const sessionArg = "./ghost.jsonl";
 		const missingSession = path.join(tempDir.path(), "ghost.jsonl");
-		const proc = Bun.spawn([process.execPath, CLI_ENTRY, "share", sessionArg], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), CLI_ENTRY, "share", sessionArg], {
 			cwd: tempDir.path(),
 			env: {
 				...process.env,
@@ -699,6 +702,6 @@ describe("share command", () => {
 		expect(exitCode).toBe(1);
 		expect(stdout).toBe("");
 		expect(stderr).toBe(`Session "${sessionArg}" not found.\n`);
-		expect(await Bun.file(missingSession).exists()).toBe(false);
+		expect(await bun.file(missingSession).exists()).toBe(false);
 	});
 });

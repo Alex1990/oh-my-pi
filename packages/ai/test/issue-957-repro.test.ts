@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-sto
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import * as kimiOauth from "@oh-my-pi/pi-ai/registry/oauth/kimi";
 import { removeWithRetries } from "../../utils/src/temp";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -45,7 +46,7 @@ describe("issue #957 - Kimi OAuth refresh", () => {
 						{ status: 200, headers: { "Content-Type": "application/json" } },
 					);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 
@@ -83,7 +84,7 @@ describe("issue #957 - Kimi OAuth refresh", () => {
 						{ status: 200, headers: { "Content-Type": "application/json" } },
 					);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -50,7 +50,7 @@ describe("prepared statement lifetime", () => {
 		beam.forgetWorking(id);
 		beam.close();
 
-		expect(() => beam.db.run("SELECT 1")).toThrow(/closed/i);
+		expect(() => beam.db.run("SELECT 1")).toThrow(/closed|not open/i);
 		expect(() => rmSync(dbPath)).not.toThrow();
 		expect(existsSync(dbPath)).toBe(false);
 	});

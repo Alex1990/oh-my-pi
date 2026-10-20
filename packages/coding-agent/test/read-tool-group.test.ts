@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as url from "node:url";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -9,6 +9,7 @@ import { ReadToolGroupComponent, readArgsCollapseIntoGroup } from "@oh-my-pi/pi-
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import { cfgReadToolResultPreview } from "@oh-my-pi/pi-coding-agent/tools/settings";
 import { cfgTuiHyperlinks } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function extractLinkUris(text: string): string[] {
 	return [...text.matchAll(/\x1b\]8;[^;]*;([^\x1b]+)\x1b\\/g)].map(match => match[1]!);
@@ -16,7 +17,7 @@ function extractLinkUris(text: string): string[] {
 
 function extractLinkTexts(text: string): string[] {
 	return [...text.matchAll(/\x1b\]8;[^;]*;[^\x1b]+\x1b\\([\s\S]*?)\x1b\]8;;\x1b\\/g)].map(match =>
-		Bun.stripANSI(match[1]!),
+		bun.stripANSI(match[1]!),
 	);
 }
 
@@ -50,7 +51,7 @@ describe("ReadToolGroupComponent", () => {
 			"read-0",
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(rendered).toContain(`Read ${examplePath}`);
 		expect(rendered).not.toContain("line 1");
@@ -70,7 +71,7 @@ describe("ReadToolGroupComponent", () => {
 		);
 
 		const rendered = component.render(120).join("\n");
-		const plain = Bun.stripANSI(rendered);
+		const plain = bun.stripANSI(rendered);
 
 		expect(plain).toContain(themeModule.theme.status.enabled);
 		expect(plain).not.toContain(themeModule.theme.status.success);
@@ -87,7 +88,7 @@ describe("ReadToolGroupComponent", () => {
 		component.updateResult({ content: [{ type: "text", text: "one" }] }, false, "read-one");
 		component.updateResult({ content: [{ type: "text", text: "two" }] }, false, "read-two");
 
-		const plain = Bun.stripANSI(component.render(120).join("\n"));
+		const plain = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(plain).toContain("Read (2)");
 		expect(plain).toContain(`${themeModule.theme.tree.branch} ${onePath}`);
@@ -133,7 +134,7 @@ describe("ReadToolGroupComponent", () => {
 			new Date(2026, 0, 2, 3, 4, 6).getTime(),
 		);
 
-		const lines = Bun.stripANSI(component.render(120).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(120).join("\n")).split("\n");
 		const onePathIndex = lines.findIndex(line => line.includes(onePath));
 		const twoPathIndex = lines.findIndex(line => line.includes(twoPath));
 		const threePathIndex = lines.findIndex(line => line.includes(threePath));
@@ -158,7 +159,7 @@ describe("ReadToolGroupComponent", () => {
 		component.updateArgs({ path: `${onePath}:1-2,${twoPath}:3-4;${threePath}:5-6` }, "read-many");
 		component.updateResult({ content: [{ type: "text", text: "combined" }] }, false, "read-many");
 
-		const plain = Bun.stripANSI(component.render(120).join("\n"));
+		const plain = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(plain).toContain("Read (3)");
 		expect(plain).toContain(`${themeModule.theme.tree.branch} ${onePath}:1-2`);
@@ -172,7 +173,7 @@ describe("ReadToolGroupComponent", () => {
 		component.updateArgs({ path: `${examplePath}:5-10,20-30` }, "read-ranges");
 		component.updateResult({ content: [{ type: "text", text: "ranges" }] }, false, "read-ranges");
 
-		const plain = Bun.stripANSI(component.render(120).join("\n"));
+		const plain = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(plain).toContain(`Read ${examplePath}:5-10,20-30`);
 		expect(plain).not.toContain("Read (2)");
@@ -187,7 +188,7 @@ describe("ReadToolGroupComponent", () => {
 		component.updateResult({ content: [{ type: "text", text: "one" }] }, false, "read-one");
 		component.updateResult({ content: [{ type: "text", text: "more" }] }, false, "read-more");
 
-		const plain = Bun.stripANSI(component.render(120).join("\n"));
+		const plain = bun.stripANSI(component.render(120).join("\n"));
 		const pathMatches = plain.split(renderPath).length - 1;
 
 		expect(pathMatches).toBe(1);
@@ -209,7 +210,7 @@ describe("ReadToolGroupComponent", () => {
 			"read-recovered",
 		);
 
-		const plain = Bun.stripANSI(component.render(120).join("\n"));
+		const plain = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(plain).toContain("Read (2)");
 		expect(plain).toContain(`${themeModule.theme.tree.branch} ${onePath}`);
@@ -239,7 +240,7 @@ describe("ReadToolGroupComponent", () => {
 		// Plain file: URIs — the line location must stay out of the query (#12123).
 		const oneUri = url.pathToFileURL(oneLink).href;
 		const twoUri = url.pathToFileURL(twoLink).href;
-		expect(Bun.stripANSI(rendered)).toContain("Read (2)");
+		expect(bun.stripANSI(rendered)).toContain("Read (2)");
 		expect(extractLinkUris(rendered)).toEqual(expect.arrayContaining([oneUri, twoUri]));
 		expect(extractLinkTexts(rendered)).toEqual(expect.arrayContaining(["src/one.ts", "src/two.ts"]));
 	});
@@ -257,7 +258,7 @@ describe("ReadToolGroupComponent", () => {
 			"read-1",
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(rendered).toContain(themeModule.theme.status.warning);
 		expect(rendered).not.toContain(themeModule.theme.status.success);
@@ -282,7 +283,7 @@ describe("ReadToolGroupComponent", () => {
 			"read-2",
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		const highlightedInput = highlightSpy.mock.calls[0]?.[0];
 
 		expect(highlightedInput).toBe("line 1\nline 2\nline 3");
@@ -303,7 +304,7 @@ describe("ReadToolGroupComponent", () => {
 			"read-3",
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		const matches = rendered.split(`Read ${examplePath}:L10-L20`).length - 1;
 
 		expect(matches).toBe(1);
@@ -329,7 +330,7 @@ describe("ReadToolGroupComponent", () => {
 			new Date(2026, 0, 2, 3, 4, 5).getTime(),
 		);
 
-		const lines = Bun.stripANSI(component.render(120).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(120).join("\n")).split("\n");
 		const previewIndex = lines.findIndex(line => line.includes("line 2"));
 		const usageIndices = lines
 			.map((line, index) => (line.includes("2026-01-02 03:04:05") ? index : -1))
@@ -355,7 +356,7 @@ describe("ReadToolGroupComponent", () => {
 		const rendered = component.render(120).join("\n");
 
 		const exampleUri = url.pathToFileURL(path.resolve(examplePath)).href;
-		expect(Bun.stripANSI(rendered)).toContain("Read src/example.ts:7-9");
+		expect(bun.stripANSI(rendered)).toContain("Read src/example.ts:7-9");
 		expect(extractLinkUris(rendered)).toContain(exampleUri);
 		expect(extractLinkTexts(rendered)).toContain("src/example.ts");
 		expect(extractLinkTexts(rendered)).not.toContain("src/example.ts:7-9");
@@ -378,7 +379,7 @@ describe("ReadToolGroupComponent", () => {
 		const rendered = component.render(120).join("\n");
 
 		const previewUri = url.pathToFileURL(path.resolve(previewPath)).href;
-		expect(Bun.stripANSI(rendered)).toContain("Read src/preview.ts:20-22");
+		expect(bun.stripANSI(rendered)).toContain("Read src/preview.ts:20-22");
 		expect(extractLinkUris(rendered)).toContain(previewUri);
 		expect(extractLinkTexts(rendered)).toContain("src/preview.ts");
 		expect(extractLinkTexts(rendered)).not.toContain("src/preview.ts:20-22");
@@ -395,7 +396,7 @@ describe("ReadToolGroupComponent", () => {
 				false,
 				"read-md",
 			);
-			return Bun.stripANSI(component.render(120).join("\n"));
+			return bun.stripANSI(component.render(120).join("\n"));
 		};
 		const readme = path.resolve("/tmp/README.md");
 
@@ -422,10 +423,10 @@ describe("ReadToolGroupComponent", () => {
 			false,
 			"read-md",
 		);
-		expect(Bun.stripANSI(component.render(120).join("\n"))).not.toContain("# Title");
+		expect(bun.stripANSI(component.render(120).join("\n"))).not.toContain("# Title");
 
 		component.updateArgs({ path: readme, raw: true }, "read-md");
-		expect(Bun.stripANSI(component.render(120).join("\n"))).toContain("Some **bold** text.");
+		expect(bun.stripANSI(component.render(120).join("\n"))).toContain("Some **bold** text.");
 	});
 });
 

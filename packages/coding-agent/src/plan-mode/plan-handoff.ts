@@ -1,5 +1,6 @@
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { InternalUrlRouter, type LocalProtocolOptions } from "../internal-urls";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** The session's active plan, resolved for handoff into a subagent's context. */
 export interface OverallPlanReference {
@@ -32,7 +33,7 @@ export async function loadOverallPlanReference(
 	);
 	let content: string;
 	try {
-		content = await Bun.file(resolved).text();
+		content = await bun.file(resolved).text();
 	} catch (error) {
 		if (isEnoent(error)) return undefined;
 		throw error;

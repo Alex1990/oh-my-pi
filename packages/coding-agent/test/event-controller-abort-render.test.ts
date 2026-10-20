@@ -16,7 +16,7 @@
  *       → `updateContent` receives a message with `stopReason: "stop"`; the
  *         persisted reason survives and the shared presentation renders nothing.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";

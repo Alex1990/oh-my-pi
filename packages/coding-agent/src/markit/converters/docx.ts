@@ -3,6 +3,7 @@ import * as path from "node:path";
 import mammoth from "@oh-my-pi/pi-utils/docx";
 import { createTurndown, normalizeTablesHtml } from "../../utils/turndown";
 import type { ConversionResult, Converter, StreamInfo } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXTENSIONS = [".docx"];
 const MIMETYPES = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
@@ -30,7 +31,7 @@ export class DocxConverter implements Converter {
 					const filename = `image_${imageCount}.${ext}`;
 					const filepath = path.join(imageDir, filename);
 					return image.readBytes().then(async bytes => {
-						await Bun.write(filepath, bytes);
+						await bun.write(filepath, bytes);
 						return { src: filepath, alt: `image_${imageCount}` };
 					});
 				})

@@ -9,6 +9,7 @@ import * as path from "node:path";
 import { getAgentDbPath, isEnoent, withFileLock } from "@oh-my-pi/pi-utils";
 import type { ResetCreditAccountStatus, ResetCreditRedeemOutcome } from "./auth-storage";
 import { ATTEMPT_COOLDOWN_MS } from "./codex-auto-reset";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** An account's last recorded attempt: `pending` (sent, unconfirmed) or `reset`, and when it started. */
 export interface ResetMarker {
@@ -23,13 +24,13 @@ export type MarkedRedeem = (
 
 /** Lock file for one `resetAccountLockKey`, beside the agent database unless `root` replaces it. */
 export function resetLockPath(lockKey: string, root = getAgentDbPath()): string {
-	return `${root}.reset-${Bun.hash(lockKey).toString(16)}`;
+	return `${root}.reset-${bun.hash(lockKey).toString(16)}`;
 }
 
 export async function readResetMarker(lockPath: string): Promise<ResetMarker> {
 	let text: string;
 	try {
-		text = await Bun.file(lockPath).text();
+		text = await bun.file(lockPath).text();
 	} catch (error) {
 		if (!isEnoent(error)) throw error;
 		text = "";
@@ -55,12 +56,12 @@ export async function withResetFence<T>(
 			if (Date.now() - marker.atMs < ATTEMPT_COOLDOWN_MS) return onRecent(marker);
 			return spend(async redeem => {
 				const attemptedAt = Date.now();
-				await Bun.write(lockPath, `pending:${attemptedAt}`);
+				await bun.write(lockPath, `pending:${attemptedAt}`);
 				const outcome = await redeem();
 				if (outcome.code === "reset") {
-					await Bun.write(lockPath, `reset:${attemptedAt}`);
+					await bun.write(lockPath, `reset:${attemptedAt}`);
 				} else if (outcome.code === "no_credit" || outcome.code === "nothing_to_reset") {
-					await Bun.write(lockPath, "");
+					await bun.write(lockPath, "");
 				}
 				return { outcome, attemptedAt };
 			});

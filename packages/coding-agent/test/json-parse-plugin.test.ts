@@ -1,7 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
 import { createJsonParsePlugin } from "../scripts/json-parse-plugin";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { build } from "@oh-my-pi/pi-utils/node-build";
 
 describe("large JSON build assets", () => {
 	for (const compiled of [false, true]) {
@@ -13,9 +15,9 @@ describe("large JSON build assets", () => {
 			) as Record<string, unknown>;
 			first.padding = "x".repeat(256 * 1024);
 			const second = { text: "different asset with the same basename".repeat(8000), values: [true, "", 1e30] };
-			await Bun.write(`${source}/one/data.json`, `\uFEFF${JSON.stringify(first)}`);
-			await Bun.write(`${source}/two/data.json`, JSON.stringify(second));
-			await Bun.write(
+			await bun.write(`${source}/one/data.json`, `\uFEFF${JSON.stringify(first)}`);
+			await bun.write(`${source}/two/data.json`, JSON.stringify(second));
+			await bun.write(
 				`${source}/entry.ts`,
 				[
 					'import first from "./one/data.json";',
@@ -25,7 +27,7 @@ describe("large JSON build assets", () => {
 			);
 			const buildDir = dir.join("build");
 			const executable = process.platform === "win32" ? "app.exe" : "app";
-			const result = await Bun.build({
+			const result = await build({
 				entrypoints: [`${source}/entry.ts`],
 				target: "bun",
 				format: "esm",
@@ -38,7 +40,7 @@ describe("large JSON build assets", () => {
 			const relocated = dir.join("relocated");
 			await fs.rename(buildDir, relocated);
 			await fs.rm(source, { recursive: true });
-			const child = Bun.spawn(
+			const child = bun.spawn(
 				compiled ? [`${relocated}/${executable}`] : [process.execPath, `${relocated}/entry.js`],
 				{
 					cwd: dir.path(),
@@ -58,9 +60,9 @@ describe("large JSON build assets", () => {
 
 	it("rejects invalid large JSON while building", async () => {
 		using dir = TempDir.createSync("@omp-json-invalid-");
-		await Bun.write(dir.join("invalid.json"), '{"broken":');
-		await Bun.write(dir.join("entry.ts"), 'import data from "./invalid.json"; console.log(data);');
-		const result = await Bun.build({
+		await bun.write(dir.join("invalid.json"), '{"broken":');
+		await bun.write(dir.join("entry.ts"), 'import data from "./invalid.json"; console.log(data);');
+		const result = await build({
 			entrypoints: [dir.join("entry.ts")],
 			target: "bun",
 			plugins: [createJsonParsePlugin(0)],

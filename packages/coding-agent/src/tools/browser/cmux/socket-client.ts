@@ -3,6 +3,7 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -198,7 +199,7 @@ export class CmuxSocketClient {
 		const authPath = path.join(os.homedir(), ".cmux", "relay", `${endpoint.port}.auth`);
 		let payload: unknown;
 		try {
-			payload = await Bun.file(authPath).json();
+			payload = await bun.file(authPath).json();
 		} catch {
 			throw new ToolError(
 				`Missing cmux relay auth metadata for ${endpoint.host}:${endpoint.port}; set CMUX_RELAY_ID/CMUX_RELAY_TOKEN or restore ~/.cmux/relay/${endpoint.port}.auth`,

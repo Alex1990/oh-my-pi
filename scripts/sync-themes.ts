@@ -6,6 +6,7 @@
 
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const THEMES_DIR = join(process.cwd(), "packages/tui/src/theme/defaults");
 const INDEX_FILE = join(THEMES_DIR, "index.ts");
@@ -30,7 +31,7 @@ async function main() {
 	content += exportEntries.join("\n");
 	content += "\n};\n";
 
-	await Bun.write(INDEX_FILE, content);
+	await bun.write(INDEX_FILE, content);
 	console.log(`Updated ${INDEX_FILE} with ${jsonFiles.length} themes.`);
 }
 

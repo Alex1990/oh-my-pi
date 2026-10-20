@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	createConfigHeaderResolver,
 	invalidateAllCommandConfigs,
 } from "@oh-my-pi/pi-coding-agent/config/resolve-config-value";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEMP_ENV_KEYS: string[] = [];
 
@@ -81,7 +82,7 @@ describe("async config header materialization", () => {
 		const pending = resolver?.();
 		// Real time is intentional: fake timers cannot detect event-loop blocking
 		// by a synchronous child-process API, which is the regression under test.
-		await Bun.sleep(50);
+		await bun.sleep(50);
 		expect(timerFired).toBe(true);
 		expect(await pending).toEqual({ Authorization: "token" });
 		clearTimeout(timer);

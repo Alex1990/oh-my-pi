@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, Message, Model, Usage, UserMessage } from "@oh-my-pi/pi-ai";
@@ -9,6 +9,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { estimateToolSchemaTokens } from "@oh-my-pi/pi-tui/status-line/context-usage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("AgentSession session stats", () => {
 	let authStorage: AuthStorage;
@@ -250,7 +251,7 @@ describe("AgentSession session stats", () => {
 
 		using tempDir = TempDir.createSync("@omp-session-stats-");
 		const sessionFile = `${tempDir.path()}/repro.jsonl`;
-		await Bun.write(
+		await bun.write(
 			sessionFile,
 			[
 				{

@@ -2,17 +2,17 @@
  * Integration: `SessionManager` driven by `SqlSessionStorage` (SQLite
  * backend) instead of the file-backed store. Verifies the SQL substrate is
  * genuinely pluggable — append → flush → reload via `open()` works against
- * a real `Bun.SQL` connection, and `SessionManager.list()` enumerates rows
+ * a real `SQL` connection, and `SessionManager.list()` enumerates rows
  * out of the table.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Usage } from "@oh-my-pi/pi-ai";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { SqlSessionStorage, type SqlSessionStorageClient } from "@oh-my-pi/pi-coding-agent/session/sql-session-storage";
 import { SessionWriteConflictError } from "@oh-my-pi/pi-coding-agent/session/session-storage";
-import { SQL } from "bun";
+import { SQL } from "@oh-my-pi/pi-utils/sql-compat";
 
 // Storage keys are platform paths; `/sessions/...` is only drive-relative on Windows,
 // so a resolved `open()` would address a different key than `create()` wrote.
@@ -51,7 +51,7 @@ class HeldSqlClient implements SqlSessionStorageClient {
 	}
 
 	transaction(callback: (transaction: SqlSessionStorageClient) => Promise<void>): Promise<void> {
-		return this.#client.transaction(transaction => callback(transaction));
+		return this.#client.transaction(transaction => callback(transaction as unknown as SqlSessionStorageClient));
 	}
 }
 

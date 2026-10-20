@@ -1,8 +1,9 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { CURSOR_MARKER, getKeybindings, setKeybindings } from "@oh-my-pi/pi-tui";
 import { setKittyProtocolActive } from "@oh-my-pi/pi-tui/keys";
-import { $ } from "bun";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { KeybindingsManager, getDefaultPasteImageKeys } from "@oh-my-pi/pi-tui/app-keybindings";
 import {
 	chipLabel,
@@ -25,6 +26,8 @@ import {
 	SPACE_REPEAT_MAX_GAP_MS,
 } from "@oh-my-pi/pi-tui/space-hold";
 import { getEditorTheme, initTheme, theme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeEvalArgs } from "./helpers/node-subprocess";
 
 function makeEditor(holdEnabled = true) {
 	const editor = new CustomEditor(getEditorTheme());
@@ -82,17 +85,26 @@ function feedKeyGaps(editor: CustomEditor, key: string, gaps: number[]): void {
 }
 
 async function decorateInFreshProcess(text: string, imageLinks?: readonly string[]): Promise<string> {
-	const customEditorUrl = import.meta.resolve("@oh-my-pi/pi-tui/prompt/custom-editor");
+	// `import.meta.resolve` is not available under Vite's SSR transform, and the
+	// workspace does not link this package into its own node_modules.
+	const customEditorUrl = pathToFileURL(path.resolve(import.meta.dirname, "../src/prompt/custom-editor.ts")).href;
 	const script = `
 import { CustomEditor } from ${JSON.stringify(customEditorUrl)};
 const editor = new CustomEditor({});
 editor.imageLinks = ${JSON.stringify(imageLinks)};
 process.stdout.write(editor.decorateText(${JSON.stringify(text)}));
 `;
-	const child = await $`bun -e ${script}`.quiet().nothrow();
-	const stdout = child.stdout.toString();
-	const stderr = child.stderr.toString();
-	if (child.exitCode !== 0) throw new Error(stderr || stdout || `decorate subprocess exited with ${child.exitCode}`);
+	const child = bun.spawn({
+		cmd: [process.execPath, ...nodeEvalArgs(script)],
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const [exitCode, stdout, stderr] = await Promise.all([
+		child.exited,
+		new Response(child.stdout as ReadableStream<Uint8Array>).text(),
+		new Response(child.stderr as ReadableStream<Uint8Array>).text(),
+	]);
+	if (exitCode !== 0) throw new Error(stderr || stdout || `decorate subprocess exited with ${exitCode}`);
 	return stdout;
 }
 
@@ -165,9 +177,9 @@ describe("CustomEditor queue shorthand decoration", () => {
 				theme.fg("dim", `Queueing ${theme.nav.selected}`),
 			);
 			editor.focused = true;
-			const rendered = editor.render(40).map(line => Bun.stripANSI(line.replace(CURSOR_MARKER, "")));
+			const rendered = editor.render(40).map(line => bun.stripANSI(line.replace(CURSOR_MARKER, "")));
 			expect(rendered.some(line => line.includes(`Queueing ${theme.nav.selected}`))).toBe(true);
-			expect(rendered.every(line => Bun.stringWidth(line) === 40)).toBe(true);
+			expect(rendered.every(line => bun.stringWidth(line) === 40)).toBe(true);
 			expect(rendered.some(line => line.includes("queue this"))).toBe(true);
 		}
 	});

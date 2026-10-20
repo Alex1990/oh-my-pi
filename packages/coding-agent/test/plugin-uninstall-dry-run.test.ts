@@ -10,7 +10,7 @@
  * `runPluginCommand` does not initialize the theme on its own, so tests that exercise
  * rendered success or error output initialize it explicitly.
  */
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { runPluginCommand } from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
 import type { InstalledPluginSummary } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";

@@ -10,7 +10,7 @@
  * 4. Skips workers whose AgentRegistry session is detached (parked/reviving),
  *    so a stale roster entry can't contribute a phantom zero.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AgentRegistry } from "../../src/registry/agent-registry";
 import type { AgentSession } from "../../src/session/agent-session";
 import { aggregateVibeWorkerTokensPerSecond, VibeSessionRegistry } from "../../src/vibe/runtime";

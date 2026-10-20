@@ -6,14 +6,15 @@
  * `bun install` below faithfully appends, so a missing prune surfaces as two
  * keys in the raw manifest text.
  */
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function emptyStream(): ReadableStream<Uint8Array> {
 	const body = new Response("").body;
@@ -51,26 +52,26 @@ describe("PluginManager.install npm idempotency", () => {
 
 	/** Mock `bun install` with real append (not replace) manifest semantics. */
 	function mockAppendingBunInstall() {
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd[0]).toBe(process.execPath);
 			expect(cmd[1]).toBe("install");
 			const prepare = (async () => {
 				// Faithful `bun install` semantics: the new edge is appended,
 				// never merged — pre-existing keys survive verbatim.
-				const current = (await Bun.file(pluginsPkgJson).json()) as {
+				const current = (await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()) as {
 					dependencies?: Record<string, string>;
 				};
 				const edges = Object.entries(current.dependencies ?? {}).map(
 					([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)}`,
 				);
 				edges.push(`    "pi-lens": "npm:pi-lens@4.2.0"`);
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					`{\n  "name": "omp-plugins",\n  "private": true,\n  "dependencies": {\n${edges.join(",\n")}\n  }\n}\n`,
 				);
 				const installedDir = path.join(pluginsNodeModules, "pi-lens");
 				await fs.mkdir(installedDir, { recursive: true });
-				await Bun.write(
+				await bun.write(
 					path.join(installedDir, "package.json"),
 					JSON.stringify({ name: "pi-lens", version: "4.2.0" }),
 				);
@@ -81,7 +82,7 @@ describe("PluginManager.install npm idempotency", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 	}
 
 	function keyCount(raw: string): number {
@@ -89,7 +90,7 @@ describe("PluginManager.install npm idempotency", () => {
 	}
 
 	test("reinstalling the same npm spec leaves exactly one manifest key", async () => {
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: { "pi-lens": "v4.1.6" } }, null, 2),
 		);
@@ -99,13 +100,13 @@ describe("PluginManager.install npm idempotency", () => {
 		const result = await mgr.install("npm:pi-lens@4.2.0");
 
 		expect(result.name).toBe("pi-lens");
-		const raw = await Bun.file(pluginsPkgJson).text();
+		const raw = await bun.file(pluginsPkgJson).text();
 		expect(keyCount(raw)).toBe(1);
 		expect(JSON.parse(raw).dependencies["pi-lens"]).toBe("npm:pi-lens@4.2.0");
 	});
 
 	test("a pre-duplicated manifest collapses to one key", async () => {
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			'{\n  "name": "omp-plugins",\n  "private": true,\n  "dependencies": {\n    "pi-lens": "npm:pi-lens",\n    "pi-lens": "v4.1.6"\n  }\n}\n',
 		);
@@ -114,12 +115,12 @@ describe("PluginManager.install npm idempotency", () => {
 		const mgr = new PluginManager(tmpRoot);
 		await mgr.install("npm:pi-lens@4.2.0");
 
-		const raw = await Bun.file(pluginsPkgJson).text();
+		const raw = await bun.file(pluginsPkgJson).text();
 		expect(keyCount(raw)).toBe(1);
 	});
 
 	test("a malformed full-spec key from an earlier upgrade is removed", async () => {
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify(
 				{
@@ -139,7 +140,7 @@ describe("PluginManager.install npm idempotency", () => {
 		const mgr = new PluginManager(tmpRoot);
 		await mgr.install("npm:pi-lens@4.2.0");
 
-		const dependencies = (await Bun.file(pluginsPkgJson).json()).dependencies;
+		const dependencies = (await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()).dependencies;
 		expect(dependencies).toEqual({ "pi-lens": "npm:pi-lens@4.2.0" });
 	});
 });

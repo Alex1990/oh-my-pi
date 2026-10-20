@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { AuthStorage } from "@oh-my-pi/pi-ai/auth-storage";
 import { LoginCancelledError, OAuthError, ProviderHttpError } from "@oh-my-pi/pi-ai/error";

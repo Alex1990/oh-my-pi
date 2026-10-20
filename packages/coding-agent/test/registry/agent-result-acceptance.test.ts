@@ -4,7 +4,7 @@
  * milestones must be recorded. Milestones are run-scoped, so a ref reused by a
  * follow-up or wake turn never reports a previous run's acceptance.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 

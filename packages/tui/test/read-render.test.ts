@@ -1,10 +1,11 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
 import { applyHyperlinkSetting } from "../src/render/hyperlink";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
 import { readToolRenderer } from "@oh-my-pi/pi-tui/tools/read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function extractLinkUris(text: string): string[] {
 	return [...text.matchAll(/\x1b\]8;[^;]*;([^\x1b]+)\x1b\\/g)].map(match => match[1]!);
@@ -12,7 +13,7 @@ function extractLinkUris(text: string): string[] {
 
 function extractLinkTexts(text: string): string[] {
 	return [...text.matchAll(/\x1b\]8;[^;]*;[^\x1b]+\x1b\\([\s\S]*?)\x1b\]8;;\x1b\\/g)].map(match =>
-		Bun.stripANSI(match[1]!),
+		bun.stripANSI(match[1]!),
 	);
 }
 
@@ -67,7 +68,7 @@ describe("readToolRenderer hyperlinks", () => {
 		);
 
 		const rendered = component.render(200).join("\n");
-		expect(Bun.stripANSI(rendered)).toContain(`${examplePath}:10-12`);
+		expect(bun.stripANSI(rendered)).toContain(`${examplePath}:10-12`);
 		const exampleUri = url.pathToFileURL(path.resolve(examplePath)).href;
 		expect(extractLinkUris(rendered)).toContain(exampleUri);
 		expect(extractLinkTexts(rendered)).toContain(examplePath);
@@ -123,7 +124,7 @@ describe("readToolRenderer markdown content", () => {
 
 		const stripped = component
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(stripped).toContain("Heading");
 		expect(stripped).toContain("This is bold text.");
@@ -149,7 +150,7 @@ describe("readToolRenderer markdown content", () => {
 
 		const stripped = component
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(stripped).toContain("# Heading");
 		expect(stripped).toContain("**bold**");
@@ -174,7 +175,7 @@ describe("readToolRenderer markdown content", () => {
 
 		const stripped = component
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(stripped).toContain("# Heading");
 		expect(stripped).toContain("**bold**");
@@ -207,7 +208,7 @@ describe("readToolRenderer error sanitization", () => {
 		const raw = component.render(100).join("\n");
 		expect(raw).not.toContain("\t");
 		expect(raw).not.toContain("\r");
-		const stripped = Bun.stripANSI(raw);
+		const stripped = bun.stripANSI(raw);
 		expect(stripped).toContain("SHA256:abc");
 		expect(stripped).toContain("Host key verification failed.");
 	});
@@ -229,7 +230,7 @@ describe("readToolRenderer error sanitization", () => {
 		const raw = component.render(100).join("\n");
 		expect(raw).not.toContain("\t");
 		expect(raw).not.toContain("\r");
-		expect(Bun.stripANSI(raw)).toContain("fetch failed:");
+		expect(bun.stripANSI(raw)).toContain("fetch failed:");
 	});
 });
 
@@ -259,7 +260,7 @@ describe("readToolRenderer success-path sanitization", () => {
 		const raw = component.render(200).join("\n");
 		expect(raw).not.toContain("\t");
 		expect(raw).not.toContain("\r");
-		expect(Bun.stripANSI(raw)).toContain("col1");
+		expect(bun.stripANSI(raw)).toContain("col1");
 	});
 
 	it("expands tabs in image detail lines", async () => {
@@ -283,7 +284,7 @@ describe("readToolRenderer success-path sanitization", () => {
 		const raw = component.render(100).join("\n");
 		expect(raw).not.toContain("\t");
 		expect(raw).not.toContain("\r");
-		expect(Bun.stripANSI(raw)).toContain("a");
+		expect(bun.stripANSI(raw)).toContain("a");
 	});
 
 	it("shortens the home directory in resolved path notices", async () => {
@@ -305,7 +306,7 @@ describe("readToolRenderer success-path sanitization", () => {
 			{ path: "local://notes.txt" },
 		);
 
-		const rendered = Bun.stripANSI(component.render(100).join("\n"));
+		const rendered = bun.stripANSI(component.render(100).join("\n"));
 		// `shortenPath` normalizes separators to `/`, so the notice reads the same
 		// on Windows.
 		expect(rendered).toContain("Resolved path: ~/notes.txt");

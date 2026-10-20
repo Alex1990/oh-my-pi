@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -6,8 +6,9 @@ import { cfgThemeDark } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // A write that leaves the persisted value unchanged must not rewrite config.yml: each rewrite is a
 // read, fsync, and rename that also wakes every other process watching the file.
@@ -30,7 +31,7 @@ describe("Settings no-op saves", () => {
 		state = undefined;
 		AgentStorage.close();
 		// SQLite keeps agent.db open until GC finalizes its statements; Windows cannot delete an open file.
-		Bun.gc(true);
+		bun.gc(true);
 		tempDir.removeSync();
 	});
 
@@ -44,7 +45,7 @@ describe("Settings no-op saves", () => {
 	}
 
 	it("re-setting persisted values, entries, and model roles leaves config.yml untouched", async () => {
-		await Bun.write(
+		await bun.write(
 			configPath(),
 			YAML.stringify({
 				theme: { dark: "titanium" },

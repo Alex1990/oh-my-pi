@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { COMPOSER_DEFAULTS, Composer } from "@oh-my-pi/pi-tui/prompt/composer";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -9,6 +9,7 @@ import { getCellDimensions, ImageProtocol, setCellDimensions, TERMINAL } from "@
 import { VirtualRenderScheduler } from "../../tui/test/virtual-render-scheduler";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
 import { withoutTerminalMultiplexer } from "../../tui/test/helpers/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BASE64_ONE_PIXEL_PNG =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
@@ -87,7 +88,7 @@ class TrackingTerminal extends VirtualTerminal {
 }
 
 function plainBuffer(terminal: VirtualTerminal): string[] {
-	return terminal.getScrollBuffer().map(row => Bun.stripANSI(row).trimEnd());
+	return terminal.getScrollBuffer().map(row => bun.stripANSI(row).trimEnd());
 }
 
 function rowOf(rows: readonly string[], needle: string): number {
@@ -171,7 +172,7 @@ describe("composer welcome native-history resize", () => {
 		expect(offered).toHaveLength(1);
 		expect(acknowledged).toEqual(offered);
 		const initialAnchor = expectOneExactEditor(
-			terminal.getViewport().map(row => Bun.stripANSI(row)),
+			terminal.getViewport().map(row => bun.stripANSI(row)),
 			tail.status,
 		);
 		expect(initialAnchor).toBe(9);
@@ -180,7 +181,7 @@ describe("composer welcome native-history resize", () => {
 		for (let index = 0; index < 40; index++) {
 			tail.status = index % 2 === 0 ? "thinking high" : "thinking low";
 			composer.ui.requestRender(true);
-			const viewport = terminal.getViewport().map(row => Bun.stripANSI(row));
+			const viewport = terminal.getViewport().map(row => bun.stripANSI(row));
 			expect(expectOneExactEditor(viewport, tail.status)).toBe(initialAnchor);
 			expect(countRows(plainBuffer(terminal), "vtest")).toBe(1);
 		}
@@ -194,7 +195,7 @@ describe("composer welcome native-history resize", () => {
 			[100, 34],
 		] as const) {
 			terminal.resize(columns, rows);
-			lastTransient = terminal.getViewport().map(row => Bun.stripANSI(row));
+			lastTransient = terminal.getViewport().map(row => bun.stripANSI(row));
 			expect(countRows(lastTransient, "vtest")).toBe(1);
 			expectOneExactEditor(lastTransient, tail.status);
 		}
@@ -204,7 +205,7 @@ describe("composer welcome native-history resize", () => {
 		// delivers on a microtask — drain it before reading the normal screen.
 		await terminal.flush();
 
-		let settledViewport = terminal.getViewport().map(row => Bun.stripANSI(row));
+		let settledViewport = terminal.getViewport().map(row => bun.stripANSI(row));
 		expect(countRows(settledViewport, "vtest")).toBe(1);
 		expect(rowOf(settledViewport, "vtest")).toBe(rowOf(lastTransient, "vtest"));
 		expect(expectOneExactEditor(settledViewport, tail.status)).toBe(expectOneExactEditor(lastTransient, tail.status));
@@ -216,7 +217,7 @@ describe("composer welcome native-history resize", () => {
 			[72, 50],
 		] as const) {
 			terminal.resize(columns, rows);
-			lastTransient = terminal.getViewport().map(row => Bun.stripANSI(row));
+			lastTransient = terminal.getViewport().map(row => bun.stripANSI(row));
 			expect(countRows(lastTransient, "vtest")).toBe(1);
 			expectOneExactEditor(lastTransient, tail.status);
 		}
@@ -224,7 +225,7 @@ describe("composer welcome native-history resize", () => {
 		scheduler.settle();
 		await terminal.flush();
 
-		settledViewport = terminal.getViewport().map(row => Bun.stripANSI(row));
+		settledViewport = terminal.getViewport().map(row => bun.stripANSI(row));
 		expect(countRows(settledViewport, "vtest")).toBe(1);
 		expect(expectOneExactEditor(settledViewport, tail.status)).toBeGreaterThan(rowOf(settledViewport, "vtest"));
 		expect(countRows(plainBuffer(terminal), "EDITOR TOP")).toBe(1);
@@ -243,18 +244,18 @@ describe("composer welcome native-history resize", () => {
 		const width = visibleWidth(accepted!.slice(0, glyphIndex)) + 1;
 		expect(width).toBeLessThan(80);
 
-		const resizeFrame = composer.renderResizeFrame({ columns: width, rows: 200 }).map(row => Bun.stripANSI(row));
+		const resizeFrame = composer.renderResizeFrame({ columns: width, rows: 200 }).map(row => bun.stripANSI(row));
 		expect(countRows(resizeFrame, "界")).toBe(1);
 
 		terminal.resize(width, 200);
 
-		const transient = terminal.getViewport().map(row => Bun.stripANSI(row));
+		const transient = terminal.getViewport().map(row => bun.stripANSI(row));
 		expect(countRows(transient, "界")).toBe(1);
 		composer.ui.stop();
 	});
 	it("clips retired hard rows instead of reflowing them inside a multiplexer", () => {
 		vi.spyOn(Math, "random").mockReturnValue(0.5);
-		Bun.env.TMUX = "/tmp/tmux-test/default,1,0";
+		bun.env.TMUX = "/tmp/tmux-test/default,1,0";
 		const marker = "MUX-SUFFIX";
 		const { composer, terminal } = startRetiredWelcome(`aaaa${marker}`);
 		const accepted = plainBuffer(terminal).find(row => row.includes(marker));
@@ -264,12 +265,12 @@ describe("composer welcome native-history resize", () => {
 		const width = visibleWidth(accepted!.slice(0, markerIndex)) - 1;
 		expect(width).toBeGreaterThan(1);
 
-		const resizeFrame = composer.renderResizeFrame({ columns: width, rows: 200 }).map(row => Bun.stripANSI(row));
+		const resizeFrame = composer.renderResizeFrame({ columns: width, rows: 200 }).map(row => bun.stripANSI(row));
 		expect(countRows(resizeFrame, marker)).toBe(1);
 
 		terminal.resize(width, 200);
 
-		const transient = terminal.getViewport().map(row => Bun.stripANSI(row));
+		const transient = terminal.getViewport().map(row => bun.stripANSI(row));
 		expect(countRows(transient, marker)).toBe(0);
 		composer.ui.stop();
 	});

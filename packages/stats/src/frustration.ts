@@ -40,6 +40,7 @@ import type {
 	FrustrationJobStatus,
 	FrustrationModelStats,
 } from "./shared-types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Judge supplied by the omp host process; `primaryModel` prices the pre-run estimate. */
 export interface StatsJudge extends Judge {
@@ -377,7 +378,7 @@ async function runJob(
 		for (let attempt = 1; attempt <= ATTEMPTS_PER_TEXT; attempt++) {
 			if (signal.aborted) return;
 			// Failures are mostly rate limits: give the judge a moment before retrying.
-			if (attempt > 1) await Bun.sleep(RETRY_DELAY_MS * (attempt - 1));
+			if (attempt > 1) await bun.sleep(RETRY_DELAY_MS * (attempt - 1));
 			if (signal.aborted) return;
 			try {
 				const result = await judge.judge({ state: item.prose, questions: FRUSTRATION_QUESTIONS }, { signal });

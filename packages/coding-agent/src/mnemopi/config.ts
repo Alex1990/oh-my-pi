@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { MnemopiOptions } from "@oh-my-pi/pi-mnemopi";
@@ -30,6 +30,7 @@ import {
 	cfgMnemopiRetainEveryNTurns,
 	cfgMnemopiScoping,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type MnemopiLlmMode = "none" | "smol" | "remote";
 
@@ -205,13 +206,13 @@ function projectBank(configured: string | undefined, cwd: string): string {
 
 /**
  * Stable project-identity segment derived from an absolute project root:
- * `<sanitized-basename>-<Bun.hash(projectRoot).toString(36)>`, clamped to the
+ * `<sanitized-basename>-<bun.hash(projectRoot).toString(36)>`, clamped to the
  * bank-name limit. Shared by mnemopi bank scoping and the sharpshooter
  * project store so both subsystems key the same directory identically.
  */
 export function projectBankSegment(projectRoot: string): string {
 	const project = sanitizeBankName(path.basename(projectRoot)) ?? "default";
-	return limitBankName(`${project}-${Bun.hash(projectRoot).toString(36)}`);
+	return limitBankName(`${project}-${bun.hash(projectRoot).toString(36)}`);
 }
 
 /**
@@ -288,7 +289,7 @@ function sanitizeBankName(value: string | undefined): string | undefined {
 
 function limitBankName(name: string): string {
 	if (name.length <= 64) return name;
-	const hash = Bun.hash(name).toString(36);
+	const hash = bun.hash(name).toString(36);
 	const prefixLength = Math.max(1, 63 - hash.length);
 	const prefix = name.slice(0, prefixLength).replace(/-+$/g, "") || "bank";
 	return `${prefix}-${hash}`;

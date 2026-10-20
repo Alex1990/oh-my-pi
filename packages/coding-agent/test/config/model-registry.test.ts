@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { AuthStorage } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { runModelsListing } from "../../src/cli/models-cli";
 import { ModelRegistry } from "../../src/config/model-registry";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testModel = buildModel({
 	id: "test-model",
@@ -30,7 +31,7 @@ describe("ModelRegistry", () => {
 		authStorage = await AuthStorage.create(":memory:");
 		// Construct with an explicit modelsPath inside the temp dir so the
 		// constructor's #loadModels read returns "not-found" rather than
-		// touching the host's ~/.omp/agent/models.yaml. isBunTestRuntime()
+		// touching the host's ~/.omp/agent/models.yaml. isTestRuntime()
 		// auto-stubs #fetch in the constructor.
 		registry = new ModelRegistry(authStorage, path.join(tmpDir, "models.yaml"));
 	});
@@ -82,7 +83,7 @@ describe("ModelRegistry", () => {
           supportsStroe: false
           supportsStore: false
 `;
-		await Bun.write(modelsPath, content);
+		await bun.write(modelsPath, content);
 		await registry.refresh("offline");
 		const listing = await listModels();
 		expect(registry.getError()).toBeUndefined();
@@ -101,13 +102,13 @@ describe("ModelRegistry", () => {
 		await registry.refresh("offline");
 		await registry.refresh("offline", { refreshCommandCredentials: true });
 		// A file-watch reload can change mtime without changing any diagnostics.
-		await Bun.write(modelsPath, content);
+		await bun.write(modelsPath, content);
 		const later = new Date(Date.now() + 1000);
 		fs.utimesSync(modelsPath, later, later);
 		await registry.refresh("offline");
 		expect((await listModels()).stderr).toBe("");
 
-		await Bun.write(modelsPath, content.replace("supportsStroe", "supportsStorre"));
+		await bun.write(modelsPath, content.replace("supportsStroe", "supportsStorre"));
 		await registry.refresh("offline", { refreshCommandCredentials: true });
 		expect((await listModels()).stderr).toBe(
 			`Warning: Unknown compat key in ${modelsPath}: providers.custom.compat.supportsStorre (configuration still loaded).\n`,
@@ -115,7 +116,7 @@ describe("ModelRegistry", () => {
 	});
 
 	test("warns for nested fixed-field compat keys but accepts open extraBody payloads", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tmpDir, "models.yaml"),
 			JSON.stringify({
 				providers: {
@@ -159,7 +160,7 @@ describe("ModelRegistry", () => {
 	});
 
 	test("does not warn for declared compat keys or runtime extension compatibility fields", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tmpDir, "models.yaml"),
 			JSON.stringify({
 				providers: {

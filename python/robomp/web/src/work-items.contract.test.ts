@@ -1,9 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildWorkItems } from "./work-items";
 import type { StatusResponse } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Read from test/fixtures/status-contract.json relative to src/
-const status = await Bun.file(
+const status = await bun.file(
   new URL("../test/fixtures/status-contract.json", import.meta.url)
 ).json() as StatusResponse;
 

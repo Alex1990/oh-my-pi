@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import CommitCommand from "@oh-my-pi/pi-coding-agent/commands/commit";
 import * as commitModule from "@oh-my-pi/pi-coding-agent/commit";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";

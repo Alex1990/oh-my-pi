@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AssistantMessage, Model } from "@oh-my-pi/pi-ai";
@@ -17,6 +17,7 @@ import {
 	upsertThreads,
 } from "@oh-my-pi/pi-coding-agent/memories/storage";
 import { getAgentDbPath, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const GLOBAL_KIND = "memory_consolidate_global";
 const PROJECT_CWD = "/repo";
@@ -69,7 +70,7 @@ describe("memories/storage", () => {
 	});
 
 	afterEach(async () => {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		vi.restoreAllMocks();
 		await tempDir.remove().catch(() => {});
 	});
@@ -188,7 +189,7 @@ describe("memories/storage", () => {
 		await fs.mkdir(sessionDir, { recursive: true });
 		const currentSessionFile = path.join(sessionDir, "current-file.jsonl");
 		const rolloutFile = path.join(sessionDir, "rollout-file.jsonl");
-		await Bun.write(
+		await bun.write(
 			currentSessionFile,
 			[
 				JSON.stringify({ type: "title", v: 1, title: "Current", updatedAt: "2026-06-27T00:00:00.000Z" }),
@@ -196,7 +197,7 @@ describe("memories/storage", () => {
 				"",
 			].join("\n"),
 		);
-		await Bun.write(
+		await bun.write(
 			rolloutFile,
 			[
 				JSON.stringify({ type: "title", v: 1, title: "Rollout", updatedAt: "2026-06-27T00:00:00.000Z" }),

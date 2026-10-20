@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { $which } from "../packages/utils/src/which";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 
 /** Pinned npm package matching flake.lock's bun2nix revision (`0f2a1f…`). */
 export const BUN2NIX_NPM_SPEC = "bun2nix@2.1.2";
@@ -39,9 +41,9 @@ export function normalizeGeneratedNix(contents: string): string {
 /** Rewrite `bun.lock` in place when Bun 1.4+ stamped it lockfileVersion 2. */
 async function normalizeBunLock(): Promise<void> {
 	const lockPath = path.join(repoRoot, "bun.lock");
-	const contents = await Bun.file(lockPath).text();
+	const contents = await bun.file(lockPath).text();
 	const normalized = normalizeLockfileVersion(contents);
-	if (normalized !== contents) await Bun.write(lockPath, normalized);
+	if (normalized !== contents) await bun.write(lockPath, normalized);
 }
 
 type FindExecutable = (command: string) => string | null;
@@ -77,9 +79,9 @@ export async function generateNixBunDeps(generator: NixBunDepsGenerator = resolv
 	}
 
 	const outputPath = path.join(repoRoot, "nix/bun.nix");
-	const contents = await Bun.file(outputPath).text();
+	const contents = await bun.file(outputPath).text();
 	const normalized = normalizeGeneratedNix(contents);
-	if (normalized !== contents) await Bun.write(outputPath, normalized);
+	if (normalized !== contents) await bun.write(outputPath, normalized);
 }
 
-if (import.meta.main) await generateNixBunDeps();
+if (isMainModule(import.meta.url)) await generateNixBunDeps();

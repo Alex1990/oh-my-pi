@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype/ark";
 
 it("formData", () => {
@@ -34,5 +34,5 @@ it("formData", () => {
 
 	expect(String(parseUserForm(data))).toBe(`email must be an email address (was "david")
 file must be a File instance (was a string)
-tags[2] must be a string (was Blob)`);
+tags[2] must be a string (was File)`);
 });

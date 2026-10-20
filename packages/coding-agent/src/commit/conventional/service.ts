@@ -21,6 +21,7 @@ import {
 	OmpCommitInference,
 } from "./inference";
 import { detectRepositoryContext, formatRepositoryContext } from "./repo-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Options for generating a conventional message from the staged tree. */
 export interface GenerateGitCommitOptions {
@@ -155,7 +156,7 @@ async function projectNames(cwd: string): Promise<string[]> {
 		const packages: string[] = [];
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
-			if (await Bun.file(path.join(root, entry.name, "__init__.py")).exists()) packages.push(entry.name);
+			if (await bun.file(path.join(root, entry.name, "__init__.py")).exists()) packages.push(entry.name);
 		}
 		if (packages.length === 1 && packages[0]) names.push(packages[0]);
 	} catch {}

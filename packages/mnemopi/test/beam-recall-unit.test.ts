@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { factRecall, formatContext, recall, recallEnhanced } from "@oh-my-pi/pi-mnemopi/core/beam/recall";
 import { initBeam } from "@oh-my-pi/pi-mnemopi/core/beam/schema";
 import { invalidate } from "@oh-my-pi/pi-mnemopi/core/beam/store";

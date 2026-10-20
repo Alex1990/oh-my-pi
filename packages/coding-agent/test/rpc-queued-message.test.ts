@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import type { RpcPromptResultFrame, RpcResponse, RpcSessionState } from "@oh-my-
 import { USER_INTERRUPT_LABEL } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { isRecord, readJsonl, removeWithRetries, withTimeout } from "@oh-my-pi/pi-utils";
 import { rejectionOf } from "./helpers/rejection";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("RPC queued-message editing", () => {
 	let client: RpcClient;
@@ -20,7 +21,7 @@ describe("RPC queued-message editing", () => {
 	/** `script` selects a scripted first model call; see the fixture's QUEUED_RPC_SCRIPT. */
 	function createClient(script?: "internal-steer" | "live-steer"): RpcClient {
 		return new RpcClient({
-			command: [process.execPath, path.join(import.meta.dir, "fixtures", "queued-message-rpc-agent.ts")],
+			command: [process.execPath, path.join(import.meta.dirname, "fixtures", "queued-message-rpc-agent.ts")],
 			cwd: directory,
 			env: { PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1", QUEUED_RPC_SCRIPT: script ?? "" },
 		});
@@ -333,11 +334,11 @@ describe("RPC queued-message editing", () => {
 
 		test("under protocol v1, a result over the frame limit drops images and still returns every text", async () => {
 			// RpcClient always negotiates v2, so speak raw v1 JSONL to the fixture.
-			const child = Bun.spawn(
-				[process.execPath, path.join(import.meta.dir, "fixtures", "queued-message-rpc-agent.ts")],
+			const child = bun.spawn(
+				[process.execPath, path.join(import.meta.dirname, "fixtures", "queued-message-rpc-agent.ts")],
 				{
 					cwd: directory,
-					env: { ...Bun.env, PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1", QUEUED_RPC_SCRIPT: "hold" },
+					env: { ...bun.env, PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1", QUEUED_RPC_SCRIPT: "hold" },
 					stdin: "pipe",
 					stdout: "pipe",
 					stderr: "ignore",

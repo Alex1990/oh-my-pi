@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { FileLock } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 test("FileLock binds release to one native owner", async () => {
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-native-lock-"));
@@ -26,7 +27,7 @@ test("FileLock binds release to one native owner", async () => {
 		expect(successor.acquired).toBe(true);
 
 		const usesInMemoryName = process.platform === "linux" || process.platform === "win32";
-		expect(await Bun.file(lockPath).exists()).toBe(!usesInMemoryName);
+		expect(await bun.file(lockPath).exists()).toBe(!usesInMemoryName);
 
 		successor.release();
 		const finalOwner = FileLock.tryAcquire(lockPath);

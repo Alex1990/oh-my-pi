@@ -10,7 +10,7 @@
  * then 403'd on the first turn. The fix teaches auto-selection to prefer a
  * provider with a *concrete* credential over a sentinel-only ambient one.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

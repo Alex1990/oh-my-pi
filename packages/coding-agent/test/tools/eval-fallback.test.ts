@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as evalIndex from "@oh-my-pi/pi-coding-agent/eval";
 import * as pyKernel from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
@@ -9,16 +9,17 @@ import { ToolAbortError } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 
 import { cfgEvalJs, cfgEvalPy } from "@oh-my-pi/pi-coding-agent/eval/settings";
 import { cfgToolsMaxTimeout } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let originalPiPy: string | undefined;
 let originalPiJs: string | undefined;
 
 function restoreEnv(name: "PI_PY" | "PI_JS", value: string | undefined): void {
 	if (value === undefined) {
-		delete Bun.env[name];
+		delete bun.env[name];
 		return;
 	}
-	Bun.env[name] = value;
+	bun.env[name] = value;
 }
 function makeSession(settings = Settings.isolated()): ToolSession {
 	return {
@@ -45,10 +46,10 @@ const mockResult = {
 
 describe("EvalTool language dispatch", () => {
 	beforeEach(() => {
-		originalPiPy = Bun.env.PI_PY;
-		originalPiJs = Bun.env.PI_JS;
-		delete Bun.env.PI_PY;
-		delete Bun.env.PI_JS;
+		originalPiPy = bun.env.PI_PY;
+		originalPiJs = bun.env.PI_JS;
+		delete bun.env.PI_PY;
+		delete bun.env.PI_JS;
 	});
 
 	afterEach(() => {
@@ -153,7 +154,7 @@ describe("EvalTool language dispatch", () => {
 	});
 
 	it("uses settings for eval backends whose env flag is unset", () => {
-		Bun.env.PI_PY = "1";
+		bun.env.PI_PY = "1";
 		const settings = Settings.isolated();
 		cfgEvalPy.set(settings, false);
 		cfgEvalJs.set(settings, false);
@@ -165,7 +166,7 @@ describe("EvalTool language dispatch", () => {
 	});
 
 	it("lets PI_JS disable js execution even when eval.js is enabled", async () => {
-		Bun.env.PI_JS = "0";
+		bun.env.PI_JS = "0";
 		const settings = Settings.isolated();
 		cfgEvalJs.set(settings, true);
 		const tool = new EvalTool(makeSession(settings));

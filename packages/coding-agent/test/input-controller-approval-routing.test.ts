@@ -4,7 +4,7 @@
  * user is viewing a subagent, that submission must still reach the main
  * session: sent to the focused child, it never denies the approval.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 

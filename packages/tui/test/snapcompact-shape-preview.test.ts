@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getNativeBlob } from "@oh-my-pi/pi-tui/native/blobs";
 import type { DescribeContext, NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import { SnapcompactShapePreview } from "@oh-my-pi/pi-tui/overlays/snapcompact-shape-preview";

@@ -1,5 +1,6 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { cachingByteSource, encodeArchive, httpByteSource, openArchive } from "@oh-my-pi/pi-utils/ar";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // The remote-source contract: an archive served over HTTP with Range support
 // must be listable and member-readable through ranged requests only (no full
@@ -17,7 +18,7 @@ const zipBytes = await encodeArchive("zip", [
 
 let rangeRequests = 0;
 let fullRequests = 0;
-const rangedServer = Bun.serve({
+const rangedServer = await serve({
 	port: 0,
 	fetch(request) {
 		const range = request.headers.get("range");
@@ -36,7 +37,7 @@ const rangedServer = Bun.serve({
 		});
 	},
 });
-const ignoringServer = Bun.serve({
+const ignoringServer = await serve({
 	port: 0,
 	fetch: () => new Response(zipBytes),
 });

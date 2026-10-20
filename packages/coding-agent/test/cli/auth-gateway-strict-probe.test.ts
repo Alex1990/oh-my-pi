@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as ai from "@oh-my-pi/pi-ai";
 import type { CompletionProbeInput, Provider } from "@oh-my-pi/pi-ai";
 import { createStrictCompletionProbe } from "../../src/cli/auth-gateway-cli";

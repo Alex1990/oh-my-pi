@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DT_VERDEF = 0x6ffffffcn;
 const VERDEF_ADDRESS = 0x12345678n;
@@ -61,12 +62,12 @@ async function createFixture(name: string, options: FixtureOptions = {}) {
 	}
 	const bytes = Buffer.concat([header, sections, dynamic]);
 	const file = path.join(fixtureDirectory, name);
-	await Bun.write(file, bytes);
+	await bun.write(file, bytes);
 	return { bytes, dynamicOffset, file };
 }
 
 async function repair(file: string) {
-	return await $`${process.execPath} ${path.join(import.meta.dir, "fix-dt-verdef.ts")} ${file}`.quiet().nothrow();
+	return await $`${process.execPath} ${path.join(import.meta.dirname, "fix-dt-verdef.ts")} ${file}`.quiet().nothrow();
 }
 
 describe("fix-dt-verdef", () => {

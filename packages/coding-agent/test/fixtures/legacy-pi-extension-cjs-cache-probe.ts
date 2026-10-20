@@ -1,4 +1,4 @@
-import { spyOn } from "bun:test";
+import { spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as parser from "@babel/parser";
 import { loadLegacyPiModule } from "../../src/extensibility/plugins/legacy-pi-compat";
 

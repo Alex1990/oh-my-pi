@@ -11,10 +11,11 @@ import {
 } from "@oh-my-pi/pi-coding-agent/telemetry-export";
 import { logger } from "@oh-my-pi/pi-utils";
 import { metrics, trace } from "@opentelemetry/api";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const received = new Set<string>();
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	async fetch(req) {
 		const path = new URL(req.url).pathname;

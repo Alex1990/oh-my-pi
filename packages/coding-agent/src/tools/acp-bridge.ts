@@ -14,6 +14,7 @@ import type { ToolSession } from ".";
 import { invalidateFsScanAfterWrite } from "./fs-cache-invalidation";
 import { resolvePlanPath, targetsLocalSandbox } from "./plan-mode-guard";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Return `true` when an ACP client bridge write is appropriate for this path.
@@ -86,7 +87,7 @@ export async function routeWriteThroughBridge(
 	if (!bridge?.capabilities.writeTextFile || !bridge.writeTextFile) return undefined;
 	if (!(await shouldRouteWriteThroughBridge(session, requestedPath, absolutePath))) return undefined;
 
-	const changeType = (await Bun.file(absolutePath).exists()) ? FileChangeType.Changed : FileChangeType.Created;
+	const changeType = (await bun.file(absolutePath).exists()) ? FileChangeType.Changed : FileChangeType.Created;
 	// The ACP protocol has no cancellation for fs writes; the most we can do is
 	// refuse to start one after the tool was aborted. Racing the promise would
 	// report failure while the editor still applies the write.
@@ -116,7 +117,7 @@ export async function routeWriteThroughBridge(
 	// instead of a silently wrong tag.
 	let actualText = content;
 	try {
-		actualText = await Bun.file(absolutePath).text();
+		actualText = await bun.file(absolutePath).text();
 	} catch {
 		// Unreadable right after a reported-successful write; nothing more we
 		// can verify here.

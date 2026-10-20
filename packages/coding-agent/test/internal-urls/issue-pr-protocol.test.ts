@@ -5,7 +5,7 @@
  * cache + router singletons. `github.json` / `github.text` are spied
  * per-test and restored in `afterEach`.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import { InternalUrlRouter } from "@oh-my-pi/pi-coding-agent/internal-urls";
 import { resetForTests as resetCacheForTests } from "@oh-my-pi/pi-coding-agent/tools/github-cache";
 import { github } from "@oh-my-pi/pi-coding-agent/utils/github";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: string;
 let originalEnv: string | undefined;
@@ -184,7 +185,7 @@ describe("issue:// protocol handler", () => {
 
 		const router = InternalUrlRouter.instance();
 		await router.resolve("issue://owner/example/43");
-		await Bun.sleep(1);
+		await bun.sleep(1);
 		spy.mockImplementation(async () => {
 			throw new Error("offline");
 		});

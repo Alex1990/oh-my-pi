@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
@@ -21,7 +21,7 @@ import { roleDefaultModels } from "@oh-my-pi/pi-catalog/compat/behavior";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { getAgentDbPath, getProjectAgentDir, logger, TempDir } from "@oh-my-pi/pi-utils";
 import * as fileLock from "@oh-my-pi/pi-utils/file-lock";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
 import {
 	cfgSymbolPreset,
@@ -78,6 +78,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgModelRoles, cfgDisabledProviders, cfgEnabledModels } from "@oh-my-pi/pi-coding-agent/config/model-settings";
 import { cfgShellPath } from "@oh-my-pi/pi-coding-agent/exec/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Lets microtask-coalesced setting listeners run. */
 const tick = () => Promise.resolve();
@@ -129,11 +130,11 @@ describe("Settings", () => {
 		path.join(await fs.promises.realpath(path.dirname(filePath)), path.basename(filePath));
 
 	const writeSettings = async (settings: Record<string, unknown>) => {
-		await Bun.write(getConfigPath(), YAML.stringify(settings, null, 2));
+		await bun.write(getConfigPath(), YAML.stringify(settings, null, 2));
 	};
 
 	const readSettings = async (): Promise<Record<string, unknown>> => {
-		const file = Bun.file(getConfigPath());
+		const file = bun.file(getConfigPath());
 		if (!(await file.exists())) return {};
 		const content = await file.text();
 		const parsed = YAML.parse(content);
@@ -148,7 +149,7 @@ describe("Settings", () => {
 		AgentStorage.close();
 		restoreSettingsTestState(settingsState);
 		settingsState = undefined;
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await tempDir?.remove();
 	});
 
@@ -180,7 +181,7 @@ describe("Settings", () => {
 	describe("main config file selection", () => {
 		it("loads and updates an existing config.yaml without creating config.yml", async () => {
 			const yamlConfigPath = path.join(agentDir, "config.yaml");
-			await Bun.write(yamlConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
+			await bun.write(yamlConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			expect(cfgSetupVersion.get(settings)).toBe(1);
@@ -188,14 +189,14 @@ describe("Settings", () => {
 			cfgSetupVersion.set(settings, 2);
 			await settings.flush();
 
-			const savedSettings = YAML.parse(await Bun.file(yamlConfigPath).text()) as Record<string, unknown>;
+			const savedSettings = YAML.parse(await bun.file(yamlConfigPath).text()) as Record<string, unknown>;
 			expect(savedSettings.setupVersion).toBe(2);
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 		});
 
 		it("clones the selected config.yaml path for persisted settings", async () => {
 			const yamlConfigPath = path.join(agentDir, "config.yaml");
-			await Bun.write(yamlConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
+			await bun.write(yamlConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			const cloned = await settings.cloneForCwd(tempDir.join("other-project"));
@@ -203,9 +204,9 @@ describe("Settings", () => {
 			cfgSetupVersion.set(cloned, 2);
 			await cloned.flush();
 
-			const savedSettings = YAML.parse(await Bun.file(yamlConfigPath).text()) as Record<string, unknown>;
+			const savedSettings = YAML.parse(await bun.file(yamlConfigPath).text()) as Record<string, unknown>;
 			expect(savedSettings.setupVersion).toBe(2);
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 		});
 
 		it("creates config.yml for new persisted settings when no main config exists", async () => {
@@ -215,8 +216,8 @@ describe("Settings", () => {
 			cfgSetupVersion.set(settings, 1);
 			await settings.flush();
 
-			expect(await Bun.file(getConfigPath()).exists()).toBe(true);
-			expect(await Bun.file(yamlConfigPath).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(true);
+			expect(await bun.file(yamlConfigPath).exists()).toBe(false);
 			expect((await readSettings()).setupVersion).toBe(1);
 		});
 
@@ -234,7 +235,7 @@ describe("Settings", () => {
 			cfgThemeDark.set(settings, "titanium");
 			await settings.flush();
 
-			const content = await Bun.file(getConfigPath()).text();
+			const content = await bun.file(getConfigPath()).text();
 			expect(content).not.toMatch(/: +$/m);
 			expect(YAML.parse(content)).toEqual({ custom, theme: { dark: "titanium" } });
 		});
@@ -268,7 +269,7 @@ describe("Settings", () => {
 		it("points to the selected global config in the active agent directory", async () => {
 			const configPath = path.join(agentDir, "config.yaml");
 			const missingShell = tempDir.join("missing-global-bash");
-			await Bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
+			await bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
@@ -278,7 +279,7 @@ describe("Settings", () => {
 		it("points to the project file that supplied shellPath", async () => {
 			const configPath = path.join(getProjectAgentDir(projectDir), "config.yml");
 			const missingShell = tempDir.join("missing-project-bash");
-			await Bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
+			await bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
@@ -288,7 +289,7 @@ describe("Settings", () => {
 		it("points to the overlay that supplied shellPath", async () => {
 			const configPath = tempDir.join("shell-overlay.yml");
 			const missingShell = tempDir.join("missing-overlay-bash");
-			await Bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
+			await bun.write(configPath, YAML.stringify({ shellPath: missingShell }, null, 2));
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir, configFiles: [configPath] });
 
@@ -307,21 +308,21 @@ describe("Settings", () => {
 				'  default: "unterminated',
 				"",
 			].join("\n");
-			await Bun.write(configPath, original);
+			await bun.write(configPath, original);
 
 			await expect(Settings.init({ cwd: projectDir, agentDir })).rejects.toThrow("Settings config is invalid");
 
-			expect(await Bun.file(configPath).exists()).toBe(false);
+			expect(await bun.file(configPath).exists()).toBe(false);
 			const backupNames = fs.readdirSync(agentDir).filter(name => name.startsWith("config.yml.broken-"));
 			expect(backupNames).toHaveLength(1);
-			expect(await Bun.file(path.join(agentDir, backupNames[0])).text()).toBe(original);
+			expect(await bun.file(path.join(agentDir, backupNames[0])).text()).toBe(original);
 		});
 
 		it("rejects when another process quarantines malformed config before the lock is acquired", async () => {
 			const configPath = getConfigPath();
 			const backupPath = `${configPath}.broken-other-process`;
 			const original = 'modelRoles:\n  default: "unterminated\n';
-			await Bun.write(configPath, original);
+			await bun.write(configPath, original);
 			const canonicalConfigPath = await fs.promises.realpath(configPath);
 			const withFileLock = fileLock.withFileLock;
 			let movedAside = false;
@@ -338,20 +339,20 @@ describe("Settings", () => {
 			);
 
 			expect(movedAside).toBe(true);
-			expect(await Bun.file(configPath).exists()).toBe(false);
-			expect(await Bun.file(backupPath).text()).toBe(original);
+			expect(await bun.file(configPath).exists()).toBe(false);
+			expect(await bun.file(backupPath).text()).toBe(original);
 		});
 
 		it("keeps malformed config in place for read-only loads", async () => {
 			const configPath = getConfigPath();
 			const original = 'modelRoles:\n  default: "unterminated\n';
-			await Bun.write(configPath, original);
+			await bun.write(configPath, original);
 
 			await expect(Settings.loadReadOnly({ cwd: projectDir, agentDir })).rejects.toThrow(
 				"Settings config is invalid",
 			);
 
-			expect(await Bun.file(configPath).text()).toBe(original);
+			expect(await bun.file(configPath).text()).toBe(original);
 			expect(fs.readdirSync(agentDir).filter(name => name.startsWith("config.yml.broken-"))).toEqual([]);
 		});
 
@@ -362,16 +363,16 @@ describe("Settings", () => {
 			});
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			const corrupted = 'auth:\n  broker:\n    token: TOP-SECRET\nmodelRoles:\n  default: "unterminated\n';
-			await Bun.write(getConfigPath(), corrupted);
+			await bun.write(getConfigPath(), corrupted);
 
 			cfgThemeDark.set(settings, "anthracite");
 			await expect(settings.flush()).rejects.toThrow("Settings config is invalid");
 
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 			const backupNames = fs.readdirSync(agentDir).filter(name => name.startsWith("config.yml.broken-"));
 			expect(backupNames).toHaveLength(1);
 			const backupPath = path.join(agentDir, backupNames[0]);
-			expect(await Bun.file(backupPath).text()).toBe(corrupted);
+			expect(await bun.file(backupPath).text()).toBe(corrupted);
 
 			await settings.flush();
 			expect(await readSettings()).toEqual({
@@ -379,7 +380,7 @@ describe("Settings", () => {
 				modelRoles: { default: "keep/default" },
 				theme: { dark: "anthracite" },
 			});
-			expect(await Bun.file(backupPath).text()).toBe(corrupted);
+			expect(await bun.file(backupPath).text()).toBe(corrupted);
 			expect(fs.readdirSync(agentDir).some(name => name.endsWith(".tmp"))).toBe(false);
 			if (process.platform !== "win32") {
 				expect(fs.statSync(getConfigPath()).mode & 0o777).toBe(0o600);
@@ -389,36 +390,36 @@ describe("Settings", () => {
 		it("backs up a corrupted project config and retains the pending project role for retry", async () => {
 			await writeSettings({});
 			const projectConfigPath = path.join(projectDir, ".omp", "config.yml");
-			await Bun.write(
+			await bun.write(
 				projectConfigPath,
 				YAML.stringify({ modelRoles: { default: "keep/default" }, custom: { keep: true } }, null, 2),
 			);
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			const corrupted = 'modelRoles:\n  default: keep/default\n  advisor: "unterminated\ncustom:\n  keep: true\n';
-			await Bun.write(projectConfigPath, corrupted);
+			await bun.write(projectConfigPath, corrupted);
 
 			settings.setProjectModelRole("smol", "new/smol");
 			await expect(settings.flush()).rejects.toThrow("Settings config is invalid");
 
-			expect(await Bun.file(projectConfigPath).exists()).toBe(false);
+			expect(await bun.file(projectConfigPath).exists()).toBe(false);
 			const projectAgentDir = path.dirname(projectConfigPath);
 			const backupNames = fs.readdirSync(projectAgentDir).filter(name => name.startsWith("config.yml.broken-"));
 			expect(backupNames).toHaveLength(1);
 			const backupPath = path.join(projectAgentDir, backupNames[0]);
-			expect(await Bun.file(backupPath).text()).toBe(corrupted);
+			expect(await bun.file(backupPath).text()).toBe(corrupted);
 
 			await settings.flush();
-			const saved = YAML.parse(await Bun.file(projectConfigPath).text()) as Record<string, unknown>;
+			const saved = YAML.parse(await bun.file(projectConfigPath).text()) as Record<string, unknown>;
 			expect(saved).toEqual({
 				modelRoles: { default: "keep/default", smol: "new/smol" },
 				custom: { keep: true },
 			});
-			expect(await Bun.file(backupPath).text()).toBe(corrupted);
+			expect(await bun.file(backupPath).text()).toBe(corrupted);
 		});
 
 		it("preserves a symlinked main config while atomically updating its target", async () => {
 			const managedConfigPath = tempDir.join("managed-config.yml");
-			await Bun.write(managedConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
+			await bun.write(managedConfigPath, YAML.stringify({ setupVersion: 1 }, null, 2));
 			await fs.promises.symlink(managedConfigPath, getConfigPath(), "file");
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
@@ -426,7 +427,7 @@ describe("Settings", () => {
 			await settings.flush();
 
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
-			expect(YAML.parse(await Bun.file(managedConfigPath).text())).toEqual({ setupVersion: 2 });
+			expect(YAML.parse(await bun.file(managedConfigPath).text())).toEqual({ setupVersion: 2 });
 		});
 
 		it("writes through a dangling symlink chain to the final target, preserving every link", async () => {
@@ -446,7 +447,7 @@ describe("Settings", () => {
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
 			expect(fs.lstatSync(midPath).isSymbolicLink()).toBe(true);
 			expect(fs.lstatSync(finalPath).isSymbolicLink()).toBe(false);
-			expect(YAML.parse(await Bun.file(finalPath).text())).toEqual({ setupVersion: 3 });
+			expect(YAML.parse(await bun.file(finalPath).text())).toEqual({ setupVersion: 3 });
 		});
 
 		it("lands on the deepest resolved hop when an intermediate link vanishes mid-walk", async () => {
@@ -481,7 +482,7 @@ describe("Settings", () => {
 			// deepest resolved hop (mid.yml), never clobbering config.yml.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
 			expect(fs.lstatSync(midPath).isSymbolicLink()).toBe(false);
-			expect(YAML.parse(await Bun.file(midPath).text())).toEqual({ setupVersion: 4 });
+			expect(YAML.parse(await bun.file(midPath).text())).toEqual({ setupVersion: 4 });
 			expect(fs.existsSync(finalPath)).toBe(false);
 		});
 
@@ -511,7 +512,7 @@ describe("Settings", () => {
 
 			// The write lands on the physical target, recreating it, while the
 			// alias's lexical sibling (the mis-resolution) stays untouched.
-			expect(YAML.parse(await Bun.file(physicalFinal).text())).toEqual({ setupVersion: 7 });
+			expect(YAML.parse(await bun.file(physicalFinal).text())).toEqual({ setupVersion: 7 });
 			expect(fs.existsSync(lexicalSibling)).toBe(false);
 			// Every user-managed link in the chain survives.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
@@ -582,8 +583,8 @@ describe("Settings", () => {
 
 			// The write recreates the target the link resolves to — reading back
 			// through the link proves it — while the other candidate stays untouched.
-			expect(YAML.parse(await Bun.file(resolvedFinal).text())).toEqual({ setupVersion: 8 });
-			expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ setupVersion: 8 });
+			expect(YAML.parse(await bun.file(resolvedFinal).text())).toEqual({ setupVersion: 8 });
+			expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ setupVersion: 8 });
 			expect(fs.existsSync(strayFinal)).toBe(false);
 			// The user-managed chain head survives as a symlink.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
@@ -624,8 +625,8 @@ describe("Settings", () => {
 
 			// The write recreates the target the link resolves to — reading back
 			// through the link proves it — while the other candidate stays untouched.
-			expect(YAML.parse(await Bun.file(resolvedFinal).text())).toEqual({ setupVersion: 9 });
-			expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ setupVersion: 9 });
+			expect(YAML.parse(await bun.file(resolvedFinal).text())).toEqual({ setupVersion: 9 });
+			expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ setupVersion: 9 });
 			expect(fs.existsSync(strayFinal)).toBe(false);
 			// The user-managed chain head survives as a symlink.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
@@ -646,8 +647,8 @@ describe("Settings", () => {
 			cfgSetupVersion.set(settings, 10);
 			if (symlinkDotsCollapseLexically) {
 				await settings.flush();
-				expect(YAML.parse(await Bun.file(lexicalSibling).text())).toEqual({ setupVersion: 10 });
-				expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ setupVersion: 10 });
+				expect(YAML.parse(await bun.file(lexicalSibling).text())).toEqual({ setupVersion: 10 });
+				expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ setupVersion: 10 });
 			} else {
 				// The resolved path sits under the never-entered `missing` dir (fs
 				// semantics), whose parent does not exist, so the atomic write fails
@@ -707,8 +708,8 @@ describe("Settings", () => {
 			cfgSetupVersion.set(settings, 12);
 			if (symlinkDotsCollapseLexically) {
 				await settings.flush();
-				expect(YAML.parse(await Bun.file(frozenComponent).text())).toEqual({ setupVersion: 12 });
-				expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ setupVersion: 12 });
+				expect(YAML.parse(await bun.file(frozenComponent).text())).toEqual({ setupVersion: 12 });
+				expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ setupVersion: 12 });
 			} else {
 				await expect(settings.flush()).rejects.toThrow();
 				// No regular file was landed at the frozen component.
@@ -734,7 +735,7 @@ describe("Settings", () => {
 			cfgSetupVersion.set(settings, 13);
 			await settings.flush();
 
-			expect(YAML.parse(await Bun.file(finalPath).text())).toEqual({ setupVersion: 13 });
+			expect(YAML.parse(await bun.file(finalPath).text())).toEqual({ setupVersion: 13 });
 			// The user-managed chain head survives as a symlink.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
 		});
@@ -780,7 +781,7 @@ describe("Settings", () => {
 					injected = true;
 					// Win the race: materialize the target as a regular file so this
 					// realpath resolves it and the walk never freezes.
-					await Bun.write(raceTarget, "not a dir");
+					await bun.write(raceTarget, "not a dir");
 				}
 				return (realpath as (t: fs.PathLike, ...r: unknown[]) => Promise<string>)(target, ...rest);
 			}) as typeof fs.promises.realpath);
@@ -790,7 +791,7 @@ describe("Settings", () => {
 
 			expect(injected).toBe(true);
 			// The concurrently created regular file was NOT overwritten with YAML.
-			expect(await Bun.file(raceTarget).text()).toBe("not a dir");
+			expect(await bun.file(raceTarget).text()).toBe("not a dir");
 			// The user-managed chain head survives as a symlink.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
 		});
@@ -814,7 +815,7 @@ describe("Settings", () => {
 			const raceTarget = path.join(agentDir, "racetarget");
 			const canonicalRaceTarget = await withCanonicalParent(raceTarget);
 			const victim = path.join(agentDir, "victim.yml");
-			await Bun.write(victim, "keep: me");
+			await bun.write(victim, "keep: me");
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			const realpath = fs.promises.realpath.bind(fs.promises);
@@ -824,7 +825,7 @@ describe("Settings", () => {
 					injected = true;
 					// Win the race: materialize the component as a regular file so this
 					// realpath resolves it and the walk never freezes.
-					await Bun.write(raceTarget, "not a dir");
+					await bun.write(raceTarget, "not a dir");
 				}
 				return (realpath as (t: fs.PathLike, ...r: unknown[]) => Promise<string>)(target, ...rest);
 			}) as typeof fs.promises.realpath);
@@ -834,12 +835,12 @@ describe("Settings", () => {
 				await settings.flush();
 				expect(injected).toBe(false);
 				// victim.yml IS the config here: its content survives the merge.
-				expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ keep: "me", setupVersion: 16 });
+				expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ keep: "me", setupVersion: 16 });
 			} else {
 				await expect(settings.flush()).rejects.toThrow(/ENOTDIR/);
 				expect(injected).toBe(true);
 				// The unrelated sibling was NOT overwritten with YAML.
-				expect(await Bun.file(victim).text()).toBe("keep: me");
+				expect(await bun.file(victim).text()).toBe("keep: me");
 			}
 			// The user-managed chain head survives as a symlink.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
@@ -916,7 +917,7 @@ describe("Settings", () => {
 			const raceTarget = path.join(agentDir, "racetarget");
 			const canonicalRaceTarget = await withCanonicalParent(raceTarget);
 			const victim = path.join(agentDir, "victim.yml");
-			await Bun.write(victim, "keep: me");
+			await bun.write(victim, "keep: me");
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			const realpath = fs.promises.realpath.bind(fs.promises);
@@ -950,13 +951,13 @@ describe("Settings", () => {
 				expect(created).toBe(false);
 				expect(removed).toBe(false);
 				// victim.yml IS the config here: its content survives the merge.
-				expect(YAML.parse(await Bun.file(getConfigPath()).text())).toEqual({ keep: "me", setupVersion: 18 });
+				expect(YAML.parse(await bun.file(getConfigPath()).text())).toEqual({ keep: "me", setupVersion: 18 });
 			} else {
 				await expect(settings.flush()).rejects.toThrow(/ENOTDIR/);
 				expect(created).toBe(true);
 				expect(removed).toBe(true);
 				// The unrelated sibling was NOT overwritten with YAML.
-				expect(await Bun.file(victim).text()).toBe("keep: me");
+				expect(await bun.file(victim).text()).toBe("keep: me");
 			}
 			// config.yml itself was NOT clobbered into a regular file.
 			expect(fs.lstatSync(getConfigPath()).isSymbolicLink()).toBe(true);
@@ -1050,7 +1051,7 @@ describe("Settings", () => {
 				null,
 				2,
 			);
-			await Bun.write(getConfigPath(), original);
+			await bun.write(getConfigPath(), original);
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			cfgThemeDark.set(settings, "anthracite");
 			const readSpy = vi.spyOn(fs.promises, "readFile");
@@ -1059,7 +1060,7 @@ describe("Settings", () => {
 			await expect(settings.flush()).rejects.toThrow("Failed to read settings config");
 			readSpy.mockRestore();
 
-			expect(await Bun.file(getConfigPath()).text()).toBe(original);
+			expect(await bun.file(getConfigPath()).text()).toBe(original);
 			expect(fs.readdirSync(agentDir).some(name => name.startsWith("config.yml.broken-"))).toBe(false);
 			await settings.flush();
 			expect(await readSettings()).toEqual({
@@ -1073,7 +1074,7 @@ describe("Settings", () => {
 			await writeSettings({});
 			const projectConfigPath = path.join(projectDir, ".omp", "config.yml");
 			const original = YAML.stringify({ modelRoles: { default: "keep/default" }, custom: { keep: true } }, null, 2);
-			await Bun.write(projectConfigPath, original);
+			await bun.write(projectConfigPath, original);
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			settings.setProjectModelRole("smol", "new/smol");
 			const readSpy = vi.spyOn(fs.promises, "readFile");
@@ -1082,12 +1083,12 @@ describe("Settings", () => {
 			await expect(settings.flush()).rejects.toThrow("Failed to read settings config");
 			readSpy.mockRestore();
 
-			expect(await Bun.file(projectConfigPath).text()).toBe(original);
+			expect(await bun.file(projectConfigPath).text()).toBe(original);
 			expect(
 				fs.readdirSync(path.dirname(projectConfigPath)).some(name => name.startsWith("config.yml.broken-")),
 			).toBe(false);
 			await settings.flush();
-			expect(YAML.parse(await Bun.file(projectConfigPath).text())).toEqual({
+			expect(YAML.parse(await bun.file(projectConfigPath).text())).toEqual({
 				modelRoles: { default: "keep/default", smol: "new/smol" },
 				custom: { keep: true },
 			});
@@ -1096,8 +1097,8 @@ describe("Settings", () => {
 		it("observes both failures when global and project configs are malformed", async () => {
 			const malformed = 'modelRoles:\n  default: "unterminated\n';
 			await Promise.all([
-				Bun.write(getConfigPath(), malformed),
-				Bun.write(path.join(projectDir, ".omp", "config.yml"), malformed),
+				bun.write(getConfigPath(), malformed),
+				bun.write(path.join(projectDir, ".omp", "config.yml"), malformed),
 			]);
 			const unhandled: unknown[] = [];
 			const onUnhandled = (reason: unknown): void => {
@@ -1124,7 +1125,7 @@ describe("Settings", () => {
 				setupVersion: 1,
 				modelRoles: { global_role: "openai/global" },
 			});
-			await Bun.write(
+			await bun.write(
 				projectConfigPath,
 				YAML.stringify({ modelRoles: { project_role: "openai/project" } }, null, 2),
 			);
@@ -1132,14 +1133,14 @@ describe("Settings", () => {
 			const malformedGlobal = 'setupVersion: 2\nmodelRoles:\n  global_role: "unterminated\n';
 			const malformedProject = 'modelRoles:\n  project_role: "unterminated\n';
 			await Promise.all([
-				Bun.write(getConfigPath(), malformedGlobal),
-				Bun.write(projectConfigPath, malformedProject),
+				bun.write(getConfigPath(), malformedGlobal),
+				bun.write(projectConfigPath, malformedProject),
 			]);
 
 			await expect(settings.reloadFromDisk()).rejects.toThrow("Settings config is invalid");
 
-			expect(await Bun.file(getConfigPath()).text()).toBe(malformedGlobal);
-			expect(await Bun.file(projectConfigPath).text()).toBe(malformedProject);
+			expect(await bun.file(getConfigPath()).text()).toBe(malformedGlobal);
+			expect(await bun.file(projectConfigPath).text()).toBe(malformedProject);
 			expect(fs.readdirSync(agentDir).some(name => name.startsWith("config.yml.broken-"))).toBe(false);
 			expect(
 				fs.readdirSync(path.dirname(projectConfigPath)).some(name => name.startsWith("config.yml.broken-")),
@@ -1154,7 +1155,7 @@ describe("Settings", () => {
 				retry: { modelFallback: true },
 			});
 			const overlayPath = tempDir.join("reload-overlay.yml");
-			await Bun.write(overlayPath, YAML.stringify({ task: { enableEffort: false } }, null, 2));
+			await bun.write(overlayPath, YAML.stringify({ task: { enableEffort: false } }, null, 2));
 			const reloadProjectDir = tempDir.join("reload-project");
 			await fsp.mkdir(reloadProjectDir, { recursive: true });
 			const projectConfigPath = path.join(getProjectAgentDir(reloadProjectDir), "config.yml");
@@ -1165,8 +1166,8 @@ describe("Settings", () => {
 				overrides: { "task.maxConcurrency": 7 },
 			});
 
-			expect(await Bun.file(projectConfigPath).exists()).toBe(false);
-			await Bun.write(
+			expect(await bun.file(projectConfigPath).exists()).toBe(false);
+			await bun.write(
 				projectConfigPath,
 				YAML.stringify(
 					{
@@ -1190,7 +1191,7 @@ describe("Settings", () => {
 			expect(cfgTaskEnableEffort.get(settings)).toBe(false);
 			expect(cfgTaskMaxConcurrency.get(settings)).toBe(7);
 
-			await Bun.write(
+			await bun.write(
 				projectConfigPath,
 				YAML.stringify(
 					{
@@ -1212,7 +1213,7 @@ describe("Settings", () => {
 			expect(cfgTaskEnableEffort.get(settings)).toBe(false);
 			expect(cfgTaskMaxConcurrency.get(settings)).toBe(7);
 
-			await Bun.write(
+			await bun.write(
 				projectConfigPath,
 				YAML.stringify({ task: { enableEffort: true, maxConcurrency: 4 } }, null, 2),
 			);
@@ -1303,7 +1304,7 @@ describe("Settings", () => {
 			// YAML parses a valueless key as null. `get()` returned it verbatim, so
 			// `resolveRoleChain` crashed the process at startup on
 			// `settings.get("retry.fallbackChains")[role]` (#13183).
-			await Bun.write(getConfigPath(), "retry:\n  fallbackChains:\ninlineToolDescriptors:\n");
+			await bun.write(getConfigPath(), "retry:\n  fallbackChains:\ninlineToolDescriptors:\n");
 
 			const settings = await Settings.loadIsolated({ cwd: projectDir, agentDir });
 
@@ -1788,11 +1789,11 @@ describe("Settings", () => {
 			const otherProjectDir = tempDir.join("other-project");
 			fs.mkdirSync(getProjectAgentDir(otherProjectDir), { recursive: true });
 
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(projectDir), "settings.json"),
 				JSON.stringify({ edit: { modelVariants: { kimi: "hashline" } } }),
 			);
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(otherProjectDir), "settings.json"),
 				JSON.stringify({ edit: { modelVariants: { "gpt-5": "apply_patch" } } }),
 			);
@@ -2148,7 +2149,7 @@ describe("Settings", () => {
 		});
 
 		it("migrates quoted dotted Exa toggles and removes obsolete suite settings", async () => {
-			await Bun.write(
+			await bun.write(
 				getConfigPath(),
 				`"exa.enabled": true\n"exa.enableSearch": false\n"exa.enableResearcher": true\n"exa.enableWebsets": true\n`,
 			);
@@ -2197,7 +2198,7 @@ describe("Settings", () => {
 		});
 
 		it("normalizes retired flat tiny title keys before role migration", async () => {
-			await Bun.write(getConfigPath(), '"providers.tinyModel": lfm2-350m\n');
+			await bun.write(getConfigPath(), '"providers.tinyModel": lfm2-350m\n');
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
@@ -2327,7 +2328,7 @@ describe("Settings", () => {
 		});
 
 		it("normalizes a quoted-dotted legacy unexpected-stop boolean", async () => {
-			await Bun.write(getConfigPath(), '"features.unexpectedStopDetection": true\n');
+			await bun.write(getConfigPath(), '"features.unexpectedStopDetection": true\n');
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
@@ -2335,7 +2336,7 @@ describe("Settings", () => {
 		});
 
 		it("keeps an explicit unexpected-stop mode over a legacy dotted boolean", async () => {
-			await Bun.write(
+			await bun.write(
 				getConfigPath(),
 				'"features.unexpectedStopDetection": false\nfeatures:\n  unexpectedStopDetection: smart\n',
 			);
@@ -2439,7 +2440,7 @@ describe("Settings", () => {
 		});
 
 		it("migrates quoted dotted legacy keys for consent and reminders max", async () => {
-			await Bun.write(getConfigPath(), `"dev.autoqa.consent": denied\n"todo.reminders.max": 2\n`);
+			await bun.write(getConfigPath(), `"dev.autoqa.consent": denied\n"todo.reminders.max": 2\n`);
 
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
@@ -2464,7 +2465,7 @@ describe("Settings", () => {
 		});
 
 		it("preserves recoverable parent booleans alongside legacy leaf keys", async () => {
-			await Bun.write(
+			await bun.write(
 				getConfigPath(),
 				`dev:\n  autoqa: true\n"dev.autoqa.consent": unset\ntodo:\n  reminders: false\n"todo.reminders.max": 4\n`,
 			);
@@ -2580,7 +2581,7 @@ describe("Settings", () => {
 			const second = await Settings.init({ cwd: projectDir, agentDir });
 			expect(cfgSymbolPreset.get(second)).toBe("unicode");
 			expect(cfgSymbolPreset.isConfigured(second)).toBe(false);
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 		});
 
 		it("keeps settings.json when the migrated config.yml write fails", async () => {
@@ -2600,7 +2601,7 @@ describe("Settings", () => {
 
 			expect(fs.existsSync(jsonPath)).toBe(true);
 			expect(fs.existsSync(`${jsonPath}.bak`)).toBe(false);
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 			expect(JSON.parse(await fs.promises.readFile(jsonPath, "utf8"))).toEqual({
 				symbolPreset: "ascii",
 				queueMode: "all",
@@ -2616,7 +2617,7 @@ describe("Settings", () => {
 			await fs.promises.writeFile(jsonPath, JSON.stringify({ symbolPreset: "ascii", queueMode: "all" }));
 
 			await Settings.init({ cwd: projectDir, agentDir });
-			expect(await Bun.file(getConfigPath()).exists()).toBe(true);
+			expect(await bun.file(getConfigPath()).exists()).toBe(true);
 			expect(fs.existsSync(`${jsonPath}.bak`)).toBe(true);
 
 			await fs.promises.rm(getConfigPath());
@@ -2625,7 +2626,7 @@ describe("Settings", () => {
 			const reloaded = await Settings.init({ cwd: projectDir, agentDir });
 
 			expect(cfgSymbolPreset.get(reloaded)).not.toBe("ascii");
-			expect(await Bun.file(getConfigPath()).exists()).toBe(false);
+			expect(await bun.file(getConfigPath()).exists()).toBe(false);
 			expect(fs.existsSync(`${jsonPath}.bak`)).toBe(true);
 		});
 
@@ -2743,7 +2744,7 @@ describe("Settings", () => {
 				const firstResult = first.result();
 				await firstStarted.promise;
 				const second = streamSimple(mock.model, context());
-				await Bun.sleep(20);
+				await bun.sleep(20);
 
 				expect(cfgProvidersMaxInFlightRequests.get(settings)).toEqual({ openai: 1 });
 				expect(mock.calls).toHaveLength(1);
@@ -2762,7 +2763,7 @@ describe("Settings", () => {
 			});
 
 			it("rejects invalid provider limits from project settings", async () => {
-				await Bun.write(
+				await bun.write(
 					path.join(getProjectAgentDir(projectDir), "settings.json"),
 					JSON.stringify({ providers: { maxInFlightRequests: { anthropic: 0 } } }),
 				);
@@ -2774,7 +2775,7 @@ describe("Settings", () => {
 
 			it("rejects invalid provider limits from config overlays", async () => {
 				const overlayPath = tempDir.join("overlay.yml");
-				await Bun.write(overlayPath, YAML.stringify({ providers: { maxInFlightRequests: { umans: -1 } } }));
+				await bun.write(overlayPath, YAML.stringify({ providers: { maxInFlightRequests: { umans: -1 } } }));
 
 				await expect(
 					Settings.init({ cwd: projectDir, agentDir, inMemory: true, configFiles: [overlayPath] }),
@@ -2807,7 +2808,7 @@ describe("Settings", () => {
 	describe("project .claude/settings.json parse warnings", () => {
 		it("logs capability warnings when project settings.json fails to parse", async () => {
 			const claudeSettings = path.join(projectDir, ".claude", "settings.json");
-			await Bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
+			await bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
 
 			const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
 
@@ -2857,7 +2858,7 @@ describe("Settings", () => {
 
 		it("logs a persistently malformed project file once across reloads", async () => {
 			const claudeSettings = path.join(projectDir, ".claude", "settings.json");
-			await Bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
+			await bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
 
 			const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
 
@@ -2875,7 +2876,7 @@ describe("Settings", () => {
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 			expect(warnSpy.mock.calls.filter(args => String(args[0]).includes("Failed to parse JSON"))).toHaveLength(0);
 
-			await Bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
+			await bun.write(claudeSettings, '{ "symbolPreset": "ascii", }');
 			await settings.reloadFromDisk();
 
 			expect(cfgSymbolPreset.get(settings)).toBe("unicode");

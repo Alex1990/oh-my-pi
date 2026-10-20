@@ -19,11 +19,12 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const THRESHOLD = 1.05; // 5% regression budget
-const BASELINE_PATH = path.join(import.meta.dir, "..", "bench", "boot-baseline.json");
+const BASELINE_PATH = path.join(import.meta.dirname, "..", "bench", "boot-baseline.json");
 const BENCH_COMMAND = "PI_TIMING=x PI_STRICT_EDIT_MODE=1 bun src/cli.ts";
-const cwd = path.join(import.meta.dir, "..");
+const cwd = path.join(import.meta.dirname, "..");
 
 function medianOf(hyperfineJson: string): number {
 	const parsed = JSON.parse(hyperfineJson) as { results: Array<{ mean: number; median?: number }> };
@@ -33,15 +34,15 @@ function medianOf(hyperfineJson: string): number {
 }
 
 async function measure(): Promise<{ seconds: number; raw: string }> {
-	const tmp = path.join(import.meta.dir, "..", "bench", `.boot-run-${Date.now()}.json`);
-	const proc = Bun.spawn(["hyperfine", "--warmup", "3", "--min-runs", "10", "--export-json", tmp, BENCH_COMMAND], {
+	const tmp = path.join(import.meta.dirname, "..", "bench", `.boot-run-${Date.now()}.json`);
+	const proc = bun.spawn(["hyperfine", "--warmup", "3", "--min-runs", "10", "--export-json", tmp, BENCH_COMMAND], {
 		cwd,
 		stdout: "inherit",
 		stderr: "inherit",
 	});
 	const code = await proc.exited;
 	if (code !== 0) throw new Error(`hyperfine exited ${code}`);
-	const raw = await Bun.file(tmp).text();
+	const raw = await bun.file(tmp).text();
 	fs.rmSync(tmp, { force: true });
 	return { seconds: medianOf(raw), raw };
 }
@@ -51,7 +52,7 @@ const { seconds, raw } = await measure();
 
 if (update) {
 	fs.mkdirSync(path.dirname(BASELINE_PATH), { recursive: true });
-	await Bun.write(BASELINE_PATH, raw);
+	await bun.write(BASELINE_PATH, raw);
 	console.log(`Baseline updated: ${(seconds * 1000).toFixed(0)}ms median -> ${BASELINE_PATH}`);
 	process.exit(0);
 }
@@ -61,7 +62,7 @@ if (!fs.existsSync(BASELINE_PATH)) {
 	process.exit(2);
 }
 
-const baseline = medianOf(await Bun.file(BASELINE_PATH).text());
+const baseline = medianOf(await bun.file(BASELINE_PATH).text());
 const ratio = seconds / baseline;
 const verdict = ratio > THRESHOLD ? "REGRESSION" : "ok";
 console.log(

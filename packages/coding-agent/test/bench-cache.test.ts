@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import type {
 } from "@oh-my-pi/pi-ai";
 import { runBenchCommand } from "@oh-my-pi/pi-coding-agent/cli/bench-cli";
 import type { BenchModelRegistry } from "@oh-my-pi/pi-coding-agent/cli/bench-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const model = {
 	provider: "openai",
@@ -463,7 +464,7 @@ describe("bench cache mode", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-bench-cache-prefix-"));
 		const prefixPath = path.join(tempDir, "prefix.txt");
 		const stablePrefixes: string[] = [];
-		await Bun.write(prefixPath, "ab😀cd");
+		await bun.write(prefixPath, "ab😀cd");
 		try {
 			await runBenchCommand(
 				{
@@ -502,7 +503,7 @@ describe("bench cache mode", () => {
 		const prefixPath = path.join(tempDir, "prefix.txt");
 		const exactPrefix = "line one  \n\n\n$& $' $` $$ line two\t\n";
 		const stablePrefixes: string[] = [];
-		await Bun.write(prefixPath, exactPrefix);
+		await bun.write(prefixPath, exactPrefix);
 		try {
 			await runBenchCommand(
 				{

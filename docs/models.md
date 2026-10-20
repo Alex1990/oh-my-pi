@@ -369,7 +369,7 @@ selection, even when the runtime `promptCache` is omitted: the actual effective
 model's catalog defaults apply instead of the YAML lifetime. Without a runtime
 replacement, the matching YAML lifetime applies, or catalog defaults if absent.
 
-The ordinary `bun run gen:models` command recomputes bundled prompt-cache
+The ordinary `pnpm run gen:models` command recomputes bundled prompt-cache
 lifetimes from current catalog policy; there is no separate cache-regeneration
 command.
 

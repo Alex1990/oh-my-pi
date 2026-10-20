@@ -1,7 +1,7 @@
 // Obfuscation contract for multi-message split: renderAdvisorDeltaChunks must redact
 // secrets that ACTUALLY appear in rendered advisor context — toolResult
 // details.diff and custom message content — matching the old single-block path.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 
 import { type AdvisorObfuscator, renderAdvisorDeltaChunks } from "../../src/advisor/delta-split";

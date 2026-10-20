@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as natives from "@oh-my-pi/pi-natives";
 import { needsNativeTeardown } from "@oh-my-pi/pi-coding-agent/task/isolation-ownership";
 

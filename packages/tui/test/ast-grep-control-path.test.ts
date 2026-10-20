@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { applyHyperlinkSetting } from "@oh-my-pi/pi-tui/render/hyperlink";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PRIVATE_MODE = "\x1b[?1049h\x1b[?1003h";
 
@@ -26,7 +27,7 @@ describe("ast-grep control-byte filenames", () => {
 			const filename = `fixture${PRIVATE_MODE}.ts`;
 			const absolutePath = path.join(dir, filename);
 			try {
-				await Bun.write(absolutePath, "needle");
+				await bun.write(absolutePath, "needle");
 				const component = new ToolExecutionComponent(
 					"ast_grep",
 					{ pat: "needle" },
@@ -54,7 +55,7 @@ describe("ast-grep control-byte filenames", () => {
 					expect(rendered).toContain(href);
 					expect(rendered).not.toContain(PRIVATE_MODE);
 					expect(rendered).not.toMatch(/\x1b\[\?[\d;]*[hl]/);
-					expect(await Bun.file(new URL(href)).text()).toBe("needle");
+					expect(await bun.file(new URL(href)).text()).toBe("needle");
 				}
 			} finally {
 				await fs.rm(dir, { recursive: true, force: true });

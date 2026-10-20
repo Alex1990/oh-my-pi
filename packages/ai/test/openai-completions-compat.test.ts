@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderDemotedThinking } from "@oh-my-pi/pi-ai/dialect";
 import {
 	applyOpenRouterRoutingVariant,
@@ -22,6 +22,7 @@ import { clampThinkingLevelForModel, getSupportedEfforts } from "@oh-my-pi/pi-ca
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import type { ResolvedOpenAICompat } from "@oh-my-pi/pi-catalog/types";
 import { serializeAlibabaTokenPlanCredential } from "@oh-my-pi/pi-catalog/wire/alibaba-token-plan";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const gpt4oMiniSpec: ModelSpec<"openai-completions"> = (() => {
 	const {
@@ -61,7 +62,7 @@ function createMockFetch(events: unknown[]): FetchImpl {
 		return createSseResponse(events);
 	}
 
-	return Object.assign(mockFetch, { preconnect: fetch.preconnect });
+	return Object.assign(mockFetch, { preconnect: preconnectOf(fetch) });
 }
 
 function baseContext(): Context {

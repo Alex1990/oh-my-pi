@@ -4,7 +4,7 @@
 // google: await the hook and use its non-undefined return as the request.
 // buildGrpcRequest is exercised directly (the transport is HTTP/2), and the
 // serialized run request is decoded back from the wire bytes.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildGrpcRequest } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { Context, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";

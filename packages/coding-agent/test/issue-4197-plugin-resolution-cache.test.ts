@@ -1,4 +1,4 @@
-import { afterEach, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 import { getEnabledPlugins } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/loader";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempRoots: string[] = [];
 
@@ -22,7 +23,7 @@ afterEach(async () => {
 });
 
 async function writeJson(filePath: string, value: unknown): Promise<void> {
-	await Bun.write(filePath, `${JSON.stringify(value)}\n`);
+	await bun.write(filePath, `${JSON.stringify(value)}\n`);
 }
 
 test("getEnabledPlugins caches repeated discovery for the same cwd and home until plugin caches clear", async () => {
@@ -70,12 +71,12 @@ test("legacy bare dependency rewrites cache fallback package resolution until pl
 	const manifestPath = path.join(depRoot, "package.json");
 	await fs.mkdir(path.dirname(importer), { recursive: true });
 	await fs.mkdir(depRoot, { recursive: true });
-	await Bun.write(importer, "export {};\n");
+	await bun.write(importer, "export {};\n");
 	await writeJson(manifestPath, { name: "left-pad", version: "1.0.0", main: "index.js" });
-	await Bun.write(path.join(depRoot, "index.js"), "export default function leftPad() {}\n");
-	await Bun.write(path.join(depRoot, "alt.js"), "export default function altLeftPad() {}\n");
+	await bun.write(path.join(depRoot, "index.js"), "export default function leftPad() {}\n");
+	await bun.write(path.join(depRoot, "alt.js"), "export default function altLeftPad() {}\n");
 
-	spyOn(Bun, "resolveSync").mockImplementation(() => {
+	spyOn(bun, "resolveSync").mockImplementation(() => {
 		throw new Error("compiled fallback");
 	});
 

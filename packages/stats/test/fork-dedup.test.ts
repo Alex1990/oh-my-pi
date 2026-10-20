@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it, spyOn } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { syncAllSessions } from "@oh-my-pi/omp-stats/aggregator";
@@ -9,6 +9,7 @@ import * as parser from "@oh-my-pi/omp-stats/parser";
 import type { MessageStats } from "@oh-my-pi/omp-stats/types";
 import { getSessionsDir, getStatsDbPath } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-fork-dedup-");
 
@@ -75,7 +76,7 @@ async function writeSessionFile(
 		...(header.parentSession ? { parentSession: header.parentSession } : {}),
 	};
 	const lines = [headerEntry, ...entries].map(entry => JSON.stringify(entry)).join("\n");
-	await Bun.write(sessionFile, `${lines}\n`);
+	await bun.write(sessionFile, `${lines}\n`);
 	return sessionFile;
 }
 

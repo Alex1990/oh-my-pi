@@ -67,6 +67,7 @@ import type { DescribeContext, NativeChild, NativeNode, NativeScreen, NativeUiEv
 import { actionBar, actionButton, actionHint, hintsRow } from "../native/overlay";
 import { isNativeRendering } from "../native/state";
 import { collectBlocks, targetCopy } from "./copy-selector";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** One alternate branch at a divergence: its root and message path root → most-recent leaf. */
 export interface BranchVariantPath {
@@ -628,7 +629,7 @@ export class RewindSelectorComponent implements Component {
 	#plainRowText(rows: readonly string[]): string {
 		let text = this.#rowText.get(rows);
 		if (text === undefined) {
-			text = Bun.stripANSI(rows.join("\n")).toLowerCase();
+			text = bun.stripANSI(rows.join("\n")).toLowerCase();
 			this.#rowText.set(rows, text);
 		}
 		return text;

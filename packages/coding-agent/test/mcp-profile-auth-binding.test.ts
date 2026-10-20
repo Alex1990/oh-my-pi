@@ -8,8 +8,8 @@
  * profile's row, so two profiles reauthorizing the same project server
  * clobbered each other.
  */
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import { removeManagedMcpOAuthCredential } from "@oh-my-pi/pi-coding-agent/mcp/oauth-credentials";

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { renderSegment } from "@oh-my-pi/pi-tui/status-line/segments";

@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { BlobStore } from "@oh-my-pi/pi-coding-agent/session/blob-store";
 import type {
@@ -13,6 +13,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/session/session-loader";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const timestamp = new Date(0).toISOString();
 const header = { type: "session", version: 3, id: "session", timestamp, cwd: "/tmp" };
@@ -51,7 +52,7 @@ describe("read-only session blob hydration", () => {
 			imageEntry("missing", "visible", missing),
 		];
 		const file = path.join(dir.path(), "session.jsonl");
-		await Bun.write(file, [header, ...entries].map(value => JSON.stringify(value)).join("\n"));
+		await bun.write(file, [header, ...entries].map(value => JSON.stringify(value)).join("\n"));
 		const get = store.get.bind(store);
 		const reads: string[] = [];
 		const readSpy = spyOn(BlobStore.prototype, "get").mockImplementation(async hash => {
@@ -95,7 +96,7 @@ describe("read-only session blob hydration", () => {
 			},
 		};
 		const file = path.join(dir.path(), "session.jsonl");
-		await Bun.write(
+		await bun.write(
 			file,
 			[
 				header,
@@ -153,7 +154,7 @@ describe("read-only session blob hydration", () => {
 			},
 		};
 		const file = path.join(dir.path(), "session.jsonl");
-		await Bun.write(
+		await bun.write(
 			file,
 			[
 				header,
@@ -208,7 +209,7 @@ describe("read-only session blob hydration", () => {
 			active++;
 			peak = Math.max(peak, active);
 			try {
-				await Bun.sleep(1);
+				await bun.sleep(1);
 				return await get(hash);
 			} finally {
 				active--;

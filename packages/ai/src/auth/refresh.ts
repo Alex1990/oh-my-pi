@@ -17,6 +17,7 @@ import {
 	type StoredOAuthRefreshOptions,
 	type StoredOAuthRefreshResult,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Refresh OAuth access tokens this many ms before their stated expiry. The
@@ -233,7 +234,7 @@ export class OAuthRefresher {
 				leaseExpiresAt === undefined
 					? OAUTH_REFRESH_LEASE_POLL_MS
 					: Math.min(Math.max(leaseExpiresAt - Date.now(), OAUTH_REFRESH_LEASE_POLL_MS), 250);
-			await raceSignal(Bun.sleep(waitMs), options.signal, "OAuth refresh ownership wait aborted by caller");
+			await raceSignal(bun.sleep(waitMs), options.signal, "OAuth refresh ownership wait aborted by caller");
 		}
 
 		try {
@@ -283,7 +284,7 @@ export class OAuthRefresher {
 				leasedCredentialId !== undefined && leaseStore
 					? (async () => {
 							while (!stopLeaseRenewal) {
-								await Promise.race([Bun.sleep(OAUTH_REFRESH_LEASE_RENEW_MS), leaseRenewalStopped.promise]);
+								await Promise.race([bun.sleep(OAUTH_REFRESH_LEASE_RENEW_MS), leaseRenewalStopped.promise]);
 								if (stopLeaseRenewal) return;
 								const renewed = leaseStore.renewCredentialRefreshLease(
 									leasedCredentialId,

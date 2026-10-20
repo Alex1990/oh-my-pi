@@ -4,12 +4,13 @@
  * the normal text-file limit: a normal video commonly exceeds 5 MiB, and the
  * processor must still seek frames through ffmpeg instead of skipping it.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { processFileArguments } from "@oh-my-pi/pi-coding-agent/cli/file-processor";
 import { $which, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const hasFfmpeg = Boolean($which("ffmpeg") && $which("ffprobe"));
 
@@ -20,7 +21,7 @@ describe.skipIf(!hasFfmpeg)("processFileArguments video attachments", () => {
 	beforeEach(async () => {
 		testDir = await fs.mkdtemp(path.join(os.tmpdir(), "file-processor-video-"));
 		videoPath = path.join(testDir, "clip.mp4");
-		const process = Bun.spawn([
+		const process = bun.spawn([
 			"ffmpeg",
 			"-hide_banner",
 			"-loglevel",

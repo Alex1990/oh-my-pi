@@ -10,7 +10,7 @@
  * host, and guest unchanged, so the full welcome → snapshot → live-entry path
  * is exercised.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, type Mock, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, type Mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
@@ -27,6 +27,9 @@ import { tryAcquireSessionLease } from "@oh-my-pi/pi-coding-agent/session/sessio
 import { refreshDirsFromEnv, TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage, createInMemoryAuthStorage } from "../helpers/agent-session-setup";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 /** Minimal host `InteractiveModeContext`: only the members `CollabHost` reads. */
 function makeHostContext(manager: SessionManager): InteractiveModeContext {
@@ -139,7 +142,7 @@ async function settleFrames(predicate: () => boolean, timeoutMs = 10_000): Promi
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		if (predicate()) return;
-		await Bun.sleep(1);
+		await bun.sleep(1);
 	}
 	if (!predicate()) throw new Error("condition not met while settling collab frames");
 }

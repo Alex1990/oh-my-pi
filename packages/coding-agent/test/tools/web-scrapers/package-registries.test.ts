@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleCratesIo } from "@oh-my-pi/pi-coding-agent/web/scrapers/crates-io";
 import { handleGoPkg } from "@oh-my-pi/pi-coding-agent/web/scrapers/go-pkg";
 import { handleHex } from "@oh-my-pi/pi-coding-agent/web/scrapers/hex";
@@ -6,8 +6,9 @@ import { handleNpm } from "@oh-my-pi/pi-coding-agent/web/scrapers/npm";
 import { handleOllama } from "@oh-my-pi/pi-coding-agent/web/scrapers/ollama";
 import { handlePubDev } from "@oh-my-pi/pi-coding-agent/web/scrapers/pub-dev";
 import { handlePyPI } from "@oh-my-pi/pi-coding-agent/web/scrapers/pypi";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handlePyPI", () => {
 	it("returns null for non-PyPI URLs", async () => {

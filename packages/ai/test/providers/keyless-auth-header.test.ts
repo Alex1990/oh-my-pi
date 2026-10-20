@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { NO_AUTH_SENTINEL } from "../../src/auth-retry";
 import { resolveOpenAIRequestSetup } from "../../src/providers/openai-shared";
 

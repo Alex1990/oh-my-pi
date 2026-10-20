@@ -5,6 +5,7 @@ import {
 	parseModelString,
 	splitUpstreamRouting,
 } from "@oh-my-pi/pi-tui/overlays/model-selector";
+
 /**
  * Model resolution, scoping, and initial selection.
  *
@@ -60,6 +61,7 @@ import type { Settings } from "./settings";
 
 import { cfgDisabledProviders, cfgEnabledModels, cfgModelProviderOrder } from "./model-settings";
 import { cfgRetryFallbackChains } from "../session/settings";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 function isKnownProvider(provider: string): provider is KnownProvider {
 	return provider in DEFAULT_MODEL_PER_PROVIDER;
@@ -131,7 +133,7 @@ export interface ScopedModel {
 }
 
 function matchingGlobModels(pattern: string, availableModels: readonly Model<Api>[]): Model<Api>[] {
-	const glob = new Bun.Glob(pattern.toLowerCase());
+	const glob = new Glob(pattern.toLowerCase());
 	return availableModels.filter(model => {
 		const fullId = `${model.provider}/${model.id}`;
 		return glob.match(fullId.toLowerCase()) || glob.match(model.id.toLowerCase());

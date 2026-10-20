@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { closeSessionIndex } from "@oh-my-pi/pi-coding-agent/session/session-index";
 import { getConfigRootDir, removeSyncWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import { makeAssistantMessage } from "../session-manager/helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Contracts for the history.db-backed recent-sessions path: welcome-screen
@@ -67,7 +68,7 @@ describe("recent sessions title index", () => {
 	it("falls back to a header scan for unindexed files and backfills the index", async () => {
 		const sessionDir = SessionManager.getDefaultSessionDir(cwd);
 		fs.mkdirSync(sessionDir, { recursive: true });
-		const id = Bun.randomUUIDv7();
+		const id = bun.randomUUIDv7();
 		const legacyFile = path.join(sessionDir, `2024-01-01T00-00-00-000Z_${id}.jsonl`);
 		const header = {
 			type: "session",
@@ -96,7 +97,7 @@ describe("recent sessions title index", () => {
 		const sessionDir = SessionManager.getDefaultSessionDir(cwd);
 		fs.mkdirSync(sessionDir, { recursive: true });
 		const writeSession = (name: string, title: string | undefined, firstMessage: string, mtime: Date): string => {
-			const id = Bun.randomUUIDv7();
+			const id = bun.randomUUIDv7();
 			const file = path.join(sessionDir, `${name}_${id}.jsonl`);
 			const header = { type: "session", version: 4, id, timestamp: mtime.toISOString(), cwd, title };
 			const message = {

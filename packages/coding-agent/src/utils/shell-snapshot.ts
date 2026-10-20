@@ -266,7 +266,7 @@ export async function getOrCreateSnapshot(
 		if (
 			performance.now() < failure.retryAt &&
 			rcFileStamp(rcFile) === failure.rcStamp &&
-			Bun.hash(JSON.stringify(env)) === failure.envStamp
+			bun.hash(JSON.stringify(env)) === failure.envStamp
 		) {
 			return null;
 		}
@@ -282,7 +282,7 @@ export async function getOrCreateSnapshot(
 		} else {
 			failedSnapshots.set(cacheKey, {
 				rcStamp: rcFileStamp(rcFile),
-				envStamp: Bun.hash(JSON.stringify(env)),
+				envStamp: bun.hash(JSON.stringify(env)),
 				retryAt: performance.now() + SNAPSHOT_FAILURE_RETRY_MS,
 			});
 		}
@@ -347,7 +347,7 @@ async function createSnapshot(
 				spawnEnv[key] = value;
 			}
 		}
-		const child = Bun.spawn([shell, "-c", script], {
+		const child = bun.spawn([shell, "-c", script], {
 			cwd: getSafeProjectCwd(),
 			env: spawnEnv,
 			stdin: "ignore",
@@ -392,3 +392,4 @@ postmortem.register("shell-snapshot", () => {
 	}
 	cachedSnapshots.clear();
 });
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

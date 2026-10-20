@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICodexResponses } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { createCodexModel } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeEach(() => {
 	vi.spyOn(piUtils, "getInstallId").mockReturnValue("00000000-0000-4000-8000-000000000001");
@@ -52,7 +53,7 @@ function decodeBody(body: RequestInit["body"]): Record<string, unknown> {
 		typeof body === "string"
 			? body
 			: body instanceof Uint8Array
-				? new TextDecoder().decode(Bun.zstdDecompressSync(body))
+				? new TextDecoder().decode(bun.zstdDecompressSync(body))
 				: undefined;
 	if (text === undefined) throw new Error("expected a string or binary Codex request body");
 	return JSON.parse(text) as Record<string, unknown>;

@@ -10,9 +10,11 @@
  *
  * Speaks newline-delimited JSON-RPC 2.0 (the wire format of `StdioTransport`),
  * same shape as `many-tools-mcp.ts`. Exported constants are imported by the
- * test; the server only starts when run as the entry module (`import.meta.main`).
+ * test; the server only starts when run as the entry module (`isMainModule(import.meta.url)`).
  */
 import * as readline from "node:readline";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Concrete resource URIs the fixture advertises via `resources/list`; the `skill://` one mirrors an MCP-published skill. */
 export const RESOURCE_URIS = [
@@ -81,7 +83,7 @@ function startServer(): void {
 		if (msg.id === undefined || msg.id === null) return;
 
 		if (msg.method === "initialize" && HANDSHAKE_DELAY_MS > 0) {
-			await Bun.sleep(HANDSHAKE_DELAY_MS);
+			await bun.sleep(HANDSHAKE_DELAY_MS);
 		}
 
 		if (msg.method === "resources/templates/list") {
@@ -101,6 +103,6 @@ function startServer(): void {
 	rl.on("close", () => process.exit(0));
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	startServer();
 }

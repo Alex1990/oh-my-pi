@@ -9,6 +9,7 @@
 
 import type { SessionEntry } from "../src/session/session-manager";
 import { buildSessionContext } from "../src/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ─── Synthetic session ───────────────────────────────────────────────────────
 
@@ -75,9 +76,9 @@ function bench(name: string, fn: () => void): number {
 	// Warmup
 	for (let i = 0; i < WARMUP; i++) fn();
 
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < ITERATIONS; i++) fn();
-	const elapsed = (Bun.nanoseconds() - start) / 1e6;
+	const elapsed = (bun.nanoseconds() - start) / 1e6;
 	const perOp = elapsed / ITERATIONS;
 	console.log(`  ${name}: ${elapsed.toFixed(2)}ms total  ${perOp.toFixed(4)}ms/op`);
 	return perOp;

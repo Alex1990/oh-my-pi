@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	buildLogCopyPayload,
 	DebugLogViewerComponent,
@@ -7,6 +7,7 @@ import {
 	SESSION_BOUNDARY_WARNING,
 } from "@oh-my-pi/pi-tui/apps/debug/log-viewer";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("dark");
@@ -216,7 +217,7 @@ describe("DebugLogViewerModel", () => {
 
 		const rendered = viewer
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain("▾ beta");
 		expect(updates).toBe(1);
@@ -274,7 +275,7 @@ describe("DebugLogViewerModel", () => {
 		const text = (width: number) =>
 			viewer
 				.render(width)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 		const wide = text(160);
 		expect(wide).toContain(`beta ${"x".repeat(120)}`);

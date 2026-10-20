@@ -26,6 +26,7 @@
 import { logger, parseFlag } from "@oh-my-pi/pi-utils";
 import type { AnyUiMetadata, SubmenuOption, UiBase } from "@oh-my-pi/pi-tui/overlays/settings-defs";
 import type { SettingProvenance, Settings } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Definitions
@@ -328,9 +329,9 @@ export abstract class Derived<T> {
 }
 
 /**
- * Deep equality of setting values that, unlike `Bun.deepEquals`, also compares the key order of
+ * Deep equality of setting values that, unlike `bun.deepEquals`, also compares the key order of
  * plain objects: record order carries precedence (`edit.modelVariants` takes the first match), so a
- * reorder is a change. Values other than plain objects and arrays compare with `Bun.deepEquals`.
+ * reorder is a change. Values other than plain objects and arrays compare with `bun.deepEquals`.
  */
 export function settingValuesEqual(a: unknown, b: unknown): boolean {
 	if (Object.is(a, b)) return true;
@@ -339,7 +340,7 @@ export function settingValuesEqual(a: unknown, b: unknown): boolean {
 		for (let i = 0; i < a.length; i++) if (!settingValuesEqual(a[i], b[i])) return false;
 		return true;
 	}
-	if (!isPlainObject(a) || !isPlainObject(b)) return Bun.deepEquals(a, b);
+	if (!isPlainObject(a) || !isPlainObject(b)) return bun.deepEquals(a, b);
 	// Positional key comparison needs `b`'s keys materialized; `a` streams.
 	const otherKeys = Object.keys(b);
 	let index = 0;
@@ -515,7 +516,7 @@ export class Setting<T, Id extends string = string> extends Derived<T> {
 	/** Value supplied by the environment variable, or `undefined` when unset or unparseable. */
 	envValue(): T | undefined {
 		if (!this.envName || !this.#parseEnv) return undefined;
-		const raw = Bun.env[this.envName];
+		const raw = bun.env[this.envName];
 		if (raw === undefined) return undefined;
 		if (raw !== this.#envRaw) {
 			this.#envParsed = this.#parseEnv(raw) as T | undefined;
@@ -645,7 +646,7 @@ export class Setting<T, Id extends string = string> extends Derived<T> {
 			return raw === undefined ? this.default : (raw as T);
 		}
 		const warned = settings.warnState.invalid;
-		if (!warned.has(this.id) || !Bun.deepEquals(warned.get(this.id), raw)) {
+		if (!warned.has(this.id) || !bun.deepEquals(warned.get(this.id), raw)) {
 			warned.set(this.id, raw);
 			logger.warn("Settings: ignoring invalid value, using the default", { setting: this.id, value: raw });
 		}
@@ -668,7 +669,7 @@ export class Setting<T, Id extends string = string> extends Derived<T> {
 		this.definition.validate?.(value);
 		if (!this.accepts(value)) {
 			const expected = this.enumValues ? `one of ${this.enumValues.join(", ")}` : `a ${this.definition.type}`;
-			throw new Error(`Invalid value for ${this.id}: ${Bun.inspect(value)} (expected ${expected})`);
+			throw new Error(`Invalid value for ${this.id}: ${bun.inspect(value)} (expected ${expected})`);
 		}
 	}
 
@@ -809,6 +810,27 @@ const byId = new Map<string, AnySetting>();
 const ordered: AnySetting[] = [];
 
 /**
+ * Host-owned lookups, visible to a second evaluation of this module.
+ *
+ * Source-link installs can load the coding-agent through both the bundler and
+ * Node's native loader (extensions load in place). Each copy has its own `byId`
+ * map, so an extension importing this subpath saw an empty registry while the
+ * host process had registered every setting. First registration wins: the host
+ * copy owns the handles, and per-instance `register` still enforces its own
+ * duplicate check.
+ */
+const SHARED_SETTING_LOOKUPS = Symbol.for("oh-my-pi.config.registry.lookup");
+
+function sharedSettingLookups(): Map<string, AnySetting> {
+	let shared = Reflect.get(globalThis, SHARED_SETTING_LOOKUPS) as Map<string, AnySetting> | undefined;
+	if (!shared) {
+		shared = new Map();
+		Reflect.set(globalThis, SHARED_SETTING_LOOKUPS, shared);
+	}
+	return shared;
+}
+
+/**
  * Declares a setting and returns its typed handle.
  *
  * @throws Error when `id` is already registered.
@@ -817,13 +839,15 @@ export function register<const D extends SettingDefinition>(definition: D): Sett
 	if (byId.has(definition.id)) throw new Error(`Setting "${definition.id}" is registered twice`);
 	const handle = new Setting<DefinitionValue<D>, D["id"]>(definition);
 	byId.set(definition.id, handle as AnySetting);
+	const shared = sharedSettingLookups();
+	if (!shared.has(definition.id)) shared.set(definition.id, handle as AnySetting);
 	ordered.push(handle as AnySetting);
 	return handle;
 }
 
 /** Handle for `id`, or `undefined` when no setting has that id. */
 export function lookup(id: string): AnySetting | undefined {
-	return byId.get(id);
+	return byId.get(id) ?? sharedSettingLookups().get(id);
 }
 
 /** Every registered setting, in declaration order. */

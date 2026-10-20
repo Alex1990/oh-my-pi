@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { fetchTypeSafeModels } from "../src/discovery/typesafe";
 import { typesafeModelManagerOptions } from "../src/provider-models/special";
 import type { FetchImpl } from "../src/types";

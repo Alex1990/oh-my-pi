@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { sanitizeText, sanitizeTextDeep } from "@oh-my-pi/pi-utils/sanitize-text";
 import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 
@@ -99,7 +99,9 @@ describe("sanitizeTextDeep", () => {
 		let input: unknown = { text: "needle \x1b]52;c;cHduZWQ=\x07" };
 		for (let index = 0; index < depth; index++) input = { child: input };
 		let result = sanitizeTextDeep(input);
-		expect(result).not.toBe(input);
+		// Compare references directly: Chai's `not.toBe` inspects the operand and
+		// overflows on a 50k-deep object in Node.
+		expect(result === input).toBe(false);
 		for (let index = 0; index < depth; index++) {
 			if (!isRecord(result)) throw new Error("Nested record lost");
 			result = result.child;

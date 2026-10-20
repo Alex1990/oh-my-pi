@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { mergeRefreshedCredential } from "../src/auth/refresh";
 import { mergeRefreshedUsageCredential } from "../src/auth/usage";
 import { buildUsageCredential } from "../src/auth/usage-cache";
@@ -6,6 +6,7 @@ import { getProviderDefinition } from "../src/registry/registry";
 import type { OAuthController, OAuthCredentials } from "../src/registry/oauth/types";
 import { attachFactoryDroidRegion } from "../src/registry/oauth/factory-droid";
 import type { FetchImpl } from "../src/types";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 async function loginViaRegistry(ctrl: OAuthController): Promise<OAuthCredentials> {
 	const result = await getProviderDefinition("factory-droid")?.login?.(ctrl);
@@ -16,7 +17,7 @@ async function loginViaRegistry(ctrl: OAuthController): Promise<OAuthCredentials
 async function refreshViaRegistry(refreshToken: string, fetchImpl: FetchImpl): Promise<OAuthCredentials> {
 	const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
 		Object.assign((input: string | URL | Request, init?: RequestInit) => fetchImpl(input, init), {
-			preconnect: fetch.preconnect,
+			preconnect: preconnectOf(fetch),
 		}),
 	);
 	try {

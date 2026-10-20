@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -21,6 +21,7 @@ import {
 	todoToolRenderer,
 } from "@oh-my-pi/pi-tui/tools/todo";
 import type { Component } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createSession(initialPhases: TodoPhase[] = []): ToolSession {
 	let phases = initialPhases;
@@ -143,12 +144,12 @@ it("renders completed tasks as checked before revealing strikethrough", async ()
 	const component = todoToolRenderer.renderResult(result, options, theme);
 
 	const firstFrame = component.render(120).join("\n");
-	expect(Bun.stripANSI(firstFrame)).toContain("finish");
+	expect(bun.stripANSI(firstFrame)).toContain("finish");
 	expect(firstFrame).not.toContain("\x1b[9m");
 
 	options.spinnerFrame = TODO_STRIKE_HOLD_FRAMES + 1;
 	const revealFrame = component.render(120).join("\n");
-	expect(Bun.stripANSI(revealFrame)).toContain("finish");
+	expect(bun.stripANSI(revealFrame)).toContain("finish");
 	expect(revealFrame).toContain("\x1b[9m");
 });
 
@@ -630,7 +631,7 @@ describe("todoToolRenderer.renderResult phase collapsing", () => {
 		return tool.execute("done", { op: "done", task: "a1" });
 	}
 	function innerLines(component: Component): string[] {
-		const lines = Bun.stripANSI(component.render(100).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(100).join("\n")).split("\n");
 		return lines.slice(1, -1).map(line =>
 			line
 				.replace(/^│/, "")
@@ -644,7 +645,7 @@ describe("todoToolRenderer.renderResult phase collapsing", () => {
 			op: "done",
 			task: "a1",
 		});
-		const rendered = Bun.stripANSI(component.render(100).join("\n"));
+		const rendered = bun.stripANSI(component.render(100).join("\n"));
 		// Active phase's collapsed viewport keeps the just-closed task as the lead
 		// row and shows the promoted current one (#5873), and its header carries
 		// progress so the phase being worked on is not the one phase with no
@@ -684,7 +685,7 @@ describe("todoToolRenderer.renderResult phase collapsing", () => {
 		// Transcript rebuilds may not carry call args; the active (Alpha) phase is
 		// still derived from the in_progress task and the completion transition.
 		const component = todoToolRenderer.renderResult(result, { expanded: false, isPartial: false }, theme);
-		const rendered = Bun.stripANSI(component.render(100).join("\n"));
+		const rendered = bun.stripANSI(component.render(100).join("\n"));
 		expect(rendered).toContain("a2");
 		expect(rendered).not.toContain("b1");
 		expect(rendered).not.toContain("c1");
@@ -695,7 +696,7 @@ describe("todoToolRenderer.renderResult phase collapsing", () => {
 			op: "done",
 			task: "a1",
 		});
-		const rendered = Bun.stripANSI(component.render(100).join("\n"));
+		const rendered = bun.stripANSI(component.render(100).join("\n"));
 		expect(rendered).toContain("b1");
 		expect(rendered).toContain("b2");
 		expect(rendered).toContain("c1");
@@ -868,7 +869,7 @@ describe("todoToolRenderer.renderCall malformed-args regression (#2005)", () => 
 		const args = { op: "init", items: ["a", "b", "c"] };
 		const component = todoToolRenderer.renderCall(args, renderOptions, theme);
 		// `Text(text, 0, 0)` from `@oh-my-pi/pi-tui` exposes the content via .render().
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("init");
 		expect(rendered).toContain("3 items");
 	});
@@ -882,7 +883,7 @@ describe("todoToolRenderer.renderCall malformed-args regression (#2005)", () => 
 			],
 		};
 		const component = todoToolRenderer.renderCall(args, renderOptions, theme);
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("init");
 		expect(rendered).toContain("3 items");
 		expect(rendered).toContain("done");
@@ -916,8 +917,8 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 		// The dangerous bytes are gone; the readable text survives.
 		expect(rendered).not.toContain("\u001b[2J");
 		expect(rendered).not.toContain("\u0007");
-		expect(Bun.stripANSI(rendered)).toContain("clear");
-		expect(Bun.stripANSI(rendered)).toContain("screen");
+		expect(bun.stripANSI(rendered)).toContain("clear");
+		expect(bun.stripANSI(rendered)).toContain("screen");
 	});
 
 	it("strips control sequences from a blocker note", () => {
@@ -929,7 +930,7 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 		] as unknown as TodoPhase[]);
 
 		expect(rendered).not.toContain("\u001b[2J");
-		expect(Bun.stripANSI(rendered)).toContain("waiting");
+		expect(bun.stripANSI(rendered)).toContain("waiting");
 	});
 
 	it("keeps a completed label intact under the strikethrough path", () => {
@@ -941,7 +942,7 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 		] as unknown as TodoPhase[]);
 
 		expect(rendered).not.toContain("\u001b[2J");
-		expect(Bun.stripANSI(rendered)).toContain("done");
+		expect(bun.stripANSI(rendered)).toContain("done");
 	});
 
 	it("strips control sequences from a phase header", () => {
@@ -952,8 +953,8 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 		] as unknown as TodoPhase[]);
 
 		expect(rendered).not.toContain("\u001b[2J");
-		expect(Bun.stripANSI(rendered)).toContain("Set");
-		expect(Bun.stripANSI(rendered)).toContain("up");
+		expect(bun.stripANSI(rendered)).toContain("Set");
+		expect(bun.stripANSI(rendered)).toContain("up");
 	});
 
 	it("strips control sequences from the zero-task fallback text", () => {
@@ -969,7 +970,7 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 			.join("\n");
 
 		expect(rendered).not.toContain("\u001b[2J");
-		expect(Bun.stripANSI(rendered)).toContain("snapshot not mirrored");
+		expect(bun.stripANSI(rendered)).toContain("snapshot not mirrored");
 	});
 
 	it("flattens tabs in every result-side fragment", () => {
@@ -981,9 +982,9 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 		] as unknown as TodoPhase[]);
 
 		expect(rendered).not.toContain("\t");
-		expect(Bun.stripANSI(rendered)).toContain("ship");
-		expect(Bun.stripANSI(rendered)).toContain("waiting");
-		expect(Bun.stripANSI(rendered)).toContain("Set");
+		expect(bun.stripANSI(rendered)).toContain("ship");
+		expect(bun.stripANSI(rendered)).toContain("waiting");
+		expect(bun.stripANSI(rendered)).toContain("Set");
 	});
 
 	it("flattens tabs in the zero-task fallback text", () => {
@@ -998,7 +999,7 @@ describe("todoToolRenderer.renderResult label sanitization", () => {
 			.join("\n");
 
 		expect(rendered).not.toContain("\t");
-		expect(Bun.stripANSI(rendered)).toContain("snapshot not mirrored");
+		expect(bun.stripANSI(rendered)).toContain("snapshot not mirrored");
 	});
 });
 
@@ -1021,15 +1022,15 @@ describe("todoToolRenderer.renderCall preview sanitization", () => {
 
 		expect(rendered).not.toContain("\u001b[2J");
 		expect(rendered).not.toContain("\u0007");
-		expect(Bun.stripANSI(rendered)).toContain("ship");
-		expect(Bun.stripANSI(rendered)).toContain("Exec");
+		expect(bun.stripANSI(rendered)).toContain("ship");
+		expect(bun.stripANSI(rendered)).toContain("Exec");
 	});
 
 	it("flattens tabs so a fragment cannot punch holes in the header", () => {
 		const rendered = renderArgs({ op: "done", task: "ship\tit" });
 
 		expect(rendered).not.toContain("\t");
-		expect(Bun.stripANSI(rendered)).toContain("ship");
-		expect(Bun.stripANSI(rendered)).toContain("it");
+		expect(bun.stripANSI(rendered)).toContain("ship");
+		expect(bun.stripANSI(rendered)).toContain("it");
 	});
 });

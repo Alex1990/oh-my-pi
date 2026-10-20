@@ -2,8 +2,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentBinaries, AgentConfig, GatewayConfig, GuestArch } from "./types";
 import type { TrialVm } from "./vmon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "../../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const CODING_AGENT_DIR = path.join(REPO_ROOT, "packages", "coding-agent");
 const NATIVES_DIR = path.join(REPO_ROOT, "packages", "natives", "native");
 
@@ -12,7 +14,7 @@ function shellQuote(value: string): string {
 }
 
 async function run(command: string[], cwd?: string): Promise<void> {
-	const process = Bun.spawn(command, { cwd, stdout: "inherit", stderr: "inherit" });
+	const process = bun.spawn(command, { cwd, stdout: "inherit", stderr: "inherit" });
 	const exitCode = await process.exited;
 	if (exitCode !== 0) throw new Error(`${command.join(" ")} exited with code ${exitCode}`);
 }
@@ -33,12 +35,12 @@ async function refreshCrossNatives(arches: GuestArch[], version: string): Promis
 		const pkg = `pi-natives-linux-${arch}`;
 		const response = await fetch(`https://registry.npmjs.org/@oh-my-pi/${pkg}/-/${pkg}-${version}.tgz`);
 		if (!response.ok) throw new Error(`Fetching @oh-my-pi/${pkg}@${version} failed: HTTP ${response.status}`);
-		const archive = new Bun.Archive(await response.arrayBuffer());
+		const archive = new Archive(await response.arrayBuffer());
 		let extracted = 0;
 		for (const [entry, file] of await archive.files()) {
 			const name = path.posix.basename(entry);
 			if (!name.startsWith(`pi_natives.linux-${arch}`) || !name.endsWith(".node")) continue;
-			await Bun.write(path.join(NATIVES_DIR, name), file);
+			await bun.write(path.join(NATIVES_DIR, name), file);
 			extracted++;
 		}
 		if (extracted === 0) throw new Error(`@oh-my-pi/${pkg}@${version} tarball contained no .node files`);
@@ -51,7 +53,7 @@ export async function prepareAgentBinaries(opts: {
 	cacheDir: string;
 	rebuild: boolean;
 }): Promise<AgentBinaries> {
-	const manifest = (await Bun.file(path.join(CODING_AGENT_DIR, "package.json")).json()) as { version?: unknown };
+	const manifest = (await bun.file(path.join(CODING_AGENT_DIR, "package.json")).json()) as { version?: unknown };
 	if (typeof manifest.version !== "string" || manifest.version.length === 0) {
 		throw new Error("packages/coding-agent/package.json has no valid version");
 	}
@@ -63,7 +65,7 @@ export async function prepareAgentBinaries(opts: {
 	}
 	const missing: GuestArch[] = [];
 	for (const arch of arches) {
-		if (opts.rebuild || !(await Bun.file(cached[arch]!).exists())) missing.push(arch);
+		if (opts.rebuild || !(await bun.file(cached[arch]!).exists())) missing.push(arch);
 	}
 
 	if (missing.length > 0) {
@@ -74,8 +76,8 @@ export async function prepareAgentBinaries(opts: {
 		for (const arch of missing) {
 			const source = path.join(CODING_AGENT_DIR, "binaries", `omp-linux-${arch}`);
 			const destination = cached[arch]!;
-			if (!(await Bun.file(source).exists())) throw new Error(`Binary build did not produce ${source}`);
-			await Bun.write(destination, Bun.file(source));
+			if (!(await bun.file(source).exists())) throw new Error(`Binary build did not produce ${source}`);
+			await bun.write(destination, bun.file(source));
 			await fs.chmod(destination, 0o755);
 		}
 	}

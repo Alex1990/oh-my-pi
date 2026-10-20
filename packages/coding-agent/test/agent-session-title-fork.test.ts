@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import * as ai from "@oh-my-pi/pi-ai";
 import { createMockModel, type MockModel, type MockResponse } from "@oh-my-pi/pi-ai/providers/mock";
@@ -11,6 +11,7 @@ import { USER_INTERRUPT_LABEL } from "@oh-my-pi/pi-coding-agent/session/messages
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TodoTool, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let session: AgentSession | undefined;
 let authStorage: AuthStorage | undefined;
@@ -19,13 +20,13 @@ let authStorage: AuthStorage | undefined;
 let previousNoTitle: string | undefined;
 
 beforeEach(() => {
-	previousNoTitle = Bun.env.PI_NO_TITLE;
-	delete Bun.env.PI_NO_TITLE;
+	previousNoTitle = bun.env.PI_NO_TITLE;
+	delete bun.env.PI_NO_TITLE;
 });
 
 afterEach(async () => {
-	if (previousNoTitle === undefined) delete Bun.env.PI_NO_TITLE;
-	else Bun.env.PI_NO_TITLE = previousNoTitle;
+	if (previousNoTitle === undefined) delete bun.env.PI_NO_TITLE;
+	else bun.env.PI_NO_TITLE = previousNoTitle;
 	vi.restoreAllMocks();
 	await session?.dispose();
 	authStorage?.close();

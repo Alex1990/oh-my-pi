@@ -27,6 +27,7 @@ import type {
 	UserMessageStats,
 } from "./types";
 import { computeUserMessageMetrics, judgeProse } from "./user-metrics";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Basename of an advisor agent's transcript inside a session artifacts dir. */
 const ADVISOR_TRANSCRIPT_BASENAME = "__advisor.jsonl";
@@ -154,7 +155,7 @@ function extractUserStats(sessionFile: string, folder: string, entry: SessionMes
 		repetition: metrics.repetition,
 		blame: metrics.blame,
 		prose,
-		proseHash: prose ? Bun.hash(prose).toString(16) : "",
+		proseHash: prose ? bun.hash(prose).toString(16) : "",
 	};
 }
 
@@ -516,7 +517,7 @@ export interface ParseSessionResult {
 const CHECKPOINT_BYTES = 256;
 
 async function readCheckpoint(handle: fs.FileHandle, end: number): Promise<Uint8Array> {
-	// Positional reads keep the descriptor at zero for Bun.file(fd)'s subsequent tail read.
+	// Positional reads keep the descriptor at zero for bun.file(fd)'s subsequent tail read.
 	const start = Math.max(0, end - CHECKPOINT_BYTES);
 	const bytes = new Uint8Array(end - start);
 	let read = 0;
@@ -597,7 +598,7 @@ export async function parseSessionFile(
 		const handle = await fs.open(sessionPath, "r");
 		try {
 			info = await handle.stat();
-			const file = Bun.file(handle.fd);
+			const file = bun.file(sessionPath);
 			let resume = state?.version === 1 && state.offset === fromOffset;
 			if (resume && state) {
 				reset =
@@ -606,7 +607,7 @@ export async function parseSessionFile(
 					(info.size === state.size && info.mtimeMs !== state.mtimeMs);
 				if (!reset) {
 					const previous = await readCheckpoint(handle, fromOffset);
-					reset = Bun.hash(previous).toString(16) !== state.checkpoint;
+					reset = bun.hash(previous).toString(16) !== state.checkpoint;
 				}
 				resume = !reset;
 			}
@@ -625,7 +626,7 @@ export async function parseSessionFile(
 				checkpointStart >= readStart
 					? bytes.subarray(checkpointStart - readStart, newOffset - readStart)
 					: await readCheckpoint(handle, newOffset);
-			checkpoint = Bun.hash(previous).toString(16);
+			checkpoint = bun.hash(previous).toString(16);
 		} finally {
 			await handle.close();
 		}
@@ -717,7 +718,7 @@ export async function listAllSessionFiles(): Promise<string[]> {
  */
 export async function getSessionEntry(sessionPath: string, entryId: string): Promise<SessionEntry | null> {
 	try {
-		for await (const line of readLines(Bun.file(sessionPath).stream())) {
+		for await (const line of readLines(bun.file(sessionPath).stream())) {
 			const entry = parseJsonLine(line, 0, line.length);
 			if (entry && "id" in entry && entry.id === entryId) {
 				return entry;

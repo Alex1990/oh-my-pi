@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "../src/build";
 import { calculateUsageCost, getEffectiveTokenCost, getTimeBasedPricingPeriod } from "../src/models";
 import type { Api, Model, ModelSpec, Provider, TokenCost } from "../src/types";

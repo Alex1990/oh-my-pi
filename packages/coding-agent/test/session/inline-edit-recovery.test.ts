@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { recoverInlineSloppyEdit } from "../../src/session/inline-edit-recovery";
 

@@ -94,7 +94,7 @@ function extensionForMime(mimeType: string): string {
 
 /** Content-addressed file name so re-pasting the same image reuses one artifact. */
 function imageFileName(image: ImageContent): string {
-	const hash = Bun.hash(image.data).toString(16);
+	const hash = bun.hash(image.data).toString(16);
 	return `image-${hash}.${extensionForMime(image.mimeType)}`;
 }
 
@@ -102,8 +102,8 @@ function imageFileName(image: ImageContent): string {
 async function saveImage(image: ImageContent, localRoot: string): Promise<string> {
 	const fileName = imageFileName(image);
 	const filePath = path.join(localRoot, fileName);
-	// Content-addressed: identical bytes overwrite themselves harmlessly. Bun.write creates parent dirs.
-	await Bun.write(filePath, Buffer.from(image.data, "base64"));
+	// Content-addressed: identical bytes overwrite themselves harmlessly. bun.write creates parent dirs.
+	await bun.write(filePath, Buffer.from(image.data, "base64"));
 	return `local://${fileName}`;
 }
 
@@ -210,3 +210,4 @@ export async function describeAttachedImagesForTextModel(
 		}),
 	);
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

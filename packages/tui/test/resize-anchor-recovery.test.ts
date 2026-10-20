@@ -1,7 +1,8 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { KittyTerminal, loadModuleSync } from "kitty-vt-wasm";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const module = loadModuleSync(Bun.resolveSync("kitty-vt-wasm/kitty-vt.wasm", import.meta.dir));
+const module = loadModuleSync(bun.resolveSync("kitty-vt-wasm/kitty-vt.wasm", import.meta.dirname));
 
 function makeTerm(columns: number, rows: number) {
 	let output = "";

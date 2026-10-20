@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as piNatives from "@oh-my-pi/pi-natives";
 import { PdfConverter } from "../src/markit/converters/pdf";
 

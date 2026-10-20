@@ -1,4 +1,5 @@
-import type { BunPlugin } from "bun";
+import type { BunPlugin as BunPluginSpec } from "@oh-my-pi/pi-utils/module-hooks";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Assets below this size stay object literals. */
 const DEFAULT_MIN_BYTES = 256 * 1024;
@@ -12,29 +13,29 @@ const DEFAULT_MIN_BYTES = 256 * 1024;
  * "./models.json"`); a named import of a large
  * asset fails the build loudly instead of silently reading `undefined`.
  */
-export function createJsonParsePlugin(minBytes: number = DEFAULT_MIN_BYTES): BunPlugin {
+export function createJsonParsePlugin(minBytes: number = DEFAULT_MIN_BYTES): BunPluginSpec {
 	return {
 		name: "omp-json-parse-asset",
-		target: "bun",
 		setup(build) {
 			build.onResolve({ filter: /^omp-json-asset:/ }, ({ path }) => ({
 				path: `${path.slice("omp-json-asset:".length)}.zst`,
 				namespace: "omp-json-asset",
 			}));
 			build.onLoad({ filter: /.*/, namespace: "omp-json-asset" }, async ({ path }) => ({
-				contents: Bun.zstdCompressSync(await Bun.file(path.slice(0, -4)).text()),
+				contents: bun.zstdCompressSync(await bun.file(path.slice(0, -4)).text()),
 				loader: "file",
 			}));
 			build.onLoad({ filter: /\.json$/ }, async ({ path }) => {
-				const file = Bun.file(path);
+				const file = bun.file(path);
 				if (file.size < minBytes) return undefined;
 				const text = await file.text();
 				JSON.parse(text);
 				return {
 					contents: `import * as fs from "node:fs";
 import * as path from "node:path";
+import { zstdDecompressSync } from "node:zlib";
 import asset from ${JSON.stringify(`omp-json-asset:${path}`)};
-export default JSON.parse(Bun.zstdDecompressSync(fs.readFileSync(path.resolve(import.meta.dir, asset))).toString("utf8"));`,
+export default JSON.parse(zstdDecompressSync(fs.readFileSync(path.resolve(import.meta.dirname, asset))).toString("utf8"));`,
 					loader: "js",
 				};
 			});

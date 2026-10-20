@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { LateDiagnosticsMessageComponent } from "@oh-my-pi/pi-tui/chat/late-diagnostics-message";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";

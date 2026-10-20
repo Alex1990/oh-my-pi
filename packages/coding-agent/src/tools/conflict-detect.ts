@@ -1,4 +1,5 @@
 import type { ConflictBlock, ConflictEntry, ConflictScope } from "@oh-my-pi/pi-tui/tools/conflict-detect";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Detect and resolve unresolved git merge conflicts that surface in `read`
  * output.
@@ -136,7 +137,7 @@ export async function scanFileForConflicts(
 	options: { maxBytes?: number } = {},
 ): Promise<{ blocks: ConflictBlock[]; scanTruncated: boolean }> {
 	const maxBytes = options.maxBytes ?? SCAN_FILE_DEFAULT_MAX_BYTES;
-	const file = Bun.file(absolutePath);
+	const file = bun.file(absolutePath);
 	const size = file.size;
 	const truncated = size > maxBytes;
 	const bytes = truncated ? new Uint8Array(await file.slice(0, maxBytes).arrayBuffer()) : await file.bytes();

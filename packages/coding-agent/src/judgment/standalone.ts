@@ -7,6 +7,7 @@ import { ModelRegistry } from "../config/model-registry";
 import { Settings } from "../config/settings";
 import { discoverAuthStorage, loadCliExtensionProviders } from "../sdk";
 import { type ChainJudge, resolveJudge, sharedJudgmentCache } from ".";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface StandaloneJudge {
 	judge: ChainJudge;
@@ -30,7 +31,7 @@ export async function openStandaloneJudge(cwd: string, purpose: string): Promise
 			judge: resolveJudge({
 				settings,
 				registry,
-				sessionId: Bun.randomUUIDv7(),
+				sessionId: bun.randomUUIDv7(),
 				purpose,
 				cache: sharedJudgmentCache(),
 			}),

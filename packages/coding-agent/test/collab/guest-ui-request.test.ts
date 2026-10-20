@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Contract (#4049 follow-up): a writable TUI guest must answer host
  * `ui-request` frames instead of silently dropping them. The guest presents
@@ -11,7 +12,7 @@
  * drives a real CollabGuestLink over the in-memory relay so every guest→host
  * frame is observable.
  */
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import { generateRoomKey, importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabGuestLink } from "@oh-my-pi/pi-coding-agent/collab/guest";
@@ -33,6 +34,8 @@ import type {
 import { ExtensionUiController } from "@oh-my-pi/pi-coding-agent/modes/controllers/extension-ui-controller";
 import type { InteractiveModeContext, InteractiveSelectorDialogOptions } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 // In-memory transport: shared FakeWebSocket + InMemoryRelay harness (see
 // ./helpers/in-memory-relay), same contract as the other collab tests.
@@ -287,7 +290,7 @@ let renameSpy: { mockRestore(): void } | null = null;
 
 beforeEach(() => {
 	installInMemoryRelay();
-	writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+	writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 	renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 });
 
@@ -856,7 +859,7 @@ describe("guest ask room ownership", () => {
 				value: followup === "next question" ? "Alpha" : "Other (type your own)",
 			});
 			await replaced.promise;
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			// Pending requests are replayed to the next writer even before start().
 			// The successor must have no retained question from the original ask.
 			expect(successor.inputRequired).toBe(false);

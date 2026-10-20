@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { runRootCommand } from "@oh-my-pi/pi-coding-agent/main";
 

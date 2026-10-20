@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { convertOpenAICodexResponsesTools } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
 import { isJsonSchemaValueValid } from "@oh-my-pi/pi-ai/utils/schema";
@@ -18,6 +18,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgCompactionExperimentalContextManagement } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const NOW = "2026-09-04T00:00:00.000Z";
 
@@ -79,7 +80,7 @@ describe("experimental context notes", () => {
 			await tool.execute("save", { text: "retain this notebook" });
 			const sessionFile = manager.getSessionFile();
 			if (!sessionFile) throw new Error("expected persisted session file");
-			const before = await Bun.file(sessionFile).text();
+			const before = await bun.file(sessionFile).text();
 			const revision = getContextNotes(manager.getBranch());
 			const model = codexModel();
 			const [wireTool] = convertOpenAICodexResponsesTools([tool], model);
@@ -91,7 +92,7 @@ describe("experimental context notes", () => {
 			const read = await tool.execute("read", tool.parameters.assert(args));
 			expect(read.content).toEqual([{ type: "text", text: "retain this notebook" }]);
 			expect(getContextNotes(manager.getBranch())).toEqual(revision);
-			expect(await Bun.file(sessionFile).text()).toBe(before);
+			expect(await bun.file(sessionFile).text()).toBe(before);
 			await tool.execute("clear", { text: "" });
 			expect(getContextNotes(manager.getBranch())?.text).toBe("");
 			expect(getContextNotes(manager.getBranch())?.entryId).not.toBe(revision?.entryId);

@@ -4,12 +4,12 @@
 #
 # Extends `pi-base` (from /Dockerfile, default target oh-my-pi/pi:dev) and adds
 # the robomp Python package + a Vite-built SolidJS dashboard bundle. The pi
-# toolchain (python + bun + rustup launcher + pi-natives + omp_rpc wheel +
+# toolchain (python + node + rustup launcher + pi-natives + omp_rpc wheel +
 # /usr/local/bin/omp shim) all comes from PI_BASE; this file only layers what's
 # robomp-specific.
 #
 # Build (from pi root):
-#     bun run pi:image                              # build oh-my-pi/pi:dev first
+#     pnpm run pi:image                            # build oh-my-pi/pi:dev first
 #     docker build -f Dockerfile.robomp -t robomp:dev .
 #
 # Compose (recommended):
@@ -17,23 +17,24 @@
 ###############################################################################
 
 ARG PI_BASE=oh-my-pi/pi:dev
-ARG BUN_VERSION=1.4.3
 
 ############################
-# 1) web-builder — Bun + Vite, builds the SolidJS dashboard bundle.
+# 1) web-builder — Node.js + Vite, builds the SolidJS dashboard bundle.
 ############################
-FROM oven/bun:${BUN_VERSION}-slim AS web-builder
+FROM node:24-bookworm-slim AS web-builder
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 WORKDIR /work
-# Root manifests + the web workspace manifest are enough for `bun install
+# Root manifests + the web workspace manifest are enough for `pnpm install
 # --filter robomp-web` to hydrate just the dashboard's node_modules.
-COPY package.json bun.lock ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY python/robomp/web/package.json ./python/robomp/web/package.json
-# Root package.json declares patchedDependencies, so the patch file must be
-# present before any root-level `bun install` (even a filtered one).
+# Root package.json declares patchedDependencies, so the patch files must be
+# present before any root-level `pnpm install` (even a filtered one).
 COPY patches/*.patch ./patches/
-RUN bun install --filter robomp-web
+RUN pnpm install --filter robomp-web --frozen-lockfile
 COPY --exclude=node_modules --exclude=dist python/robomp/web/ ./python/robomp/web/
-RUN bun --cwd=python/robomp/web run build
+RUN pnpm --dir python/robomp/web run build
 
 ############################
 # 2) runtime — pi-base + robomp src + web bundle + pip install
@@ -66,10 +67,11 @@ RUN pip install --no-cache-dir \
 # host-controlled permissions. The entrypoint copies it into root-owned
 # world-readable files under /srv/agent-home; the agent subprocess runs with
 # HOME=/srv/agent-home, so ~/.omp and ~/.agent resolve there without exposing
-# mutable host mounts.
+# mutable host mounts. pnpm's copy importer avoids hardlinking store files into
+# the mounted plugin tree.
 RUN mkdir -p /srv/agent-home/.agent /srv/agent-home/.omp/agent \
     && mkdir -p /srv/agent-home-stage/.agent /srv/agent-home-stage/.omp/agent \
-    && printf '[install]\nbackend = "copyfile"\n' > /srv/agent-home/.bunfig.toml
+    && printf 'package-import-method=copy\n' > /srv/agent-home/.npmrc
 
 COPY python/robomp/entrypoint.sh /usr/local/bin/robomp-entrypoint
 RUN chmod +x /usr/local/bin/robomp-entrypoint

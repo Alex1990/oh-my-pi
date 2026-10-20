@@ -6,7 +6,7 @@
  * hopping to a provider whose models the role rejects (LiteLLM for `web`)
  * surfaced its whole catalog; picking one persisted an unresolvable selector.
  */
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import {
 	ModelHubComponent,

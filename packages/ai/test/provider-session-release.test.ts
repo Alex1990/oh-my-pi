@@ -1,11 +1,12 @@
-import { describe, expect, it } from "bun:test";
-import type { ServerWebSocket } from "bun";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import type { ServerWebSocket } from "@oh-my-pi/pi-utils/node-serve";
 import {
 	getOpenAICodexTransportDetails,
 	streamOpenAICodexResponses,
 } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
 import type { Message, Model, ProviderSessionState } from "@oh-my-pi/pi-ai/types";
 import { createCodexModel } from "./helpers";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 describe("provider routing session release", () => {
 	it("closes every Codex credential and Lite socket for one session while preserving another response chain", async () => {
@@ -13,7 +14,7 @@ describe("provider routing session release", () => {
 		const closed = Promise.withResolvers<void>();
 		let opened = 0;
 		let closedCount = 0;
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch(request, server) {

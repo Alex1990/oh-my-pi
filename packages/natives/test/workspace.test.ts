@@ -1,13 +1,14 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { FileType, listWorkspace } from "../native";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 it("keeps excluded-name files while pruning directories and finding ignored rules beyond tree depth", async () => {
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-pruning-"));
 	try {
-		await Bun.write(path.join(root, ".gitignore"), "**/AGENTS.md\nignored/\n");
+		await bun.write(path.join(root, ".gitignore"), "**/AGENTS.md\nignored/\n");
 		for (const directory of ["src/a/b/c/d", "build/nested", ".DS_Store/nested", "ignored/nested"]) {
 			await fs.mkdir(path.join(root, directory), { recursive: true });
 		}
@@ -19,9 +20,9 @@ it("keeps excluded-name files while pruning directories and finding ignored rule
 			".DS_Store/nested",
 			"ignored/nested",
 		]) {
-			await Bun.write(path.join(root, directory, "AGENTS.md"), "rules");
+			await bun.write(path.join(root, directory, "AGENTS.md"), "rules");
 		}
-		await Bun.write(path.join(root, "dist"), "ordinary file");
+		await bun.write(path.join(root, "dist"), "ordinary file");
 		const result = await listWorkspace({ path: root, maxDepth: 1, hidden: true, collectAgentsMd: true });
 		expect(result.entries.map(entry => entry.path)).toEqual([".gitignore", "dist", "src"]);
 		expect(result.agentsMdFiles).toEqual(["src/AGENTS.md", "src/a/b/c/AGENTS.md"]);
@@ -37,7 +38,7 @@ it("caps directory rules lexically without counting duplicate discoveries as tru
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-rules-cap-"));
 	try {
 		const paths = Array.from({ length: 200 }, (_, index) => `${String(index).padStart(3, "0")}/AGENTS.md`);
-		for (const relative of paths.toReversed()) await Bun.write(path.join(root, relative), "rules");
+		for (const relative of paths.toReversed()) await bun.write(path.join(root, relative), "rules");
 		const exact = await listWorkspace({ path: root, maxDepth: 2, collectAgentsMd: true });
 		expect(exact.agentsMdFiles).toEqual(paths);
 		expect(exact.entries.filter(entry => entry.path.endsWith("/AGENTS.md")).map(entry => entry.path)).toEqual(paths);
@@ -49,7 +50,7 @@ it("caps directory rules lexically without counting duplicate discoveries as tru
 		expect(firstRulesMtime).toBeDefined();
 		expect(Math.abs(firstRulesMtime! - firstRulesStat.mtimeMs)).toBeLessThan(1);
 		expect(exact.truncated).toBe(false);
-		await Bun.write(path.join(root, "zzz/AGENTS.md"), "overflow");
+		await bun.write(path.join(root, "zzz/AGENTS.md"), "overflow");
 		const overflow = await listWorkspace({ path: root, maxDepth: 0, collectAgentsMd: true });
 		expect(overflow.entries).toEqual([]);
 		expect(overflow.agentsMdFiles).toEqual(paths);
@@ -62,7 +63,7 @@ it("caps directory rules lexically without counting duplicate discoveries as tru
 it.skipIf(process.platform === "win32")("finds file symlink rules without traversing directory symlinks", async () => {
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-symlinks-"));
 	try {
-		await Bun.write(path.join(root, "source/rules.txt"), "rules");
+		await bun.write(path.join(root, "source/rules.txt"), "rules");
 		await fs.symlink("rules.txt", path.join(root, "source/AGENTS.md"));
 		await fs.symlink("source", path.join(root, "linked"));
 		const result = await listWorkspace({ path: root, maxDepth: 3, collectAgentsMd: true });
@@ -84,7 +85,7 @@ it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
 	async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-denied-root-"));
 		try {
-			await Bun.write(path.join(root, "present.txt"), "present");
+			await bun.write(path.join(root, "present.txt"), "present");
 			await fs.chmod(root, 0o000);
 			await expect(listWorkspace({ path: root, maxDepth: 0, reportDirectoryErrors: true })).rejects.toThrow(
 				/permission denied|os error 13/i,

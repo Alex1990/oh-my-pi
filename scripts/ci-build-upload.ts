@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 //
 // Publish an omp release's binaries to the build service (build.stencil.so),
 // which serves them, with binary patches between releases, to update
@@ -6,7 +6,7 @@
 // `canary`, everything else with channel `stable`.
 //
 // Usage:
-//   bun scripts/ci-build-upload.ts <tag> <file>...    # all 8 release binaries
+//   node scripts/ci-build-upload.ts <tag> <file>...    # all 8 release binaries
 //
 // Runs in ci.yml's `release_build` job (which npm and the Homebrew tap wait
 // for), on the binaries this run built. Requests the job's GitHub OIDC token
@@ -23,13 +23,15 @@
 // Uploads go through `curl`.
 
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { enumerateChangelogVersions } from "./ci-release-notes";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PRODUCT = "omp";
 const AUDIENCE = "build.stencil.so";
 const SERVICE_URL = (process.env.BUILD_URL ?? "https://build.stencil.so").replace(/\/+$/, "");
-const CHANGELOG = path.join(import.meta.dir, "..", "packages", "coding-agent", "CHANGELOG.md");
+const CHANGELOG = path.join(import.meta.dirname, "..", "packages", "coding-agent", "CHANGELOG.md");
 /** The service rejects notes longer than this many bytes. */
 const MAX_NOTES_BYTES = 16 << 10;
 /** Attempts per upload/publish request on network errors and transient statuses. */
@@ -43,8 +45,10 @@ export const ASSETS: Readonly<Record<string, { platform: string; arch: string }>
 	"omp-linux-arm64": { platform: "linux", arch: "arm64" },
 	"omp-linux-musl-x64": { platform: "linux-musl", arch: "x86_64" },
 	"omp-linux-musl-arm64": { platform: "linux-musl", arch: "arm64" },
-	"omp-windows-x64.exe": { platform: "windows", arch: "x86_64" },
-	"omp-windows-arm64.exe": { platform: "windows", arch: "arm64" },
+	"omp-windows-x64.cmd": { platform: "windows", arch: "x86_64" },
+	"omp-windows-arm64.cmd": { platform: "windows", arch: "arm64" },
+	/** The Node bundle every launcher executes; uploaded once, shared by all platforms. */
+	"cli.js": { platform: "any", arch: "any" },
 };
 
 const RELEASE_TAG = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/;
@@ -99,9 +103,9 @@ async function describe(file: string): Promise<BuildFile> {
 	const name = path.basename(file);
 	const target = ASSETS[name];
 	if (!target) throw new Error(`${file}: not an uploaded release asset (${Object.keys(ASSETS).join(", ")})`);
-	const hasher = new Bun.CryptoHasher("sha256");
+	const hasher = new bun.CryptoHasher("sha256");
 	let size = 0;
-	for await (const chunk of Bun.file(file).stream()) {
+	for await (const chunk of bun.file(file).stream()) {
 		hasher.update(chunk);
 		size += chunk.byteLength;
 	}
@@ -166,7 +170,7 @@ async function main(): Promise<void> {
 		if (!described.some(d => d.name === name)) missing.push(name);
 	}
 	if (missing.length > 0) throw new Error(`missing release binaries: ${missing.join(", ")}`);
-	const notes = releaseNotes(await Bun.file(CHANGELOG).text(), version);
+	const notes = releaseNotes(await bun.file(CHANGELOG).text(), version);
 
 	const token = await oidcToken();
 	const auth = { Authorization: `Bearer ${token}` };
@@ -207,6 +211,6 @@ async function main(): Promise<void> {
 	console.log(`published ${PRODUCT} build ${id}`);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }

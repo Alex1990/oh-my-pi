@@ -3,6 +3,7 @@ import { logger, Snowflake, workerHostEntry } from "@oh-my-pi/pi-utils";
 import {
 	createWorkerHandle,
 	createWorkerSubprocess,
+	nodeSourceFlags,
 	resolveWorkerSpawnCmd,
 	workerEnvFromParent,
 } from "../../subprocess/worker-client";
@@ -32,6 +33,9 @@ import type {
 	WorkerInbound,
 	WorkerOutbound,
 } from "./worker-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker, WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 export { rewriteImports, wrapCode } from "./shared/rewrite-imports";
 
@@ -901,7 +905,7 @@ function markJsSessionAlive(session: JsSession, toolSession: ToolSession, enviro
 		kernelId: session.kernelId,
 		alive: true,
 		environment,
-		interpreter: `Bun ${Bun.version}`,
+		interpreter: `Node ${bun.version}`,
 	});
 }
 
@@ -980,9 +984,12 @@ function spawnJsWorker(): JsEvalWorkerHandle {
 function spawnBunWorker(): JsEvalWorkerHandle {
 	try {
 		const hostEntry = workerHostEntry();
+		// Node's Worker takes a URL object (or a path string); a `file://` string
+		// is rejected. Source entrypoints also need type stripping and the repo's
+		// ESM hooks, which Bun applied natively.
 		const worker = hostEntry
-			? new Worker(hostEntry, { type: "module", argv: ["__omp_worker_js_eval"] })
-			: new Worker(new URL("./worker-entry.ts", import.meta.url).href, { type: "module" });
+			? new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: "__omp_worker_js_eval" } })
+			: new Worker(new URL("./worker-entry.ts", import.meta.url), { execArgv: nodeSourceFlags() });
 		return wrapBunWorker(worker);
 	} catch (error) {
 		throw new Error(
@@ -1039,14 +1046,18 @@ function wrapBunWorker(worker: Worker): JsEvalWorkerHandle {
 			worker.postMessage(msg);
 		},
 		onMessage(handler) {
-			const wrap = (event: MessageEvent): void => handler(event.data as WorkerOutbound);
+			const wrap = (event: Event): void => {
+				if (event instanceof MessageEvent) handler(event.data as WorkerOutbound);
+			};
 			worker.addEventListener("message", wrap);
 			return () => worker.removeEventListener("message", wrap);
 		},
 		onError(handler) {
-			const onError = (event: ErrorEvent): void => handler(errorFromWorkerEvent(event));
-			const onMessageError = (event: MessageEvent): void =>
+			const onError = (event: Event): void => handler(errorFromWorkerEvent(event));
+			const onMessageError = (event: Event): void => {
+				if (!(event instanceof MessageEvent)) return;
 				handler(new ToolError(`JS eval worker message error: ${String(event.data)}`));
+			};
 			const onClose = (): void => handler(new Error("JS eval worker exited"));
 			worker.addEventListener("error", onError);
 			worker.addEventListener("messageerror", onMessageError);
@@ -1094,8 +1105,10 @@ function wrapBunWorker(worker: Worker): JsEvalWorkerHandle {
 	};
 }
 
-function errorFromWorkerEvent(event: ErrorEvent): Error {
-	if (event.error instanceof Error) return event.error;
-	if (event.message) return new Error(event.message);
+function errorFromWorkerEvent(event: Event): Error {
+	if (event instanceof WorkerErrorEvent) {
+		if (event.error instanceof Error) return event.error;
+		if (event.message) return new Error(event.message);
+	}
 	return new Error("Unknown JS eval worker error");
 }

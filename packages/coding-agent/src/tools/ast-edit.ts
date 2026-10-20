@@ -37,6 +37,7 @@ import {
 import { PREVIEW_PENDING_NOTICE, queueResolveHandler } from "./resolve";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const astEditOpSchema = type({
 	pat: type("string").describe("ast pattern"),
@@ -352,7 +353,7 @@ export class AstEditTool implements AgentTool<typeof astEditSchema, AstEditToolD
 					const snapshotPath = await resultSnapshotPath(relativePath, this.session.cwd, resolveContext);
 					if (snapshotPath === undefined) continue;
 					try {
-						const fullText = normalizeToLF(await Bun.file(snapshotPath).text());
+						const fullText = normalizeToLF(await bun.file(snapshotPath).text());
 						const tag = snapshotStore.recordSnapshot(snapshotPath, fullText);
 						hashContexts.set(relativePath, { tag });
 					} catch {
@@ -476,7 +477,7 @@ export class AstEditTool implements AgentTool<typeof astEditSchema, AstEditToolD
 								const appliedPath = await resultSnapshotPath(relativePath, this.session.cwd, applyContext);
 								if (appliedPath === undefined) continue;
 								try {
-									const fullText = normalizeToLF(await Bun.file(appliedPath).text());
+									const fullText = normalizeToLF(await bun.file(appliedPath).text());
 									const freshTag = snapshotStore.recordSnapshot(appliedPath, fullText);
 									freshTagLines.push(formatHashlineHeader(relativePath, freshTag));
 								} catch {

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -47,9 +47,9 @@ describe("InteractiveMode live settings", () => {
 			modelRegistry,
 		});
 		mode = new InteractiveMode(session, "test");
-		vi.spyOn(mode.ui.terminal, "onGlyphProtocolReport").mockImplementation(callback => {
+		mode.ui.terminal.onGlyphProtocolReport = callback => {
 			reportGlyphProtocol = callback;
-		});
+		};
 		await mode.init({ suppressWelcomeIntro: true });
 	});
 

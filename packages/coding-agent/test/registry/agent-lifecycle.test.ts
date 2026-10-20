@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { writeFileSync } from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import { AgentLifecycleManager } from "@oh-my-pi/pi-coding-agent/registry/agent-lifecycle";
@@ -6,6 +7,9 @@ import { AgentRegistry, MAIN_AGENT_ID } from "@oh-my-pi/pi-coding-agent/registry
 import { registerPersistedSubagents } from "@oh-my-pi/pi-coding-agent/registry/persisted-agents";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
 
 interface SessionStub {
 	session: AgentSession;
@@ -722,8 +726,8 @@ describe("AgentLifecycleManager", () => {
 		const rootSessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerId = "Killed-Sub";
 		const workerSessionFile = path.join(tempDir.path(), "main", `${workerId}.jsonl`);
-		await Bun.write(rootSessionFile, "");
-		await Bun.write(workerSessionFile, "");
+		await bun.write(rootSessionFile, "");
+		await bun.write(workerSessionFile, "");
 
 		// Mirror the real wrapped session dispose (createAgentSession's
 		// `unregisterUnlessParked`): disposing a live session unregisters the ref
@@ -760,7 +764,7 @@ describe("AgentLifecycleManager", () => {
 
 		// Reopening after the original registry is gone must preserve the terminal
 		// decision from the sidecar, not infer a fresh parked agent from the JSONL.
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
 		const restoredRegistry = new AgentRegistry();
 		await registerPersistedSubagents(restoredRegistry, rootSessionFile);
 		expect(restoredRegistry.get(workerId)?.status).toBe("aborted");
@@ -771,8 +775,8 @@ describe("AgentLifecycleManager", () => {
 		const rootSessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerId = "Reopen-Sub";
 		const workerSessionFile = path.join(tempDir.path(), "main", `${workerId}.jsonl`);
-		await Bun.write(rootSessionFile, "");
-		await Bun.write(
+		await bun.write(rootSessionFile, "");
+		await bun.write(
 			workerSessionFile,
 			[
 				JSON.stringify({
@@ -803,7 +807,7 @@ describe("AgentLifecycleManager", () => {
 			status: "running",
 		});
 		expect(await lifecycle.release(workerId, killed, { tombstone: true })).toBe(true);
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
 
 		const revived = makeSessionStub();
 		let reviverRuns = 0;
@@ -827,7 +831,7 @@ describe("AgentLifecycleManager", () => {
 		// The killed generation stays fenced off from delayed work.
 		expect(registry.setStatus(workerId, "running", killed)).toBe(false);
 		// The kill marker is gone, so a restart lists the agent as parked again.
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
 		const restoredRegistry = new AgentRegistry();
 		await registerPersistedSubagents(restoredRegistry, rootSessionFile);
 		expect(restoredRegistry.get(workerId)?.status).toBe("parked");
@@ -836,7 +840,7 @@ describe("AgentLifecycleManager", () => {
 	it("a killed transcript no reviver can rebuild stays killed", async () => {
 		using tempDir = TempDir.createSync("@omp-lifecycle-reopen-refused-");
 		const workerSessionFile = path.join(tempDir.path(), "Refused-Sub.jsonl");
-		await Bun.write(workerSessionFile, "");
+		await bun.write(workerSessionFile, "");
 		const killed = registry.register({
 			id: "Refused-Sub",
 			displayName: "task",
@@ -854,7 +858,7 @@ describe("AgentLifecycleManager", () => {
 		await expect(lifecycle.ensureLive("Refused-Sub")).rejects.toThrow(/cannot be resumed/);
 		expect(registry.get("Refused-Sub")).toBe(killed);
 		expect(killed.status).toBe("aborted");
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
 	});
 
 	it("publishes an aborted status only after the session is detached", async () => {
@@ -884,7 +888,7 @@ describe("AgentLifecycleManager", () => {
 		using tempDir = TempDir.createSync("@omp-lifecycle-tombstone-race-");
 		const workerId = "Raced-Sub";
 		const workerSessionFile = path.join(tempDir.path(), `${workerId}.jsonl`);
-		await Bun.write(workerSessionFile, "");
+		await bun.write(workerSessionFile, "");
 
 		let disposeCalls = 0;
 		const session = {
@@ -916,7 +920,10 @@ describe("AgentLifecycleManager", () => {
 			if (!injected && target.endsWith(".tombstone")) {
 				injected = true;
 				disposePathUnregister();
-				await Bun.write(target, "");
+				// Write through `node:fs` directly: the mocked `node:fs/promises`
+				// export is also what `bun.write` (and this mock) delegates to, so
+				// calling it here would recurse into the mock and write nothing.
+				writeFileSync(target, "");
 			}
 		}) as typeof fsp.writeFile);
 
@@ -928,7 +935,7 @@ describe("AgentLifecycleManager", () => {
 		expect(registry.get(workerId)?.status).toBe("aborted");
 		expect(registry.get(workerId)?.session).toBeNull();
 		expect(disposeCalls).toBe(1);
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(true);
 	});
 
 	it("tombstone release disposes the detached session when sidecar persistence fails", async () => {

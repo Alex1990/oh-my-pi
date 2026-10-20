@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { resolveExplicitSearchPaths } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { GrepTool } from "../../src/tools/grep";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testSettings = Settings.isolated();
 const isWindows = process.platform === "win32";
@@ -54,7 +55,7 @@ describe.skipIf(isWindows)("search with omitted paths", () => {
 
 	beforeEach(async () => {
 		cwd = await fs.mkdtemp(path.join(os.tmpdir(), "pi-search-default-cwd-"));
-		await Bun.write(path.join(cwd, "rooted.txt"), "default-needle here\n");
+		await bun.write(path.join(cwd, "rooted.txt"), "default-needle here\n");
 	});
 
 	afterEach(async () => {
@@ -99,8 +100,8 @@ describe.skipIf(isWindows)("search across unrelated filesystem trees", () => {
 		dirA = await fs.mkdtemp(path.join("/tmp", "pi-search-multi-A-"));
 		dirB = await fs.mkdtemp(path.join("/var/tmp", "pi-search-multi-B-"));
 		cwd = await fs.mkdtemp(path.join(os.tmpdir(), "pi-search-multi-cwd-"));
-		await Bun.write(path.join(dirA, "alpha.txt"), "shared-needle alpha\n");
-		await Bun.write(path.join(dirB, "beta.txt"), "shared-needle beta\n");
+		await bun.write(path.join(dirA, "alpha.txt"), "shared-needle alpha\n");
+		await bun.write(path.join(dirB, "beta.txt"), "shared-needle beta\n");
 	});
 
 	afterEach(async () => {
@@ -140,9 +141,9 @@ describe.skipIf(isWindows)("resolveExplicitSearchPaths shared non-root ancestor"
 		parent = await fs.mkdtemp(path.join(os.tmpdir(), "pi-search-ancestor-"));
 		repo = path.join(parent, "repo");
 		await fs.mkdir(path.join(repo, "src"), { recursive: true });
-		await Bun.write(path.join(repo, "src", "a.ts"), "alpha\n");
+		await bun.write(path.join(repo, "src", "a.ts"), "alpha\n");
 		cousinFile = path.join(parent, "homeish", ".gitconfig");
-		await Bun.write(cousinFile, "[push]\n\tfollowTags = true\n");
+		await bun.write(cousinFile, "[push]\n\tfollowTags = true\n");
 	});
 
 	afterEach(async () => {
@@ -205,7 +206,7 @@ describe.skipIf(!isWindows)("resolveExplicitSearchPaths Windows casing", () => {
 		const repo = await fs.mkdtemp(path.join(os.tmpdir(), "pi-search-case-"));
 		try {
 			await fs.mkdir(path.join(repo, "src"), { recursive: true });
-			await Bun.write(path.join(repo, "src", "a.ts"), "alpha\n");
+			await bun.write(path.join(repo, "src", "a.ts"), "alpha\n");
 			const driveLetter = repo[0]!;
 			const differentlyCasedDrive =
 				driveLetter === driveLetter.toLowerCase() ? driveLetter.toUpperCase() : driveLetter.toLowerCase();
@@ -228,8 +229,8 @@ describe.skipIf(isWindows)("search with explicit walker-pruned file targets", ()
 	beforeEach(async () => {
 		repo = await fs.mkdtemp(path.join(os.tmpdir(), "pi-search-pruned-"));
 		await fs.mkdir(path.join(repo, ".git"), { recursive: true });
-		await Bun.write(path.join(repo, ".git", "config"), "[push]\n\tfollowTags = true\n");
-		await Bun.write(path.join(repo, "readme.txt"), "no needle here\n");
+		await bun.write(path.join(repo, ".git", "config"), "[push]\n\tfollowTags = true\n");
+		await bun.write(path.join(repo, "readme.txt"), "no needle here\n");
 	});
 
 	afterEach(async () => {
@@ -254,7 +255,7 @@ describe.skipIf(isWindows)("search with explicit walker-pruned file targets", ()
 
 	it("dedupes matches when a file target overlaps a directory target", async () => {
 		await fs.mkdir(path.join(repo, "src"), { recursive: true });
-		await Bun.write(path.join(repo, "src", "a.ts"), "needle-dup\n");
+		await bun.write(path.join(repo, "src", "a.ts"), "needle-dup\n");
 		const tool = new GrepTool(createTestSession(repo));
 
 		const result = await tool.execute("search-overlap", {

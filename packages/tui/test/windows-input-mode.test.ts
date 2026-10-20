@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Editor, type Component } from "@oh-my-pi/pi-tui";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { matchesAppFollowUp } from "@oh-my-pi/pi-tui/keybinding-matchers";
@@ -10,6 +10,7 @@ import {
 	type ProcessTerminalRenderHarness,
 } from "./process-terminal-render-harness";
 import { defaultEditorTheme } from "./test-themes";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Records as the Windows console host emits them: CSI Vk;Sc;Uc;Kd;Cs;Rc _
 const SHIFT_ENTER = "\x1b[13;28;13;1;16;1_";
@@ -153,13 +154,13 @@ class InputRecorder implements Component {
 }
 
 const SSH_ENV_KEYS = ["SSH_CONNECTION", "SSH_TTY", "SSH_CLIENT"] as const;
-const originalSshEnv = SSH_ENV_KEYS.map(key => [key, Bun.env[key]] as const);
+const originalSshEnv = SSH_ENV_KEYS.map(key => [key, bun.env[key]] as const);
 
 describe("ProcessTerminal win32-input-mode fallback", () => {
 	let harness: ProcessTerminalRenderHarness | undefined;
 
 	beforeEach(() => {
-		for (const key of SSH_ENV_KEYS) delete Bun.env[key];
+		for (const key of SSH_ENV_KEYS) delete bun.env[key];
 	});
 
 	afterEach(() => {
@@ -167,8 +168,8 @@ describe("ProcessTerminal win32-input-mode fallback", () => {
 		harness?.dispose();
 		harness = undefined;
 		for (const [key, value] of originalSshEnv) {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 	});
 
@@ -358,7 +359,7 @@ describe("ProcessTerminal win32-input-mode fallback", () => {
 		// Over Windows OpenSSH the console host's input comes from the remote
 		// terminal's VT stream; win32-input-mode re-encodes `ESC [ A` as three
 		// separate key records (Escape, `[`, `A`), so arrow keys act as Escape.
-		Bun.env.SSH_CONNECTION = "192.0.2.10 54321 192.0.2.20 22";
+		bun.env.SSH_CONNECTION = "192.0.2.10 54321 192.0.2.20 22";
 		harness = createProcessTerminalRenderHarness(100, 30, { conpty: true, nativeWindowsConsole: true });
 		await harness.settle();
 		harness.writes.length = 0;

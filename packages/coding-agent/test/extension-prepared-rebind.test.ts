@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { bindPreparedExtensions, loadExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/types";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const temporaryDirectories: string[] = [];
 
@@ -24,7 +25,7 @@ describe("prepared extension rebinding", () => {
 		const extensionPath = path.join(directory, "counter.ts");
 		const counterKey = `__omp_prepared_extension_${crypto.randomUUID().replaceAll("-", "")}`;
 		const bindingsKey = `${counterKey}_bindings`;
-		await Bun.write(
+		await bun.write(
 			extensionPath,
 			`Reflect.set(globalThis, ${JSON.stringify(counterKey)}, Number(Reflect.get(globalThis, ${JSON.stringify(counterKey)}) ?? 0) + 1);\nexport default function counterExtension(api) {\n  const bindings = Reflect.get(globalThis, ${JSON.stringify(bindingsKey)}) ?? [];\n  bindings.push(api);\n  Reflect.set(globalThis, ${JSON.stringify(bindingsKey)}, bindings);\n}\n`,
 		);

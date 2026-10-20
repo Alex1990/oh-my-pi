@@ -7,7 +7,7 @@
  * - mainFrame readiness is polled past the frameTree race.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, test, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -43,6 +43,9 @@ import {
 } from "puppeteer-core";
 import { rejectionOf } from "../helpers/rejection";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 let sharedHeadless: BrowserHandle | undefined;
@@ -148,11 +151,11 @@ interface DisposableExecutable {
 async function spawnDisposableExecutable(args: string[] = []): Promise<DisposableExecutable> {
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-app-path-"));
 	const executablePath = path.join(tempDir, path.basename(process.execPath));
-	await Bun.write(executablePath, Bun.file(process.execPath));
+	await bun.write(executablePath, bun.file(process.execPath));
 	if (process.platform !== "win32") await fs.chmod(executablePath, 0o755);
 	const executable = await fs.realpath(executablePath);
-	const child = Bun.spawn(
-		[executable, "--eval", 'process.stdout.write("ready\\n"); await Bun.stdin.text()', ...args],
+	const child = bun.spawn(
+		[executable, "--eval", 'process.stdout.write("ready\\n"); await bun.stdin.text()', ...args],
 		{
 			stdin: "pipe",
 			stdout: "pipe",
@@ -215,7 +218,7 @@ describe("pickElectronTarget", () => {
 			if (!exe) throw new Error("Expected a Chromium executable");
 			const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-attach-page-readiness-"));
 			const port = await findFreeCdpPort();
-			const child = Bun.spawn(
+			const child = bun.spawn(
 				[
 					exe,
 					"--headless=new",
@@ -375,7 +378,7 @@ describe("pickElectronTarget", () => {
 	test("launches an isolated user-data-dir beside a running executable", async () => {
 		const existing = await spawnDisposableExecutable();
 		const { promise: launched, resolve: markLaunched } = Promise.withResolvers<void>();
-		const marker = Bun.serve({
+		const marker = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch() {
@@ -384,7 +387,7 @@ describe("pickElectronTarget", () => {
 			},
 		});
 		const controller = new AbortController();
-		const childScript = `await fetch(${JSON.stringify(marker.url.href)}); Bun.serve({ port: 0, fetch: () => new Response("ok") });`;
+		const childScript = `await fetch(${JSON.stringify(marker.url.href)}); serve({ port: 0, fetch: () => new Response("ok") });`;
 		const openError = acquireBrowser(
 			{
 				kind: "spawned",
@@ -419,7 +422,7 @@ describe("pickElectronTarget", () => {
 	}, 10_000);
 
 	test("does not reuse a live CDP endpoint belonging to a different profile", async () => {
-		const cdp = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("{}") });
+		const cdp = await serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("{}") });
 		const profile = path.join(os.tmpdir(), `omp-cdp-profile-${crypto.randomUUID()}`);
 		const existing = await spawnDisposableExecutable([
 			`--user-data-dir=${profile}`,
@@ -442,16 +445,16 @@ describe("pickElectronTarget", () => {
 		const wrapper = path.join(root, "google-chrome");
 		const target = path.join(root, "chrome");
 		const profile = path.join(root, "profile");
-		const cdp = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("{}") });
-		await Bun.write(target, Bun.file(process.execPath));
+		const cdp = await serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("{}") });
+		await bun.write(target, bun.file(process.execPath));
 		await fs.chmod(target, 0o755);
-		await Bun.write(wrapper, '#!/bin/bash\nHERE="$(dirname "$0")"\nexec -a "$0" "$HERE/chrome" "$@"\n');
+		await bun.write(wrapper, '#!/bin/bash\nHERE="$(dirname "$0")"\nexec -a "$0" "$HERE/chrome" "$@"\n');
 		await fs.chmod(wrapper, 0o755);
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				wrapper,
 				"--eval",
-				'process.stdout.write("ready\\n"); await Bun.stdin.text()',
+				'process.stdout.write("ready\\n"); await bun.stdin.text()',
 				`--user-data-dir=${profile}`,
 				`--remote-debugging-port=${cdp.port}`,
 			],
@@ -491,7 +494,7 @@ describe("pickElectronTarget", () => {
 				"--use-mock-keychain",
 				"--password-store=basic",
 			];
-			const child = Bun.spawn(
+			const child = bun.spawn(
 				[exe, ...flags, `--user-data-dir=${borrowedProfile}`, `--remote-debugging-port=${port}`],
 				{ stdin: "ignore", stdout: "ignore", stderr: "ignore" },
 			);
@@ -547,7 +550,7 @@ describe("pickElectronTarget", () => {
 			if (!exe) throw new Error("Expected a Chromium executable");
 			const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-connected-viewport-"));
 			const port = await findFreeCdpPort();
-			const child = Bun.spawn(
+			const child = bun.spawn(
 				[
 					exe,
 					"--headless=new",
@@ -707,7 +710,7 @@ describe("pickElectronTarget", () => {
 
 	test("names the refused CDP websocket instead of reporting [object ErrorEvent]", async () => {
 		// `/json/version` answers, but its debugger websocket refuses the upgrade.
-		const cdp = Bun.serve({
+		const cdp = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: (request, server) =>
@@ -767,14 +770,14 @@ describe("resolveSpawnArgs", () => {
 	});
 });
 describe("pickElectronTarget relay path", () => {
-	let relay: Bun.Server<undefined>;
+	let relay: Server<undefined>;
 	let relayJson: string;
 	let available = true;
 	let relayEntries = RELAY_ENTRIES;
-	beforeEach(() => {
+	beforeEach(async () => {
 		available = true;
 		relayEntries = RELAY_ENTRIES;
-		relay = Bun.serve({
+		relay = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch(req) {
@@ -1137,7 +1140,7 @@ it("uses relay metadata through a proxy without corrupting UTF-8 titles", async 
 	];
 	let relayHits = 0;
 	let proxyHits = 0;
-	const relay = Bun.serve({
+	const relay = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: () => {
@@ -1145,7 +1148,7 @@ it("uses relay metadata through a proxy without corrupting UTF-8 titles", async 
 			return Response.json(entries);
 		},
 	});
-	const proxy = Bun.serve({
+	const proxy = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: () => {
@@ -1226,8 +1229,8 @@ describe("probeCdpStatus", () => {
 	// loopback addresses, so a bare fetch()/node:http probe misreports a healthy
 	// CDP daemon as dead. The raw-TCP probe must ignore HTTP_PROXY entirely.
 	test("returns the loopback status even when HTTP_PROXY 502s the request", async () => {
-		const cdp = Bun.serve({ port: 0, fetch: () => new Response("{}", { status: 200 }) });
-		const proxy = Bun.serve({ port: 0, fetch: () => new Response("Bad Gateway", { status: 502 }) });
+		const cdp = await serve({ port: 0, fetch: () => new Response("{}", { status: 200 }) });
+		const proxy = await serve({ port: 0, fetch: () => new Response("Bad Gateway", { status: 502 }) });
 		const saved = { HTTP_PROXY: process.env.HTTP_PROXY, http_proxy: process.env.http_proxy };
 		process.env.HTTP_PROXY = `http://127.0.0.1:${proxy.port}`;
 		process.env.http_proxy = `http://127.0.0.1:${proxy.port}`;
@@ -1249,7 +1252,7 @@ describe("probeCdpStatus", () => {
 	});
 
 	test("surfaces a non-2xx status from a live endpoint", async () => {
-		const server = Bun.serve({ port: 0, fetch: () => new Response("nope", { status: 503 }) });
+		const server = await serve({ port: 0, fetch: () => new Response("nope", { status: 503 }) });
 		try {
 			const status = await probeCdpStatus(`http://127.0.0.1:${server.port}/json/version`, { timeoutMs: 1500 });
 			expect(status).toBe(503);
@@ -1265,7 +1268,7 @@ describe("probeCdpStatus", () => {
 	});
 
 	test("returns null when the request is already aborted", async () => {
-		const server = Bun.serve({ port: 0, fetch: () => new Response("{}", { status: 200 }) });
+		const server = await serve({ port: 0, fetch: () => new Response("{}", { status: 200 }) });
 		try {
 			const status = await probeCdpStatus(`http://127.0.0.1:${server.port}/json/version`, {
 				timeoutMs: 1500,

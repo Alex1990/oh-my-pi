@@ -1,11 +1,14 @@
 # Test --source install from local repo
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y curl ca-certificates unzip build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg unzip build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+# Install Node.js 22 and the pnpm release the repository pins.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 
 # Install Rust — the host native addon builds through the default
 # cargo/napi-rs backend, so no bazelisk is needed.
@@ -17,9 +20,15 @@ WORKDIR /repo
 COPY . .
 
 # Install dependencies, build native addon, and link globally
-RUN bun install --frozen-lockfile
-RUN bun --cwd=packages/natives run build
-RUN cd packages/coding-agent && bun link
+RUN pnpm install --frozen-lockfile
+RUN pnpm --dir packages/natives run build
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN pnpm --dir packages/coding-agent link --global
+
+# The repository manifest points bin.omp at the TypeScript entrypoint, so the
+# linked command needs Node's type transform and the repo loader.
+ENV NODE_OPTIONS="--experimental-transform-types --import /repo/scripts/node-runtime-loader.mjs"
 
 # Verify
 RUN omp --version

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
 	createHandoffSummaryMessageComponent,
@@ -6,6 +6,7 @@ import {
 } from "@oh-my-pi/pi-tui/chat/compaction-summary-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { CustomMessage } from "@oh-my-pi/pi-coding-agent/session/messages";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -38,7 +39,7 @@ describe("handoff summary divider", () => {
 		);
 
 		expect(component).toBeInstanceOf(HandoffSummaryMessageComponent);
-		const collapsed = Bun.stripANSI(component!.render(80).join("\n"));
+		const collapsed = bun.stripANSI(component!.render(80).join("\n"));
 		expect(collapsed).toContain("handed-off");
 		expect(collapsed).not.toContain("[handoff]");
 		expect(collapsed).not.toContain("Continue the resize fix");
@@ -56,7 +57,7 @@ describe("handoff summary divider", () => {
 		);
 
 		expect(component).toBeInstanceOf(HandoffSummaryMessageComponent);
-		const expanded = Bun.stripANSI(component!.render(80).join("\n"));
+		const expanded = bun.stripANSI(component!.render(80).join("\n"));
 		expect(expanded).toContain("Handoff context");
 		expect(expanded).toContain("Continue the resize fix");
 		expect(expanded).not.toContain("<handoff-context>");

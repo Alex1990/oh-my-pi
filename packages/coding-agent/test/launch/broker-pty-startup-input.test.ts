@@ -2,13 +2,14 @@
 // assertion is about real child-process I/O over a real PTY, where the injected
 // bytes arrive asynchronously from the platform's console host. Fake timers
 // cannot drive the pty reader or the daemon's socket RPC.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { startDaemonBrokerFromEnvironment } from "../../src/launch/broker";
 import { createDaemonBrokerClient } from "../../src/launch/client";
 import { DAEMON_IDLE_GRACE_ENV, DAEMON_PROJECT_DIR_ENV, DAEMON_RUNTIME_DIR_ENV } from "../../src/launch/protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function restoreEnv(name: string, value: string | undefined): void {
 	if (value === undefined) delete process.env[name];
@@ -52,7 +53,7 @@ describe("supervised PTY startup input", () => {
 		const runtimeDir = path.join(tempDir.path(), "runtime");
 		await fs.mkdir(projectDir);
 		const scriptPath = path.join(projectDir, "first-read.ts");
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`process.stdin.setRawMode(true);
 process.stdin.setEncoding("utf8");

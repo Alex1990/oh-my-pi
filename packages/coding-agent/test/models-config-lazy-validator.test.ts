@@ -1,6 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 interface ProbeResult {
 	retainedHeapNodes: number;
@@ -19,11 +21,11 @@ interface ProbeResults {
 	custom: ProbeResult;
 }
 
-const probePath = path.join(import.meta.dir, "fixtures", "models-config-validator-construction-probe.ts");
+const probePath = path.join(import.meta.dirname, "fixtures", "models-config-validator-construction-probe.ts");
 
 async function runProbe(root: string): Promise<ProbeResults> {
-	const proc = Bun.spawn([process.execPath, probePath, root], {
-		cwd: path.join(import.meta.dir, "../../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath, root], {
+		cwd: path.join(import.meta.dirname, "../../.."),
 		stdout: "pipe",
 		stderr: "pipe",
 	});

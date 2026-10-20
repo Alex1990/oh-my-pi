@@ -14,6 +14,7 @@ import { getImageDimensions } from "../terminal-capabilities";
 import { node } from "./describe";
 import { imageLinksEnabled, transcriptImageLink } from "../prompt/image-references";
 import type { NativeChild, NativeNode } from "./node";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface NativeBlob {
 	readonly id: string;
@@ -38,7 +39,7 @@ interface BlobTagged {
 
 function getOrCreateBlob(bytes: Uint8Array, mime: string): NativeBlob {
 	const known = (bytes as BlobTagged)[kBlobId];
-	const id = known ?? new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	const id = known ?? new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 	(bytes as BlobTagged)[kBlobId] = id;
 	let blob = blobs.get(id)?.deref();
 	if (!blob) {

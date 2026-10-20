@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { pruneDeadDaemonRuntimeDirs } from "../../src/launch/presence";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STALE = new Date(Date.now() - 30 * 60_000);
 let deadPid = 0;
@@ -16,10 +17,10 @@ async function scope(
 	await fs.mkdir(path.join(dir, "clients"), { recursive: true });
 	if (init.pid !== undefined) {
 		const pid = init.pid === "dead" ? deadPid : init.pid;
-		await Bun.write(path.join(dir, "broker.pid"), JSON.stringify({ pid, instanceId: name }));
+		await bun.write(path.join(dir, "broker.pid"), JSON.stringify({ pid, instanceId: name }));
 	}
 	for (const clientPid of init.clients ?? []) {
-		await Bun.write(
+		await bun.write(
 			path.join(dir, "clients", `${clientPid}-x.json`),
 			JSON.stringify({ pid: clientPid, id: `${clientPid}-x`, projectDir: dir }),
 		);
@@ -31,7 +32,7 @@ async function scope(
 describe("pruneDeadDaemonRuntimeDirs", () => {
 	beforeAll(async () => {
 		// A definitely-dead PID: spawn a process and reap it.
-		const proc = Bun.spawn(["true"]);
+		const proc = bun.spawn(["true"]);
 		await proc.exited;
 		deadPid = proc.pid;
 	});
@@ -69,7 +70,7 @@ describe("pruneDeadDaemonRuntimeDirs", () => {
 
 		await pruneDeadDaemonRuntimeDirs(current);
 
-		expect(await fs.exists(sibling)).toBe(true);
+		expect(await bun.file(sibling).exists()).toBe(true);
 	});
 
 	it("never sweeps outside the daemons container when a runtime dir is relocated (issue #8721)", async () => {

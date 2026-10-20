@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
 import { streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { Context, Model } from "@oh-my-pi/pi-ai/types";
@@ -13,6 +13,7 @@ import {
 	TurnEndedUpdateSchema,
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, fromBinary, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CONNECT_END_STREAM_FLAG = 0x02;
 
@@ -80,10 +81,10 @@ const context: Context = { messages: [{ role: "user", content: "transport", time
  * Serves RunSSE and hands its response controller to `onRunRequest` once the
  * client's first BidiAppend (the run request) arrives.
  */
-function startRunSseServer(onRunRequest: (controller: ReadableStreamDefaultController<Uint8Array>) => void) {
+async function startRunSseServer(onRunRequest: (controller: ReadableStreamDefaultController<Uint8Array>) => void) {
 	const streamReady = Promise.withResolvers<ReadableStreamDefaultController<Uint8Array>>();
 	let runRequestSeen = false;
-	return Bun.serve({
+	return await serve({
 		port: 0,
 		async fetch(request) {
 			const url = new URL(request.url);
@@ -131,7 +132,7 @@ it("streams through RunSSE and sends AgentClientMessage frames through BidiAppen
 	const appendedCases: string[] = [];
 	const streamingHeaders: string[] = [];
 
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		async fetch(request) {
 			const url = new URL(request.url);
@@ -193,7 +194,7 @@ it("streams through RunSSE and sends AgentClientMessage frames through BidiAppen
 it(
 	"settles a turn with the error an end-stream frame carries",
 	async () => {
-		const server = startRunSseServer(controller => {
+		const server = await startRunSseServer(controller => {
 			controller.enqueue(textDeltaFrame("partial"));
 			controller.enqueue(connectEndErrorFrame("resource_exhausted"));
 			controller.close();
@@ -219,7 +220,7 @@ it(
 it(
 	"settles a caller abort on a live RunSSE stream as aborted",
 	async () => {
-		const server = startRunSseServer(controller => {
+		const server = await startRunSseServer(controller => {
 			// `turnEnded` arrives but the transport never ends, so the turn is still
 			// waiting on a clean end when the caller aborts. Closing the transport
 			// must not turn that abort into a successful completion.

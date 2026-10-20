@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression coverage for #1589: `git.clone({ sha })` used to hardcode
 // `--depth 1`, producing a shallow clone whose object store never contained
@@ -27,13 +28,15 @@ function gitRun(cwd: string, args: string[]): string {
 	delete env.GIT_INDEX_FILE;
 	delete env.GIT_OBJECT_DIRECTORY;
 	delete env.GIT_ALTERNATE_OBJECT_DIRECTORIES;
-	const result = Bun.spawnSync({
-		cmd: ["git", ...args],
-		cwd,
-		env,
-		stdout: "pipe",
-		stderr: "pipe",
-	});
+	const result = bun.spawnSync(
+		{ cmd: ["git", ...args] },
+		{
+			cwd,
+			env,
+			stdout: "pipe",
+			stderr: "pipe",
+		},
+	);
 	if (result.exitCode !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr.toString()}`);
 	}

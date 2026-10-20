@@ -39,6 +39,7 @@ import { resolveIdaRuntime } from "./runtime";
 import { cfgIdaIdleCloseSec, cfgIdaMaxOpen } from "./settings";
 import { type FatSelection, type IdbLocation, idbRef, type LocateIdbOptions, locateIdb } from "./store";
 import type { IdaDatabaseInfo, IdaRequestOptions } from "./supervisor";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HOST_LABEL = "IDA host";
 const CONNECT_TIMEOUT_MS = 3_000;
@@ -521,7 +522,7 @@ export async function smokeTestIdaHost(): Promise<void> {
 				alive = (await conn.call({ id: conn.nextId(), op: "ping" }).catch(() => undefined)) === "pong";
 				conn.close();
 			}
-			if (!alive) await Bun.sleep(200);
+			if (!alive) await bun.sleep(200);
 		}
 		if (!alive) {
 			throw new Error(`ida host smoke failed: no ping response (${proc.peekStderr().slice(-500) || "no stderr"})`);

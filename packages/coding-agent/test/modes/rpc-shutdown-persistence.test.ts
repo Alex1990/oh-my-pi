@@ -6,10 +6,11 @@
  * sees a clean exit for a run whose transcript never became durable, or never
  * learns about a failure the mode already reported and then recovered from.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { isRecord, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: TempDir[] = [];
 
@@ -24,7 +25,7 @@ afterEach(async () => {
  */
 const unsupportedHarness =
 	process.platform === "win32" ||
-	Bun.which("mkfifo") === null ||
+	bun.which("mkfifo") === null ||
 	(typeof process.getuid === "function" && process.getuid() === 0);
 
 /**
@@ -34,7 +35,7 @@ const unsupportedHarness =
  */
 function spawnRpcChild(options: { root: string; sessionDir: string }) {
 	const fifoPath = path.join(options.root, "stdout.fifo");
-	const mkfifo = Bun.spawnSync(["mkfifo", fifoPath]);
+	const mkfifo = bun.spawnSync(["mkfifo", fifoPath]);
 	expect(mkfifo.exitCode, mkfifo.stderr.toString()).toBe(0);
 	// O_NONBLOCK is explicit: an empty blocking read on a FIFO never returns, and
 	// the drain loop's deadline check can only run between reads.
@@ -42,8 +43,8 @@ function spawnRpcChild(options: { root: string; sessionDir: string }) {
 
 	const agentDir = path.join(options.root, "agent");
 	fs.mkdirSync(agentDir, { recursive: true });
-	const packageRoot = path.join(import.meta.dir, "..", "..");
-	const child = Bun.spawn(
+	const packageRoot = path.join(import.meta.dirname, "..", "..");
+	const child = bun.spawn(
 		[
 			"bun",
 			path.join(packageRoot, "src", "cli.ts"),
@@ -58,7 +59,7 @@ function spawnRpcChild(options: { root: string; sessionDir: string }) {
 		{
 			cwd: packageRoot,
 			env: {
-				...Bun.env,
+				...bun.env,
 				ANTHROPIC_API_KEY: "sk-ant-not-a-real-key",
 				PI_NO_TITLE: "1",
 				NO_COLOR: "1",
@@ -91,7 +92,7 @@ function spawnRpcChild(options: { root: string; sessionDir: string }) {
 			const deadline = Date.now() + budgetMs;
 			while (!stderrText.includes(needle)) {
 				if (Date.now() > deadline) return false;
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 			return true;
 		},
@@ -134,7 +135,7 @@ async function drainFifo(
 			child.kill();
 			break;
 		}
-		await Bun.sleep(2);
+		await bun.sleep(2);
 	}
 	return output;
 }
@@ -158,7 +159,7 @@ function findPersistenceNotice(output: string): Record<string, unknown> | undefi
  * decides not to has no event to await.
  */
 const exitedWhileQueued = (child: { exited: Promise<number> }): Promise<boolean> =>
-	Promise.race([child.exited.then(() => true), Bun.sleep(2_000).then(() => false)]);
+	Promise.race([child.exited.then(() => true), bun.sleep(2_000).then(() => false)]);
 
 describe.skipIf(unsupportedHarness)("RPC shutdown on a failed session store", () => {
 	it("drains the queued notice before exiting on a persistence failure", async () => {

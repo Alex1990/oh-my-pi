@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { fetchOpenAICompatibleModels } from "../src/discovery/openai-compatible";
 import type { FetchImpl } from "../src/types";
 

@@ -8,6 +8,7 @@ import { runRpcMode } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-mode";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Real RPC dispatch and session queues; only the external model response is scripted.
 const authStorage = await AuthStorage.create(path.join(process.cwd(), "auth.db"));
@@ -41,7 +42,7 @@ const firstCall: Record<string, MockHandler> = {
 	},
 };
 const mock = createMockModel({
-	responses: [firstCall[Bun.env.QUEUED_RPC_SCRIPT ?? ""] ?? started],
+	responses: [firstCall[bun.env.QUEUED_RPC_SCRIPT ?? ""] ?? started],
 	handler: { content: ["Handled queued request"] },
 });
 const agent = new Agent({

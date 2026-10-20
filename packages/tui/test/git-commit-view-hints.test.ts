@@ -6,7 +6,7 @@
  * sections. These tests pin that the footer stops advertising the dead keys and
  * that the commit view names itself, without touching the worktree wording.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripTerminalSequences } from "@oh-my-pi/pi-tui/utils";
 import { gitFooterHints } from "../src/apps/git/git-tui";
 import { Sidebar } from "../src/apps/git/sidebar";

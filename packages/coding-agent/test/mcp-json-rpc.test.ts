@@ -1,5 +1,5 @@
-import type { BodyInit } from "bun";
-import { afterEach, describe, expect, it, vi } from "bun:test";
+
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai";
 import { fetchExaTools } from "@oh-my-pi/pi-coding-agent/exa/mcp-client";
 import { callMCP, redactUrlForLog } from "@oh-my-pi/pi-coding-agent/mcp/json-rpc";
@@ -11,7 +11,7 @@ interface PostedJsonRpcRequest {
 	method: string;
 }
 
-function parsePostedJsonRpcRequest(body: BodyInit | null | undefined): PostedJsonRpcRequest {
+function parsePostedJsonRpcRequest(body: RequestInit["body"] | null | undefined): PostedJsonRpcRequest {
 	const request: unknown = JSON.parse(String(body));
 	if (
 		!isRecord(request) ||
@@ -29,7 +29,7 @@ function mockMcpFetch(createResponse: (request: PostedJsonRpcRequest) => Respons
 	);
 }
 
-function sseResponse(data: BodyInit | null): Response {
+function sseResponse(data: RequestInit["body"] | null): Response {
 	return new Response(data, { headers: { "Content-Type": "text/event-stream" } });
 }
 

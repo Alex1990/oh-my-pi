@@ -10,7 +10,7 @@
  * real Unix-socket IPC is redirected into a temp dir via a spy on
  * `publishCollabHost`, exactly as in host-registry.test.ts.
  */
-import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -55,6 +55,7 @@ import {
 	cfgStartupSetupWizard,
 	cfgStartupShowSplash,
 } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalPiProfile = process.env.PI_PROFILE;
@@ -612,7 +613,7 @@ describe("interactive collaboration startup", () => {
 			err => outcomes.push(err),
 		);
 		try {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(outcomes).toEqual([]);
 			expect(local.collabGuest).toBe(guest);
 			local.collabController.autoStart();
@@ -650,7 +651,7 @@ describe("interactive collaboration startup", () => {
 			left = true;
 		});
 		try {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(left).toBe(false);
 			expect(local.collabGuest).toBe(guest);
 		} finally {

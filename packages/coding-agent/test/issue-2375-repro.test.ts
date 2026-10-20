@@ -14,7 +14,7 @@
  * paste image bytes directly instead.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
@@ -23,6 +23,7 @@ import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/inp
 import { chipLabel } from "@oh-my-pi/pi-tui/prompt/composer-attachments";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { $which } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // A clipboard with no image on it — the deterministic default for the
 // not-found assertions so a real screenshot on the dev's clipboard cannot
@@ -176,11 +177,11 @@ describe("InputController.handleImagePathPaste (issue #2375)", () => {
 		});
 		// This test file itself: resolvable, readable, but not an image.
 		const nonImage = path.join(os.tmpdir(), `issue-2375-not-png-${Math.random().toString(36).slice(2)}.png`);
-		await Bun.write(nonImage, "not really a png");
+		await bun.write(nonImage, "not really a png");
 		try {
 			await controller.handleImagePathPaste(nonImage);
 		} finally {
-			await Bun.file(nonImage).delete();
+			await bun.file(nonImage).delete();
 		}
 
 		expect(spies.pasteText).not.toHaveBeenCalled();
@@ -192,7 +193,7 @@ describe("InputController.handleImagePathPaste (issue #2375)", () => {
 		const { ctx, spies } = createContext();
 		const controller = new InputController(ctx, EMPTY_CLIPBOARD);
 		const video = path.join(os.tmpdir(), `issue-2375-video-${Math.random().toString(36).slice(2)}.mp4`);
-		const process = Bun.spawn([
+		const process = bun.spawn([
 			"ffmpeg",
 			"-hide_banner",
 			"-loglevel",
@@ -213,7 +214,7 @@ describe("InputController.handleImagePathPaste (issue #2375)", () => {
 
 			await controller.handleImagePathPaste(video);
 		} finally {
-			await Bun.file(video)
+			await bun.file(video)
 				.delete()
 				.catch(() => {});
 		}

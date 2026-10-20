@@ -17,6 +17,7 @@ import {
 	MAIN_AGENT_ID,
 } from "./agent-registry";
 import { getAgentTombstonePath } from "./agent-tombstone";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Maximum prefix entries inspected for task metadata. */
 const MAX_METADATA_LINES = 64;
@@ -331,7 +332,7 @@ async function readPersistedAgentMetadata(
 	const artifactBase = sessionFile.slice(0, -".jsonl".length);
 	const outputPath = `${artifactBase}.md`;
 	const patchPath = `${artifactBase}.patch`;
-	const artifactFiles = Promise.all([Bun.file(outputPath).exists(), Bun.file(patchPath).exists()]);
+	const artifactFiles = Promise.all([bun.file(outputPath).exists(), bun.file(patchPath).exists()]);
 	let createdAt: number | undefined;
 	let activity: string | undefined;
 	let history: AgentHistorySummary = {};
@@ -501,7 +502,7 @@ async function resolveRootSessionFile(registry: AgentRegistry, hint?: string | n
 	// top-level siblings invisible to deep children.
 	for (;;) {
 		const parentFile: string = `${path.dirname(current)}.jsonl`;
-		if (parentFile === current || !(await Bun.file(parentFile).exists())) return current;
+		if (parentFile === current || !(await bun.file(parentFile).exists())) return current;
 		current = parentFile;
 	}
 }
@@ -716,7 +717,7 @@ async function registerPersistedSubagentsFromDir(
 		if (!shouldContinue()) return;
 		if (++entriesSinceYield >= 16) {
 			entriesSinceYield = 0;
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		if (!shouldContinue()) return;
 		if (!entry.isFile() || !entry.name.endsWith(".jsonl") || entry.name.includes(".bak")) continue;

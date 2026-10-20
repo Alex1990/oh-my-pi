@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 
 import { stripVTControlCharacters } from "node:util";
 import { HookInputComponent } from "@oh-my-pi/pi-tui/overlays/hook-input";

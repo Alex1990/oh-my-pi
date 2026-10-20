@@ -135,7 +135,7 @@ Create `APPEND_SYSTEM.md` without a `SYSTEM.md` or `SYSTEM_TEMPLATE.md`:
 ```text
 # ~/.omp/agent/APPEND_SYSTEM.md
 Prefer Bun APIs over Node APIs in this project.
-When you change a public function, run `bun check` before yielding.
+When you change a public function, run `pnpm run check` before yielding.
 ```
 
 ### Supply a custom base prompt

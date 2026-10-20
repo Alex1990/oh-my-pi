@@ -1,7 +1,10 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
+import type * as NodeFs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import * as nativePath from "@oh-my-pi/pi-natives/path";
 import {
 	__resetProjectDirCacheForTests,
@@ -12,6 +15,27 @@ import {
 	relativePathWithinRoot,
 	setProjectDir,
 } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const realpathCalls = vi.hoisted(() => ({ count: 0 }));
+
+// Node's ESM namespace objects are frozen, so `spyOn(fs, "realpathSync")`
+// cannot redefine the export. Wrap the real binding instead.
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFs>();
+	const realpathSync = ((input: Parameters<typeof actual.realpathSync>[0], options?: BufferEncoding | null) => {
+		realpathCalls.count++;
+		return actual.realpathSync(input, options);
+	}) as typeof actual.realpathSync;
+	return { ...actual, realpathSync };
+});
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 const originalProjectDir = fs.realpathSync(process.cwd()).replace(/^\/private(?=\/)/, "");
 
@@ -66,10 +90,10 @@ describe("project directory state", () => {
 		const root = fs.mkdtempSync(path.join(os.tmpdir(), "omp-dirs-containment-"));
 		const candidate = path.join(root, "child");
 		fs.mkdirSync(candidate);
-		const realpath = spyOn(fs, "realpathSync");
+		realpathCalls.count = 0;
 		try {
 			expect(relativePathWithinRoot(root, candidate)).toBe("child");
-			expect(realpath).toHaveBeenCalledTimes(2);
+			expect(realpathCalls.count).toBe(2);
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });
 		}
@@ -100,8 +124,8 @@ describe("dated log path", () => {
 		// On a UTC runner `toISOString()` and the local day agree, so the
 		// in-process assertion above cannot catch a revert there. Run the probe
 		// in a UTC+8 child process, where the two days differ for this fixture.
-		const probe = path.join(import.meta.dir, "fixtures", "local-day-probe.ts");
-		const proc = Bun.spawnSync([process.execPath, probe], {
+		const probe = path.join(import.meta.dirname, "fixtures", "local-day-probe.ts");
+		const proc = bun.spawnSync([process.execPath, ...nodeTsArgs, probe], {
 			env: { ...process.env, TZ: "Asia/Shanghai" },
 			stdout: "pipe",
 			stderr: "pipe",

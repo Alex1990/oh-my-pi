@@ -10,6 +10,7 @@
  * Run: bun packages/agent/bench/proxy-partial-json.bench.ts
  */
 import { parseStreamingJson, parseStreamingJsonThrottled } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOTAL = 100 * 1024;
 const DELTA = 1024;
@@ -19,25 +20,25 @@ for (let i = 0; i < payload.length; i += DELTA) deltas.push(payload.slice(i, i +
 
 function benchUnthrottled(): number {
 	let acc = "";
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (const d of deltas) {
 		acc += d;
 		parseStreamingJson(acc);
 	}
-	return (Bun.nanoseconds() - start) / 1e6;
+	return (bun.nanoseconds() - start) / 1e6;
 }
 
 function benchThrottled(): number {
 	let acc = "";
 	let lastLen = 0;
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (const d of deltas) {
 		acc += d;
 		const parsed = parseStreamingJsonThrottled(acc, lastLen);
 		if (parsed !== null) lastLen = parsed.parsedLen;
 	}
 	parseStreamingJson(acc);
-	return (Bun.nanoseconds() - start) / 1e6;
+	return (bun.nanoseconds() - start) / 1e6;
 }
 
 benchUnthrottled(); // warmup

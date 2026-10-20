@@ -10,6 +10,7 @@ import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { md, node, span, text } from "../native/describe";
 import { type NativeChild, type NativeNode, type NativeUiEvent, rootToggleExpanded } from "../native/node";
 import { Memo } from "../native/memo";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Divider labels per compaction method; unknown/legacy methods fall back to "compacted". */
 const COMPACTION_METHOD_LABELS: Record<string, string> = {
@@ -70,7 +71,7 @@ class DividerSummary implements Component {
 		const label = this.#label();
 		// sep.dot ships pre-padded (" · "); trim so the hint joins with single spaces.
 		const hint = `${theme.sep.dot.trim()} ${expandKeyHint()}`;
-		const plainWidth = Bun.stringWidth(`${label} ${hint}`, { countAnsiEscapeCodes: false });
+		const plainWidth = bun.stringWidth(`${label} ${hint}`, { countAnsiEscapeCodes: false });
 		// ` label hint ` framed by rules on both sides.
 		const remaining = width - plainWidth - 2;
 		if (remaining < 4) {

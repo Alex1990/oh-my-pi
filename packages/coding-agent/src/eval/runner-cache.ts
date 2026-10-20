@@ -11,6 +11,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { logger } from "@oh-my-pi/pi-utils";
 import { assertOwnerPrivateDir } from "../utils/owner-private-dir";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Memoized staged path per cache directory. The value is re-validated on every
 // call: a tmpdir sweep (e.g. macOS `periodic daily clean_tmps`) or any external
@@ -43,10 +44,10 @@ export async function stageRunnerScript(dirName: string, ext: string, script: st
 		stagedPaths.delete(dirName);
 	}
 	const dir = await resolveStagingDir(dirName);
-	const hash = Bun.hash(script).toString(36);
+	const hash = bun.hash(script).toString(36);
 	const target = path.join(dir, `runner-${hash}.${ext}`);
 	if (!fs.existsSync(target)) {
-		await Bun.write(target, script);
+		await bun.write(target, script);
 	}
 	stagedPaths.set(dirName, target);
 	return target;

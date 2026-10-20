@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { scheduler } from "node:timers/promises";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamOllama } from "@oh-my-pi/pi-ai/providers/ollama";

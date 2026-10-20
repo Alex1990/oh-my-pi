@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { applyDisabledExtensionsToState } from "../src/overlays/extensions/state-manager";
 import type { DashboardState, Extension } from "../src/overlays/extensions/types";
 

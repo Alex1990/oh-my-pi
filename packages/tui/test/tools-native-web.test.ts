@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { NativeChild, NativeNode } from "../src/native/node";
 import { askToolRenderer } from "../src/tools/ask";
 import { describeDefaultToolExecution } from "../src/tools/default-renderer";

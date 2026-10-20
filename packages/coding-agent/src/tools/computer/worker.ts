@@ -54,6 +54,7 @@ import {
 	type ToolReply,
 } from "./protocol";
 import { describeWindowMiss } from "./window-miss";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A native input call; resolves to its takeover focus report when it took over. */
 type InputCall = Promise<DesktopFocusReturn | null | void>;
@@ -591,7 +592,7 @@ async function emitScreenshot(
 	options?: ScreenshotOptions,
 ): Promise<ScreenshotResult> {
 	const destination = path.join(os.tmpdir(), `omp-computer-${Snowflake.next()}.png`);
-	await Bun.write(destination, frame.data);
+	await bun.write(destination, frame.data);
 	throwIfAborted(context.signal);
 	const result: ScreenshotResult = {
 		path: destination,

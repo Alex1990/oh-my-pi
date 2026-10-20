@@ -21,6 +21,7 @@ import { LocalModuleLoader } from "./local-module-loader";
 import { JAVASCRIPT_PRELUDE_SOURCE } from "./prelude";
 import { diagnoseCellSyntaxError, wrapCode } from "./rewrite-imports";
 import type { JsStatusEvent } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface RuntimeCallIdentity {
 	siteId: string;
@@ -171,7 +172,7 @@ export function shadowSnapshotDigest(snapshot: ShadowSnapshot): string {
 	// values-only digest would still match at verify time while projections made
 	// against the builtin no longer describe the cell. The template conversion
 	// avoids the mutable `String` global this function itself must survive.
-	return `${Bun.hash(JSON.stringify({ values: snapshot.values, initialGlobals: snapshot.initialGlobals }))}`;
+	return `${bun.hash(JSON.stringify({ values: snapshot.values, initialGlobals: snapshot.initialGlobals }))}`;
 }
 
 const SHADOW_SNAPSHOT_MAX_DEPTH = 16;

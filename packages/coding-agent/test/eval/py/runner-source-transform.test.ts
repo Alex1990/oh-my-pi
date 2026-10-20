@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { $which } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const pythonPath = Bun.env.PYTHON ?? $which("python3") ?? $which("python");
-const runnerPath = path.resolve(import.meta.dir, "../../../src/eval/py/runner.py");
+const pythonPath = bun.env.PYTHON ?? $which("python3") ?? $which("python");
+const runnerPath = path.resolve(import.meta.dirname, "../../../src/eval/py/runner.py");
 
 interface RunnerFrame {
 	type: string;
@@ -15,7 +16,7 @@ interface RunnerFrame {
 
 async function executeCell(code: string): Promise<RunnerFrame[]> {
 	if (!pythonPath) throw new Error("Python is required for the runner regression");
-	const proc = Bun.spawn([pythonPath, "-u", runnerPath], {
+	const proc = bun.spawn([pythonPath, "-u", runnerPath], {
 		stdin: "pipe",
 		stdout: "pipe",
 		stderr: "pipe",

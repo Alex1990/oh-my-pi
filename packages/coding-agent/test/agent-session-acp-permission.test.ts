@@ -5,7 +5,7 @@
  * `ClientBridge.requestPermission`, while regular file-editing tools keep the same no-approval
  * behavior they have in the TUI.
  */
-import { afterAll, afterEach, beforeAll, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel, type MockModelOptions } from "@oh-my-pi/pi-ai/providers/mock";
@@ -28,6 +28,7 @@ import { BashTool } from "@oh-my-pi/pi-coding-agent/tools/bash";
 import { computerTurnInFlight, registerComputerController } from "@oh-my-pi/pi-coding-agent/tools/computer/supervisor";
 import { dispatchXdevTool, resolveMountedXdevExecutable, type XdevState } from "@oh-my-pi/pi-coding-agent/tools/xdev";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ---------------------------------------------------------------------------
 // Shared setup
@@ -934,9 +935,9 @@ it.each(boundaryCases)(
 				if (transition === "new") {
 					expect(await session.newSession()).toBe(true);
 				} else {
-					const targetId = `permission-target-${Bun.nanoseconds()}`;
+					const targetId = `permission-target-${bun.nanoseconds()}`;
 					const targetPath = `${tempDir.path()}/${targetId}.jsonl`;
-					await Bun.write(
+					await bun.write(
 						targetPath,
 						`${JSON.stringify({
 							type: "session",

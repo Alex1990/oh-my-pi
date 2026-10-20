@@ -98,6 +98,9 @@ import {
 } from "./openai-codex/live-steering";
 import { CodexApiError } from "./openai-codex/response-handler";
 import { getCodexAttestationHeader } from "./openai-codex-attestation";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { WebSocketOptions } from "@oh-my-pi/pi-utils/node-serve";
+import { WebSocket } from "@oh-my-pi/pi-utils/node-serve";
 export { createOpenAICodexCompactionRequestContext } from "./openai-codex-compaction";
 import { getOpenAICodexWebSocketEnvValue, isOpenAICodexWebSocketPreferred } from "./openai-codex-transport";
 export { setCodexAttestationProvider } from "./openai-codex-attestation";
@@ -1174,7 +1177,7 @@ function updateCodexSessionMetadataFromHeaders(
 	}
 }
 
-function extractCodexWebSocketHandshakeHeaders(socket: Bun.WebSocket, openEvent?: Event): Headers | undefined {
+function extractCodexWebSocketHandshakeHeaders(socket: WebSocket, openEvent?: Event): Headers | undefined {
 	const eventRecord = openEvent as Record<string, unknown> | undefined;
 	const eventResponse = eventRecord?.response as Record<string, unknown> | undefined;
 	const socketRecord = socket as unknown as Record<string, unknown>;
@@ -3466,7 +3469,7 @@ function getCodexWebSocketSessionKey(
 	responsesLite: boolean,
 ): string | undefined {
 	if (!normalizedSessionId) return undefined;
-	const credentialKey = accountId ? `account:${accountId}` : `token:${Bun.hash(apiKey).toString(36)}`;
+	const credentialKey = accountId ? `account:${accountId}` : `token:${bun.hash(apiKey).toString(36)}`;
 	// Responses Lite is connection-scoped on the WebSocket upgrade, so lite and
 	// non-lite turns must never share a pooled socket or append state.
 	const liteSuffix = responsesLite ? ":lite" : "";
@@ -3638,7 +3641,7 @@ export function getOpenAICodexTransportDetails(
 
 function hashJson(value: unknown): string {
 	const json = JSON.stringify(value);
-	return String(Bun.hash(json === undefined ? "undefined" : json));
+	return String(bun.hash(json === undefined ? "undefined" : json));
 }
 
 function parseCodexResponseStatus(value: unknown): ResponseStatus | undefined {
@@ -3937,7 +3940,7 @@ class CodexWebSocketConnection {
 	#headers: Record<string, string>;
 	#proxy?: string;
 	#onHandshakeHeaders?: (headers: Headers) => void;
-	#socket: Bun.WebSocket | null = null;
+	#socket: WebSocket | null = null;
 	#queue: Array<Record<string, unknown> | Error | null> = [];
 	#waiters: Array<() => void> = [];
 	#connectPromise?: Promise<void>;
@@ -4045,7 +4048,7 @@ class CodexWebSocketConnection {
 		}
 		const { promise, resolve, reject } = Promise.withResolvers<void>();
 		this.#connectPromise = promise;
-		const socket = new (WebSocket as unknown as new (url: string, opts: Bun.WebSocketOptions) => Bun.WebSocket)(
+		const socket = new (WebSocket as unknown as new (url: string, opts: WebSocketOptions) => WebSocket)(
 			this.#url,
 			{ headers: this.#headers, proxy: this.#proxy },
 		);
@@ -4461,7 +4464,7 @@ class CodexWebSocketConnection {
 		for (const waiter of waiters) waiter.reject(new CodexWebSocketTransportError(reason));
 	}
 
-	#captureHandshakeHeaders(socket: Bun.WebSocket, openEvent?: Event): void {
+	#captureHandshakeHeaders(socket: WebSocket, openEvent?: Event): void {
 		const headers = extractCodexWebSocketHandshakeHeaders(socket, openEvent);
 		if (!headers) return;
 		this.#handshakeHeaders = headers;
@@ -4486,7 +4489,7 @@ class CodexWebSocketConnection {
 		log.write(String(data));
 	}
 
-	#startHeartbeat(socket: Bun.WebSocket): void {
+	#startHeartbeat(socket: WebSocket): void {
 		this.#stopHeartbeat();
 		const intervalMs = CODEX_WEBSOCKET_PING_INTERVAL_MS;
 		if (intervalMs <= 0) return;
@@ -4966,7 +4969,7 @@ function convertMessages(model: Model<"openai-codex-responses">, context: Contex
 		const sep = id.search(/[\n|]/);
 		const [callId, itemId] = sep > 0 ? [id.slice(0, sep), id.slice(sep + 1)] : [id, undefined];
 		const normalizedCallId = sanitizeCodexCallId(callId);
-		const rawItemId = itemId ?? Bun.hash(id).toString(36);
+		const rawItemId = itemId ?? bun.hash(id).toString(36);
 		const normalizedItemId = normalizeToolCallId(rawItemId.startsWith("fc") ? rawItemId : `fc_${rawItemId}`).replace(
 			/_+$/,
 			"",

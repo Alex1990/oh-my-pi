@@ -48,6 +48,7 @@ import { toolResult } from "./tool-result";
 import { clampTimeout } from "./tool-timeouts";
 
 import { cfgDebugEnabled, cfgToolsMaxTimeout } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * DAP debug actions that only read program state (no mutation, no execution).
@@ -402,7 +403,7 @@ function formatCustomResponse(command: string, body: unknown): string {
 	try {
 		serialized = JSON.stringify(body, null, 2) ?? "null";
 	} catch {
-		serialized = Bun.inspect(body);
+		serialized = bun.inspect(body);
 	}
 	return `${command} response:\n${serialized}`;
 }

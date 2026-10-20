@@ -123,6 +123,7 @@ import {
 	normalizeWorkspaceDirectory,
 } from "./session-workspace";
 import { recordSessionRecap, recordSessionTitle } from "./session-index";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const JSONL_SUFFIX_LENGTH = ".jsonl".length;
 const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
@@ -136,7 +137,7 @@ const MAX_WRITE_CONFLICT_RECOVERIES = 3;
 
 /** A fresh session id. */
 export function mintSessionId(): string {
-	return Bun.randomUUIDv7();
+	return bun.randomUUIDv7();
 }
 
 /**

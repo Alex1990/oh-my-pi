@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { type AuthBrokerServerHandle, startAuthBroker } from "@oh-my-pi/pi-ai/auth-broker";
 import { runAuthBrokerCommand } from "@oh-my-pi/pi-coding-agent/cli/auth-broker-cli";
 import { getAgentDbPath, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ORIGINAL_STDOUT_WRITE = process.stdout.write.bind(process.stdout);
 
@@ -49,7 +50,7 @@ describe("auth-broker import (CLIProxyAPI)", () => {
 
 	async function writeCliProxyJson(name: string, body: Record<string, unknown>): Promise<string> {
 		const file = path.join(cliproxyDir, name);
-		await Bun.write(file, JSON.stringify(body));
+		await bun.write(file, JSON.stringify(body));
 		return file;
 	}
 
@@ -217,7 +218,7 @@ describe("auth-broker import (broker-routed)", () => {
 		brokerStore = await SqliteAuthCredentialStore.open(path.join(brokerAgentDir, "agent.db"));
 		brokerStorage = new AuthStorage(brokerStore);
 		await brokerStorage.credentials.reload();
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage: brokerStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -241,7 +242,7 @@ describe("auth-broker import (broker-routed)", () => {
 	});
 
 	test("uploads CLIProxyAPI JSONs to the broker when configured, not the local store", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(cliproxyDir, "claude-foo@bar.json"),
 			JSON.stringify({
 				type: "claude",
@@ -286,7 +287,7 @@ describe("auth-broker import (broker-routed)", () => {
 	});
 
 	test("dry-run does not upload even when broker is configured", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(cliproxyDir, "claude-dry.json"),
 			JSON.stringify({
 				type: "claude",

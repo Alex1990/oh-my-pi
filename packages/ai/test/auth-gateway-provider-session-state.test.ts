@@ -9,7 +9,7 @@
  * server-side owner, every containerized / robomp turn re-pays the rejected
  * upstream round-trip that already taught the lesson.
  */
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -27,6 +27,7 @@ import type { Api, Context, Model, ProviderSessionState } from "@oh-my-pi/pi-ai/
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { withOfficialAnthropicEndpoint } from "./helpers";
 import { captureFetch, type CapturedRequest, completionsChunks, kimiK3 } from "./helpers/factory-droid";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function makeAnthropicModel(baseUrl: string): Model<"anthropic-messages"> {
 	return buildModel({
@@ -101,10 +102,10 @@ interface Upstream {
  * — so the provider's one-shot fallback fires, and a gateway that retained the
  * lesson never asks again.
  */
-function startUpstream(): Upstream {
+async function startUpstream(): Promise<Upstream> {
 	const payloads: UpstreamPayload[] = [];
 	const sse = `${SSE_EVENTS.map(event => `event: ${String(event.type)}\ndata: ${JSON.stringify(event)}`).join("\n\n")}\n\n`;
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: async (req): Promise<Response> => {
@@ -151,7 +152,7 @@ async function startGateway(
 	} else {
 		storage.keys.setRuntime(provider, "sk-ant-api-test");
 	}
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: ["test-token"],
 		storage,
@@ -220,7 +221,7 @@ it.each(["/v1/pi/stream", "/v1/chat/completions"])(
 			inferenceRegion: "us" as const,
 		};
 		await storage.credentials.set("factory-droid", credential);
-		const gateway = startAuthGateway({
+		const gateway = await startAuthGateway({
 			bind: "127.0.0.1:0",
 			bearerTokens: ["test-token"],
 			storage,
@@ -298,7 +299,7 @@ it.each(["/v1/pi/stream", "/v1/chat/completions"])(
 			refresh: "refresh-token",
 			expires: Date.now() + 3_600_000,
 		});
-		const gateway = startAuthGateway({
+		const gateway = await startAuthGateway({
 			bind: "127.0.0.1:0",
 			bearerTokens: ["test-token"],
 			storage,
@@ -368,7 +369,7 @@ withOfficialAnthropicEndpoint();
 
 describe("auth-gateway provider session state", () => {
 	it("carries a session's learned fast-mode fallback into its next request", async () => {
-		const upstream = startUpstream();
+		const upstream = await startUpstream();
 		const model = makeAnthropicModel(upstream.url);
 		const gateway = await startGateway(model, "anthropic");
 		try {
@@ -386,7 +387,7 @@ describe("auth-gateway provider session state", () => {
 	});
 
 	it("carries the learned fallback across requests on the foreign-wire routes", async () => {
-		const upstream = startUpstream();
+		const upstream = await startUpstream();
 		const model = makeAnthropicModel(upstream.url);
 		const gateway = await startGateway(model, "anthropic");
 		try {
@@ -410,7 +411,7 @@ describe("auth-gateway provider session state", () => {
 	});
 
 	it("keeps one session's fallback out of another session's requests", async () => {
-		const upstream = startUpstream();
+		const upstream = await startUpstream();
 		const model = makeAnthropicModel(upstream.url);
 		const gateway = await startGateway(model, "anthropic");
 		try {
@@ -428,7 +429,7 @@ describe("auth-gateway provider session state", () => {
 	});
 
 	it("gives two keyless conversations that share an opening their own retained state", async () => {
-		const upstream = startUpstream();
+		const upstream = await startUpstream();
 		const model = makeAnthropicModel(upstream.url);
 		const gateway = await startGateway(model, "anthropic");
 		try {
@@ -469,7 +470,7 @@ describe("auth-gateway provider session state", () => {
 	});
 
 	it("re-probes the account-scoped lesson after the session switches credentials", async () => {
-		const upstream = startUpstream();
+		const upstream = await startUpstream();
 		const model = makeAnthropicModel(upstream.url);
 		const gateway = await startGateway(model, "anthropic");
 		try {

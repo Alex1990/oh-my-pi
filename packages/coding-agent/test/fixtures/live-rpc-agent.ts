@@ -10,6 +10,7 @@ import { runRpcMode } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-mode";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Real RPC dispatch with a scripted live controller (no audio or realtime socket).
 // Stopping the fake writes `live-stopped.json` (its options) so tests can observe teardown after stdin ends.
@@ -39,7 +40,7 @@ class FakeLiveSession implements RpcLiveSession {
 		const { callbacks } = this.options;
 		callbacks.onPhase("connecting");
 		callbacks.onTranscript(undefined);
-		await Bun.sleep(1);
+		await bun.sleep(1);
 		callbacks.onTranscript({ role: "user", turn: 1, text: "hello", final: true });
 		callbacks.onPhase("listening");
 	}
@@ -50,7 +51,7 @@ class FakeLiveSession implements RpcLiveSession {
 
 	stop(): Promise<void> {
 		this.#stopped ??= (async () => {
-			await Bun.write(
+			await bun.write(
 				path.join(cwd, "live-stopped.json"),
 				JSON.stringify({ voice: this.options.voice, instructions: this.options.instructions }),
 			);

@@ -117,6 +117,7 @@ import {
 	shouldDropAutoToolChoiceForReasoning,
 	shouldRetryWithoutStrictTools,
 } from "./openai-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // OpenAI Responses-specific options
 export interface OpenAIResponsesOptions extends StreamOptions {
@@ -1442,8 +1443,8 @@ function matchesResponsesCacheBaseline(
 		if (!baselineBlock || !currentBlock) return false;
 		const breakpoint = baselineBlock.prompt_cache_breakpoint;
 		if (breakpoint) {
-			if (!Bun.deepEquals(baselineBlock, { ...currentBlock, prompt_cache_breakpoint: breakpoint })) return false;
-		} else if (!Bun.deepEquals(baselineBlock, currentBlock)) {
+			if (!bun.deepEquals(baselineBlock, { ...currentBlock, prompt_cache_breakpoint: breakpoint })) return false;
+		} else if (!bun.deepEquals(baselineBlock, currentBlock)) {
 			return false;
 		}
 	}

@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { downloadFile, getLatestVersion } from "@oh-my-pi/pi-coding-agent/utils/tools-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function mockDownloadResponse(response: Response): void {
 	const fetchMock: typeof globalThis.fetch = Object.assign(async () => response, {
-		preconnect: globalThis.fetch.preconnect,
+		preconnect: preconnectOf(globalThis.fetch),
 	});
 	vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 }
@@ -21,7 +23,7 @@ describe("tool asset downloads", () => {
 
 		await downloadFile("https://example.test/tool.bin", dest);
 
-		expect(await Bun.file(dest).text()).toBe("tool-bytes");
+		expect(await bun.file(dest).text()).toBe("tool-bytes");
 	});
 
 	it("aborts a stalled response body and removes the partial file", async () => {
@@ -44,7 +46,7 @@ describe("tool asset downloads", () => {
 		controller.abort(new DOMException("The operation timed out.", "TimeoutError"));
 
 		await expect(download).rejects.toThrow("Download timed out: https://example.test/tool.bin");
-		expect(await Bun.file(dest).exists()).toBe(false);
+		expect(await bun.file(dest).exists()).toBe(false);
 	});
 });
 
@@ -69,11 +71,11 @@ describe("github release lookup", () => {
 	function captureFetch(tag: string): RequestInit[] {
 		const requests: RequestInit[] = [];
 		const fetchMock: typeof globalThis.fetch = Object.assign(
-			async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (_input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				requests.push(init ?? {});
 				return new Response(JSON.stringify({ tag_name: `v${tag}` }));
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 		return requests;

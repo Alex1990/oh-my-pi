@@ -2,7 +2,7 @@
  * `tools.approvalMode: always-ask-cached` — resolver semantics, the grant store, the prompt's
  * grant choices, and the wrapper's approve-then-remember cycle.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AgentTool, AgentToolContext, ToolTier } from "@oh-my-pi/pi-agent-core";

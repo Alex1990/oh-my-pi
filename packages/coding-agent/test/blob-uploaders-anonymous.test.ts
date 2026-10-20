@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { BlobUploader, BlobUploadRequest } from "../src/blob-broker/publication";
 import type { DestinationRuntimeConfig, FetchImpl } from "../src/blob-broker/uploader-runtime";
 import { createAnonymousUploader } from "../src/blob-broker/uploaders-anonymous";

@@ -4,6 +4,7 @@ import { OmpErrors, type } from "@oh-my-pi/omptype";
 import type { ProviderFileReference } from "@oh-my-pi/pi-ai";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import type { RemoteDeleteAction } from "./publication";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Model providers whose official APIs support reusable uploaded-file references. */
 export type ProviderFileProvider = "openai" | "anthropic" | "google";
@@ -135,12 +136,12 @@ const PersistedIndexSchema = type({
 
 /** Return a lowercase SHA-256 digest without retaining the supplied credential. */
 export function hashProviderFileCredential(credential: string): string {
-	return Bun.SHA256.hash(credential, "hex");
+	return bun.SHA256.hash(credential, "hex");
 }
 
 /** Return the content digest used to deduplicate provider-native uploads. */
 export function hashProviderFileContent(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex");
+	return bun.SHA256.hash(bytes, "hex");
 }
 
 /** Convert a durable cache handle to the provider reference carried by AI image content. */

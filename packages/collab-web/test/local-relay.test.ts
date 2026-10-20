@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type LocalRelay, startLocalRelay } from "../scripts/local-relay";
 import { packEnvelope, unpackEnvelope } from "../src/lib/link";
 
@@ -61,7 +61,7 @@ function waitEvent<T extends Event>(
 	timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
 	const { promise, resolve, reject } = Promise.withResolvers<T>();
-	let timer: Timer | undefined;
+	let timer: NodeJS.Timeout | undefined;
 	const cleanup = (): void => {
 		ws.removeEventListener(type, onEvent);
 		if (timer !== undefined) clearTimeout(timer);
@@ -101,16 +101,16 @@ function closeSocket(ws: WebSocket): void {
 	if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) ws.close(1000);
 }
 
-afterEach(() => {
+afterEach(async () => {
 	for (const ws of sockets.splice(0)) closeSocket(ws);
 	inboxes.clear();
-	relay?.stop();
+	await relay?.stop();
 	relay = null;
 });
 
 describe("local collab relay", () => {
 	it("rejects non-relay requests and guests before a host creates the room", async () => {
-		relay = startLocalRelay();
+		relay = await startLocalRelay();
 
 		const notFound = await fetch(`${relayHttpUrl()}/nope`);
 		expect(notFound.status).toBe(404);
@@ -125,7 +125,7 @@ describe("local collab relay", () => {
 	});
 
 	it("routes opaque envelopes without decrypting them", async () => {
-		relay = startLocalRelay();
+		relay = await startLocalRelay();
 		const host = socket(`/r/${ROOM}?role=host`);
 		await waitOpen(host);
 
@@ -158,7 +158,7 @@ describe("local collab relay", () => {
 	});
 
 	it("enforces one host and closes guests when the room host leaves", async () => {
-		relay = startLocalRelay();
+		relay = await startLocalRelay();
 		const host = socket(`/r/${ROOM}?role=host`);
 		await waitOpen(host);
 

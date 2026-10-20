@@ -9,6 +9,7 @@ import * as AIError from "../../error";
 import { extractGoogleValidationUrl, formatGoogleValidationRequiredMessage } from "../../utils/google-validation";
 import type { AfterExchangeHook } from "../hooks/types";
 import { oauthFetch, throwIfLoginCancelled } from "./google-oauth-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 const CODE_ASSIST_ENDPOINT = "https://cloudcode-pa.googleapis.com";
 
 interface LoadCodeAssistPayload {
@@ -68,7 +69,7 @@ export async function pollOperation(
 		if (attempt > 0) {
 			onProgress?.(`Waiting for project provisioning (attempt ${attempt + 1}/${POLL_MAX_ATTEMPTS})...`);
 			throwIfLoginCancelled(signal);
-			await Bun.sleep(POLL_INTERVAL_MS);
+			await bun.sleep(POLL_INTERVAL_MS);
 		}
 
 		throwIfLoginCancelled(signal);

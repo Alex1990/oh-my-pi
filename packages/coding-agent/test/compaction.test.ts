@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type AgentMessage, Tokenizer } from "@oh-my-pi/pi-agent-core";
 import {
@@ -30,6 +30,7 @@ import { parseSessionEntries } from "@oh-my-pi/pi-coding-agent/session/session-l
 import { migrateSessionEntries } from "@oh-my-pi/pi-coding-agent/session/session-migrations";
 import { mockFetch } from "./helpers/fetch-mock";
 import { e2eApiKey } from "./utilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tokenizer = new Tokenizer();
 
@@ -39,7 +40,7 @@ const tokenizer = new Tokenizer();
 
 async function loadLargeSessionEntries(): Promise<SessionEntry[]> {
 	const sessionPath = path.join(import.meta.dirname, "fixtures/large-session.jsonl");
-	const content = await Bun.file(sessionPath).text();
+	const content = await bun.file(sessionPath).text();
 	const entries = parseSessionEntries(content);
 	migrateSessionEntries(entries); // Add id/parentId for v1 fixtures
 	return entries.filter((e): e is SessionEntry => e.type !== "session");

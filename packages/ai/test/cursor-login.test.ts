@@ -1,6 +1,7 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type AuthAccountPolicies, AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EMAIL = "dev@example.com";
 const POLICIES = [{ provider: "cursor", account: { email: EMAIL }, priority: -1 }] satisfies AuthAccountPolicies;
@@ -46,7 +47,7 @@ describe("Cursor account email", () => {
 		const store = new SqliteAuthCredentialStore(new Database(":memory:"));
 		const auth = new AuthStorage(store, { accountPolicies: POLICIES });
 		try {
-			vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+			vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 			stubCursor(cursorAccessToken("login"));
 
 			await auth.oauth.login("cursor", { onAuth() {}, onPrompt: async () => "" });

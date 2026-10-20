@@ -31,7 +31,7 @@ export function markitConversionCacheKey(bytes: Uint8Array, extension: string): 
 	const normalizedExtension = extension.trim().toLowerCase().replace(/^\.+/, "") || "bin";
 	const safeExtension = normalizedExtension.replace(/[^a-z0-9]+/g, "_") || "bin";
 	const safeVersion = packageJson.version.replace(/[^a-z0-9]+/gi, "_");
-	const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	const digest = new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 	return `v${MARKIT_CONVERSION_CACHE_VERSION}-${safeVersion}-${safeExtension}-${digest}`;
 }
 
@@ -55,7 +55,7 @@ export async function readMarkitConversionCache(key: string): Promise<MarkitConv
 	const target = cacheEntryPath(key);
 	let raw: string;
 	try {
-		raw = await Bun.file(target).text();
+		raw = await bun.file(target).text();
 	} catch (error) {
 		if (!isEnoent(error)) {
 			logger.debug("document conversion cache read failed", { error: errorMessage(error) });
@@ -149,7 +149,7 @@ export async function writeMarkitConversionCache(key: string, content: string): 
 	const payload = JSON.stringify({ version: MARKIT_CONVERSION_CACHE_VERSION, content });
 	try {
 		await fs.mkdir(cacheDir, { recursive: true });
-		await Bun.write(tempPath, payload);
+		await bun.write(tempPath, payload);
 		await fs.rename(tempPath, target);
 	} catch (error) {
 		await fs.rm(tempPath, { force: true }).catch(() => undefined);
@@ -164,3 +164,4 @@ export async function writeMarkitConversionCache(key: string, content: string): 
 		logger.debug("document conversion cache prune failed", { error: errorMessage(error) });
 	});
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

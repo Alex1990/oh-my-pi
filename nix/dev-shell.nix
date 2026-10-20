@@ -1,7 +1,5 @@
 {
   pkgs,
-  bun,
-  bun2nix,
   rustToolchain,
 }:
 let
@@ -18,7 +16,7 @@ pkgs.mkShell (
     name = "omp-dev";
 
     packages =
-      [ bun bun2nix rustToolchain ]
+      [ pkgs.nodejs_24 pkgs.pnpm rustToolchain ]
       ++ (with pkgs; [
         cargo-nextest
         rustPlatform.bindgenHook

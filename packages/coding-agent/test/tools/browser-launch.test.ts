@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -13,8 +13,10 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { BrowserPlatform, computeExecutablePath, detectBrowserPlatform } from "@oh-my-pi/pi-utils/browsers";
 import { APP_NAME } from "@oh-my-pi/pi-utils/dirs";
 import { PUPPETEER_REVISIONS } from "puppeteer-core/internal/revisions.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { TS_CHILD_FLAGS } from "./node-flags";
 
-const EXECUTABLE_PROBE = path.resolve(import.meta.dir, "../fixtures/browser-executable-probe.ts");
+const EXECUTABLE_PROBE = path.resolve(import.meta.dirname, "../fixtures/browser-executable-probe.ts");
 
 const AUTOMATION_FLAG = "--enable-automation";
 
@@ -135,9 +137,9 @@ describe("browser executable selection", () => {
 				const wrapper = path.join(tempDir.path(), "google-chrome");
 				const chromium = path.join(tempDir.path(), "chromium");
 				const nonExecutable = path.join(tempDir.path(), "not-executable");
-				await Bun.write(wrapper, "#!/bin/sh\necho browser bridge\n");
-				await Bun.write(chromium, "#!/bin/sh\necho Chromium 123.0\n");
-				await Bun.write(nonExecutable, "#!/bin/sh\necho Chromium 123.0\n");
+				await bun.write(wrapper, "#!/bin/sh\necho browser bridge\n");
+				await bun.write(chromium, "#!/bin/sh\necho Chromium 123.0\n");
+				await bun.write(nonExecutable, "#!/bin/sh\necho Chromium 123.0\n");
 				fs.chmodSync(wrapper, 0o755);
 				fs.chmodSync(chromium, 0o755);
 				fs.chmodSync(nonExecutable, 0o644);
@@ -155,7 +157,7 @@ describe("browser executable selection", () => {
 		const tempDir = TempDir.createSync("@browser-probe-hanging-");
 		try {
 			const hangingWrapper = path.join(tempDir.path(), "google-chrome");
-			await Bun.write(hangingWrapper, "#!/bin/sh\nsleep 60\n");
+			await bun.write(hangingWrapper, "#!/bin/sh\nsleep 60\n");
 			fs.chmodSync(hangingWrapper, 0o755);
 
 			const startedAt = performance.now();
@@ -174,7 +176,7 @@ describe("browser executable selection", () => {
 				const fakeChrome = path.join(tempDir.path(), "chrome.exe");
 				// A GUI browser handoff: executing it has a side effect (this marker)
 				// but prints nothing a console version probe would accept.
-				await Bun.write(fakeChrome, `#!/bin/sh\ntouch "${marker}"\necho "activating existing window"\n`);
+				await bun.write(fakeChrome, `#!/bin/sh\ntouch "${marker}"\necho "activating existing window"\n`);
 				fs.chmodSync(fakeChrome, 0o755);
 
 				const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
@@ -197,10 +199,10 @@ describe("browser executable selection", () => {
 		try {
 			const override = path.join(tempDir.path(), "chrome-headless-shell.exe");
 			const systemChrome = path.join(tempDir.path(), "Google\\Chrome\\Application\\chrome.exe");
-			await Bun.write(override, "override");
-			await Bun.write(systemChrome, "system");
+			await bun.write(override, "override");
+			await bun.write(systemChrome, "system");
 
-			const result = Bun.spawnSync([process.execPath, EXECUTABLE_PROBE], {
+			const result = bun.spawnSync([process.execPath, ...TS_CHILD_FLAGS, EXECUTABLE_PROBE], {
 				env: {
 					...process.env,
 					OMP_BROWSER_PROBE_PLATFORM: "win32",
@@ -250,7 +252,7 @@ describe("browser executable selection", () => {
 				// System Google Chrome bundle (com.google.Chrome) — the LaunchServices
 				// hijacker the fix must avoid selecting.
 				const systemChrome = path.join(home, "Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
-				await Bun.write(systemChrome, "#!/bin/sh\necho 'Google Chrome 151'\n");
+				await bun.write(systemChrome, "#!/bin/sh\necho 'Google Chrome 151'\n");
 				fs.chmodSync(systemChrome, 0o755);
 
 				// Seed the isolated Chrome for Testing binary in the child's cache so the
@@ -261,10 +263,10 @@ describe("browser executable selection", () => {
 				const platform = os.arch() === "arm64" ? BrowserPlatform.MAC_ARM : BrowserPlatform.MAC;
 				const buildId = PUPPETEER_REVISIONS.chrome;
 				const chromeForTesting = computeExecutablePath({ buildId, cacheDir, platform });
-				await Bun.write(chromeForTesting, "#!/bin/sh\necho 'Chrome for Testing'\n");
+				await bun.write(chromeForTesting, "#!/bin/sh\necho 'Chrome for Testing'\n");
 				fs.chmodSync(chromeForTesting, 0o755);
 
-				const result = Bun.spawnSync([process.execPath, EXECUTABLE_PROBE], { env, stdout: "pipe", stderr: "pipe" });
+				const result = bun.spawnSync([process.execPath, ...TS_CHILD_FLAGS, EXECUTABLE_PROBE], { env, stdout: "pipe", stderr: "pipe" });
 				const stderr = new TextDecoder().decode(result.stderr);
 
 				expect(result.exitCode, stderr).toBe(0);
@@ -294,7 +296,7 @@ describe("browser executable selection", () => {
 					cacheDir: path.join(xdgCache, APP_NAME, "puppeteer"),
 					platform,
 				});
-				await Bun.write(chromeForTesting, "#!/bin/sh\necho 'Chrome for Testing'\n");
+				await bun.write(chromeForTesting, "#!/bin/sh\necho 'Chrome for Testing'\n");
 				fs.chmodSync(chromeForTesting, 0o755);
 				const edge = EDGE_EXECUTABLE_PATHS[0];
 				const env = {
@@ -306,7 +308,7 @@ describe("browser executable selection", () => {
 					PUPPETEER_EXECUTABLE_PATH: edge,
 				};
 				const probe = (purpose: string) => {
-					const result = Bun.spawnSync([process.execPath, EXECUTABLE_PROBE], {
+					const result = bun.spawnSync([process.execPath, ...TS_CHILD_FLAGS, EXECUTABLE_PROBE], {
 						env: { ...env, OMP_BROWSER_PROBE_PURPOSE: purpose },
 						stdout: "pipe",
 						stderr: "pipe",

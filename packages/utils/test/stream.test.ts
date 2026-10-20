@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	ConcatSink,
 	parseJsonlLenient,
@@ -439,6 +439,24 @@ function bytesStreamFromChunks(chunks: Uint8Array[]): ReadableStream<Uint8Array>
 	});
 }
 
+/**
+ * Feed one chunk per `pull` instead of queueing every chunk up front. Node's
+ * `ReadableStream` drains a pre-filled queue in quadratic time once it holds
+ * tens of thousands of tiny chunks, which would dominate this measurement.
+ */
+function pullStreamFromChunks(chunks: Uint8Array[]): ReadableStream<Uint8Array> {
+	let index = 0;
+	return new ReadableStream<Uint8Array>({
+		pull(controller) {
+			if (index === chunks.length) {
+				controller.close();
+				return;
+			}
+			controller.enqueue(chunks[index++]!);
+		},
+	});
+}
+
 describe("readSseEvents", () => {
 	it("dispatches events on blank-line boundaries", async () => {
 		const stream = bytesStreamFromChunks([
@@ -584,7 +602,7 @@ describe("readSseEvents", () => {
 		}
 		const payload = encoder.encode(`${lines.join("\n")}\n`);
 		const oneByteChunks = Array.from(payload, byte => Uint8Array.of(byte));
-		const stream = bytesStreamFromChunks(oneByteChunks);
+		const stream = pullStreamFromChunks(oneByteChunks);
 		const start = performance.now();
 		const events = await collectAsync(readSseEvents(stream));
 		const elapsed = performance.now() - start;

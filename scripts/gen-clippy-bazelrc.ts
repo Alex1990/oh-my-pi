@@ -14,6 +14,7 @@
  *   bun scripts/gen-clippy-bazelrc.ts --check  # exit 1 when the file is stale
  */
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type LintLevel = "allow" | "warn" | "deny" | "forbid";
 type LintEntry = LintLevel | { level: LintLevel; priority?: number };
@@ -21,7 +22,7 @@ type LintTable = Record<string, LintEntry>;
 
 const FLAG_BY_LEVEL: Record<LintLevel, string> = { allow: "A", warn: "W", deny: "D", forbid: "F" };
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const outputPath = path.join(repoRoot, "bazel", "clippy.bazelrc");
 
 function normalize(entry: LintEntry): { level: LintLevel; priority: number } {
@@ -47,7 +48,7 @@ function flagLines(table: LintTable, prefix: string): string[] {
 }
 
 async function render(): Promise<string> {
-	const cargo = Bun.TOML.parse(await Bun.file(path.join(repoRoot, "Cargo.toml")).text()) as {
+	const cargo = bun.TOML.parse(await bun.file(path.join(repoRoot, "Cargo.toml")).text()) as {
 		workspace?: { lints?: { rust?: LintTable; clippy?: LintTable } };
 	};
 	const lints = cargo.workspace?.lints;
@@ -69,7 +70,7 @@ async function render(): Promise<string> {
 }
 
 const expected = await render();
-const current = await Bun.file(outputPath)
+const current = await bun.file(outputPath)
 	.text()
 	.catch(() => "");
 
@@ -85,6 +86,6 @@ if (process.argv.includes("--check")) {
 } else if (current === expected) {
 	console.log("bazel/clippy.bazelrc already up to date.");
 } else {
-	await Bun.write(outputPath, expected);
+	await bun.write(outputPath, expected);
 	console.log("Wrote bazel/clippy.bazelrc.");
 }

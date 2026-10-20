@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { type RawSettings, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -6,8 +6,9 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { cfgTaskDisabledAgents } from "@oh-my-pi/pi-coding-agent/task/settings";
 import { acquireFileLock, TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Editing one fallback chain or one agent must persist only that entry: every entry another layer
 // (a `--config` overlay) supplies stays out of config.yml.
@@ -32,16 +33,16 @@ describe("Settings entry-level writes", () => {
 		state = undefined;
 		AgentStorage.close();
 		// SQLite keeps agent.db open until GC finalizes its statements; Windows cannot delete an open file.
-		Bun.gc(true);
+		bun.gc(true);
 		tempDir.removeSync();
 	});
 
 	const configPath = () => path.join(agentDir, "config.yml");
-	const readConfig = async (): Promise<RawSettings> => YAML.parse(await Bun.file(configPath()).text()) as RawSettings;
+	const readConfig = async (): Promise<RawSettings> => YAML.parse(await bun.file(configPath()).text()) as RawSettings;
 
 	async function load(config: RawSettings, overlay: RawSettings): Promise<Settings> {
-		await Bun.write(configPath(), YAML.stringify(config));
-		await Bun.write(overlayPath, YAML.stringify(overlay));
+		await bun.write(configPath(), YAML.stringify(config));
+		await bun.write(overlayPath, YAML.stringify(overlay));
 		return Settings.loadIsolated({ agentDir, cwd, configFiles: [overlayPath] });
 	}
 
@@ -63,7 +64,7 @@ describe("Settings entry-level writes", () => {
 
 		cfgRetryFallbackChains.setEntry(settings, "openai/gpt-5.4", ["openai/gpt-5.4-mini"]);
 		// Another process edits config.yml before the save merges this write into it.
-		await Bun.write(
+		await bun.write(
 			configPath(),
 			YAML.stringify({ temperature: 0.3, retry: { fallbackChains: { slow: ["user/slow"] } } }),
 		);
@@ -118,7 +119,7 @@ describe("Settings entry-level writes", () => {
 
 			cfgRetryFallbackChains.setEntry(settings, "slow", ["intermediate/slow"]);
 			cfgRetryFallbackChains.set(settings, { slow: ["final/slow"], smol: ["final/smol"] });
-			await Bun.write(configPath(), YAML.stringify(external));
+			await bun.write(configPath(), YAML.stringify(external));
 			await settings.flush();
 
 			expect(await readConfig()).toEqual(saved);

@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { generateRoomKey, importRoomKey, open, seal } from "../../src/collab/crypto";
 import { type CollabFrame, packEnvelope, unpackEnvelope } from "../../src/collab/protocol";
 import { CollabSocket } from "../../src/collab/relay-client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ORIGINAL_WEBSOCKET = globalThis.WebSocket;
 const HIGH_WATER_MARK = 64 * 1024;
@@ -13,7 +14,7 @@ async function waitUntil(predicate: () => boolean, message: string): Promise<voi
 	const deadline = Date.now() + 3_000;
 	while (!predicate()) {
 		if (Date.now() > deadline) throw new Error(message);
-		await Bun.sleep(2);
+		await bun.sleep(2);
 	}
 }
 
@@ -104,7 +105,7 @@ describe("CollabSocket send backpressure", () => {
 			const ws = BackpressuredWebSocket.instances[0]!;
 			ws.open();
 			for (let i = 0; i < 300; i++) socket.send({ t: "prompt", text: `effect ${i}` });
-			const result = await Promise.race([closed.promise, Bun.sleep(250).then(() => undefined)]);
+			const result = await Promise.race([closed.promise, bun.sleep(250).then(() => undefined)]);
 			expect(result).toMatchObject({ reconnect: false });
 			expect(result?.reason).toContain("resync");
 			expect(result?.reason).toContain("before retrying");
@@ -161,7 +162,7 @@ describe("CollabSocket send backpressure", () => {
 			const generatedAtDrop = generated;
 			first.close();
 			const appeared = Date.now() + 3_000;
-			while (BackpressuredWebSocket.instances.length < 2 && Date.now() < appeared) await Bun.sleep(20);
+			while (BackpressuredWebSocket.instances.length < 2 && Date.now() < appeared) await bun.sleep(20);
 			const second = BackpressuredWebSocket.instances[1];
 			if (!second) throw new Error("socket never retried after the transient drop");
 			second.openAccepted();
@@ -170,7 +171,7 @@ describe("CollabSocket send backpressure", () => {
 			const deadline = Date.now() + 3_000;
 			while (Date.now() < deadline && !second.sent.some(bytes => unpackEnvelope(bytes)?.peerId === 9)) {
 				second.bufferedAmount = 0;
-				await Bun.sleep(20);
+				await bun.sleep(20);
 			}
 			const targets = second.sent.map(bytes => unpackEnvelope(bytes)?.peerId);
 			expect(targets).toContain(9);
@@ -197,7 +198,7 @@ describe("CollabSocket send backpressure", () => {
 
 			first.close();
 			const appeared = Date.now() + 3_000;
-			while (BackpressuredWebSocket.instances.length < 2 && Date.now() < appeared) await Bun.sleep(20);
+			while (BackpressuredWebSocket.instances.length < 2 && Date.now() < appeared) await bun.sleep(20);
 			const second = BackpressuredWebSocket.instances[1];
 			if (!second) throw new Error("socket never retried after the transient drop");
 			second.openAccepted();
@@ -209,7 +210,7 @@ describe("CollabSocket send backpressure", () => {
 			const deadline = Date.now() + 3_000;
 			while (Date.now() < deadline && second.sent.length === 0) {
 				second.bufferedAmount = 0;
-				await Bun.sleep(20);
+				await bun.sleep(20);
 			}
 			expect(second.sent.map(bytes => unpackEnvelope(bytes)?.peerId)).toEqual([1]);
 		} finally {
@@ -248,7 +249,7 @@ describe("CollabSocket send backpressure", () => {
 			for (let peer = 2; peer <= 301; peer++) {
 				ws.onmessage?.({ data: JSON.stringify({ t: "peer-left", peer }) } as MessageEvent);
 			}
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			// Count is not the obligation. While that frame is still in the chain the
 			// record must stand, or the host would act on the hello as a live peer and
 			// register a ghost participant.
@@ -426,7 +427,7 @@ describe("CollabSocket send backpressure", () => {
 			// Now it fails. A bad frame from a connection that is over says nothing
 			// about the key of the one that is open, and this close would be fatal.
 			gate.resolve();
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			expect(closes.filter(close => !close.willReconnect)).toEqual([]);
 			expect(socket.isOpen).toBe(true);
 		} finally {
@@ -453,7 +454,7 @@ describe("CollabSocket send backpressure", () => {
 			}
 			// Eviction waits on each record's ordering obligation, which settles on the
 			// receive chain, so let those callbacks run before reading the bound.
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			// Recent retirements still hold — that is the correctness property.
 			expect(socket.isServing(churn)).toBe(false);
 			expect(socket.isServing(churn - 10)).toBe(false);
@@ -518,12 +519,12 @@ describe("CollabSocket send backpressure", () => {
 			ws.open();
 			socket.sendBatch(chunks(), 7);
 			socket.send({ t: "bye", reason: "after snapshot" }, 7);
-			await Bun.sleep(30);
+			await bun.sleep(30);
 			expect(generated).toBe(0);
 			const deadline = Date.now() + 3000;
 			while (ws.sent.length < 301 && Date.now() < deadline) {
 				ws.bufferedAmount = 0;
-				await Bun.sleep(30);
+				await bun.sleep(30);
 			}
 			const received: CollabFrame[] = [];
 			for (const bytes of ws.sent) {
@@ -569,7 +570,7 @@ describe("CollabSocket send backpressure", () => {
 			second.open();
 			socket.send({ t: "prompt", text: "new command" });
 			release.resolve(new Uint8Array([1, 2, 3, 4]).buffer);
-			await Bun.sleep(30);
+			await bun.sleep(30);
 			expect(first.sent).toEqual([]);
 			expect(second.sent.map(bytes => Array.from(bytes.slice(-4)))).toEqual([[5, 6, 7, 8]]);
 		} finally {

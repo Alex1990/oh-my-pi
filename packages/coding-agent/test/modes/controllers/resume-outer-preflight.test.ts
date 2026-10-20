@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as core from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -11,6 +11,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { executeBuiltinSlashCommand } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-registry";
 import { createTools, type Tool } from "@oh-my-pi/pi-coding-agent/tools";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -98,7 +99,7 @@ describe("/resume <id> switch failures", () => {
 			const previousFile = session.sessionFile;
 			const cwd = session.sessionManager.getCwd();
 			const timestamp = "2026-06-01T00:00:00.000Z";
-			await Bun.write(
+			await bun.write(
 				path.join(session.sessionManager.getSessionDir(), "unrestorable.jsonl"),
 				`${[
 					{ type: "session", version: 3, id: "unrestorable", timestamp, cwd },

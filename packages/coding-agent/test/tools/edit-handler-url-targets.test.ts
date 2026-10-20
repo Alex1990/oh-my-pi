@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { AstEditTool } from "@oh-my-pi/pi-coding-agent/tools/ast-edit";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tmpDir: string;
 let artifactsDir: string;
@@ -52,7 +53,7 @@ afterEach(async () => {
 describe("file-editing tools refuse handler-owned URL writes", () => {
 	it("edit never patches a subagent's output file behind agent://", async () => {
 		const output = path.join(artifactsDir, "Reviewer.md");
-		await Bun.write(output, "verdict: REJECT\n");
+		await bun.write(output, "verdict: REJECT\n");
 
 		const result = await new EditTool(createSession(), "replace").execute("tamper", {
 			path: "agent://Reviewer",
@@ -62,7 +63,7 @@ describe("file-editing tools refuse handler-owned URL writes", () => {
 
 		expect(result.isError).toBe(true);
 		expect(resultText(result)).toContain("agent://Reviewer is written through `write`, not edited");
-		expect(await Bun.file(output).text()).toBe("verdict: REJECT\n");
+		expect(await bun.file(output).text()).toBe("verdict: REJECT\n");
 	});
 
 	it("edit refuses proc:// instead of patching the service log", async () => {
@@ -91,7 +92,7 @@ describe("file-editing tools refuse handler-owned URL writes", () => {
 	});
 
 	it("ast_edit refuses URLs whose located file tools may not write", async () => {
-		await Bun.write(path.join(artifactsDir, "Reviewer.md"), "legacyWrap(x, value)\n");
+		await bun.write(path.join(artifactsDir, "Reviewer.md"), "legacyWrap(x, value)\n");
 		const tool = new AstEditTool(createSession());
 
 		for (const url of ["agent://Reviewer", "history://Worker"]) {
@@ -99,6 +100,6 @@ describe("file-editing tools refuse handler-owned URL writes", () => {
 				tool.execute("ast", { ops: [{ pat: "legacyWrap($A, $B)", out: "modernWrap($A, $B)" }], paths: [url] }),
 			).rejects.toThrow(`Cannot rewrite ${url}`);
 		}
-		expect(await Bun.file(path.join(artifactsDir, "Reviewer.md")).text()).toBe("legacyWrap(x, value)\n");
+		expect(await bun.file(path.join(artifactsDir, "Reviewer.md")).text()).toBe("legacyWrap(x, value)\n");
 	});
 });

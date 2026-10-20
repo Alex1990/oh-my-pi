@@ -1,13 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { isEnoent, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 async function fileExists(p: string): Promise<boolean> {
 	try {
-		await Bun.file(p).stat();
+		await bun.file(p).stat();
 		return true;
 	} catch (err) {
 		if (isEnoent(err)) return false;
@@ -151,15 +153,16 @@ describe("SessionManager close() drops empty metadata-only sessions", () => {
 		await termB.setSessionFile(sessionFile);
 		expect(await termB.consumeDraft()).toBe("draft in terminal A");
 
-		const appender = Bun.spawn(
+		const appender = bun.spawn(
 			[
 				process.execPath,
-				path.join(import.meta.dir, "fixtures/draft-gc-lock-appender.ts"),
+				...nodeSourceFlags(),
+				path.join(import.meta.dirname, "fixtures/draft-gc-lock-appender.ts"),
 				sessionFile,
 				deleteAttemptPath,
 			],
 			{
-				cwd: path.resolve(import.meta.dir, "../../../.."),
+				cwd: path.resolve(import.meta.dirname, "../../../.."),
 				env: { HOME: process.env.HOME ?? "", PATH: process.env.PATH ?? "" },
 				stdin: "ignore",
 				stdout: "pipe",
@@ -177,7 +180,7 @@ describe("SessionManager close() drops empty metadata-only sessions", () => {
 			await termA.close();
 			expect(await appender.exited).toBe(0);
 			expect(await fileExists(sessionFile)).toBe(true);
-			expect(await Bun.file(sessionFile).text()).toContain("real question from terminal B");
+			expect(await bun.file(sessionFile).text()).toContain("real question from terminal B");
 			await termB.close();
 		} finally {
 			if (appender.exitCode === null) {

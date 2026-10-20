@@ -1,5 +1,6 @@
 import { visibleWidth, wrapTextWithAnsi } from "../utils";
 import type { Theme } from "../theme/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Wrap content under a distinct first-row prefix, preserving its column on continuation rows. */
 export function wrapPrefixedLine(prefix: string, continuationPrefix: string, content: string, width: number): string[] {
@@ -17,7 +18,7 @@ export function wrapTreeLine(line: string, width: number, theme: Theme): string[
 		const index = line.indexOf(marker);
 		if (index < 0) continue;
 		const before = line.slice(0, index);
-		if (!/^ *$/.test(Bun.stripANSI(before).replaceAll(theme.tree.vertical, ""))) continue;
+		if (!/^ *$/.test(bun.stripANSI(before).replaceAll(theme.tree.vertical, ""))) continue;
 		const end = index + marker.length + 1;
 		if (line[end - 1] !== " ") continue;
 		const connectorWidth = visibleWidth(connector);

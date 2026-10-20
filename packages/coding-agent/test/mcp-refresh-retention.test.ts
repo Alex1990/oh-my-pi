@@ -1,5 +1,7 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 interface ProbeResult {
 	toolCount: number;
@@ -7,9 +9,9 @@ interface ProbeResult {
 	adapters: number;
 }
 
-const probePath = path.join(import.meta.dir, "fixtures", "mcp-refresh-retention-probe.ts");
+const probePath = path.join(import.meta.dirname, "fixtures", "mcp-refresh-retention-probe.ts");
 
-// A `Bun.gc(true)` before the heap snapshot does not guarantee every obsolete
+// A `bun.gc(true)` before the heap snapshot does not guarantee every obsolete
 // tool-wrapper generation has been reclaimed at the moment the snapshot is
 // taken, so the raw node count is a timing observation rather than an
 // invariant (issue #11976). Two JSC mechanisms pin stale cells:
@@ -28,8 +30,8 @@ const probePath = path.join(import.meta.dir, "fixtures", "mcp-refresh-retention-
 const MAX_ATTEMPTS = 4;
 
 async function runProbe(): Promise<ProbeResult> {
-	const proc = Bun.spawn([process.execPath, probePath], {
-		cwd: path.join(import.meta.dir, "../../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
+		cwd: path.join(import.meta.dirname, "../../.."),
 		env: { ...process.env, BUN_JSC_useConcurrentJIT: "0" },
 		stdout: "pipe",
 		stderr: "pipe",

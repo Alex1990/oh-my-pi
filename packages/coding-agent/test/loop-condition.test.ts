@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
 	describeLoopCondition,
@@ -6,6 +6,7 @@ import {
 	type LoopConditionVerdict,
 } from "@oh-my-pi/pi-coding-agent/modes/loop-condition";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("evaluateLoopCondition", () => {
 	let tempDir: TempDir;
@@ -84,7 +85,7 @@ describe("evaluateLoopCondition", () => {
 	it("reports a user abort distinctly from a failure", async () => {
 		const controller = new AbortController();
 		const pending = run("sleep 30", false, { signal: controller.signal });
-		await Bun.sleep(50);
+		await bun.sleep(50);
 		controller.abort();
 		expect(await pending).toEqual({ kind: "aborted" });
 	});

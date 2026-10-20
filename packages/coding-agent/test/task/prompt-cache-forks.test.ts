@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "bun:test";
+import { afterEach, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Model, ProviderSessionState } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { buildTransformedCodexRequestBody } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
@@ -19,6 +19,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import * as settingsStream from "@oh-my-pi/pi-coding-agent/session/settings-stream-fn";
 import type { TerminalLaunchRequest } from "@oh-my-pi/pi-coding-agent/subprocess/terminal-launch";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const muse = getBundledModel("muse-code", "muse-spark-1.3-contributor");
 const luna = getBundledModel("openai-codex", "gpt-6-luna");
@@ -136,7 +137,7 @@ async function persistedHeader(manager: SessionManager): Promise<SessionHeader> 
 	await manager.flush();
 	const file = manager.getSessionFile();
 	if (!file) throw new Error("Expected a persisted session");
-	const records = Bun.JSONL.parse(await Bun.file(file).text()) as Array<{ type: string }>;
+	const records = bun.JSONL.parse(await bun.file(file).text()) as Array<{ type: string }>;
 	const header = records.find(record => record.type === "session");
 	if (!header) throw new Error("Missing session header");
 	return header as SessionHeader;

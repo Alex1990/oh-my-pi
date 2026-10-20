@@ -18,6 +18,7 @@ import {
 	videoMimeForPath,
 } from "../utils/video";
 import { createVideoPreviewImage, isVideoPath } from "@oh-my-pi/pi-tui/prompt/video";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Keep CLI startup responsive and avoid OOM when users pass huge files.
 // If a file exceeds these limits, we include it as a path-only <file/> block.
@@ -87,7 +88,7 @@ export async function processFileArguments(fileArgs: string[], options?: Process
 		// Read file, handling not-found gracefully
 		let buffer: Uint8Array;
 		try {
-			buffer = await Bun.file(absolutePath).bytes();
+			buffer = await bun.file(absolutePath).bytes();
 		} catch (err) {
 			if (isEnoent(err)) {
 				console.error(chalk.red(`Error: File not found: ${absolutePath}`));

@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, TUI } from "@oh-my-pi/pi-tui";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -20,7 +21,7 @@ async function settle(term: VirtualTerminal): Promise<void> {
 	const nextTick = Promise.withResolvers<void>();
 	process.nextTick(nextTick.resolve);
 	await nextTick.promise;
-	await Bun.sleep(40);
+	await bun.sleep(40);
 	await term.flush();
 }
 

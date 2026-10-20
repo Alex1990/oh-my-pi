@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { HookSelectorComponent, type HookSelectorSlider } from "@oh-my-pi/pi-tui/overlays/hook-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LEFT = "\x1b[D";
 const RIGHT = "\x1b[C";
@@ -45,7 +46,7 @@ function makeHarness(slider?: HookSelectorSlider, opts?: { onLeft?: () => void; 
 		render: () =>
 			component
 				.render(80)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n"),
 	};
 }
@@ -165,7 +166,7 @@ describe("HookSelectorComponent model slider", () => {
 		component.handleInput("g");
 		const rendered = component
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 
 		expect(rendered).toContain("OpenCode Go");

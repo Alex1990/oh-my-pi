@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	disposeAllKernelSessions,
 	disposeKernelSessionsByOwner,
@@ -10,8 +10,9 @@ import {
 	type KernelShutdownResult,
 	PythonKernel,
 } from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-Bun.env.PI_PYTHON_SKIP_CHECK = "1";
+bun.env.PI_PYTHON_SKIP_CHECK = "1";
 
 class FakeKernel {
 	#result: KernelExecuteResult;

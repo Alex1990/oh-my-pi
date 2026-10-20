@@ -11,7 +11,7 @@
 //    cleanly when the grace window elapses instead of erroring.
 // 3. openai-responses: `response.completed` → `processResponsesStream`
 //    breaks immediately; no grace window involved.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";

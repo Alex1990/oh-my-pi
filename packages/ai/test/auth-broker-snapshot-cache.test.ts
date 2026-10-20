@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import {
 	writeAuthBrokerSnapshotCache,
 } from "@oh-my-pi/pi-ai/auth-broker";
 import { removeWithRetries } from "../../utils/src/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOKEN = "broker-cache-token";
 const URL = "http://127.0.0.1:8765";
@@ -134,8 +135,8 @@ describe("auth-broker snapshot cache", () => {
 				snapshot: makeSnapshot(Date.now()),
 			});
 
-			expect(await Bun.file(stale).exists()).toBeFalse();
-			expect(await Bun.file(active).exists()).toBeTrue();
+			expect(await bun.file(stale).exists()).toBeFalse();
+			expect(await bun.file(active).exists()).toBeTrue();
 		});
 	});
 

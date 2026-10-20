@@ -1,8 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import packageManifest from "../package.json" with { type: "json" };
 import { fastembedRuntimeInstallPlan, prepareWindowsFastembedRuntime } from "../src/core/fastembed-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The fastembed peer is pinned as an exact version (not `catalog:`) because
 // `core/fastembed-runtime.ts` reads it to `bun install` the on-demand embedding
@@ -35,13 +37,22 @@ describe("fastembed runtime version pins", () => {
 
 	test("Windows preload selects fastembed's ORT DLL before inherited paths", async () => {
 		const requireTest = createRequire(import.meta.url);
-		const fastembedManifest = requireTest.resolve("fastembed/package.json");
 		const fastembedEntry = requireTest.resolve("fastembed");
+		// Node honors `exports`, which (unlike Bun) hides `fastembed/package.json`;
+		// walk up from the resolved entry to the package root instead.
+		let fastembedPackageDir = path.dirname(fastembedEntry);
+		for (;;) {
+			const manifestPath = path.join(fastembedPackageDir, "package.json");
+			if (existsSync(manifestPath) && JSON.parse(readFileSync(manifestPath, "utf8")).name === "fastembed") break;
+			const parent = path.dirname(fastembedPackageDir);
+			if (parent === fastembedPackageDir) throw new Error(`fastembed package root not found above ${fastembedEntry}`);
+			fastembedPackageDir = parent;
+		}
 		const inheritedPath = ["/stale-ort", "/system"].join(path.delimiter);
 		const env: NodeJS.ProcessEnv = { PATH: inheritedPath };
 		const { ortEntry, ortPackageDir, dllDir } = await prepareWindowsFastembedRuntime({
 			fastembedEntry,
-			fastembedPackageDir: path.dirname(fastembedManifest),
+			fastembedPackageDir,
 			arch: "x64",
 			env,
 		});
@@ -49,7 +60,7 @@ describe("fastembed runtime version pins", () => {
 
 		expect(ortManifest.version).toBe(packageManifest.peerDependencies["onnxruntime-node"]);
 		expect(ortEntry.startsWith(`${ortPackageDir}${path.sep}`)).toBe(true);
-		expect(await Bun.file(path.join(dllDir, "onnxruntime.dll")).exists()).toBe(true);
+		expect(await bun.file(path.join(dllDir, "onnxruntime.dll")).exists()).toBe(true);
 		expect(env.PATH).toBe(`${dllDir}${path.delimiter}${inheritedPath}`);
 	});
 });

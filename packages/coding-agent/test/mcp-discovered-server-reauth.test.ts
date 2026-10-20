@@ -17,7 +17,7 @@
  *     as an override (the native provider then shadows the plugin entry).
  *     `validateServerName` previously rejected the colon, so the persist threw.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

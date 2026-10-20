@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { ToolChoiceQueue } from "@oh-my-pi/pi-coding-agent/session/tool-choice-q
 import { createTools, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { resolveToCwd } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createTestSession(cwd: string, overrides: Partial<ToolSession> = {}): ToolSession {
 	return {
@@ -31,8 +32,8 @@ describe("tool path root alias", () => {
 
 	beforeEach(async () => {
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tool-root-alias-"));
-		await Bun.write(path.join(tempDir, "search.txt"), "root-alias-needle\n");
-		await Bun.write(
+		await bun.write(path.join(tempDir, "search.txt"), "root-alias-needle\n");
+		await bun.write(
 			path.join(tempDir, "sample.ts"),
 			"const rootAliasSymbol = 1;\nlegacyWrap(rootAliasSymbol, anotherValue);\n",
 		);
@@ -55,14 +56,14 @@ describe("tool path root alias", () => {
 			// nonexistent `base/target.txt`. resolveToCwd must not canonicalize here.
 			await fs.mkdir(path.join(tempDir, "other", "dir"), { recursive: true });
 			await fs.mkdir(path.join(tempDir, "base"), { recursive: true });
-			await Bun.write(path.join(tempDir, "other", "target.txt"), "kernel-correct\n");
-			await Bun.write(path.join(tempDir, "base", "target.txt"), "lexical-wrong\n");
+			await bun.write(path.join(tempDir, "other", "target.txt"), "kernel-correct\n");
+			await bun.write(path.join(tempDir, "base", "target.txt"), "lexical-wrong\n");
 			await fs.symlink(path.join(tempDir, "other", "dir"), path.join(tempDir, "base", "link"));
 
 			const input = `${path.join(tempDir, "base", "link")}${path.sep}..${path.sep}target.txt`;
 			const resolved = resolveToCwd(input, tempDir);
 			expect(resolved).toBe(input);
-			expect(await Bun.file(resolved).text()).toBe("kernel-correct\n");
+			expect(await bun.file(resolved).text()).toBe("kernel-correct\n");
 		},
 	);
 
@@ -172,7 +173,7 @@ describe("tool path root alias", () => {
 		expect(invoker).toBeDefined();
 		await invoker({ action: "apply", reason: "apply root alias rewrite" });
 
-		expect(await Bun.file(path.join(tempDir, "sample.ts")).text()).toContain(
+		expect(await bun.file(path.join(tempDir, "sample.ts")).text()).toContain(
 			"modernWrap(rootAliasSymbol, anotherValue)",
 		);
 	});

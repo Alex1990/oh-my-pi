@@ -15,7 +15,7 @@
  * The `tools: []` field stays so Anthropic-via-proxy still sees the field it
  * requires when tool history is present.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { AssistantMessage, Context, Model, ModelSpec, Tool } from "@oh-my-pi/pi-ai/types";

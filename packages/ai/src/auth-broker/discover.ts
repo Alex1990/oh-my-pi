@@ -16,7 +16,7 @@ import {
 	logger,
 	MAIN_CONFIG_FILENAMES,
 } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import {
 	type AuthAccountPolicies,
 	type AuthCredentialStore,

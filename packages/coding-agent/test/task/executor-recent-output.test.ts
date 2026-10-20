@@ -14,7 +14,7 @@
  * resets, message_update content replacement, cancellation, and the final
  * flush. Snapshot arrays must also stay immutable after later refreshes.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import type { AssistantMessage, TextContent } from "@oh-my-pi/pi-ai";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";

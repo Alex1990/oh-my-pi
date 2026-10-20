@@ -16,6 +16,8 @@
  * The relay never sees plaintext: payloads stay sealed end to end.
  */
 import { rewriteEnvelopePeer, unpackEnvelope } from "../src/lib/link";
+import { bun, isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
+import { type ServerWebSocket, serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const ROOM_PATH_RE = /^\/r\/([A-Za-z0-9_-]{10,64})$/;
 
@@ -28,7 +30,7 @@ interface SocketData {
 	peerId: number;
 }
 
-type RelaySocket = Bun.ServerWebSocket<SocketData>;
+type RelaySocket = ServerWebSocket<SocketData>;
 
 interface Room {
 	host: RelaySocket;
@@ -40,13 +42,13 @@ export interface LocalRelay {
 	/** ws://localhost:<port> — append `/r/<roomId>?role=…` to connect. */
 	url: string;
 	/** Closes every room and stops the server. Idempotent. */
-	stop(): void;
+	stop(): Promise<void>;
 }
 
-export function startLocalRelay(port = 0): LocalRelay {
+export async function startLocalRelay(port = 0): Promise<LocalRelay> {
 	const rooms = new Map<string, Room>();
 
-	const server = Bun.serve({
+	const server = await serve({
 		port,
 		fetch(req, srv): Response | undefined {
 			const url = new URL(req.url);
@@ -123,7 +125,7 @@ export function startLocalRelay(port = 0): LocalRelay {
 
 	return {
 		url: `ws://localhost:${server.port}`,
-		stop(): void {
+		async stop(): Promise<void> {
 			for (const room of rooms.values()) {
 				const closure = JSON.stringify({ t: "room-closed" });
 				for (const guest of room.guests.values()) {
@@ -133,7 +135,7 @@ export function startLocalRelay(port = 0): LocalRelay {
 				room.host.close(1001, "relay shutting down");
 			}
 			rooms.clear();
-			server.stop(true);
+			await server.stop(true);
 		},
 	};
 }
@@ -153,14 +155,13 @@ function parsePort(argv: readonly string[]): number {
 	return port;
 }
 
-if (import.meta.main) {
-	const relay = startLocalRelay(parsePort(Bun.argv.slice(2)));
+if (isMainModule(import.meta.url)) {
+	const relay = await startLocalRelay(parsePort(bun.argv.slice(2)));
 	let stopping = false;
 	const shutdown = (): void => {
 		if (stopping) return;
 		stopping = true;
-		relay.stop();
-		process.exit(0);
+		void relay.stop().finally(() => process.exit(0));
 	};
 	console.log(`local collab relay listening on ${relay.url}`);
 	console.log("connect with /r/<roomId>?role=host|guest; Ctrl+C stops the relay");

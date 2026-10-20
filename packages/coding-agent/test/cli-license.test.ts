@@ -1,11 +1,13 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const repoRoot = path.resolve(import.meta.dir, "../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const cliEntry = path.join(repoRoot, "packages/coding-agent/src/cli.ts");
 
 it("prints the embedded OMP license and aggregate notices on the exact top-level flag path", async () => {
-	const proc = Bun.spawn([process.execPath, cliEntry, "--license"], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "--license"], {
 		cwd: repoRoot,
 		stdout: "pipe",
 		stderr: "pipe",
@@ -14,8 +16,8 @@ it("prints the embedded OMP license and aggregate notices on the exact top-level
 		proc.exited,
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),
-		Bun.file(path.join(repoRoot, "LICENSE")).text(),
-		Bun.file(path.join(repoRoot, "THIRD-PARTY-NOTICES.txt")).text(),
+		bun.file(path.join(repoRoot, "LICENSE")).text(),
+		bun.file(path.join(repoRoot, "THIRD-PARTY-NOTICES.txt")).text(),
 	]);
 
 	expect(exitCode).toBe(0);

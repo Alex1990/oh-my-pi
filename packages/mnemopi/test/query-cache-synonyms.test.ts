@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { QueryCache } from "@oh-my-pi/pi-mnemopi/core/query-cache";
 import { expandQuery, getSynonyms, normalizeQuery } from "@oh-my-pi/pi-mnemopi/core/synonyms";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const openCaches: QueryCache[] = [];
 
@@ -136,7 +137,7 @@ describe("QueryCache", () => {
 	it("expires entries by TTL and invalidates all tiers", async () => {
 		const qc = cache({ maxSize: 100, ttlSeconds: 0.001 });
 		qc.put("query one", [{ content: "test", score: 0.5 }], [1, 0]);
-		await Bun.sleep(5);
+		await bun.sleep(5);
 
 		expect(qc.get("query one", [1, 0])).toBeNull();
 		expect(qc.misses).toBe(1);

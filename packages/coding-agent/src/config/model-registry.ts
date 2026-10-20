@@ -48,7 +48,7 @@ import {
 import { toModelSpec } from "@oh-my-pi/pi-catalog/provider-models/bundled-references";
 import { apiServesKind, modelKind, type ModelKind } from "@oh-my-pi/pi-catalog/types";
 import { isOfficialCodexApiUrl } from "@oh-my-pi/pi-catalog/wire/codex";
-import { getAgentDir, isBunTestRuntime, logger, wrapFetchForExtraCa } from "@oh-my-pi/pi-utils";
+import { getAgentDir, isTestRuntime, logger, wrapFetchForExtraCa } from "@oh-my-pi/pi-utils";
 import { resolveProviderModelReference } from "../config/model-resolver";
 import { generateCodexAttestation } from "../live/attestation";
 import { redactUrlForLog } from "../mcp/json-rpc";
@@ -120,6 +120,7 @@ import {
 	STARTUP_MODEL_CACHE_PROVIDER_IDS,
 	withModelDiscoveryTimeout,
 } from "./model-provider-discovery";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { mergeDiscoveredModel } from "./model-patch";
 export {
@@ -536,7 +537,7 @@ export class ModelRegistry {
 		this.#settings = options?.settings;
 		this.#fetch =
 			options?.fetch ??
-			(isBunTestRuntime()
+			(isTestRuntime()
 				? () => Promise.reject(new Error("network disabled in model-registry runtime test"))
 				: wrapFetchForExtraCa(fetch));
 		this.#modelsConfigFile = ModelsConfigFile.relocate(modelsPath ?? path.join(getAgentDir(), "models.yml"));
@@ -954,11 +955,11 @@ export class ModelRegistry {
 				const previousConfig = preservedRuntimeState.configuredProviders.get(providerId);
 				const currentConfig = configuredProviders.get(providerId);
 				const providerSettingsUnchanged =
-					Bun.deepEquals(
+					bun.deepEquals(
 						preservedRuntimeState.providerOverrides.get(providerId),
 						this.#providerOverrides.get(providerId),
 					) &&
-					Bun.deepEquals(
+					bun.deepEquals(
 						preservedRuntimeState.modelOverrides.get(providerId),
 						this.#modelOverrides.get(providerId),
 					) &&
@@ -966,7 +967,7 @@ export class ModelRegistry {
 				const discoveryIdentityUnchanged =
 					(previousConfig !== undefined &&
 						currentConfig !== undefined &&
-						Bun.deepEquals(previousConfig, currentConfig)) ||
+						bun.deepEquals(previousConfig, currentConfig)) ||
 					(previousConfig === undefined && currentConfig === undefined && startupProviderIds.has(providerId));
 				if (providerSettingsUnchanged && discoveryIdentityUnchanged) {
 					preservedProviderIds.add(providerId);
@@ -1639,9 +1640,9 @@ export class ModelRegistry {
 		for (const provider of ["local", "web"]) {
 			if (!disabledProviders.has(provider)) this.#keylessProviders.add(provider);
 		}
-		const ollamaEndpointEnv = Bun.env.OLLAMA_BASE_URL?.trim()
+		const ollamaEndpointEnv = bun.env.OLLAMA_BASE_URL?.trim()
 			? "OLLAMA_BASE_URL"
-			: Bun.env.OLLAMA_HOST?.trim()
+			: bun.env.OLLAMA_HOST?.trim()
 				? "OLLAMA_HOST"
 				: undefined;
 		if (!configuredProviders.has("ollama") && !disabledProviders.has("ollama")) {
@@ -1660,16 +1661,16 @@ export class ModelRegistry {
 			this.#discoverableProviders.push({
 				provider: "llama.cpp",
 				api: "openai-responses",
-				baseUrl: Bun.env.LLAMA_CPP_BASE_URL || "http://127.0.0.1:8080",
+				baseUrl: bun.env.LLAMA_CPP_BASE_URL || "http://127.0.0.1:8080",
 				discovery: { type: "llama.cpp" },
-				optional: !Bun.env.LLAMA_CPP_BASE_URL,
+				optional: !bun.env.LLAMA_CPP_BASE_URL,
 			});
 			// Only mark as keyless if no API key is configured
 			if (this.authStorage.keys.source("llama.cpp") === undefined) {
 				this.#keylessProviders.add("llama.cpp");
 			}
 			this.#implicitLocalProviders.add("llama.cpp");
-			if (Bun.env.LLAMA_CPP_BASE_URL) this.#implicitProviderEndpointEnv.set("llama.cpp", "LLAMA_CPP_BASE_URL");
+			if (bun.env.LLAMA_CPP_BASE_URL) this.#implicitProviderEndpointEnv.set("llama.cpp", "LLAMA_CPP_BASE_URL");
 		}
 		if (
 			process.platform === "darwin" &&
@@ -1691,13 +1692,13 @@ export class ModelRegistry {
 			this.#discoverableProviders.push({
 				provider: "lm-studio",
 				api: "openai-completions",
-				baseUrl: Bun.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1",
+				baseUrl: bun.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1",
 				discovery: { type: "lm-studio" },
-				optional: !Bun.env.LM_STUDIO_BASE_URL,
+				optional: !bun.env.LM_STUDIO_BASE_URL,
 			});
 			this.#keylessProviders.add("lm-studio");
 			this.#implicitLocalProviders.add("lm-studio");
-			if (Bun.env.LM_STUDIO_BASE_URL) this.#implicitProviderEndpointEnv.set("lm-studio", "LM_STUDIO_BASE_URL");
+			if (bun.env.LM_STUDIO_BASE_URL) this.#implicitProviderEndpointEnv.set("lm-studio", "LM_STUDIO_BASE_URL");
 		}
 	}
 

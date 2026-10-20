@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import { formatArgsInline } from "@oh-my-pi/pi-tui/tools/json-tree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("formatArgsInline", () => {
 	test("a trailing scalar grows into the available width instead of a fixed cap", () => {
@@ -10,10 +11,10 @@ describe("formatArgsInline", () => {
 		const note = "x".repeat(200);
 		const narrow = formatArgsInline({ severity: "concern", note }, 40);
 		const wide = formatArgsInline({ severity: "concern", note }, 120);
-		expect(Bun.stringWidth(wide)).toBeGreaterThan(Bun.stringWidth(narrow) + 40);
+		expect(bun.stringWidth(wide)).toBeGreaterThan(bun.stringWidth(narrow) + 40);
 		// Both stay within their budget.
-		expect(Bun.stringWidth(narrow)).toBeLessThanOrEqual(40);
-		expect(Bun.stringWidth(wide)).toBeLessThanOrEqual(120);
+		expect(bun.stringWidth(narrow)).toBeLessThanOrEqual(40);
+		expect(bun.stringWidth(wide)).toBeLessThanOrEqual(120);
 	});
 
 	test("every key stays visible even when a leading value is long", () => {
@@ -21,7 +22,7 @@ describe("formatArgsInline", () => {
 		expect(out).toContain("path=");
 		expect(out).toContain("pattern=");
 		expect(out).toContain("limit=");
-		expect(Bun.stringWidth(out)).toBeLessThanOrEqual(80);
+		expect(bun.stringWidth(out)).toBeLessThanOrEqual(80);
 	});
 
 	test("short values render fully without truncation markers", () => {

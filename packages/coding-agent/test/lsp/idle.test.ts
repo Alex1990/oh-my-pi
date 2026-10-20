@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isIdleClient, sendRequest } from "@oh-my-pi/pi-coding-agent/lsp/client";
 import type { LspClient } from "@oh-my-pi/pi-coding-agent/lsp/types";
 

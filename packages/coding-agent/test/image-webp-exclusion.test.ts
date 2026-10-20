@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Message, Model } from "@oh-my-pi/pi-ai";
 import { buildResponsesInput } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -10,15 +10,17 @@ import {
 	normalizeModelContextMessages,
 } from "@oh-my-pi/pi-coding-agent/utils/image-loading";
 import { modelLacksWebpSupport, webpExclusionForModel } from "@oh-my-pi/pi-tui/chat/image-loading";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 // 1x1 red PNG seed, upscaled + re-encoded as WebP at test time so no binary
-// fixture is checked in. Bun.Image sniffs format from bytes.
+// fixture is checked in. Image sniffs format from bytes.
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
 
 async function makeRedWebP(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed)
+	const upscaled = await new Image(seed)
 		.resize(width, height, { filter: "nearest" })
 		.webp({ quality: 90 })
 		.bytes();
@@ -90,15 +92,15 @@ describe("modelLacksWebpSupport", () => {
 });
 
 describe("normalizeModelContextImages model-aware WebP exclusion", () => {
-	const prior = Bun.env.OMP_NO_WEBP;
+	const prior = bun.env.OMP_NO_WEBP;
 
 	beforeEach(() => {
-		delete (Bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
+		delete (bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
 	});
 
 	afterEach(() => {
-		if (prior === undefined) delete (Bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
-		else Bun.env.OMP_NO_WEBP = prior;
+		if (prior === undefined) delete (bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
+		else bun.env.OMP_NO_WEBP = prior;
 	});
 
 	test("re-encodes a WebP image out of WebP for an Ollama-family model", async () => {
@@ -135,8 +137,8 @@ describe("normalizeModelContextImages model-aware WebP exclusion", () => {
 			model,
 			resize: { maxWidth: 60, maxHeight: 60, minDimension: 1 },
 		});
-		const firstMetadata = await new Bun.Image(Buffer.from(first![0]!.data, "base64")).metadata();
-		const secondMetadata = await new Bun.Image(Buffer.from(second![0]!.data, "base64")).metadata();
+		const firstMetadata = await new Image(Buffer.from(first![0]!.data, "base64")).metadata();
+		const secondMetadata = await new Image(Buffer.from(second![0]!.data, "base64")).metadata();
 
 		expect(firstMetadata.width).toBe(120);
 		expect(secondMetadata.width).toBe(60);

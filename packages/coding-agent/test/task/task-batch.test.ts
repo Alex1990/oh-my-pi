@@ -13,7 +13,7 @@
  *    Both modes forward the shared `context`; the flat form stays accepted at
  *    runtime for internal callers.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { toolWireSchema } from "@oh-my-pi/pi-ai/utils/schema";
@@ -30,6 +30,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { isRecord } from "@oh-my-pi/pi-utils";
 
 import { cfgTaskDisabledAgents, cfgTaskEnableEffort, cfgTaskStructured } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const taskAgent: AgentDefinition = {
 	name: "task",
@@ -785,7 +786,7 @@ describe("task.batch spawning", () => {
 		const deadline = Date.now() + 1_000;
 		while (started.length === 0) {
 			if (Date.now() > deadline) throw new Error("First spawn never reached the executor");
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 		expect(started).toEqual(["First"]);
 		expect(secondJob.queued).toBe(true);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { BUILTIN_DEFAULTS_PROVIDER_ID, type Rule } from "@oh-my-pi/pi-coding-agent/capability/rule";
 import { bucketRules } from "@oh-my-pi/pi-coding-agent/capability/rule-buckets";
 import { TtsrManager } from "@oh-my-pi/pi-coding-agent/export/ttsr";

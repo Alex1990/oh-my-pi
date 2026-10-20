@@ -9,6 +9,7 @@
  * Run: bun packages/coding-agent/bench/tool-args-reveal.bench.ts
  */
 import { decodeStreamedToolArgs } from "../src/modes/controllers/tool-args-reveal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PAYLOAD = "x".repeat(1024 * 1024);
 const prefix = `{"content":${JSON.stringify(PAYLOAD).slice(0, 512 * 1024)}`;
@@ -22,7 +23,7 @@ const expected = JSON.parse(full) as Record<string, unknown>;
 if (a.content !== expected.content) throw new Error("chunked decode diverged from JSON.parse");
 
 const N = 20;
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 for (let i = 0; i < N; i++) decodeStreamedToolArgs(prefix, source);
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 console.log(`decode 512KB-prefix content x${N}: ${ms.toFixed(1)}ms total (${(ms / N).toFixed(2)}ms/op)`);

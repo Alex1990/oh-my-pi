@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { ArchiveError } from "../../src/ar/error";
 import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
 import { readSevenZip, sniffSevenZip } from "../../src/ar/sevenzip";
 import { memoryByteSource } from "../../src/ar/source";
 import type { ArchiveIndexEntry } from "../../src/ar/types";
 import { arFixture as fixture } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MESSAGE_HASH = "5ef6774c4d7f61a40b8ff89151687d63129888e89efffe183d0de94da95dfd8c";
 
@@ -25,7 +26,7 @@ async function extract(entry: ArchiveIndexEntry): Promise<Uint8Array> {
 }
 
 function sha256(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex");
+	return bun.SHA256.hash(bytes, "hex");
 }
 
 describe("7z container", () => {

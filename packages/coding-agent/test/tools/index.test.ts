@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createTools, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-Bun.env.PI_PYTHON_SKIP_CHECK = "1";
+bun.env.PI_PYTHON_SKIP_CHECK = "1";
 
 function createTestSession(overrides: Partial<ToolSession> = {}): ToolSession {
 	return {

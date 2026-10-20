@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { authPolicyFor } from "@oh-my-pi/pi-catalog/compat/auth";
 
 describe("Stencil OAuth callback", () => {

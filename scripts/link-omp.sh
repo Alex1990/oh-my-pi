@@ -1,16 +1,13 @@
 #!/bin/sh
-# Install the dev `omp` wrapper into Bun's global bin directory.
+# Install the dev `omp` wrapper into pnpm's global bin directory.
 #
-# Replaces the bun-shebang symlink that `bun --cwd=packages/coding-agent link`
-# creates (pointing at `src/cli.ts`) with the safer wrapper at
-# `packages/coding-agent/scripts/omp`. See that wrapper's header comment for the
-# bunfig.toml-preload bug it works around.
+# Links the wrapper at `packages/coding-agent/scripts/omp`, which runs the
+# TypeScript entrypoint on Node.
 #
-# We resolve Bun's global bin path defensively because `bun pm -g bin` aborts
-# (`No package.json was found for directory "$HOME/.bun/install/global"`) on
-# fresh hosts where the global install has not been initialized. Falling
-# through that error would expand `$(bun pm -g bin)/omp` to `/omp` and try to
-# write under `/` — see https://github.com/can1357/oh-my-pi/issues/3701.
+# We resolve pnpm's global bin path defensively because `pnpm bin -g` prints
+# nothing on hosts where the global bin dir has not been created yet. Falling
+# through that would expand `$(pnpm bin -g)/omp` to `/omp` and try to write
+# under `/` — see https://github.com/can1357/oh-my-pi/issues/3701.
 set -e
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
@@ -21,9 +18,9 @@ if [ ! -x "$target" ]; then
 	exit 1
 fi
 
-global_bin=$(bun pm -g bin 2>/dev/null || true)
+global_bin=$(pnpm bin -g 2>/dev/null || true)
 if [ -z "$global_bin" ]; then
-	global_bin=${BUN_INSTALL:-$HOME/.bun}/bin
+	global_bin=${PNPM_HOME:-$HOME/.local/share/pnpm}
 fi
 
 mkdir -p "$global_bin"

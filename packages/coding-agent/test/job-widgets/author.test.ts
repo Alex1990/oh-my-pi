@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildPromptSources, redactWidgetSample, renderJobWidgetPrompt } from "../../src/job-widgets";
 
 const TOKEN = "ghp_Abcdefghijklmnopqrstuvwxyz0123456789AB";

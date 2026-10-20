@@ -1,5 +1,6 @@
 import * as path from "node:path";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { pathToFileURL } from "node:url";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SvgFigure } from "@oh-my-pi/pi-tui/chat/svg-figure";
 import { getKittyGraphics, setKittyGraphics } from "@oh-my-pi/pi-tui/kitty-graphics";
 import {
@@ -15,6 +16,8 @@ import { TUI } from "@oh-my-pi/pi-tui/tui";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeEvalArgs } from "./helpers/node-subprocess";
 
 withoutTerminalMultiplexer();
 
@@ -150,7 +153,9 @@ describe("SvgFigure", () => {
 	// raster, so the figure was marked failed and showed its source instead.
 	it("draws in a process that never installed a theme", async () => {
 		const script = `
-			import { SvgFigure } from "@oh-my-pi/pi-tui/chat/svg-figure";
+			import { SvgFigure } from ${JSON.stringify(
+				pathToFileURL(path.resolve(import.meta.dirname, "../src/chat/svg-figure.ts")).href,
+			)};
 			const landed = Promise.withResolvers();
 			const svg = new SvgFigure({ onChange: () => landed.resolve() });
 			svg.update(${JSON.stringify(SVG)}, true);
@@ -159,8 +164,8 @@ describe("SvgFigure", () => {
 			await landed.promise;
 			process.stdout.write(JSON.stringify(svg.debugState()));
 		`;
-		const proc = Bun.spawn([process.execPath, "--eval", script], {
-			cwd: path.resolve(import.meta.dir, ".."),
+		const proc = bun.spawn([process.execPath, ...nodeEvalArgs(script)], {
+			cwd: path.resolve(import.meta.dirname, ".."),
 			stdout: "pipe",
 			stderr: "pipe",
 		});

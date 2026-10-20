@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,9 @@ import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 
@@ -33,7 +36,7 @@ drop.addEventListener("drop", event => { event.preventDefault(); record("drop", 
 </script>`;
 
 let tempDir = "";
-let site: Bun.Server<undefined> | undefined;
+let site: Server<undefined> | undefined;
 let url = "";
 
 function makeSession(): ToolSession {
@@ -54,9 +57,9 @@ function makeSession(): ToolSession {
 
 beforeAll(async () => {
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-upload-"));
-	await Bun.write(path.join(tempDir, "alpha.txt"), "alpha");
-	await Bun.write(path.join(tempDir, "beta.txt"), "beta");
-	site = Bun.serve({
+	await bun.write(path.join(tempDir, "alpha.txt"), "alpha");
+	await bun.write(path.join(tempDir, "beta.txt"), "beta");
+	site = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: () => new Response(html, { headers: { "content-type": "text/html" } }),

@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { __resetDirsFromEnvForTests, removeWithRetries, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: TempDir[] = [];
 
@@ -75,7 +76,7 @@ describe("SessionManager cwd adoption on resume", () => {
 		const fileB = await writeSession(projectB, sessionsB);
 
 		// Simulate a legacy session whose header predates the cwd field.
-		const raw = await Bun.file(fileB).text();
+		const raw = await bun.file(fileB).text();
 		const lines = raw.split("\n").filter(Boolean);
 		// The fixed-width title slot is line 0 now; edit the session header itself.
 		const headerIndex = lines.findIndex(line => {
@@ -89,7 +90,7 @@ describe("SessionManager cwd adoption on resume", () => {
 		const header = JSON.parse(lines[headerIndex]) as Record<string, unknown>;
 		header.cwd = "";
 		lines[headerIndex] = JSON.stringify(header);
-		await Bun.write(fileB, `${lines.join("\n")}\n`);
+		await bun.write(fileB, `${lines.join("\n")}\n`);
 
 		const launchDir = path.join(projectA, "sessions");
 		const manager = SessionManager.create(projectA, launchDir);

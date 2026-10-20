@@ -1,4 +1,4 @@
-import { $ } from "bun";
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { loadNative } from "./loader-state.js";
@@ -155,11 +155,22 @@ export async function copyGitObjects(isolationRoot, sourceRoot) {
  */
 export async function runPostCheckoutHook(worktreeRoot, head) {
 	const nullOid = "0".repeat(head.length);
-	const result = await $`git hook run --ignore-missing post-checkout -- ${nullOid} ${head} 1`
-		.cwd(worktreeRoot)
-		.quiet()
-		.nothrow();
-	return { exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr };
+	const argv = ["hook", "run", "--ignore-missing", "post-checkout", "--", nullOid, head, "1"];
+	// Spawn argv directly: Bun's shell builtin is gone, and a shell string would
+	// re-split paths on Windows.
+	const { promise, resolve } = Promise.withResolvers();
+	const child = spawn("git", argv, { cwd: worktreeRoot, stdio: ["ignore", "pipe", "pipe"] });
+	const stdout = [];
+	const stderr = [];
+	child.stdout.on("data", chunk => stdout.push(chunk));
+	child.stderr.on("data", chunk => stderr.push(chunk));
+	child.on("error", error => {
+		resolve({ exitCode: 1, stdout: Buffer.alloc(0), stderr: Buffer.from(String(error)) });
+	});
+	child.on("close", code => {
+		resolve({ exitCode: code ?? 1, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) });
+	});
+	return await promise;
 }
 
 /** Join patch fragments, preserving each part's trailing newline. */

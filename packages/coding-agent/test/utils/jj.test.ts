@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { $which, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("jj workspace detection", () => {
 	let tmpDir: string | undefined;
@@ -69,7 +70,7 @@ describe("isPureJjRepo", () => {
 	async function initGit(dir: string): Promise<void> {
 		const env = { ...process.env, HOME: dir, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
 		const exit = async (args: string[]) => {
-			const proc = Bun.spawn(["git", "-C", dir, ...args], { env, stdout: "ignore", stderr: "pipe" });
+			const proc = bun.spawn(["git", "-C", dir, ...args], { env, stdout: "ignore", stderr: "pipe" });
 			const code = await proc.exited;
 			if (code !== 0) {
 				const stderr = await new Response(proc.stderr).text();
@@ -136,7 +137,7 @@ describe.skipIf(!jjBinary)("native JJ workspace queries", () => {
 		if (!jjBinary) throw new Error("jj skip guard failed");
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-jj-native-"));
 		tempDirs.push(dir);
-		const proc = Bun.spawn([jjBinary, "git", "init", "--colocate", "."], {
+		const proc = bun.spawn([jjBinary, "git", "init", "--colocate", "."], {
 			cwd: dir,
 			stdout: "ignore",
 			stderr: "pipe",
@@ -147,7 +148,7 @@ describe.skipIf(!jjBinary)("native JJ workspace queries", () => {
 
 	async function runJj(dir: string, args: string[]): Promise<void> {
 		if (!jjBinary) throw new Error("jj skip guard failed");
-		const proc = Bun.spawn([jjBinary, ...args], { cwd: dir, stdout: "ignore", stderr: "pipe" });
+		const proc = bun.spawn([jjBinary, ...args], { cwd: dir, stdout: "ignore", stderr: "pipe" });
 		if ((await proc.exited) !== 0) throw new Error(await new Response(proc.stderr).text());
 	}
 

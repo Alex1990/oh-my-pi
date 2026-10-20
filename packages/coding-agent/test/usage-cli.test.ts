@@ -1,5 +1,6 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import {
@@ -32,6 +33,8 @@ import {
 	type UsageAccountIdentity,
 } from "@oh-my-pi/pi-coding-agent/slash-commands/helpers/usage-accounts";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 const HOUR = 3_600_000;
 const FIVE_HOURS = 5 * HOUR;
@@ -1561,7 +1564,7 @@ describe("usage command configuration", () => {
 		using tempDir = TempDir.createSync("@omp-usage-overlay-");
 		const overlayPath = tempDir.join("overlay.yml");
 		await Promise.all([
-			Bun.write(
+			bun.write(
 				tempDir.join("config.yml"),
 				[
 					"auth:",
@@ -1573,7 +1576,7 @@ describe("usage command configuration", () => {
 					"",
 				].join("\n"),
 			),
-			Bun.write(
+			bun.write(
 				overlayPath,
 				[
 					"auth:",
@@ -1588,8 +1591,8 @@ describe("usage command configuration", () => {
 				].join("\n"),
 			),
 		]);
-		const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
-		const proc = Bun.spawn([process.execPath, cliEntry, "usage", "invalidate"], {
+		const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "usage", "invalidate"], {
 			stdout: "pipe",
 			stderr: "pipe",
 			env: {
@@ -1781,7 +1784,7 @@ describe("omp usage reset", () => {
 		}
 		return new Response("not found", { status: 404 });
 	};
-	const usageFetch = Object.assign(handleReset, { preconnect: fetch.preconnect });
+	const usageFetch = Object.assign(handleReset, { preconnect: preconnectOf(fetch) });
 
 	const consumes = () => requests.filter(request => request.method === "POST");
 
@@ -2049,7 +2052,7 @@ describe("omp usage reset", () => {
 		await withFileLock(lockPath, async () => {
 			run = runUsageCommand({ action: "reset", target: `codex/${team}`, noExtensions: true });
 			await listed.promise;
-			await Bun.write(lockPath, `reset:${Date.now()}`);
+			await bun.write(lockPath, `reset:${Date.now()}`);
 		});
 		await run;
 
@@ -2164,7 +2167,7 @@ describe("omp usage reset", () => {
 			"openai-codex",
 			oauth("broker-codex", { email: "fleet@example.test", accountId: "acct-fleet" }),
 		);
-		const handle = startAuthBroker({
+		const handle = await startAuthBroker({
 			storage: brokerStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: ["reset-bearer"],

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { formatTruncationMetaNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { writeArchive } from "@oh-my-pi/pi-utils/ar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function getTextOutput(result: { content: Array<{ type: string; text?: string }> }): string {
 	return result.content
@@ -35,7 +36,7 @@ describe("read tool raw range exactness", () => {
 		testDir = await fs.mkdtemp(path.join(os.tmpdir(), "read-raw-range-"));
 		filePath = path.join(testDir, "data.txt");
 		const lines = Array.from({ length: 60 }, (_, index) => `L${String(index + 1).padStart(2, "0")}`);
-		await Bun.write(filePath, lines.join("\n"));
+		await bun.write(filePath, lines.join("\n"));
 		tool = new ReadTool(makeSession(testDir));
 	});
 
@@ -63,7 +64,7 @@ describe("read tool raw range exactness", () => {
 
 	it("returns only a closed raw range from a newline-terminated file and counts its lines", async () => {
 		const lines = Array.from({ length: 40 }, (_, index) => `line ${index + 1}`);
-		await Bun.write(filePath, `${lines.join("\n")}\n`);
+		await bun.write(filePath, `${lines.join("\n")}\n`);
 
 		const result = await tool.execute("closed-raw-range", { path: `${filePath}:raw:5-8` });
 		expect(getTextOutput(result)).toBe(lines.slice(4, 8).join("\n"));
@@ -79,7 +80,7 @@ describe("read tool raw range exactness", () => {
 
 	it("returns a closed raw range without a paging footer when the file is streamed", async () => {
 		const streamedFile = path.join(testDir, "large.txt");
-		await Bun.write(streamedFile, `${"x".repeat(4 * 1024 * 1024)}\nline 2\nline 3\nline 4\n`);
+		await bun.write(streamedFile, `${"x".repeat(4 * 1024 * 1024)}\nline 2\nline 3\nline 4\n`);
 
 		const result = await tool.execute("streamed-raw-range", { path: `${streamedFile}:raw:2-3` });
 		expect(getTextOutput(result)).toBe("line 2\nline 3");
@@ -87,7 +88,7 @@ describe("read tool raw range exactness", () => {
 
 	it("reads an empty archive member verbatim in raw mode, matching an empty disk file", async () => {
 		await writeArchive(path.join(testDir, "empty.zip"), "zip", [["empty.txt", ""]]);
-		await Bun.write(filePath, "");
+		await bun.write(filePath, "");
 
 		const archive = await tool.execute("empty-archive-raw", { path: "empty.zip:empty.txt:raw" });
 		const disk = await tool.execute("empty-disk-raw", { path: `${filePath}:raw` });
@@ -97,9 +98,9 @@ describe("read tool raw range exactness", () => {
 	});
 
 	it("keeps the terminal newline when the last raw multi-range is open-ended", async () => {
-		await Bun.write(filePath, "one\ntwo\nthree\n");
+		await bun.write(filePath, "one\ntwo\nthree\n");
 		const streamedFile = path.join(testDir, "large-multi.txt");
-		await Bun.write(streamedFile, `${"x".repeat(4 * 1024 * 1024)}\ntwo\nthree\nfour\n`);
+		await bun.write(streamedFile, `${"x".repeat(4 * 1024 * 1024)}\ntwo\nthree\nfour\n`);
 
 		const buffered = await tool.execute("buffered-open-multi", { path: `${filePath}:raw:1,3-` });
 		const streamed = await tool.execute("streamed-open-multi", { path: `${streamedFile}:raw:2,4-` });
@@ -126,7 +127,7 @@ describe("read tool raw range exactness", () => {
 
 	it("keeps the continuation when the byte budget stops inside requested buffered content", async () => {
 		const bufferedFile = path.join(testDir, "buffered-range.txt");
-		await Bun.write(
+		await bun.write(
 			bufferedFile,
 			Array.from({ length: 100 }, (_, index) => `line-${index + 1} ${"x".repeat(1_016)}`).join("\n"),
 		);
@@ -148,7 +149,7 @@ describe("read tool raw range exactness", () => {
 
 	it("reports an oversized selected line from a buffered local file with a safe raw recovery selector", async () => {
 		const bufferedFile = path.join(testDir, "buffered-oversized.txt");
-		await Bun.write(
+		await bun.write(
 			bufferedFile,
 			["leading-context", `oversized-${"x".repeat(70_000)}-end`, "trailing-one", "trailing-two"].join("\n"),
 		);
@@ -181,7 +182,7 @@ describe("read tool raw range exactness", () => {
 		// "Showing 0 of N lines (0B limit)" over visible content.
 		const bigFile = path.join(testDir, "big.txt");
 		const bigLine = "x".repeat(70000);
-		await Bun.write(bigFile, `first\n${bigLine}\nlast\n`);
+		await bun.write(bigFile, `first\n${bigLine}\nlast\n`);
 
 		const result = await tool.execute("call-oversized-line", { path: `${bigFile}:raw:2-2` });
 		const body = getTextOutput(result);

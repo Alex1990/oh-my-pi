@@ -4,7 +4,7 @@
  * strip-driven configuration flows (property strips, pattern input, and the
  * model-browser pick) persisting one agent's entry at a time.
  */
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Effort } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { TspPickerProps } from "@oh-my-pi/pi-wire";

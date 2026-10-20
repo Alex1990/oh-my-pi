@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { CollabController } from "@oh-my-pi/pi-coding-agent/collab/controller";
 import type { CollabHostSnapshot } from "@oh-my-pi/pi-coding-agent/collab/registry";
 import * as registry from "@oh-my-pi/pi-coding-agent/collab/registry";
@@ -9,6 +9,7 @@ import {
 	type BuiltinSlashCommandRuntime,
 	executeBuiltinSlashCommand,
 } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-registry";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -74,7 +75,7 @@ describe("/collab list slash command", () => {
 
 		expect(handled).toBe(true);
 		expect(listSpy).toHaveBeenCalledTimes(1);
-		const text = Bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
+		const text = bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
 		expect(text).toContain("TUI Session (sess-tui)");
 		expect(text).toContain("gen 2");
 		expect(text).toContain("test/model-1");
@@ -97,7 +98,7 @@ describe("/collab list slash command", () => {
 
 		await executeBuiltinSlashCommand("/collab list", harness.runtime);
 
-		const text = Bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
+		const text = bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
 		const details = text.split("\n").filter(line => line.includes("pid 42"));
 		expect(details).toHaveLength(3);
 		expect(details[0]).toContain("relay connected, working,");
@@ -112,7 +113,7 @@ describe("/collab list slash command", () => {
 
 		await executeBuiltinSlashCommand("/collab list", harness.runtime);
 
-		const text = Bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
+		const text = bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""));
 		expect(text).toContain("collab link 0123456789abcdef --view");
 		expect(text).toContain("relay reconnecting");
 	});
@@ -124,7 +125,7 @@ describe("/collab list slash command", () => {
 		const handled = await executeBuiltinSlashCommand("/collab list", harness.runtime);
 
 		expect(handled).toBe(true);
-		expect(Bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""))).toContain(
+		expect(bun.stripANSI(String(harness.showStatus.mock.calls.at(-1)?.[0] ?? ""))).toContain(
 			"No active Collab hosts",
 		);
 	});
@@ -137,7 +138,7 @@ describe("/collab list slash command", () => {
 
 		expect(handled).toBe(true);
 		expect(listSpy).not.toHaveBeenCalled();
-		const error = Bun.stripANSI(String(harness.showError.mock.calls.at(-1)?.[0] ?? ""));
+		const error = bun.stripANSI(String(harness.showError.mock.calls.at(-1)?.[0] ?? ""));
 		expect(error).toContain("Usage: /collab list");
 		expect(error).toContain("collab link");
 		expect(harness.showStatus).not.toHaveBeenCalled();

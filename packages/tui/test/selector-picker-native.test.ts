@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspKind, TspPickerProps } from "@oh-my-pi/pi-wire";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
 import type { DescribeContext, NativeNode } from "../src/native/node";

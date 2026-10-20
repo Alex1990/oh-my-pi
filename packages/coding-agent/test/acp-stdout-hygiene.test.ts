@@ -5,14 +5,16 @@
  * `initialize` frame, and assert the first stdout line parses cleanly as a
  * JSON-RPC response.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 
-type AcpProc = Bun.Subprocess<"pipe", "pipe", "pipe">;
+type AcpProc = Subprocess;
 
-const repoRoot = path.resolve(import.meta.dir, "..", "..", "..");
+const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
 const cliEntry = path.join(repoRoot, "packages", "coding-agent", "src", "cli.ts");
 
 const cleanupRoots: string[] = [];
@@ -96,7 +98,7 @@ describe("ACP stdout hygiene", () => {
 		// dir forces a full re-transpile of the CLI's module graph on every
 		// run (~12s cold vs ~0.4s warm). XDG_* and PI_CODING_AGENT_DIR
 		// already isolate PI's on-disk state for this smoke test.
-		const proc = Bun.spawn(["bun", cliEntry, "acp"], {
+		const proc = bun.spawn(["bun", cliEntry, "acp"], {
 			cwd: repoRoot,
 			stdin: "pipe",
 			stdout: "pipe",

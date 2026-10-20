@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { keywordInProse, maskNonProse } from "@oh-my-pi/pi-tui/prompt/markdown-prose";
 
 const ORCHESTRATE = /\borchestrate\b/i;

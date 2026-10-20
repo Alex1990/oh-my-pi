@@ -1,9 +1,10 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { ImageBudget, ImageProtocol, setTerminalImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 const FIGURE = "<svg viewBox='0 0 80 20'><rect width='80' height='20' fill='var(--accent)'/></svg>";
@@ -41,7 +42,7 @@ function figureComponent(text?: string): { component: AssistantMessageComponent;
 	return { component, changed: changed.promise };
 }
 
-const plain = (component: AssistantMessageComponent): string => Bun.stripANSI(component.render(100).join("\n"));
+const plain = (component: AssistantMessageComponent): string => bun.stripANSI(component.render(100).join("\n"));
 
 beforeAll(async () => {
 	await initTheme(false);

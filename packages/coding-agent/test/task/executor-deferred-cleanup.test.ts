@@ -12,7 +12,7 @@
  * The deferred-cleanup path is exercised deterministically with a blocking
  * teardown and a zero grace, so no wall-clock timers are needed.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import type { LoadExtensionsResult } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/types";
 import type { CreateAgentSessionResult } from "@oh-my-pi/pi-coding-agent/sdk";

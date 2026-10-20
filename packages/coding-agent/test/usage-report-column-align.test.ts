@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import type { UsageReport } from "@oh-my-pi/pi-ai";
 import { renderUsageReports } from "@oh-my-pi/pi-coding-agent/modes/controllers/command-controller";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HOUR = 3_600_000;
 
@@ -92,8 +93,8 @@ describe("renderUsageReports multi-account column alignment (#6067)", () => {
 		const cells = amountRow.trim().split(/\s+/);
 
 		expect(cells).toHaveLength(2);
-		expect(cells.every(cell => Bun.stringWidth(cell) <= 4)).toBe(true);
-		expect(Bun.stringWidth(amountRow)).toBeLessThanOrEqual(11);
+		expect(cells.every(cell => bun.stringWidth(cell) <= 4)).toBe(true);
+		expect(bun.stringWidth(amountRow)).toBeLessThanOrEqual(11);
 	});
 
 	it("keeps mixed capped and used-only amount cells aligned at narrow widths", () => {
@@ -107,7 +108,7 @@ describe("renderUsageReports multi-account column alignment (#6067)", () => {
 		const summaryStart = amountRow.lastIndexOf(" 2 accts");
 
 		expect(summaryStart).toBeGreaterThanOrEqual(0);
-		expect(Bun.stringWidth(labelRow)).toBe(11);
-		expect(Bun.stringWidth(amountRow.slice(2, summaryStart))).toBe(9);
+		expect(bun.stringWidth(labelRow)).toBe(11);
+		expect(bun.stringWidth(amountRow.slice(2, summaryStart))).toBe(9);
 	});
 });

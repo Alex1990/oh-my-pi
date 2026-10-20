@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isLspmuxSupported, wrapWithLspmux } from "@oh-my-pi/pi-coding-agent/lsp/lspmux";
 
 const running = { available: true, running: true, binaryPath: "C:\\bin\\lspmux.exe", config: null };

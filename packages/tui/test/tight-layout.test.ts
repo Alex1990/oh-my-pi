@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Box } from "../src/components/box";
 import { Editor } from "../src/components/editor";
 import { Markdown } from "../src/components/markdown";

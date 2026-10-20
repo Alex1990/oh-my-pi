@@ -1,11 +1,13 @@
-import { afterEach, expect, it } from "bun:test";
+import { afterEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { getThemeByName } from "@oh-my-pi/pi-tui/theme";
+import type { ThemeJson } from "@oh-my-pi/pi-tui/theme/schema";
 import { getAgentDir, getCustomThemesDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const DARK_THEME_PATH = path.join(import.meta.dir, "..", "src", "theme", "dark.json");
+const DARK_THEME_PATH = path.join(import.meta.dirname, "..", "src", "theme", "dark.json");
 
 let tempAgentDir: string | undefined;
 let originalAgentDir = "";
@@ -29,9 +31,9 @@ it("uses the Nerd Fonts v3 session and C# icons", async () => {
 	tempAgentDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-nerd-symbols-"));
 	setAgentDir(tempAgentDir);
 
-	const dark = await Bun.file(DARK_THEME_PATH).json();
+	const dark = await bun.file(DARK_THEME_PATH).json<ThemeJson>();
 	const customThemeName = "nerd-symbols";
-	await Bun.write(
+	await bun.write(
 		path.join(getCustomThemesDir(), `${customThemeName}.json`),
 		JSON.stringify({ ...dark, name: customThemeName, symbols: { ...dark.symbols, preset: "nerd" } }),
 	);
@@ -47,9 +49,9 @@ it("resolves subscription and advisor icons in Nerd Font mode", async () => {
 	tempAgentDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-nerd-symbols-"));
 	setAgentDir(tempAgentDir);
 
-	const dark = await Bun.file(DARK_THEME_PATH).json();
+	const dark = await bun.file(DARK_THEME_PATH).json<ThemeJson>();
 	const customThemeName = "nerd-annotation-symbols";
-	await Bun.write(
+	await bun.write(
 		path.join(getCustomThemesDir(), `${customThemeName}.json`),
 		JSON.stringify({ ...dark, name: customThemeName, symbols: { ...dark.symbols, preset: "nerd" } }),
 	);

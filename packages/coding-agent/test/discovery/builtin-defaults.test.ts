@@ -4,7 +4,7 @@
  * parses, and that the provider sits at the lowest priority so any user/project
  * rule of the same name overrides a bundled default (first-wins dedup).
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getCapability } from "@oh-my-pi/pi-coding-agent/capability";
 import {
 	BUILTIN_DEFAULTS_PROVIDER_ID,
@@ -16,6 +16,7 @@ import type { LoadContext } from "@oh-my-pi/pi-coding-agent/capability/types";
 // Register all discovery providers as a side effect.
 import "@oh-my-pi/pi-coding-agent/discovery";
 import { TtsrManager, type TtsrMatchContext } from "@oh-my-pi/pi-coding-agent/export/ttsr";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function ruleProvider() {
 	const cap = getCapability(ruleCapability.id);
@@ -66,7 +67,7 @@ describe("builtin-defaults rule provider", () => {
 		const manager = new TtsrManager();
 		expect(manager.addRule(rule)).toBe(true);
 
-		for (const snippet of ["await Bun.sleep(10)", "setTimeout(fn, 0)", "setInterval(fn, 5)"]) {
+		for (const snippet of ["await bun.sleep(10)", "setTimeout(fn, 0)", "setInterval(fn, 5)"]) {
 			manager.resetBuffer();
 			const matches = manager.checkDelta(snippet, {
 				source: "tool",
@@ -82,7 +83,7 @@ describe("builtin-defaults rule provider", () => {
 		// Same content in a non-test file is out of scope.
 		manager.resetBuffer();
 		expect(
-			manager.checkDelta("await Bun.sleep(10)", {
+			manager.checkDelta("await bun.sleep(10)", {
 				source: "tool",
 				toolName: "write",
 				filePaths: ["packages/x/src/foo.ts"],

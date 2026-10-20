@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import type { TUI } from "@oh-my-pi/pi-tui";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function normalizeRenderedText(text: string): string {
 	return stripVTControlCharacters(text).replace(/\s+/g, " ").trim();
@@ -45,12 +46,12 @@ async function createHub(state: ProviderDiscoveryState): Promise<ModelHubCompone
 		onUnassign: () => {},
 		onCancel: () => {},
 	});
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	installTestTheme();
 	// Scope-hop is the default arrow mode: one Down moves All models → the
 	// sole provider entry (separators are skipped).
 	hub.handleInput("\x1b[B");
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	return hub;
 }
 

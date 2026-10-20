@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleInputOrEscape } from "@oh-my-pi/pi-tui/overlays/plugin-settings";
 import { setKittyProtocolActive } from "@oh-my-pi/pi-tui";
 

@@ -10,7 +10,7 @@
  * templates" (returns []), so resources still load; any OTHER error from
  * `resources/templates/list` still propagates.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,7 +20,7 @@ import { MCPManager } from "../src/mcp/manager";
 import type { MCPServerConnection, MCPStdioServerConfig, MCPTransport } from "../src/mcp/types";
 import { RESOURCE_URIS } from "./fixtures/resources-no-templates-mcp";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "resources-no-templates-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "resources-no-templates-mcp.ts");
 const BUN_EXEC = process.execPath;
 
 /** Minimal mock transport where `request` is controlled by the caller. */

@@ -11,6 +11,7 @@ import * as path from "node:path";
 import { isEnoent, logger, postmortem } from "@oh-my-pi/pi-utils";
 import { asStrict } from "../providers/aws-sigv4";
 import type { SnapshotResponse } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MAGIC = new Uint8Array([0x4f, 0x4d, 0x50, 0x53]); // "OMPS"
 const VERSION = 2;
@@ -246,7 +247,7 @@ function pumpCacheWrite(cachePath: string, queue: CacheWriteQueue, force: boolea
  */
 function cacheWriteSignature(opts: WriteAuthBrokerSnapshotCacheOptions): number | bigint {
 	const rows = opts.snapshot.credentials.map(({ rotatesInMs: _rotatesInMs, ...entry }) => entry);
-	return Bun.hash(`${opts.token}\u0000${opts.url}\u0000${opts.snapshot.generation}\u0000${JSON.stringify(rows)}`);
+	return bun.hash(`${opts.token}\u0000${opts.url}\u0000${opts.snapshot.generation}\u0000${JSON.stringify(rows)}`);
 }
 
 /** Temp files older than this are debris from a killed process, never a live write. */

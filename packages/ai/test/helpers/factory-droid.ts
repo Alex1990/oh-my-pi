@@ -1,4 +1,4 @@
-import { mock } from "bun:test";
+import { mock } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { type FactoryDroidRegistryModel, factoryDroidRegistry } from "@oh-my-pi/pi-catalog/compat/factory-droid";

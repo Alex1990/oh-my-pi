@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { setNativeRendering } from "../src/native/state";
 import { StatusLineComponent } from "../src/status-line/component";
 import type { StatusLineHost, StatusLineSession } from "../src/status-line/host";

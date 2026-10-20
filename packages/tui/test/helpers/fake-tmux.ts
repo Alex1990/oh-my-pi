@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
@@ -25,7 +26,7 @@ export async function withFakeTmux<T>(
 			.join("\n");
 		const delay = options?.replyDelayMs ? `sleep ${options.replyDelayMs / 1000}\n` : "";
 		const tmux = path.join(binDir, "tmux");
-		await Bun.write(tmux, `#!/bin/sh\n${delay}case "$*" in\n${cases}\n*) exit 64 ;;\nesac\n`);
+		await bun.write(tmux, `#!/bin/sh\n${delay}case "$*" in\n${cases}\n*) exit 64 ;;\nesac\n`);
 		await fs.chmod(tmux, 0o755);
 		return await run(binDir);
 	} finally {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "../../src/config/settings";
 import { LspTool } from "../../src/lsp";
 import { buildSystemPrompt } from "../../src/system-prompt";

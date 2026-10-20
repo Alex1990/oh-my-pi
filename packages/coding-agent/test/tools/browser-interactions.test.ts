@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supe
 import { TERN_KIT_SOURCE } from "@oh-my-pi/pi-coding-agent/tools/browser/tern/page-kit";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const TAB_NAME = `interactions-${crypto.randomUUID()}`;
@@ -80,7 +81,7 @@ function makeSession(): ToolSession {
 beforeAll(async () => {
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-interactions-"));
 	uploadPath = path.join(tempDir, "drop-fixture.txt");
-	await Bun.write(uploadPath, "drop contents");
+	await bun.write(uploadPath, "drop contents");
 });
 
 afterAll(async () => {
@@ -196,7 +197,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser click timeouts", () => {
 
 			controller.abort(reason);
 			// Real Chromium CDP calls cannot run under fake timers; bound the formerly unending lookup.
-			const outcome = await Promise.race([settled, Bun.sleep(500).then(() => ({ status: "hung" as const }))]);
+			const outcome = await Promise.race([settled, bun.sleep(500).then(() => ({ status: "hung" as const }))]);
 			if (outcome.status !== "rejected") {
 				throw new Error(`Text-click candidate lookup ${outcome.status} after abort`);
 			}

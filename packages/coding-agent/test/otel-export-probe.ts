@@ -17,11 +17,12 @@ import {
 	isTelemetryExportEnabled,
 } from "@oh-my-pi/pi-coding-agent/telemetry-export";
 import { trace } from "@opentelemetry/api";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 let received = false;
 let headers: Headers | undefined;
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	async fetch(req) {
 		const path = new URL(req.url).pathname;

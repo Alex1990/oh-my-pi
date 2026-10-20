@@ -1,12 +1,13 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleAur } from "@oh-my-pi/pi-coding-agent/web/scrapers/aur";
 import { handleBrew } from "@oh-my-pi/pi-coding-agent/web/scrapers/brew";
 import { handleMaven } from "@oh-my-pi/pi-coding-agent/web/scrapers/maven";
 import { handleNuGet } from "@oh-my-pi/pi-coding-agent/web/scrapers/nuget";
 import { handlePackagist } from "@oh-my-pi/pi-coding-agent/web/scrapers/packagist";
 import { handleRubyGems } from "@oh-my-pi/pi-coding-agent/web/scrapers/rubygems";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleBrew", () => {
 	it("fetches wget formula", async () => {

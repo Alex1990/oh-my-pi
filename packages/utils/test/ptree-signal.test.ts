@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AbortError, exec, spawn } from "@oh-my-pi/pi-utils/ptree";
 
 describe("ptree signal abort handling", () => {

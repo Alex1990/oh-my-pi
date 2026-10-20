@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { $which, WhichCachePolicy } from "../src/which";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { WhichOptions } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("$which", () => {
 	const originalPath = process.env.PATH;
@@ -56,13 +58,13 @@ describe("$which", () => {
 			expect($which(command, { requireAbsolutePaths: true })).toBe(executable);
 		},
 	);
-	// Tests stub `Bun.which` per test to keep PATH lookups hermetic. If `$which`
+	// Tests stub `bun.which` per test to keep PATH lookups hermetic. If `$which`
 	// captured the original function at import, such a stub would be bypassed and
 	// host binaries would leak into the result.
-	it("honours a Bun.which stub installed after import", () => {
+	it("honours a bun.which stub installed after import", () => {
 		const command = `omp-which-stubbed-${process.pid}`;
 		const stubbedPath = path.join(os.tmpdir(), "omp-which-stub", command);
-		const whichSpy = vi.spyOn(Bun, "which").mockReturnValue(stubbedPath);
+		const whichSpy = vi.spyOn(bun, "which").mockReturnValue(stubbedPath);
 
 		expect($which(command, { cache: WhichCachePolicy.Bypass })).toBe(stubbedPath);
 		expect(whichSpy).toHaveBeenCalledWith(command, expect.objectContaining({ PATH: process.env.PATH }));
@@ -72,8 +74,8 @@ describe("$which", () => {
 		const first = `/tmp/which-first-${process.pid}`;
 		const second = `/tmp/which-second-${process.pid}`;
 		const whichSpy = vi
-			.spyOn(Bun, "which")
-			.mockImplementation((_command: string, options?: Bun.WhichOptions) =>
+			.spyOn(bun, "which")
+			.mockImplementation((_command: string, options?: WhichOptions) =>
 				options?.cwd === "ab" && options?.PATH === "c" ? first : second,
 			);
 

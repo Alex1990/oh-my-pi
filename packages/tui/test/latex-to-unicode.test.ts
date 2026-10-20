@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { isBareMathEnvironment, latexToUnicode, renderMathInText } from "@oh-my-pi/pi-tui/latex-to-unicode";
 import { TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
+import { colorToString } from "@oh-my-pi/pi-tui/theme/color";
 
 const FG_RESET = "\x1b[39m";
 const BG_RESET = "\x1b[49m";
@@ -13,7 +14,7 @@ function setTrueColor(enabled: boolean): void {
 }
 
 function fg(color: string, format: "ansi-16m" | "ansi-256" = "ansi-16m"): string {
-	return Bun.color(color, format) ?? "";
+	return colorToString(color, format) ?? "";
 }
 
 afterEach(() => {
@@ -41,7 +42,7 @@ describe("latexToUnicode ANSI colors", () => {
 
 	it("renders colorbox and fcolorbox with foreground and background resets", () => {
 		setTrueColor(true);
-		const yellowBackground = (Bun.color("#ffff00", "ansi-16m") ?? "").replace("\x1b[38;", "\x1b[48;");
+		const yellowBackground = (colorToString("#ffff00", "ansi-16m") ?? "").replace("\x1b[38;", "\x1b[48;");
 
 		expect(latexToUnicode(String.raw`\colorbox{yellow}{x}`)).toBe(`${yellowBackground}x${BG_RESET}`);
 		expect(latexToUnicode(String.raw`\fcolorbox{red}{yellow}{x}`)).toBe(

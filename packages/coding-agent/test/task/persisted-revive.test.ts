@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel, type MockResponse, type MockResponseSource } from "@oh-my-pi/pi-ai/providers/mock";
@@ -46,6 +46,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { createSessionDefaults } from "../helpers/session-defaults";
 
 import { cfgAdvisorEnabled } from "@oh-my-pi/pi-coding-agent/advisor/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: TempDir[] = [];
 
@@ -277,17 +278,17 @@ describe("persisted subagent revival", () => {
 		const ambientExtension = path.join(cwd, "ambient-extension.ts");
 		const blockedPath = path.join(cwd, "blocked.txt");
 		const ambientMarker = path.join(cwd, "ambient-ran.txt");
-		await Bun.write(blockedPath, "private fixture");
-		await Bun.write(
+		await bun.write(blockedPath, "private fixture");
+		await bun.write(
 			ownerExtension,
 			`export default function (pi) { pi.on("tool_call", event => {
 				if (event.toolName === "read" && event.input.path === ${JSON.stringify(blockedPath)})
 					return { block: true, reason: "Owner policy denied the read" };
 			}); }\n`,
 		);
-		await Bun.write(
+		await bun.write(
 			ambientExtension,
-			`export default function (pi) { pi.on("session_start", () => Bun.write(${JSON.stringify(ambientMarker)}, "ran")); }\n`,
+			`export default function (pi) { pi.on("session_start", () => bun.write(${JSON.stringify(ambientMarker)}, "ran")); }\n`,
 		);
 		let extensionRoots: EffectiveExtensionRoots = {
 			explicit: [ambientExtension],
@@ -321,7 +322,7 @@ describe("persisted subagent revival", () => {
 			const read = revived.getToolByName("read");
 			if (!read) throw new Error("Missing revived read tool");
 			await expect(read.execute("denied", { path: blockedPath })).rejects.toThrow("Owner policy denied the read");
-			expect(await Bun.file(ambientMarker).exists()).toBe(false);
+			expect(await bun.file(ambientMarker).exists()).toBe(false);
 		} finally {
 			await revived?.dispose();
 			authStorage.close();
@@ -332,7 +333,7 @@ describe("persisted subagent revival", () => {
 		const cwd = makeTempDir("@pi-revive-restricted-policy-");
 		const sessionFile = await createPersistedSession(cwd, true, "default");
 		const blockedPath = path.join(cwd, "blocked.txt");
-		await Bun.write(blockedPath, "private fixture");
+		await bun.write(blockedPath, "private fixture");
 		const preparedExtensions: PreparedExtension[] = [
 			{
 				path: "<owner-policy>",
@@ -889,7 +890,7 @@ describe("persisted subagent revival", () => {
 		// (artifactsDir = parent sessionFile sans ".jsonl"; see createFactory).
 		const artifactPath = path.join(cwd, "parent", `${ref.id}.md`);
 		const completedReport = "# Completed report\n\nfull multi-paragraph body\n\nZZEND";
-		await Bun.write(artifactPath, completedReport);
+		await bun.write(artifactPath, completedReport);
 
 		const observer = handle?.observer();
 		expect(observer).toBeDefined();
@@ -907,7 +908,7 @@ describe("persisted subagent revival", () => {
 		const finish = observer?.([record]);
 		await finish?.();
 
-		expect(await Bun.file(artifactPath).text()).toBe(completedReport);
+		expect(await bun.file(artifactPath).text()).toBe(completedReport);
 		AgentLifecycleManager.resetGlobalForTests();
 		AgentRegistry.resetGlobalForTests();
 	});
@@ -1467,14 +1468,14 @@ describe("cold revival replays the system prompt the last request sent", () => {
 		]);
 		const sessionFile = path.join(cwd, "prompt-blocks.jsonl");
 		await spawned.session.sessionManager.flush();
-		const beforeBatch = await Bun.file(sessionFile).text();
+		const beforeBatch = await bun.file(sessionFile).text();
 		batch = 2;
 		await spawned.session.setWorkPoolYieldItems([{ id: "item", index: 0 }]);
 		await spawned.session.prompt("next batch");
 		await spawned.session.waitForIdle();
 		// An older transcript, whose latest contract is the batch-1 one, is restored and reloaded.
 		await spawned.session.sessionManager.flush();
-		await Bun.write(sessionFile, beforeBatch);
+		await bun.write(sessionFile, beforeBatch);
 		await spawned.session.reload();
 		await spawned.session.prompt("again");
 		await spawned.session.waitForIdle();
@@ -1489,7 +1490,7 @@ describe("cold revival replays the system prompt the last request sent", () => {
 	it("keeps a finished child in the Agent Hub when startup extensions append many entries", async () => {
 		const cwd = makeTempDir("@pi-revive-hub-prefix-");
 		const parentFile = path.join(cwd, "parent.jsonl");
-		await Bun.write(
+		await bun.write(
 			parentFile,
 			`${JSON.stringify({ type: "session", version: 3, id: "parent", timestamp: new Date().toISOString(), cwd })}\n`,
 		);
@@ -1577,7 +1578,7 @@ describe("buildWakeRelayBody", () => {
 			sessionFile: string,
 			keep: (type: string | undefined) => boolean,
 		): Promise<string[]> {
-			return (await Bun.file(sessionFile).text())
+			return (await bun.file(sessionFile).text())
 				.split("\n")
 				.filter(line => line.trim().length > 0 && keep(entryType(line)));
 		}
@@ -1594,7 +1595,7 @@ describe("buildWakeRelayBody", () => {
 
 			await expect(reviver(ref)).rejects.toThrow(/ENOENT/);
 			// Fail closed without minting: the missing path stays missing.
-			expect(await Bun.file(sessionFile).exists()).toBe(false);
+			expect(await bun.file(sessionFile).exists()).toBe(false);
 		});
 
 		it("refuses a transcript deleted between open's snapshot read and its adoption", async () => {
@@ -1620,7 +1621,7 @@ describe("buildWakeRelayBody", () => {
 			try {
 				await expect(reviver(ref)).rejects.toThrow(/ENOENT/);
 				// Fail closed without minting: the missing path stays missing.
-				expect(await Bun.file(sessionFile).exists()).toBe(false);
+				expect(await bun.file(sessionFile).exists()).toBe(false);
 			} finally {
 				readTextSpy.mockRestore();
 			}
@@ -1630,14 +1631,14 @@ describe("buildWakeRelayBody", () => {
 			const cwd = makeTempDir("@pi-revive-truncated-");
 			const sessionFile = await createPersistedSession(cwd);
 			const truncated = `${(await entriesOfType(sessionFile, type => type === "session" || type === "session_init")).join("\n")}\n`;
-			await Bun.write(sessionFile, truncated);
+			await bun.write(sessionFile, truncated);
 			const ref = createRef(sessionFile);
 			const reviver = await createFactory(cwd)(ref);
 			if (!reviver) throw new Error("Expected a persisted reviver");
 
 			await expect(reviver(ref)).rejects.toThrow(/no message history/);
 			// The parked transcript is evidence, not scratch space: untouched.
-			expect(await Bun.file(sessionFile).text()).toBe(truncated);
+			expect(await bun.file(sessionFile).text()).toBe(truncated);
 		});
 
 		it("rebuilds the contract from the reopened file, not the stale peek capture", async () => {
@@ -1648,10 +1649,10 @@ describe("buildWakeRelayBody", () => {
 			if (!reviver) throw new Error("Expected a persisted reviver");
 			// The file is replaced after the peek: same messages, no session_init.
 			const withoutInit = `${(await entriesOfType(sessionFile, type => type !== "session_init")).join("\n")}\n`;
-			await Bun.write(sessionFile, withoutInit);
+			await bun.write(sessionFile, withoutInit);
 
 			await expect(reviver(ref)).rejects.toThrow(/no persisted session contract/);
-			expect(await Bun.file(sessionFile).text()).toBe(withoutInit);
+			expect(await bun.file(sessionFile).text()).toBe(withoutInit);
 		});
 	});
 });

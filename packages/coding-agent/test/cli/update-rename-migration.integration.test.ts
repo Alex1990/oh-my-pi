@@ -17,11 +17,11 @@
  * Each scenario runs the full install-new/remove-old/verify transaction and
  * asserts the resulting launcher executes the NEW version.
  */
-import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { $which, TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import {
 	type InstalledVersionVerification,
 	migrateRenamedInstall,
@@ -29,6 +29,7 @@ import {
 	type RenameMigrationSteps,
 } from "../../src/cli/update-cli";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const OLD_PKG = "omp-rename-fixture-old";
 const NEW_PKG = "omp-rename-fixture-new";
@@ -57,9 +58,9 @@ afterAll(async () => {
 async function makeFixtures(root: string): Promise<{ oldDir: string; newDir: string }> {
 	const mkpkg = async (name: string, version: string): Promise<string> => {
 		const dir = path.join(root, name);
-		await Bun.write(path.join(dir, "package.json"), JSON.stringify({ name, version, bin: { omp: "cli.js" } }));
+		await bun.write(path.join(dir, "package.json"), JSON.stringify({ name, version, bin: { omp: "cli.js" } }));
 		const cli = path.join(dir, "cli.js");
-		await Bun.write(cli, `#!/usr/bin/env bun\nconsole.log("omp/${version}");\n`);
+		await bun.write(cli, `#!/usr/bin/env bun\nconsole.log("omp/${version}");\n`);
 		await fs.chmod(cli, 0o755);
 		return dir;
 	};
@@ -107,10 +108,10 @@ describe.skipIf(process.platform === "win32" || !$which("npm"))("rename migratio
 		const verifications: InstalledVersionVerification[] = [];
 		const steps: RenameMigrationSteps = {
 			async install() {
-				return (await $`npm install -g --force --prefix ${prefix} ${newDir}`.env(env).quiet().nothrow()).exitCode;
+				return (await $`npm install -g --force --prefix ${prefix} ${newDir}`.env(env).quiet().nothrow()).exitCode ?? 1;
 			},
 			async removeOld() {
-				return (await $`npm uninstall -g --prefix ${prefix} ${OLD_PKG}`.env(env).quiet().nothrow()).exitCode;
+				return (await $`npm uninstall -g --prefix ${prefix} ${OLD_PKG}`.env(env).quiet().nothrow()).exitCode ?? 1;
 			},
 			async verify() {
 				const result = await verifyLauncher(binDir, NEW_VERSION);
@@ -148,10 +149,10 @@ describe.skipIf(process.platform === "win32")("rename migration over real bun", 
 		const verifications: InstalledVersionVerification[] = [];
 		const steps: RenameMigrationSteps = {
 			async install() {
-				return (await $`bun add -g file:${newDir}`.env(env).quiet().nothrow()).exitCode;
+				return (await $`bun add -g file:${newDir}`.env(env).quiet().nothrow()).exitCode ?? 1;
 			},
 			async removeOld() {
-				return (await $`bun remove -g ${OLD_PKG}`.env(env).quiet().nothrow()).exitCode;
+				return (await $`bun remove -g ${OLD_PKG}`.env(env).quiet().nothrow()).exitCode ?? 1;
 			},
 			async verify() {
 				const result = await verifyLauncher(binDir, NEW_VERSION);
@@ -164,7 +165,9 @@ describe.skipIf(process.platform === "win32")("rename migration over real bun", 
 		expect(verifications.map(result => ({ ok: result.ok, actual: result.actual }))).toEqual([
 			{ ok: true, actual: NEW_VERSION },
 		]);
-		const globalManifest = await Bun.file(path.join(root, "bun-global", "package.json")).json();
+		const globalManifest = await bun
+			.file(path.join(root, "bun-global", "package.json"))
+			.json<{ dependencies?: Record<string, string> }>();
 		expect(Object.keys(globalManifest.dependencies ?? {})).toEqual([NEW_PKG]);
 	}, 120_000);
 });

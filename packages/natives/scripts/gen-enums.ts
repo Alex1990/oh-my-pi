@@ -15,8 +15,10 @@
  * Run after `napi build`: `bun packages/natives/scripts/gen-enums.ts`
  */
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const nativeDir = path.resolve(import.meta.dir, "../native");
+const nativeDir = path.resolve(import.meta.dirname, "../native");
 const dtsPath = path.join(nativeDir, "index.d.ts");
 const jsPath = path.join(nativeDir, "index.js");
 
@@ -124,8 +126,8 @@ function buildGeneratedBlock(dts: string): string {
 }
 
 export async function generateEnumExports(): Promise<void> {
-	const dts = await Bun.file(dtsPath).text();
-	const existing = await Bun.file(jsPath).text();
+	const dts = await bun.file(dtsPath).text();
+	const existing = await bun.file(jsPath).text();
 	const generatedBlock = buildGeneratedBlock(dts);
 
 	// Patch the generated block in place. `native/index.js` is the hand-edited
@@ -142,7 +144,7 @@ export async function generateEnumExports(): Promise<void> {
 	}
 	const js = existing.slice(0, blockStart) + generatedBlock + existing.slice(blockEnd + MARKER_END.length);
 
-	await Bun.write(jsPath, js);
+	await bun.write(jsPath, js);
 
 	// Also fix the .d.ts: replace `const enum` with `enum` so TS allows
 	// assigning string literals to enum types without casts.
@@ -150,7 +152,7 @@ export async function generateEnumExports(): Promise<void> {
 	const dtsContent = dts
 		.replaceAll("export const enum", "export declare enum")
 		.replaceAll("export declare const enum", "export declare enum");
-	await Bun.write(dtsPath, dtsContent);
+	await bun.write(dtsPath, dtsContent);
 
 	const symbolCount = (generatedBlock.match(/^export const /gm) ?? []).length;
 	console.log(
@@ -158,6 +160,6 @@ export async function generateEnumExports(): Promise<void> {
 	);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await generateEnumExports();
 }

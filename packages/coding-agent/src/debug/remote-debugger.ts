@@ -14,8 +14,9 @@
  *     probe rather than by whether the call threw.
  */
 
-import { startRemoteDebugger } from "bun:jsc";
+import { startRemoteDebugger } from "@oh-my-pi/pi-utils/jsc-compat";
 import * as net from "node:net";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_HOST = "127.0.0.1";
 /** How long to keep probing for the inspector socket before giving up. */
@@ -88,7 +89,7 @@ async function waitForListening(host: string, port: number): Promise<boolean> {
 	const deadline = Date.now() + PROBE_DEADLINE_MS;
 	do {
 		if (await tryConnect(host, port, PROBE_INTERVAL_MS)) return true;
-		await Bun.sleep(PROBE_INTERVAL_MS);
+		await bun.sleep(PROBE_INTERVAL_MS);
 	} while (Date.now() < deadline);
 	return false;
 }
@@ -112,9 +113,11 @@ export async function startRemoteDebuggerServer(options: StartRemoteDebuggerOpti
 	}
 }
 
-async function launch({ port, start = startRemoteDebugger }: StartRemoteDebuggerOptions): Promise<RemoteDebuggerInfo> {
+async function launch({ port, start }: StartRemoteDebuggerOptions): Promise<RemoteDebuggerInfo> {
 	const host = DEFAULT_HOST;
 	const chosen = port ?? (await reserveFreePort(host));
+	const starter: RemoteDebuggerStarter =
+		start ?? ((starterHost, starterPort) => void startRemoteDebugger({ host: starterHost, port: starterPort }));
 
 	// Something already on this port? Refuse up front: otherwise Bun throws a
 	// real bind error and our success probe would connect to that unrelated
@@ -125,7 +128,7 @@ async function launch({ port, start = startRemoteDebugger }: StartRemoteDebugger
 
 	let thrown: unknown;
 	try {
-		start(host, chosen);
+		starter(host, chosen);
 	} catch (err) {
 		// Bun's startRemoteDebugger throws a spurious bind error even on success,
 		// so defer the verdict to the loopback probe below.

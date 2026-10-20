@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -10,6 +10,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { tinyTitleClient } from "@oh-my-pi/pi-coding-agent/tiny/title-client";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Issue #6462: the first submit used to spawn the local tiny-title worker
 // synchronously ahead of the first frame, and title generation started before
@@ -43,8 +44,8 @@ describe("InteractiveMode tiny-title prewarm", () => {
 			vi.spyOn(process.stdin, "setRawMode").mockReturnValue(process.stdin);
 		}
 
-		previousNoTitle = Bun.env.PI_NO_TITLE;
-		delete Bun.env.PI_NO_TITLE;
+		previousNoTitle = bun.env.PI_NO_TITLE;
+		delete bun.env.PI_NO_TITLE;
 
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true, cwd: tempDir.path() });
@@ -85,8 +86,8 @@ describe("InteractiveMode tiny-title prewarm", () => {
 		vi.restoreAllMocks();
 		await session?.dispose();
 		resetSettingsForTest();
-		if (previousNoTitle === undefined) delete Bun.env.PI_NO_TITLE;
-		else Bun.env.PI_NO_TITLE = previousNoTitle;
+		if (previousNoTitle === undefined) delete bun.env.PI_NO_TITLE;
+		else bun.env.PI_NO_TITLE = previousNoTitle;
 	});
 
 	afterAll(() => {

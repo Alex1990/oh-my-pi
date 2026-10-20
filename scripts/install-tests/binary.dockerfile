@@ -1,11 +1,14 @@
 # Test binary build from local source
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y curl ca-certificates unzip build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg unzip build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+# Install Node.js 22 and the pnpm release the repository pins.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 
 # Install Rust — the host native addon builds through the default
 # cargo/napi-rs backend, so no bazelisk is needed.
@@ -16,14 +19,14 @@ ENV PATH="/root/.cargo/bin:$PATH"
 WORKDIR /repo
 COPY . .
 
-# Build native addon and binary
-RUN bun install --frozen-lockfile
-RUN bun --cwd=packages/natives run build
-RUN cd packages/coding-agent && bun run build
+# Build native addon and the launcher plus its shared cli.js bundle
+RUN pnpm install --frozen-lockfile
+RUN pnpm --dir packages/natives run build
+RUN pnpm --dir packages/coding-agent run build
 
-# Install binary to PATH
+# Install the launcher and bundle to PATH
 RUN mkdir -p /root/.local/bin && \
-    cp packages/coding-agent/dist/omp /root/.local/bin/
+    cp packages/coding-agent/dist/omp packages/coding-agent/dist/cli.js /root/.local/bin/
 ENV PATH="/root/.local/bin:$PATH"
 
 # Verify

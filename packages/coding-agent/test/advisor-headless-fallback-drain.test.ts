@@ -10,7 +10,7 @@
  * releasing at once on a failing advisor; a regression parks it through
  * recovery and pushes session teardown past its cleanup deadline.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Api, AssistantMessageEventStream, Context, Model, SimpleStreamOptions } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";

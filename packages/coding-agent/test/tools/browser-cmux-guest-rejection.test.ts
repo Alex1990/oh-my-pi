@@ -1,12 +1,15 @@
-import { expect, test } from "bun:test";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { TS_CHILD_FLAGS } from "./node-flags";
 
-const repoRoot = path.resolve(import.meta.dir, "../../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 
 const probe = `
-import { CmuxTab } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/cmux-tab";
-import { runInProcessTab } from "@oh-my-pi/pi-coding-agent/tools/browser/in-process-run";
-import { CmuxSocketClient } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/socket-client";
+import { CmuxTab } from "./packages/coding-agent/src/tools/browser/cmux/cmux-tab.ts";
+import { runInProcessTab } from "./packages/coding-agent/src/tools/browser/in-process-run.ts";
+import { CmuxSocketClient } from "./packages/coding-agent/src/tools/browser/cmux/socket-client.ts";
 
 const cwd = process.cwd();
 const tab = new CmuxTab({
@@ -20,7 +23,7 @@ try {
 		code: \`
 			const { promise, reject } = Promise.withResolvers();
 			reject(new Error("boom"));
-			await Bun.file("package.json").text();
+			await new Promise(resolve => setTimeout(resolve, 0));
 			await promise.catch(() => undefined);
 		\`,
 		timeoutMs: 10_000,
@@ -35,7 +38,7 @@ try {
 `;
 
 test("cmux guest floating rejection fails the browser run without exiting the host", async () => {
-	const proc = Bun.spawn([process.execPath, "--eval", probe], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...TS_CHILD_FLAGS, "--eval", probe], {
 		cwd: repoRoot,
 		stdin: "ignore",
 		stdout: "pipe",

@@ -1,6 +1,7 @@
 import { listWorkspace } from "../native";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const root = Bun.argv[2];
+const root = bun.argv[2];
 if (!root) throw new Error("Usage: bun bench/workspace.ts DIRECTORY");
 for (let iteration = 0; iteration < 5; iteration++) {
 	const started = performance.now();

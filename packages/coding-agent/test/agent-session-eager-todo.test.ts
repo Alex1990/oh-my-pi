@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentMessage, type AgentTool } from "@oh-my-pi/pi-agent-core";
@@ -16,6 +16,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { TodoTool } from "@oh-my-pi/pi-coding-agent/tools";
 import { setInteractiveHost, TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type ObservedPromptCall = {
 	toolChoice: string | undefined;
@@ -227,8 +228,8 @@ describe("AgentSession eager todo enforcement", () => {
 	});
 
 	beforeEach(async () => {
-		previousNoTitle = Bun.env.PI_NO_TITLE;
-		delete Bun.env.PI_NO_TITLE;
+		previousNoTitle = bun.env.PI_NO_TITLE;
+		delete bun.env.PI_NO_TITLE;
 		tempDir = TempDir.createSync("@pi-agent-session-eager-todo-");
 		streamCallCount = 0;
 		scriptedResponses = [];
@@ -241,8 +242,8 @@ describe("AgentSession eager todo enforcement", () => {
 			await session.dispose();
 		}
 		vi.restoreAllMocks();
-		if (previousNoTitle === undefined) delete Bun.env.PI_NO_TITLE;
-		else Bun.env.PI_NO_TITLE = previousNoTitle;
+		if (previousNoTitle === undefined) delete bun.env.PI_NO_TITLE;
+		else bun.env.PI_NO_TITLE = previousNoTitle;
 		tempDir.removeSync();
 	});
 
@@ -511,7 +512,7 @@ describe("AgentSession eager todo enforcement", () => {
 	});
 
 	it("does not refresh todo-init titles when automatic titles are disabled", async () => {
-		Bun.env.PI_NO_TITLE = "1";
+		bun.env.PI_NO_TITLE = "1";
 		await recreateSession({ "title.refreshOnReplan": true });
 		await session.setSessionName("Old auto title", "auto");
 		const completeSimpleMock = vi.spyOn(ai, "completeSimple");

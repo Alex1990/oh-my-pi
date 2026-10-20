@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";

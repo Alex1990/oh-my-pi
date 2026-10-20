@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, Model } from "@oh-my-pi/pi-ai";
@@ -19,6 +19,7 @@ import {
 	cfgProvidersCacheWarming,
 	cfgRetryEnabled,
 } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeConverseModel(): Model {
 	return buildModel({
@@ -134,7 +135,7 @@ describe("AgentSession auto-maintenance controls and cache-warming retention", (
 
 		// ...but it never touched the persisted global layer or disk.
 		expect(settings.getGlobalSettings()).toEqual({});
-		expect(await Bun.file(configPath).exists()).toBe(false);
+		expect(await bun.file(configPath).exists()).toBe(false);
 	});
 
 	it("persists to global config.yml when persist=true (settings panel path)", async () => {
@@ -150,7 +151,7 @@ describe("AgentSession auto-maintenance controls and cache-warming retention", (
 			compaction: { enabled: true },
 			retry: { enabled: true },
 		});
-		const onDisk = await Bun.file(configPath).text();
+		const onDisk = await bun.file(configPath).text();
 		expect(onDisk).toContain("enabled: true");
 	});
 

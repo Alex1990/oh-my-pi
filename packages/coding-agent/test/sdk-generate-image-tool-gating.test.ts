@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression for issue #5305: image-gen is registered as a custom tool, and
 // custom tools are force-activated regardless of the `toolNames` filter. Before
@@ -198,7 +199,7 @@ describe("generate_image tool gating", () => {
 		expect(write).toBeDefined();
 		const target = path.join(registryDir, "mounted-runtime-upgrade.txt");
 		await write!.execute("mounted-runtime-full-write", { path: target, content: "upgraded\n" });
-		expect(await Bun.file(target).text()).toBe("upgraded\n");
+		expect(await bun.file(target).text()).toBe("upgraded\n");
 	});
 
 	it("mounts ambient MCP-shaped tools when write was omitted", async () => {

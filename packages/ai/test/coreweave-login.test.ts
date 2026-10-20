@@ -1,20 +1,21 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const loginCoreWeave = getProviderDefinition("coreweave")?.login;
 if (!loginCoreWeave) throw new Error("CoreWeave login is not registered");
 
 const COREWEAVE_ENV_KEYS = ["COREWEAVE_PROJECT", "WANDB_INFERENCE_PROJECT", "WANDB_ENTITY", "WANDB_PROJECT"] as const;
-const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, Bun.env[key]]));
+const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, bun.env[key]]));
 
 function restoreCoreWeaveEnv(): void {
 	for (const key of COREWEAVE_ENV_KEYS) {
 		const value = ORIGINAL_ENV.get(key);
 		if (value === undefined) {
-			delete Bun.env[key];
+			delete bun.env[key];
 		} else {
-			Bun.env[key] = value;
+			bun.env[key] = value;
 		}
 	}
 }
@@ -26,10 +27,10 @@ afterEach(() => {
 
 describe("CoreWeave Serverless Inference login", () => {
 	test("validates API key against the models endpoint with the project header", async () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		delete Bun.env.WANDB_ENTITY;
-		delete Bun.env.WANDB_PROJECT;
+		bun.env.COREWEAVE_PROJECT = "team/project";
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		delete bun.env.WANDB_ENTITY;
+		delete bun.env.WANDB_PROJECT;
 
 		const fetchMock: FetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
 			const url = typeof input === "string" ? input : input.toString();
@@ -66,10 +67,10 @@ describe("CoreWeave Serverless Inference login", () => {
 	});
 
 	test("requires a project header before validating the API key", async () => {
-		delete Bun.env.COREWEAVE_PROJECT;
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		delete Bun.env.WANDB_ENTITY;
-		delete Bun.env.WANDB_PROJECT;
+		delete bun.env.COREWEAVE_PROJECT;
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		delete bun.env.WANDB_ENTITY;
+		delete bun.env.WANDB_PROJECT;
 		const fetchMock: FetchImpl = vi.fn(async () => {
 			return new Response(JSON.stringify({ object: "list", data: [] }), {
 				status: 200,
@@ -88,10 +89,10 @@ describe("CoreWeave Serverless Inference login", () => {
 	});
 
 	test("surfaces validation errors from the CoreWeave Serverless Inference models endpoint", async () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		delete Bun.env.WANDB_ENTITY;
-		delete Bun.env.WANDB_PROJECT;
+		bun.env.COREWEAVE_PROJECT = "team/project";
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		delete bun.env.WANDB_ENTITY;
+		delete bun.env.WANDB_PROJECT;
 
 		const fetchMock: FetchImpl = vi.fn(async () => {
 			return new Response("Unauthorized", {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { type } from "@oh-my-pi/omptype";
@@ -24,6 +24,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { WaitTool } from "@oh-my-pi/pi-coding-agent/tools/wait";
 import * as imageLoading from "@oh-my-pi/pi-coding-agent/utils/image-loading";
 import { TempDir, untilAborted } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const zeroUsage = {
 	input: 0,
@@ -226,7 +227,7 @@ describe("AgentSession aside delivery", () => {
 			const run = session.prompt("go");
 			try {
 				await waitStarted.promise;
-				await Bun.sleep(450);
+				await bun.sleep(450);
 				expect(contexts).toHaveLength(1);
 				expect(manager.getRunningJobs({ ownerId: "Main" })).toHaveLength(1);
 				await session.sendUserMessage("ASIDE_DURING_WAIT", { deliverAs: "aside" });

@@ -1,4 +1,4 @@
-import { expect, test, vi } from "bun:test";
+import { expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { CustomToolContext } from "../src/extensibility/custom-tools/types";
 import { MCPManager } from "../src/mcp/manager";
 import { MCPTool } from "../src/mcp/tool-bridge";
@@ -6,6 +6,7 @@ import { HttpTransport } from "../src/mcp/transports/http";
 import type { MCPRequestOptions, MCPServerConnection, MCPToolDefinition, MCPTransport } from "../src/mcp/types";
 import { createMCPProxyTools } from "../src/task/executor";
 import { ToolAbortError } from "../src/tools/tool-errors";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function createFakeConnection() {
 	let capturedSignal: AbortSignal | undefined;
@@ -99,7 +100,7 @@ test("MCP proxy tool aborts underlying operation on caller abort", async () => {
 test.each([180_000, 0])("MCP proxy honors a transport deadline of %i beyond 60s", async timeout => {
 	const arrived = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		idleTimeout: 0,

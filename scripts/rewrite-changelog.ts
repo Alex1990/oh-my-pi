@@ -45,6 +45,8 @@ import {
 	renderChangelog,
 	resolveRepoRoot,
 } from "./fix-changelogs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
 /** Tried in order after the primary model fails (quota exhaustion, auth, hard API errors). */
@@ -251,7 +253,7 @@ Consolidate and rewrite this content into user-visible release notes. Keep all p
 
 		if (response.stopReason === "error" || response.stopReason === "aborted") {
 			lastError = response.errorMessage ?? response.stopReason;
-			await Bun.sleep(1500 * (attempt + 1));
+			await bun.sleep(1500 * (attempt + 1));
 			continue;
 		}
 
@@ -349,7 +351,7 @@ async function run(options: RunOptions): Promise<RunResult> {
 			const changelogPath = paths[i];
 			if (!changelogPath) continue;
 			const absolutePath = path.join(repoRoot, changelogPath);
-			const content = await Bun.file(absolutePath).text();
+			const content = await bun.file(absolutePath).text();
 			const document = parseChangelog(content);
 			const section = unreleasedSection(document);
 			if (!section) continue;
@@ -368,7 +370,7 @@ async function run(options: RunOptions): Promise<RunResult> {
 
 			const rewrittenCount = rewritten.reduce((sum, sec) => sum + sec.items.length, 0);
 			if (options.write) {
-				await Bun.write(absolutePath, next);
+				await bun.write(absolutePath, next);
 			}
 
 			results[i] = {
@@ -485,7 +487,7 @@ async function main(): Promise<void> {
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }
 

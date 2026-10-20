@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { __resetProxyCache } from "@oh-my-pi/pi-ai/utils/proxy";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -9,6 +9,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { requestBodyText } from "@oh-my-pi/pi-ai/utils/request-body";
 import { asGlobalFetch } from "./helpers/fetch-mock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface MessagesRequest {
 	system?: unknown;
@@ -93,19 +94,19 @@ function withoutCacheControl(value: unknown): unknown {
 }
 
 describe("AgentSession Anthropic native compaction", () => {
-	const previousProxy = Bun.env.PI_PROXY_ANTHROPIC;
+	const previousProxy = bun.env.PI_PROXY_ANTHROPIC;
 
 	beforeEach(() => {
 		// A provider proxy moves first-party requests off the Cowork transport
 		// onto `globalThis.fetch`, where the spy below answers them.
-		Bun.env.PI_PROXY_ANTHROPIC = "http://proxy.example.test:8080";
+		bun.env.PI_PROXY_ANTHROPIC = "http://proxy.example.test:8080";
 		__resetProxyCache();
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		if (previousProxy === undefined) delete Bun.env.PI_PROXY_ANTHROPIC;
-		else Bun.env.PI_PROXY_ANTHROPIC = previousProxy;
+		if (previousProxy === undefined) delete bun.env.PI_PROXY_ANTHROPIC;
+		else bun.env.PI_PROXY_ANTHROPIC = previousProxy;
 		__resetProxyCache();
 	});
 
@@ -189,7 +190,7 @@ describe("AgentSession Anthropic native compaction", () => {
 	it("keeps every summarized message when a reminder change mid tool loop inserted a control turn", async () => {
 		using tempDir = TempDir.createSync("@pi-anthropic-native-compaction-control-");
 		const file = tempDir.join("notes.txt");
-		await Bun.write(file, "notes\n");
+		await bun.write(file, "notes\n");
 		const hooks: { moveCwd?: () => void } = {};
 		const opened = await openSession(tempDir, request => {
 			if (request === 2) {

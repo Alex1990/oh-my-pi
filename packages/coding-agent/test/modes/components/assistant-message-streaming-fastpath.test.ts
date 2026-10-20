@@ -1,10 +1,11 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { trimBlankEdges } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { type Component, Container, Markdown } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const W = 100;
 
@@ -270,10 +271,10 @@ Average Latency: 1,240 ms
 		const component = new AssistantMessageComponent();
 
 		component.updateContent(message, { transient: true });
-		expect(Bun.stripANSI(component.render(W).join("\n"))).toContain("| :--- | :--- |");
+		expect(bun.stripANSI(component.render(W).join("\n"))).toContain("| :--- | :--- |");
 
 		component.updateContent(message);
-		const finalized = Bun.stripANSI(component.render(W).join("\n"));
+		const finalized = bun.stripANSI(component.render(W).join("\n"));
 		expect(finalized).not.toContain("| :--- | :--- |");
 		expect(finalized).toContain("google-scraper");
 		expect(finalized).toContain("1/1 Running");
@@ -397,7 +398,7 @@ Average Latency: 1,240 ms
 
 			reused.setHideThinkingBlock(false);
 			reused.invalidate();
-			const revealed = Bun.stripANSI(reused.render(W).join("\n"));
+			const revealed = bun.stripANSI(reused.render(W).join("\n"));
 			expect(revealed).toContain(latestReasoning);
 			expect(revealed).toContain("Visible answer");
 		} finally {
@@ -420,7 +421,7 @@ Average Latency: 1,240 ms
 		] as unknown as AssistantMessage["content"]);
 		const component = new AssistantMessageComponent();
 		component.updateContent(m);
-		const rendered = Bun.stripANSI(component.render(W).join("\n"));
+		const rendered = bun.stripANSI(component.render(W).join("\n"));
 		expect(rendered).toContain("keep me");
 	});
 });

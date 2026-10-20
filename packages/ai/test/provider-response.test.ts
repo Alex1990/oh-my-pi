@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
 import type { Context, FetchImpl, Model, ProviderResponseMetadata } from "@oh-my-pi/pi-ai/types";
 import { normalizeProviderResponse, notifyProviderResponse } from "@oh-my-pi/pi-ai/utils/provider-response";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 describe("provider response metadata", () => {
 	it("normalizes response status, headers, and request id", () => {
@@ -91,7 +92,7 @@ describe("streamSimple onResponse propagation", () => {
 					],
 					{ "x-request-id": "req_stream_simple" },
 				),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const context: Context = { messages: [{ role: "user", content: "hello", timestamp: Date.now() }] };

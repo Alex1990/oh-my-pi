@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "bun:test";
+import { afterEach, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, REMOTE_REFRESH_SENTINEL } from "@oh-my-pi/pi-ai";
 import { AuthBrokerClient, RemoteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-broker";
 import { startAuthGateway } from "@oh-my-pi/pi-ai/auth-gateway";
@@ -58,7 +58,7 @@ test("excluded providers stay out of usage and credential health", async () => {
 	});
 	const storage = new AuthStorage(store, { usageProviderResolver: () => undefined });
 	await storage.credentials.reload();
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: [],
 		storage,

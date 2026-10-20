@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ProviderResponseError } from "@oh-my-pi/pi-ai/error";
 import { mapH2TransportError } from "@oh-my-pi/pi-ai/providers/cursor";
 

@@ -36,7 +36,7 @@
  * back and `BashTool` invocations that touch `/dev/tty` or `tcsetpgrp` can
  * SIGTTIN/SIGTTOU the OMP host process.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";

@@ -6,7 +6,7 @@
  * catalog id matches the wire id (no rewrite). These tests defend the bundled
  * catalog contract and the case-sensitive id pass-through against the wire.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { createModelManager } from "@oh-my-pi/pi-catalog/model-manager";

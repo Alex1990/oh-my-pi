@@ -37,6 +37,8 @@ import type { BlobPublication, BlobUploadRequest, RemoteDeleteAction } from "./p
 import { BlobRegistry, type BlobRegistryEntry, EXT_BY_MIME, type LazyBlobFetcher } from "./store";
 import { DestinationUnavailableError } from "./uploader-runtime";
 import { createConfiguredUploader, memoizeUploader } from "./uploaders";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import {serve} from "@oh-my-pi/pi-utils/node-serve";
 
 /** Turns blob bytes into externally fetchable publications. */
 export interface BlobBackend {
@@ -90,7 +92,7 @@ export function isUploaderKind(kind: BlobDestinationId): boolean {
 export class LocalBlobBackend implements BlobBackend {
 	#config: BlobBrokerWorkerConfig;
 	#store: BlobRegistry;
-	#server: Bun.Server<undefined> | undefined;
+	#server: Server<undefined> | undefined;
 	#exposure: { baseUrl: string; stop(): void } | undefined;
 	#startPromise: Promise<string | null> | undefined;
 	#upload: ((hash: string, request: BlobUploadRequest) => Promise<BlobPublication | null>) | undefined;
@@ -132,7 +134,7 @@ export class LocalBlobBackend implements BlobBackend {
 
 	async #start(): Promise<string | null> {
 		try {
-			this.#server = Bun.serve({
+			this.#server = await serve({
 				hostname: this.#config.bindHost,
 				port: 0,
 				fetch: request => {

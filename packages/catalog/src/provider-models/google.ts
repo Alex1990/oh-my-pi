@@ -68,9 +68,11 @@ function toDiscoveryFetch(fetchImpl: FetchImpl | undefined): typeof fetch | unde
 	if (!fetchImpl) {
 		return undefined;
 	}
+	const preconnectOf = (impl: typeof fetch) =>
+		(impl as typeof fetch & { preconnect?: (url: string | URL) => void }).preconnect;
 	return Object.assign(
 		(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => fetchImpl(input, init),
-		{ preconnect: fetchImpl.preconnect ?? fetch.preconnect },
+		{ preconnect: preconnectOf(fetchImpl) ?? preconnectOf(fetch) },
 	);
 }
 

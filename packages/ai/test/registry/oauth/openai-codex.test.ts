@@ -1,5 +1,6 @@
-import { afterEach, expect, test, vi } from "bun:test";
+import { afterEach, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { loginOpenAICodexDevice, openAICodexProfileHook } from "@oh-my-pi/pi-ai/oauth/openai-codex";
+import { preconnectOf } from "../../../src/utils/fetch-preconnect";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -53,7 +54,7 @@ test("completes device login when the token has email but no workspace claim", a
 				}
 				throw new Error(`Unexpected request: ${url}`);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		),
 	);
 

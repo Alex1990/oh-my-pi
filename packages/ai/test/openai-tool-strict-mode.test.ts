@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
@@ -13,6 +13,7 @@ import type {
 } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const testTool: Tool = {
 	name: "echo",
@@ -323,7 +324,7 @@ describe("OpenAI tool strict mode", () => {
 						headers: { "content-type": "application/json" },
 					},
 				),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -382,7 +383,7 @@ describe("OpenAI tool strict mode", () => {
 					"[DONE]",
 				]);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -442,7 +443,7 @@ describe("OpenAI tool strict mode", () => {
 					"[DONE]",
 				]);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -507,7 +508,7 @@ describe("OpenAI tool strict mode", () => {
 					"[DONE]",
 				]);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -560,7 +561,7 @@ describe("OpenAI tool strict mode", () => {
 				}
 				return createResponsesTextSseResponse("Recovered");
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(
@@ -614,7 +615,7 @@ describe("OpenAI tool strict mode", () => {
 					},
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -676,7 +677,7 @@ describe("OpenAI tool strict mode", () => {
 					"[DONE]",
 				]);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(model, testContext, {
@@ -723,7 +724,7 @@ describe("OpenAI tool strict mode", () => {
 					{ status: 400, headers: { "content-type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		for (let request = 0; request < 2; request += 1) {
@@ -768,7 +769,7 @@ describe("OpenAI tool strict mode", () => {
 				}
 				return createResponsesTextSseResponse(attempt === 2 ? "Recovered" : "Later");
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const context: Context = { ...testContext, tools: [testTool] };
 

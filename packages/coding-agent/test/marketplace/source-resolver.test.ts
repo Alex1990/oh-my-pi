@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,7 +7,7 @@ import { resolvePluginSource, validatePluginSource } from "@oh-my-pi/pi-coding-a
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
 // Fixture: a cloned marketplace with a single plugin at ./plugins/hello-plugin
-const FIXTURE_DIR = path.resolve(import.meta.dir, "fixtures/valid-marketplace");
+const FIXTURE_DIR = path.resolve(import.meta.dirname, "fixtures/valid-marketplace");
 
 // Helper — build a minimal MarketplacePluginEntry with the given source
 function makeEntry(source: MarketplacePluginEntry["source"]): MarketplacePluginEntry {

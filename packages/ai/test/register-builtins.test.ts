@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import * as BedrockProvider from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import { setBedrockProviderModule, streamBedrock } from "@oh-my-pi/pi-ai/providers/register-builtins";
 import type { AssistantMessage, Context, Model } from "@oh-my-pi/pi-ai/types";
 import type { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The transport override is process-global: put the built-in back so later files stream for real.
 afterEach(() => setBedrockProviderModule(BedrockProvider));
@@ -77,7 +78,7 @@ describe("register-builtins lazy streams", () => {
 		});
 
 		const stream = streamBedrock(createModel(), baseContext, {});
-		const result = await Promise.race([stream.result(), Bun.sleep(100).then(() => "timeout" as const)]);
+		const result = await Promise.race([stream.result(), bun.sleep(100).then(() => "timeout" as const)]);
 
 		expect(result).not.toBe("timeout");
 		if (result === "timeout") {
@@ -100,7 +101,7 @@ describe("register-builtins lazy streams", () => {
 		});
 
 		const stream = streamBedrock(createModel(), baseContext, {});
-		const result = await Promise.race([stream.result(), Bun.sleep(100).then(() => "timeout" as const)]);
+		const result = await Promise.race([stream.result(), bun.sleep(100).then(() => "timeout" as const)]);
 
 		expect(result).not.toBe("timeout");
 		if (result === "timeout") {
@@ -136,7 +137,7 @@ describe("register-builtins lazy streams", () => {
 		});
 
 		const stream = streamBedrock(createModel(), baseContext, { streamIdleTimeoutMs: 10 });
-		const result = await Promise.race([stream.result(), Bun.sleep(500).then(() => "timeout" as const)]);
+		const result = await Promise.race([stream.result(), bun.sleep(500).then(() => "timeout" as const)]);
 
 		expect(result).not.toBe("timeout");
 		if (result === "timeout") {
@@ -187,7 +188,7 @@ describe("register-builtins lazy streams", () => {
 		// the lazy watchdog runs on the platform clock, so fake timers cannot
 		// drive it; the 20ms compat deadline settles the result long before the
 		// bound, which exists only to fail fast instead of hanging the test.
-		const result = await Promise.race([stream.result(), Bun.sleep(2_000).then(() => "timeout" as const)]);
+		const result = await Promise.race([stream.result(), bun.sleep(2_000).then(() => "timeout" as const)]);
 
 		expect(result).not.toBe("timeout");
 		if (result === "timeout") {
@@ -307,7 +308,7 @@ describe("register-builtins lazy streams", () => {
 		expect(firstEvent.value?.type).toBe("start");
 
 		abortController.abort();
-		const result = await Promise.race([stream.result(), Bun.sleep(500).then(() => "timeout" as const)]);
+		const result = await Promise.race([stream.result(), bun.sleep(500).then(() => "timeout" as const)]);
 
 		expect(result).not.toBe("timeout");
 		if (result === "timeout") {

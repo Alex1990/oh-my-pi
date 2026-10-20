@@ -14,7 +14,7 @@
  *   visible after an explicit re-scan.
  */
 
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	RedisSessionStorage,
 	type RedisSessionStorageClient,

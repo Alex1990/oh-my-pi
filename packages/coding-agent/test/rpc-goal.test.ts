@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import type { RpcSessionState } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-ty
 import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { GoalModeState } from "@oh-my-pi/pi-coding-agent/goals/state";
 import { removeWithRetries, withTimeout } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function nextMacrotask(): Promise<void> {
 	const { promise, resolve } = Promise.withResolvers<void>();
@@ -53,7 +54,7 @@ describe("RPC goal command", () => {
 	}): Promise<RpcClient> {
 		directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-goal-"));
 		client = new RpcClient({
-			command: [process.execPath, path.join(import.meta.dir, "fixtures", "goal-rpc-agent.ts")],
+			command: [process.execPath, path.join(import.meta.dirname, "fixtures", "goal-rpc-agent.ts")],
 			cwd: directory,
 			env: {
 				PI_CODING_AGENT_DIR: directory,
@@ -315,7 +316,7 @@ describe("RPC goal command", () => {
 			// The detached run never yields; its prompt must still be closed, as aborted.
 			await withTimeout(
 				(async () => {
-					while (!results.has(first)) await Bun.sleep(20);
+					while (!results.has(first)) await bun.sleep(20);
 				})(),
 				10_000,
 				"The detached run's prompt was never reported",
@@ -348,7 +349,7 @@ describe("RPC goal command", () => {
 			expect(results.has(first)).toBe(false);
 			await withTimeout(
 				(async () => {
-					while (!results.has(first)) await Bun.sleep(50);
+					while (!results.has(first)) await bun.sleep(50);
 				})(),
 				20_000,
 				"The running prompt was never reported",
@@ -376,7 +377,7 @@ describe("RPC goal command", () => {
 			await rpc.promptAndWait("/goaltest-reload");
 			await withTimeout(
 				(async () => {
-					while (!results.has(first)) await Bun.sleep(20);
+					while (!results.has(first)) await bun.sleep(20);
 				})(),
 				5_000,
 				"The detached run's prompt was never reported",

@@ -1,11 +1,13 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { MCPConnectionTimeoutError, connectToServer, listTools } from "@oh-my-pi/pi-coding-agent/mcp/client";
 import { isRetriableConnectionError } from "@oh-my-pi/pi-coding-agent/mcp/tool-bridge";
 import type { JsonRpcMessage } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { withTimeout } from "@oh-my-pi/pi-utils";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const encoder = new TextEncoder();
-let server: Bun.Server<undefined> | null = null;
+let server: Server<undefined> | null = null;
 
 afterEach(() => {
 	server?.stop(true);
@@ -14,7 +16,7 @@ afterEach(() => {
 
 describe("legacy MCP HTTP+SSE transport", () => {
 	it("classifies a missing endpoint event as a retryable startup timeout", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				return new Response(new ReadableStream<Uint8Array>(), {
@@ -35,7 +37,7 @@ describe("legacy MCP HTTP+SSE transport", () => {
 	it("aborts the endpoint wait on the caller signal when timeouts are disabled", async () => {
 		const streamRequested = Promise.withResolvers<void>();
 		const streamAborted = Promise.withResolvers<void>();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				streamRequested.resolve();
@@ -66,7 +68,7 @@ describe("legacy MCP HTTP+SSE transport", () => {
 		let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
 		const postTargets: string[] = [];
 
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				const url = new URL(req.url);
@@ -135,7 +137,7 @@ describe("legacy MCP HTTP+SSE transport", () => {
 	});
 
 	it("rejects endpoint events that point at another origin", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				const url = new URL(req.url);
@@ -162,7 +164,7 @@ describe("legacy MCP HTTP+SSE transport", () => {
 	it("surfaces stream drops during requests as retriable transport failures", async () => {
 		let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
 
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				const url = new URL(req.url);

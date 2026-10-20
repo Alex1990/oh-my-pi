@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildMcpToolDefinitions } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { Tool, TSchema } from "@oh-my-pi/pi-ai/types";
 import { isJsonSchemaValueValid, sanitizeSchemaForCursor, toolWireSchema } from "@oh-my-pi/pi-ai/utils/schema";

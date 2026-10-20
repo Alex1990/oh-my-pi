@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,9 +12,10 @@ import * as scraperUtils from "@oh-my-pi/pi-coding-agent/web/scrapers/utils";
 import * as natives from "@oh-my-pi/pi-natives";
 import { ptree, removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { asGlobalFetch } from "../helpers/fetch-mock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const withMissingSystemPython = () => {
-	const whichSpy = vi.spyOn(Bun, "which").mockImplementation(() => null);
+	const whichSpy = vi.spyOn(bun, "which").mockImplementation(() => null);
 	return {
 		[Symbol.dispose]() {
 			whichSpy.mockRestore();

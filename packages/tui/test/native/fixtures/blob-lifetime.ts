@@ -9,6 +9,8 @@ import { CustomEditor } from "../../../src/prompt/custom-editor";
 import { getEditorTheme, initTheme } from "../../../src/theme/theme";
 import type { Component } from "../../../src/tui";
 import { TspHarness } from "../tsp-harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image as BunImage } from "@oh-my-pi/pi-utils/node-image";
 
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
 
@@ -33,7 +35,7 @@ async function discard(): Promise<{ reference: WeakRef<Uint8Array>; harness: Tsp
 		if (process.argv[2] === "snapcompact") {
 			const deadline = performance.now() + 3_000;
 			while (!wire && performance.now() < deadline) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 				await harness.render();
 				wire = harness.find(node => node.k === "image");
 			}
@@ -44,8 +46,8 @@ async function discard(): Promise<{ reference: WeakRef<Uint8Array>; harness: Tsp
 		const blob = getNativeBlob(id!);
 		assert.ok(blob);
 		const uploaded = harness.terminal.blobs.get(id!);
-		assert.deepEqual(uploaded, Buffer.from(blob.bytes));
-		const metadata = await new Bun.Image(uploaded!).metadata();
+		assert.deepEqual(uploaded, new Uint8Array(blob.bytes));
+		const metadata = await new BunImage(uploaded!).metadata();
 		assert.equal(metadata.width, process.argv[2] === "snapcompact" ? 512 : 1);
 		assert.equal(metadata.height, process.argv[2] === "snapcompact" ? 512 : 1);
 		const reference = new WeakRef(blob.bytes);

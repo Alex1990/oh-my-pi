@@ -169,7 +169,7 @@ On macOS a screenshot taken behind the lock screen sets `screenLocked: true` and
 
 1. `createComputerPrelude(session)` defines the enabled-only global and its host-side invoker.
 2. A direct helper renders its allowlisted call chain, and `computer.run(fnOrCode, options)` serializes a function when needed; the host resolves the JavaScript, clamps the timeout, computes effective image caps, creates the per-run snapshot (read-only for inspection chains), and asks the supervisor to execute it.
-3. The supervisor lazily starts one crash-isolated Bun worker (10-second startup deadline) and forwards aborts. The worker rejects overlapping runs instead of queueing them.
+3. The supervisor lazily starts one crash-isolated Node.js worker (10-second startup deadline) and forwards aborts. The worker rejects overlapping runs instead of queueing them.
 4. The worker lazily creates one native `DesktopSession` and one persistent `JsRuntime`. Handles, screenshot coordinate frames, runtime variables, and recent AX refs survive successful calls.
 5. Each run installs a run-scoped `desktop` facade plus `wait`/`assert`. AsyncLocalStorage prevents leaked asynchronous work from borrowing a later run's signal or read-only policy.
 6. Native operations execute in the worker with cancellation tokens captured before NAPI scheduling. Mutations acquire an OS-backed cross-process input/focus lease; reads do not. Runtime `tool.*` calls cross back through the supervisor into the owning session tool bridge and inherit cancellation.
@@ -184,7 +184,7 @@ On macOS a screenshot taken behind the lock screen sets `screenLocked: true` and
 - Sends real keyboard/pointer input. Window background delivery is intended to preserve focus, pointer, and window order; `takeover: true`, and the `computer.backgroundFallback: takeover` rerun of a refused background call, temporarily activate the target. Desktop-root pointer calls affect the user's real pointer. Under `computer.backgroundFallback: refuse`, every call that would activate an application, drive the user's pointer or keyboard, or on macOS open a menu (which takes the user's keyboard while open) is refused before anything is sent.
 - Reads or writes the system clipboard.
 - Executes full-access JavaScript and may invoke other session tools through `tool.*`.
-- Keeps a native desktop session and Bun worker alive across calls.
+- Keeps a native desktop session and Node.js worker alive across calls.
 - Does not launch a browser or fall back to browser automation.
 
 ## Errors and recovery

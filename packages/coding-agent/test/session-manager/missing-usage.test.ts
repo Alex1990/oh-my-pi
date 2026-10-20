@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function writeSessionWithoutUsage(dir: string): Promise<string> {
 	const file = path.join(dir, "no-usage.jsonl");
@@ -17,7 +18,7 @@ async function writeSessionWithoutUsage(dir: string): Promise<string> {
 			message: { role: "assistant", content: [{ type: "text", text: "hi" }], timestamp: 1 },
 		},
 	];
-	await Bun.write(file, `${lines.map(line => JSON.stringify(line)).join("\n")}\n`);
+	await bun.write(file, `${lines.map(line => JSON.stringify(line)).join("\n")}\n`);
 	return file;
 }
 
@@ -48,7 +49,7 @@ describe("assistant messages persisted without usage", () => {
 		using tempDir = TempDir.createSync("@pi-partial-usage-");
 		const file = path.join(tempDir.path(), "partial-usage.jsonl");
 		const timestamp = new Date().toISOString();
-		await Bun.write(
+		await bun.write(
 			file,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "partial-usage", timestamp, cwd: tempDir.path() }),

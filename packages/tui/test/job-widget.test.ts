@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspChartProps, TspPropNode } from "@oh-my-pi/pi-wire";
 import type { NativeChild, NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
@@ -13,6 +13,7 @@ import {
 } from "@oh-my-pi/pi-tui/tools/job-widget";
 import { visibleWidth } from "@oh-my-pi/pi-tui/utils";
 import { ciRun, DECODE_VALUES, decodeBench, FIXTURE_VIEWS, modelEval, trialSweep } from "./fixtures/job-widget-views";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Every described node under `root`, depth first. */
 function nodes(root: NativeNode): NativeNode[] {
@@ -218,7 +219,7 @@ describe("renderJobTileLines", () => {
 				lead: "◐ ",
 				meta: "12s",
 			},
-		).map(line => Bun.stripANSI(line));
+		).map(line => bun.stripANSI(line));
 		expect(lines[0]).toMatch(/^◐ verb-bench · decode throughput bg_1 +decode 186 tok\/s ▲ 15% {2}12s$/);
 		expect(visibleWidth(lines[0]!)).toBe(80);
 		expect(lines[1]).toMatch(/^ {2}tok\/s · nvfp4 b1 {2}[▁▂▃▄▅▆▇█]+ {2}186 tok\/s {2}┄ target 200 tok\/s$/);
@@ -232,14 +233,14 @@ describe("renderJobWidgetLines", () => {
 	});
 
 	const render = (view: JobWidgetView, width: number) =>
-		renderJobWidgetLines(view, width, theme).map(line => Bun.stripANSI(line));
+		renderJobWidgetLines(view, width, theme).map(line => bun.stripANSI(line));
 
 	it.each([100, 60, 32])("keeps every line of every block within %i columns, sanitized", width => {
 		for (const name in FIXTURE_VIEWS) {
 			const view = FIXTURE_VIEWS[name as keyof typeof FIXTURE_VIEWS];
 			for (const line of renderJobWidgetLines(view, width, theme)) {
 				expect(visibleWidth(line)).toBeLessThanOrEqual(Math.min(width, 80));
-				const plain = Bun.stripANSI(line);
+				const plain = bun.stripANSI(line);
 				expect(plain).not.toMatch(/[\t\r\n\x1b]/);
 			}
 		}

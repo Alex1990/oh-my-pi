@@ -12,7 +12,7 @@
  * so consecutive single-read completions never grouped (each rendered as its own
  * one-entry block).
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, ImageContent } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
@@ -25,6 +25,7 @@ import { type Component, Image, ImageProtocol, setTerminalImageProtocol, TERMINA
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
 
 import { cfgDisplayShowTokenUsage, cfgTerminalShowImages } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false, undefined, undefined, "dark", "light");
@@ -94,7 +95,7 @@ function readGroups(chatContainer: TranscriptContainer): ReadToolGroupComponent[
 }
 
 function header(group: ReadToolGroupComponent): string {
-	return Bun.stripANSI(group.render(120).join("\n")).split("\n")[0] ?? "";
+	return bun.stripANSI(group.render(120).join("\n")).split("\n")[0] ?? "";
 }
 
 function hasImageComponent(component: Component): boolean {
@@ -141,7 +142,7 @@ describe("EventController read-group accretion", () => {
 		const [group] = readGroups(chatContainer);
 		expect(group).toBeDefined();
 		const usageBlocks = chatContainer.children.filter(component =>
-			Bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
+			bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
 		);
 		expect(usageBlocks).toEqual([group!]);
 	});
@@ -167,7 +168,7 @@ describe("EventController read-group accretion", () => {
 		const [group] = readGroups(chatContainer);
 		expect(group).toBeDefined();
 		const usageBlocks = chatContainer.children.filter(component =>
-			Bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
+			bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
 		);
 		expect(usageBlocks).toHaveLength(1);
 		expect(usageBlocks[0]).not.toBe(group!);
@@ -196,7 +197,7 @@ describe("EventController read-group accretion", () => {
 		expect(groups).toHaveLength(2);
 		const firstGroupIndex = chatContainer.children.indexOf(groups[0]!);
 		const usageIndex = chatContainer.children.findIndex(component =>
-			Bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
+			bun.stripANSI(component.render(120).join("\n")).includes("2026-01-02 03:04:05"),
 		);
 		const secondGroupIndex = chatContainer.children.indexOf(groups[1]!);
 		expect(firstGroupIndex).toBeLessThan(usageIndex);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -11,11 +11,11 @@ import fnEnvHelper from "../src/utils/shell-snapshot-fn-env.sh" with { type: "te
 // same way `bash-executor.test.ts` does so these e2e tests stay portable. The
 // `getOrCreateSnapshot` tests below symlink this under a unique name and skip
 // when no bash is present.
-const REAL_BASH = Bun.env.SHELL?.includes("bash") ? Bun.env.SHELL : "/bin/bash";
+const REAL_BASH = bun.env.SHELL?.includes("bash") ? bun.env.SHELL : "/bin/bash";
 // Likewise resolve `echo` (the stand-in for the mise binary the captured
 // function invokes): macOS has no `/usr/bin/echo`, so hard-coding it makes the
 // replay fail with `No such file or directory` even though the export landed.
-const REAL_ECHO = Bun.which("echo") ?? "/bin/echo";
+const REAL_ECHO = bun.which("echo") ?? "/bin/echo";
 // A bare `bash` on Windows usually resolves to the WSL launcher
 // (`WindowsApps\bash.exe`), which runs inside Linux without the spawn env; use
 // the Git Bash the product itself resolves.
@@ -127,7 +127,7 @@ describe("shell-snapshot fn-env helper", () => {
 			``,
 		].join("\n");
 
-		const child = Bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
+		const child = bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
 			env: {
 				PATH: process.env.PATH ?? "/usr/bin:/bin",
 				__MISE_EXE: "/opt/echo",
@@ -168,7 +168,7 @@ describe("shell-snapshot fn-env helper", () => {
 			``,
 		].join("\n");
 
-		const child = Bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
+		const child = bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
 			env: {
 				PATH: process.env.PATH ?? "/usr/bin:/bin",
 				GITHUB_TOKEN: "ghp_REDACTED",
@@ -214,7 +214,7 @@ describe("shell-snapshot fn-env helper", () => {
 
 	it("single-quote-escapes values containing apostrophes and preserves newlines", async () => {
 		const funcs = `shout () { echo "$TRICKY_VAL $NL_VAL"; }\n`;
-		const child = Bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
+		const child = bun.spawn([HELPER_BASH, "-c", `${fnEnvHelper}\n__omp_emit_referenced_exports`], {
 			env: {
 				PATH: process.env.PATH ?? "/usr/bin:/bin",
 				TRICKY_VAL: "it's 'tricky'",
@@ -233,7 +233,7 @@ describe("shell-snapshot fn-env helper", () => {
 		expect(out).toContain(`export NL_VAL='line1\nline2'`);
 
 		// Eval the emitted lines and verify the round-trip values match.
-		const round = Bun.spawn(
+		const round = bun.spawn(
 			[HELPER_BASH, "-c", `eval "$1"; printf '%s\\n' "$TRICKY_VAL"; printf '%s\\n' "$NL_VAL"`, "_", out],
 			{ stdout: "pipe", stderr: "ignore" },
 		);
@@ -282,7 +282,7 @@ describe("getOrCreateSnapshot", () => {
 
 		// Replay the snapshot in a fresh bash with `set -u` and confirm the
 		// mise() function resolves cleanly instead of dying on the empty var.
-		const replay = Bun.spawn(
+		const replay = bun.spawn(
 			[realBash, "--noprofile", "--norc", "-c", `set -u; source "$1"; mise hello world; shout`, "_", snapshotPath!],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
@@ -505,3 +505,4 @@ describe("getOrCreateSnapshot", () => {
 		}
 	});
 });
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

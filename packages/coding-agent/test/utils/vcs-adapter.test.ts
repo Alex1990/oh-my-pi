@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const repos: string[] = [];
 
@@ -25,8 +26,8 @@ describe("native Git adapter regressions", () => {
 		const repo = await createRepo();
 		await fs.mkdir(path.join(repo, "newdir"));
 		await Promise.all([
-			Bun.write(path.join(repo, "newdir", "a"), "a\n"),
-			Bun.write(path.join(repo, "newdir", "b"), "b\n"),
+			bun.write(path.join(repo, "newdir", "a"), "a\n"),
+			bun.write(path.join(repo, "newdir", "b"), "b\n"),
 			fs.mkdir(path.join(repo, "empty", "nested"), { recursive: true }),
 		]);
 
@@ -35,7 +36,7 @@ describe("native Git adapter regressions", () => {
 
 	test("alternate-index tree synthesis leaves the real index untouched", async () => {
 		const repo = await createRepo();
-		await Bun.write(path.join(repo, "tracked.txt"), "before\n");
+		await bun.write(path.join(repo, "tracked.txt"), "before\n");
 		await $`git add tracked.txt`.cwd(repo).quiet();
 		await $`git commit -m baseline`.cwd(repo).quiet();
 

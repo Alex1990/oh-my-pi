@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { IpcConnection, IpcServer } from "@oh-my-pi/pi-natives";
 import { TUI, type TuiPaint } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "../../../tui/test/virtual-terminal";

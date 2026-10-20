@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as prompt from "@oh-my-pi/pi-utils/prompt";
 import { create, type HelperOptions, SafeString } from "@oh-my-pi/pi-utils/template";
 import fileOperations from "./fixtures/template/file-operations.md" with { type: "text" };

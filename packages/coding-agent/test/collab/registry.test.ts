@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as crypto from "node:crypto";
 import * as nodeFs from "node:fs";
 import * as fs from "node:fs/promises";
@@ -14,6 +14,7 @@ import {
 	resolveCollabHostLink,
 } from "@oh-my-pi/pi-coding-agent/collab/registry";
 import { IpcConnection, IpcServer, ipcEndpoint } from "@oh-my-pi/pi-natives";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanupDirs: string[] = [];
 const openPublications: CollabHostPublication[] = [];
@@ -97,8 +98,8 @@ async function readSoleToken(dir: string): Promise<string> {
 	expect(names).toHaveLength(1);
 	const [name] = names;
 	if (!name) throw new Error("published registry metadata is missing");
-	const meta = await Bun.file(path.join(dir, name)).json();
-	return meta.token as string;
+	const meta = await bun.file(path.join(dir, name)).json<{ token: string }>();
+	return meta.token;
 }
 
 /** Connects to `endpoint`, sends one JSON request line, returns the raw response line. */
@@ -124,7 +125,7 @@ function auxEndpoint(dir: string, label: string): string {
 const realConnect = IpcConnection.connect.bind(IpcConnection);
 
 async function writeMetadata(dir: string, name: string, meta: Record<string, unknown>): Promise<void> {
-	await Bun.write(
+	await bun.write(
 		path.join(dir, name),
 		JSON.stringify({ instanceId: crypto.randomBytes(8).toString("hex"), ...meta }),
 	);
@@ -132,7 +133,7 @@ async function writeMetadata(dir: string, name: string, meta: Record<string, unk
 
 function freshDeadPid(): number {
 	// The child has exited by the time spawnSync returns: a real, dead PID.
-	return Bun.spawnSync([process.execPath, "-e", ""]).pid;
+	return bun.spawnSync([process.execPath, "-e", ""]).pid;
 }
 
 async function collectRegularFiles(dir: string): Promise<string[]> {
@@ -415,7 +416,7 @@ describe("collab registry", () => {
 		const files = await collectRegularFiles(dir);
 		expect(files.filter(file => file.endsWith(".json"))).toHaveLength(1);
 		for (const file of files) {
-			const content = await Bun.file(file).text();
+			const content = await bun.file(file).text();
 			expect(content).not.toContain(f.controlUrl);
 			expect(content).not.toContain(f.viewUrl);
 			expect(content).not.toContain(f.roomKey);
@@ -453,7 +454,7 @@ describe("collab registry", () => {
 	it("lists healthy hosts, prunes malformed or dead entries, and preserves live incompatible or timed-out entries", async () => {
 		const dir = await tempDir();
 		await publish(dir, makeFixture({ sessionId: "healthy" }));
-		await Bun.write(path.join(dir, "garbage.json"), "{not json");
+		await bun.write(path.join(dir, "garbage.json"), "{not json");
 		await writeMetadata(dir, "version-mismatch.json", {
 			version: 99,
 			pid: freshDeadPid(),
@@ -613,7 +614,7 @@ describe("collab registry", () => {
 		});
 
 		expect(await listCollabHosts({ dir })).toEqual([]);
-		expect(await Bun.file(path.join(dir, forgedFile)).exists()).toBe(false);
+		expect(await bun.file(path.join(dir, forgedFile)).exists()).toBe(false);
 	});
 
 	it("cannot duplicate a genuine host using a forged token and does not prune its live endpoint", async () => {
@@ -629,7 +630,7 @@ describe("collab registry", () => {
 		});
 
 		expect((await listCollabHosts({ dir })).map(host => host.instanceId)).toEqual([f.snapshot.instanceId]);
-		expect(await Bun.file(path.join(dir, "forged.json")).exists()).toBe(true);
+		expect(await bun.file(path.join(dir, "forged.json")).exists()).toBe(true);
 		expect(await resolveCollabHostLink(f.snapshot.instanceId, "control", { dir })).toMatchObject({
 			url: f.controlUrl,
 		});
@@ -659,7 +660,7 @@ describe("collab registry", () => {
 		// `*.json`) into a way to delete files in an unrelated directory.
 		const target = await tempDir();
 		const bystander = path.join(target, "important.json");
-		await Bun.write(bystander, "{not registry metadata");
+		await bun.write(bystander, "{not registry metadata");
 		const link = path.join(await tempDir(), "collab-hosts");
 		await fs.symlink(target, link, process.platform === "win32" ? "junction" : "dir");
 		const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
@@ -669,7 +670,7 @@ describe("collab registry", () => {
 			for (const platform of new Set([process.platform, "win32"])) {
 				Object.defineProperty(process, "platform", { configurable: true, value: platform });
 				await expect(listCollabHosts({ dir: link })).rejects.toThrow();
-				expect(await Bun.file(bystander).text()).toBe("{not registry metadata");
+				expect(await bun.file(bystander).text()).toBe("{not registry metadata");
 				await expect(publishCollabHost(sourceFor(makeFixture()), { dir: link })).rejects.toThrow(/symlink/);
 				expect(await fs.readdir(target)).toEqual(["important.json"]);
 			}

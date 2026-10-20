@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { chunkForConPTY, ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression test for https://github.com/can1357/oh-my-pi/issues/2034
 //
@@ -213,15 +214,15 @@ describe("issue #2034: chunk large terminal writes on Windows ConPTY", () => {
 		const stdinIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 		const stdoutIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 		const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
-		const originalWslDistro = Bun.env.WSL_DISTRO_NAME;
-		const originalWslInterop = Bun.env.WSL_INTEROP;
+		const originalWslDistro = bun.env.WSL_DISTRO_NAME;
+		const originalWslInterop = bun.env.WSL_INTEROP;
 		// This block drives the real ProcessTerminal#write path, so it opts out of
 		// the test-default headless suppression for the duration of each case.
 		let previousHeadless = false;
 
 		function setEnv(key: string, value: string | undefined): void {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 
 		beforeEach(() => {

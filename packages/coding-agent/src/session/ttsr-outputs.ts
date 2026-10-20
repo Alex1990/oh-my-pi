@@ -9,6 +9,7 @@ import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolCall } from "@oh-my-pi/pi-ai";
 import { isRecord } from "@oh-my-pi/pi-utils";
 import type { TtsrMatchContext, TtsrOutput } from "../export/ttsr";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Tool surface TTSR reads: identity plus the optional matcher hooks. */
 export type TtsrTool = Pick<AgentTool, "name" | "customWireName" | "matcherPaths" | "matcherDigest" | "matcherEntries">;
@@ -34,19 +35,19 @@ const FINGERPRINT_MAX_DEPTH = 32;
 
 /**
  * Content hash over every key and primitive value of the arguments tree,
- * chained through `Bun.hash` seeds so it allocates no serialized copy. Any
+ * chained through `bun.hash` seeds so it allocates no serialized copy. Any
  * change a matcher hook could observe — nested, same-length, or appended —
  * changes it.
  */
 function argumentsFingerprint(value: unknown, seed: number | bigint = 0, depth = 0): number | bigint {
-	if (typeof value === "string") return Bun.hash(value, Bun.hash("s", seed));
-	if (value === null || typeof value !== "object") return Bun.hash(String(value), Bun.hash(typeof value, seed));
-	if (depth >= FINGERPRINT_MAX_DEPTH) return Bun.hash("…", seed);
-	let hash = Bun.hash(Array.isArray(value) ? "[" : "{", seed);
+	if (typeof value === "string") return bun.hash(value, bun.hash("s", seed));
+	if (value === null || typeof value !== "object") return bun.hash(String(value), bun.hash(typeof value, seed));
+	if (depth >= FINGERPRINT_MAX_DEPTH) return bun.hash("…", seed);
+	let hash: number | bigint = bun.hash(Array.isArray(value) ? "[" : "{", seed);
 	for (const [key, child] of Object.entries(value)) {
-		hash = argumentsFingerprint(child, Bun.hash(key, hash), depth + 1);
+		hash = argumentsFingerprint(child, bun.hash(key, hash), depth + 1);
 	}
-	return Bun.hash(Array.isArray(value) ? "]" : "}", hash);
+	return bun.hash(Array.isArray(value) ? "]" : "}", hash);
 }
 
 /** Resolves tool calls against live tool definitions and the session cwd. */

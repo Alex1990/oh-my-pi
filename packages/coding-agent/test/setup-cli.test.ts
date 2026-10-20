@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { checkPythonSetup } from "../src/cli/setup-cli";
 import { Settings } from "../src/config/settings";
 import { restoreEnvValue } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
+const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 // An activated venv/conda env legitimately outranks the project `.venv`
 // (docs/environment-variables.md: VIRTUAL_ENV, then CONDA_PREFIX, then
@@ -28,7 +30,7 @@ async function runSetupPython(cwd: string): Promise<CliProcessResult> {
 	delete env.VIRTUAL_ENV;
 	delete env.CONDA_DEFAULT_ENV;
 	delete env.CONDA_PREFIX;
-	const proc = Bun.spawn([process.execPath, cliEntry, "setup", "python", "--json"], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "setup", "python", "--json"], {
 		cwd,
 		stdout: "pipe",
 		stderr: "pipe",
@@ -46,7 +48,7 @@ async function runSetup(cwd: string, ...setupArgs: string[]): Promise<CliProcess
 		NO_COLOR: "1",
 		PI_CODING_AGENT_DIR: path.join(cwd, "agent"),
 	};
-	const proc = Bun.spawn([process.execPath, cliEntry, "setup", ...setupArgs], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "setup", ...setupArgs], {
 		cwd,
 		stdout: "pipe",
 		stderr: "pipe",
@@ -71,7 +73,7 @@ function hideActivePythonEnv(): () => void {
 	vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 		shell: "/bin/sh",
 		args: ["-c"],
-		env: { PATH: Bun.env.PATH ?? "", HOME: Bun.env.HOME ?? "" },
+		env: { PATH: bun.env.PATH ?? "", HOME: bun.env.HOME ?? "" },
 		prefix: undefined,
 	});
 	return () => {
@@ -94,9 +96,9 @@ describe("omp setup python", () => {
 			projectDir = TempDir.createSync("@omp-setup-python-");
 			const cwd = projectDir.path();
 			const interpreter = path.join(cwd, "configured-python");
-			await Bun.write(interpreter, "#!/bin/sh\nexit 0\n");
+			await bun.write(interpreter, "#!/bin/sh\nexit 0\n");
 			await fs.chmod(interpreter, 0o755);
-			await Bun.write(path.join(cwd, ".omp", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
+			await bun.write(path.join(cwd, ".omp", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
 
 			const result = await runSetupPython(cwd);
 
@@ -113,7 +115,7 @@ describe("omp setup python", () => {
 		projectDir = TempDir.createSync("@omp-setup-python-");
 		const cwd = projectDir.path();
 		const interpreter = path.join(cwd, ".venv", "bin", "python");
-		await Bun.write(interpreter, "#!/bin/sh\nexit 0\n");
+		await bun.write(interpreter, "#!/bin/sh\nexit 0\n");
 		await fs.chmod(interpreter, 0o755);
 
 		const restoreEnv = hideActivePythonEnv();
@@ -133,7 +135,7 @@ describe("omp setup python", () => {
 		projectDir = TempDir.createSync("@omp-setup-python-");
 		const cwd = projectDir.path();
 		const interpreter = path.join(cwd, "configured-python");
-		await Bun.write(interpreter, "#!/bin/sh\nexit 23\n");
+		await bun.write(interpreter, "#!/bin/sh\nexit 23\n");
 		await fs.chmod(interpreter, 0o755);
 
 		const previousSkipCheck = process.env.PI_PYTHON_SKIP_CHECK;

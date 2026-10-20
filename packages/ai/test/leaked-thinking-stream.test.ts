@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stream } from "@oh-my-pi/pi-ai/stream";
 import type {
 	AnthropicServerToolContent,
@@ -16,6 +16,7 @@ import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream"
 import { wrapLeakedThinkingStream } from "@oh-my-pi/pi-ai/utils/leaked-thinking-stream";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { withOfficialAnthropicEndpoint } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 /** Minimal assistant message; `content`/`stopReason` overridden per event. */
 function msg(overrides: Partial<AssistantMessage> = {}): AssistantMessage {
@@ -946,7 +947,7 @@ describe("leaked thinking healing through stream()", () => {
 				status: 200,
 				headers: { "content-type": "text/event-stream", "request-id": "req_mock" },
 			});
-		return Object.assign(fn, { preconnect: fetch.preconnect });
+		return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 	}
 
 	function anthropicThinkingFetch(): FetchImpl {
@@ -983,7 +984,7 @@ describe("leaked thinking healing through stream()", () => {
 				status: 200,
 				headers: { "content-type": "text/event-stream", "request-id": "req_thinking_prefix" },
 			});
-		return Object.assign(fn, { preconnect: fetch.preconnect });
+		return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 	}
 
 	function anthropicModel(overrides: Partial<Model<"anthropic-messages">> = {}): Model<"anthropic-messages"> {
@@ -1023,7 +1024,7 @@ describe("leaked thinking healing through stream()", () => {
 		].join("");
 		const fn = async (_input: string | URL | Request, _init?: RequestInit): Promise<Response> =>
 			new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
-		return Object.assign(fn, { preconnect: fetch.preconnect });
+		return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 	}
 
 	// A local host serving a template that prefills `<think>` (DeepSeek-R1,
@@ -1241,7 +1242,7 @@ describe("leaked thinking healing through stream()", () => {
 					headers: { "content-type": "text/event-stream", "request-id": `req_${requestCount}` },
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const customModel = anthropicModel({
 			provider: "anthropic",
@@ -1330,7 +1331,7 @@ describe("leaked thinking healing through stream()", () => {
 				});
 				return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const model = buildModel({
 			id: "gemini-3-flash",

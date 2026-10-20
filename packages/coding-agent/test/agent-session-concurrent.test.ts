@@ -2,7 +2,7 @@
  * Tests for AgentSession concurrent prompt guard.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -37,6 +37,7 @@ import {
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Mock stream that mimics AssistantMessageEventStream
 
@@ -2022,7 +2023,7 @@ describe("AgentSession TTSR resume gate", () => {
 					return typeof args.content === "string" ? args.content : undefined;
 				},
 				execute: async (_id, args) => {
-					await Bun.write(args.path, args.content);
+					await bun.write(args.path, args.content);
 					return { content: [{ type: "text", text: "Written" }] };
 				},
 			};
@@ -2091,7 +2092,7 @@ describe("AgentSession TTSR resume gate", () => {
 				expect(isUserInterruptAbort(aborted)).toBe(false);
 			}
 
-			expect(await Bun.file(target).exists()).toBe(interruptMode === "never");
+			expect(await bun.file(target).exists()).toBe(interruptMode === "never");
 			expect(JSON.stringify(mock.calls[1]?.context.messages)).toContain("Do not add console.log calls.");
 			expect(
 				sessionManager
@@ -2163,7 +2164,7 @@ describe("AgentSession TTSR resume gate", () => {
 					? args.content
 					: undefined,
 			execute: async (_id, args) => {
-				await Bun.write(args.path, args.content);
+				await bun.write(args.path, args.content);
 				return { content: [{ type: "text", text: "Written" }] };
 			},
 		};
@@ -2212,7 +2213,7 @@ describe("AgentSession TTSR resume gate", () => {
 
 		await session.prompt("Write the source file");
 		await session.waitForIdle();
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 		expect(observedResults).toHaveLength(1);
 		expect(observedResults[0]).toContain("Written");
 		expect(observedResults[0]).not.toContain("Do not write FORBIDDEN_TOKEN.");

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,11 +13,12 @@ import { getSupportedEfforts } from "@oh-my-pi/pi-catalog/model-thinking";
 import { isCatalogDescriptor } from "@oh-my-pi/pi-catalog/provider-models/descriptor-types";
 import { PROVIDER_DESCRIPTORS } from "@oh-my-pi/pi-catalog/provider-models/descriptors";
 import type { FetchImpl } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_TOKEN = "redacted-test-token";
-const originalNamespaceId = Bun.env.GITLAB_DUO_NAMESPACE_ID;
-const originalProjectId = Bun.env.GITLAB_DUO_PROJECT_ID;
-const originalProjectPath = Bun.env.GITLAB_DUO_PROJECT_PATH;
+const originalNamespaceId = bun.env.GITLAB_DUO_NAMESPACE_ID;
+const originalProjectId = bun.env.GITLAB_DUO_PROJECT_ID;
+const originalProjectPath = bun.env.GITLAB_DUO_PROJECT_PATH;
 
 type MockCall = {
 	url: string;
@@ -90,19 +91,19 @@ function availableModels(ref: string): AvailableModelsPayload {
 
 afterEach(() => {
 	if (originalNamespaceId === undefined) {
-		delete Bun.env.GITLAB_DUO_NAMESPACE_ID;
+		delete bun.env.GITLAB_DUO_NAMESPACE_ID;
 	} else {
-		Bun.env.GITLAB_DUO_NAMESPACE_ID = originalNamespaceId;
+		bun.env.GITLAB_DUO_NAMESPACE_ID = originalNamespaceId;
 	}
 	if (originalProjectId === undefined) {
-		delete Bun.env.GITLAB_DUO_PROJECT_ID;
+		delete bun.env.GITLAB_DUO_PROJECT_ID;
 	} else {
-		Bun.env.GITLAB_DUO_PROJECT_ID = originalProjectId;
+		bun.env.GITLAB_DUO_PROJECT_ID = originalProjectId;
 	}
 	if (originalProjectPath === undefined) {
-		delete Bun.env.GITLAB_DUO_PROJECT_PATH;
+		delete bun.env.GITLAB_DUO_PROJECT_PATH;
 	} else {
-		Bun.env.GITLAB_DUO_PROJECT_PATH = originalProjectPath;
+		bun.env.GITLAB_DUO_PROJECT_PATH = originalProjectPath;
 	}
 });
 
@@ -141,7 +142,7 @@ describe("GitLab Duo Workflow discovery", () => {
 	});
 
 	it("uses GITLAB_DUO_NAMESPACE_ID when no explicit namespace is passed", async () => {
-		Bun.env.GITLAB_DUO_NAMESPACE_ID = "env-root";
+		bun.env.GITLAB_DUO_NAMESPACE_ID = "env-root";
 		const { fetch, calls } = createMockFetch({ models: { "env-root": availableModels("claude") } });
 
 		const selection = await discoverGitLabDuoWorkflowNamespace({ apiKey: TEST_TOKEN, fetch });
@@ -400,7 +401,7 @@ describe("GitLab Duo Workflow discovery", () => {
 	});
 
 	it("uses GITLAB_DUO_PROJECT_ID when no explicit project is passed", async () => {
-		Bun.env.GITLAB_DUO_PROJECT_ID = "env-project";
+		bun.env.GITLAB_DUO_PROJECT_ID = "env-project";
 		const { fetch, calls } = createMockFetch({
 			projects: {
 				"env-project": { id: 84, namespace: { rootAncestor: { id: "env-project-root" } } },
@@ -415,7 +416,7 @@ describe("GitLab Duo Workflow discovery", () => {
 	});
 
 	it("honors GITLAB_DUO_PROJECT_PATH and the projectPath config field for namespace discovery", async () => {
-		Bun.env.GITLAB_DUO_PROJECT_PATH = "group/path-project";
+		bun.env.GITLAB_DUO_PROJECT_PATH = "group/path-project";
 		const { fetch } = createMockFetch({
 			projects: {
 				"group/path-project": { id: 91, namespace: { rootAncestor: { id: "path-project-root" } } },

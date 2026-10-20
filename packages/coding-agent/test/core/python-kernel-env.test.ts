@@ -1,14 +1,65 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
-import * as fs from "node:fs";
-import * as os from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import type * as NodeFs from "node:fs";
+import type * as NodeOs from "node:os";
 import * as path from "node:path";
+import type * as PiUtils from "@oh-my-pi/pi-utils";
+// Mock hoisting needs the real Vitest entry point; the test-runtime barrel
+// re-exports it, which Vitest's mock-API check rejects.
+import { vi } from "vitest";
 import {
 	enumeratePythonRuntimes,
 	filterEnv,
 	resolveExplicitPythonRuntime,
 	resolvePythonRuntime,
 } from "@oh-my-pi/pi-coding-agent/eval/py/runtime";
-import * as piUtils from "@oh-my-pi/pi-utils";
+
+/**
+ * ESM module namespaces are frozen, so the suites cannot `vi.spyOn` `node:fs`,
+ * `node:os`, or the pi-utils barrel. Mock the modules instead and delegate to
+ * the real implementations unless a test overrides them.
+ */
+const mocks = vi.hoisted(() => ({
+	existsSync: vi.fn<(candidate: string) => boolean>(),
+	homedir: vi.fn<() => string>(),
+	getPythonEnvDir: vi.fn<() => string>(),
+	which: vi.fn<(bin: string) => string | null>(),
+	actual: {} as {
+		fs?: typeof NodeFs;
+		os?: typeof NodeOs;
+		utils?: typeof PiUtils;
+	},
+}));
+
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	mocks.actual.fs = actual;
+	mocks.existsSync.mockImplementation(candidate => actual.existsSync(candidate));
+	return { ...actual, existsSync: mocks.existsSync };
+});
+
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:os")>();
+	mocks.actual.os = actual;
+	mocks.homedir.mockImplementation(() => actual.homedir());
+	return { ...actual, homedir: mocks.homedir };
+});
+
+vi.mock("@oh-my-pi/pi-utils", async importOriginal => {
+	const actual = await importOriginal<typeof import("@oh-my-pi/pi-utils")>();
+	mocks.actual.utils = actual;
+	mocks.getPythonEnvDir.mockImplementation(() => actual.getPythonEnvDir());
+	mocks.which.mockImplementation(bin => actual.$which(bin));
+	return { ...actual, getPythonEnvDir: mocks.getPythonEnvDir, $which: mocks.which };
+});
+
+// `restoreMocks` resets implementations before every test; re-install the
+// real-module delegates each time.
+beforeEach(() => {
+	mocks.existsSync.mockImplementation(candidate => mocks.actual.fs!.existsSync(candidate));
+	mocks.homedir.mockImplementation(() => mocks.actual.os!.homedir());
+	mocks.getPythonEnvDir.mockImplementation(() => mocks.actual.utils!.getPythonEnvDir());
+	mocks.which.mockImplementation(bin => mocks.actual.utils!.$which(bin));
+});
 
 describe("Python gateway environment filtering", () => {
 	it("filters sensitive and unknown variables from shell env", () => {
@@ -63,10 +114,10 @@ describe("enumeratePythonRuntimes", () => {
 	const systemPy = path.join(path.sep, "usr", "bin", "python3");
 
 	it("enumerates the managed env AND the system interpreter so a broken managed env can fall through", () => {
-		vi.spyOn(piUtils, "getPythonEnvDir").mockReturnValue(managedDir);
-		vi.spyOn(piUtils, "$which").mockImplementation(bin => (bin === "python" ? systemPy : null));
+		mocks.getPythonEnvDir.mockReturnValue(managedDir);
+		mocks.which.mockImplementation(bin => (bin === "python" ? systemPy : null));
 		// Only the managed interpreter physically exists; no project/active venv.
-		vi.spyOn(fs, "existsSync").mockImplementation(candidate => candidate === managedPy);
+		mocks.existsSync.mockImplementation(candidate => candidate === managedPy);
 
 		const runtimes = enumeratePythonRuntimes(path.join(path.sep, "work"), {
 			PATH: path.join(path.sep, "usr", "bin"),
@@ -86,9 +137,9 @@ describe("enumeratePythonRuntimes", () => {
 	});
 
 	it("falls back to the system interpreter when no managed env or venv exists", () => {
-		vi.spyOn(piUtils, "getPythonEnvDir").mockReturnValue(managedDir);
-		vi.spyOn(piUtils, "$which").mockImplementation(bin => (bin === "python" ? systemPy : null));
-		vi.spyOn(fs, "existsSync").mockReturnValue(false);
+		mocks.getPythonEnvDir.mockReturnValue(managedDir);
+		mocks.which.mockImplementation(bin => (bin === "python" ? systemPy : null));
+		mocks.existsSync.mockReturnValue(false);
 
 		const runtimes = enumeratePythonRuntimes(path.join(path.sep, "work"), {
 			PATH: path.join(path.sep, "usr", "bin"),
@@ -99,9 +150,9 @@ describe("enumeratePythonRuntimes", () => {
 	});
 
 	it("resolves an explicit interpreter without falling through to discovery", () => {
-		vi.spyOn(piUtils, "getPythonEnvDir").mockReturnValue(managedDir);
-		vi.spyOn(piUtils, "$which").mockImplementation(bin => (bin === "python" ? systemPy : null));
-		vi.spyOn(fs, "existsSync").mockReturnValue(false);
+		mocks.getPythonEnvDir.mockReturnValue(managedDir);
+		mocks.which.mockImplementation(bin => (bin === "python" ? systemPy : null));
+		mocks.existsSync.mockReturnValue(false);
 		const explicitPy = path.join(path.sep, "custom", "python3.13");
 
 		const runtime = resolveExplicitPythonRuntime(explicitPy, path.join(path.sep, "work"), {
@@ -117,7 +168,7 @@ describe("enumeratePythonRuntimes", () => {
 		const venvDir = path.join(path.sep, "work", ".venv");
 		const binDir = path.join(venvDir, process.platform === "win32" ? "Scripts" : "bin");
 		const explicitPy = path.join(binDir, process.platform === "win32" ? "python.exe" : "python");
-		vi.spyOn(fs, "existsSync").mockImplementation(candidate => candidate === path.join(venvDir, "pyvenv.cfg"));
+		mocks.existsSync.mockImplementation(candidate => candidate === path.join(venvDir, "pyvenv.cfg"));
 
 		const runtime = resolveExplicitPythonRuntime(explicitPy, path.join(path.sep, "work"), {
 			PATH: path.join(path.sep, "usr", "bin"),
@@ -130,8 +181,8 @@ describe("enumeratePythonRuntimes", () => {
 
 	it("expands a home-relative explicit interpreter instead of resolving against cwd", () => {
 		const home = path.join(path.sep, "home", "tester");
-		vi.spyOn(os, "homedir").mockReturnValue(home);
-		vi.spyOn(fs, "existsSync").mockReturnValue(false);
+		mocks.homedir.mockReturnValue(home);
+		mocks.existsSync.mockReturnValue(false);
 
 		const runtime = resolveExplicitPythonRuntime("~/venvs/py/bin/python", path.join(path.sep, "work"), {});
 
@@ -139,7 +190,7 @@ describe("enumeratePythonRuntimes", () => {
 	});
 
 	it("resolves a relative explicit interpreter against cwd", () => {
-		vi.spyOn(fs, "existsSync").mockReturnValue(false);
+		mocks.existsSync.mockReturnValue(false);
 
 		const runtime = resolveExplicitPythonRuntime(
 			path.join(".venv", "bin", "python"),
@@ -151,9 +202,9 @@ describe("enumeratePythonRuntimes", () => {
 	});
 
 	it("throws from resolvePythonRuntime when no interpreter can be found", () => {
-		vi.spyOn(piUtils, "getPythonEnvDir").mockReturnValue(managedDir);
-		vi.spyOn(piUtils, "$which").mockReturnValue(null);
-		vi.spyOn(fs, "existsSync").mockReturnValue(false);
+		mocks.getPythonEnvDir.mockReturnValue(managedDir);
+		mocks.which.mockReturnValue(null);
+		mocks.existsSync.mockReturnValue(false);
 
 		expect(enumeratePythonRuntimes(path.join(path.sep, "work"), {})).toEqual([]);
 		expect(() => resolvePythonRuntime(path.join(path.sep, "work"), {})).toThrow("Python executable not found");

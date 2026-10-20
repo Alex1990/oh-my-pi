@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
@@ -30,6 +30,7 @@ import { cfgAutolearnEnabled } from "@oh-my-pi/pi-coding-agent/autolearn/setting
 import { cfgHindsightApiUrl, cfgHindsightMentalModelsEnabled } from "@oh-my-pi/pi-coding-agent/hindsight/settings";
 import { cfgMemoryBackend } from "@oh-my-pi/pi-coding-agent/memory-backend/settings";
 import { cfgMnemopiBank, cfgMnemopiRecallLimit, cfgMnemopiScoping } from "@oh-my-pi/pi-coding-agent/mnemopi/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createTool(name: string): AgentTool {
 	return {
@@ -389,9 +390,9 @@ describe("AgentSession memory backend lifecycle", () => {
 		const destinationCwd = path.join(sourceCwd, "destination");
 		await Promise.all(
 			[sourceCwd, destinationCwd].map(cwd =>
-				Bun.write(
+				bun.write(
 					path.join(getProjectAgentDir(cwd), "config.yml"),
-					Bun.YAML.stringify({
+					bun.YAML.stringify({
 						memory: { backend: "mnemopi" },
 						mnemopi: {
 							scoping: "per-project",
@@ -471,18 +472,18 @@ describe("AgentSession memory backend lifecycle", () => {
 			const sourceDbPath = path.join(sourceCwd, "source.db");
 			const destinationConfig = path.join(getProjectAgentDir(destinationCwd), "config.yml");
 			const mnemopi = { scoping: "global", autoRetain: false, noEmbeddings: true, llmMode: "none" };
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(sourceCwd), "config.yml"),
-				Bun.YAML.stringify({
+				bun.YAML.stringify({
 					memory: { backend: source },
 					mnemopi: { ...mnemopi, dbPath: sourceDbPath },
 					hindsight: { apiUrl: "http://127.0.0.1:1", mentalModelsEnabled: false },
 				}),
 			);
 			// An existing directory is not a SQLite database, regardless of filesystem permissions.
-			await Bun.write(
+			await bun.write(
 				destinationConfig,
-				Bun.YAML.stringify({ memory: { backend: "mnemopi" }, mnemopi: { ...mnemopi, dbPath: sourceCwd } }),
+				bun.YAML.stringify({ memory: { backend: "mnemopi" }, mnemopi: { ...mnemopi, dbPath: sourceCwd } }),
 			);
 			settings = await Settings.loadIsolated({ cwd: sourceCwd, agentDir: path.join(sourceCwd, "agent") });
 			const toolSession = {
@@ -528,9 +529,9 @@ describe("AgentSession memory backend lifecycle", () => {
 
 				// Repair the destination and retry the same command; the installed tool must really write there.
 				const destinationDbPath = path.join(destinationCwd, "memory.db");
-				await Bun.write(
+				await bun.write(
 					destinationConfig,
-					Bun.YAML.stringify({
+					bun.YAML.stringify({
 						memory: { backend: "mnemopi" },
 						mnemopi: { ...mnemopi, dbPath: destinationDbPath },
 					}),
@@ -563,16 +564,16 @@ describe("AgentSession memory backend lifecycle", () => {
 			const sourceCwd = tempDir.path();
 			const destinationCwd = path.join(sourceCwd, "destination");
 			const destinationDbPath = path.join(destinationCwd, "memory.db");
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(sourceCwd), "config.yml"),
-				Bun.YAML.stringify({
+				bun.YAML.stringify({
 					memory: { backend: "hindsight" },
 					hindsight: { apiUrl: "http://127.0.0.1:1", mentalModelsEnabled: false },
 				}),
 			);
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(destinationCwd), "config.yml"),
-				Bun.YAML.stringify({
+				bun.YAML.stringify({
 					memory: { backend: "mnemopi" },
 					mnemopi: {
 						scoping: "global",

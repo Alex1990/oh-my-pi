@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { computeEditorMaxHeight } from "@oh-my-pi/pi-coding-agent/modes/interactive-mode";
 
 describe("computeEditorMaxHeight", () => {

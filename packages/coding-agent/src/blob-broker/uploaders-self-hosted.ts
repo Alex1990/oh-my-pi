@@ -18,6 +18,7 @@ import {
 	requireCredential,
 	requireOption,
 } from "./uploader-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
@@ -243,7 +244,7 @@ function createFtpUploader(config: DestinationRuntimeConfig): BlobUploader {
 			if (protocol === "ftps" && port !== 990) args.push("--ssl-reqd");
 			args.push(ftpUploadUrl(protocol, host, port, destinationPath));
 			try {
-				const process = Bun.spawn(args, {
+				const process = bun.spawn(args, {
 					stdin: request.bytes,
 					stdout: "ignore",
 					stderr: "pipe",
@@ -280,7 +281,7 @@ function createSharedFolderUploader(config: DestinationRuntimeConfig): BlobUploa
 			if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
 				throw new Error("Shared-folder destination escapes its configured root");
 			}
-			await Bun.write(target, request.bytes, { createPath: true });
+			await bun.write(target, request.bytes, { createPath: true });
 			return publication("shared-folder", request, publicUrl(publicBase, directory, filename));
 		},
 	};

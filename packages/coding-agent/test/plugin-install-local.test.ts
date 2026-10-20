@@ -12,7 +12,7 @@
  * avoids the theme (`runPluginCommand` does not initialize the theme on its
  * own — `commands/plugin.ts` does).
  */
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,6 +22,8 @@ import { MarketplaceManager } from "@oh-my-pi/pi-coding-agent/extensibility/plug
 import type { InstalledPlugin } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { PluginRuntimeConfig } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 
 const FAKE_INSTALLED: InstalledPlugin = {
 	name: "kimi-datasource",
@@ -35,7 +37,7 @@ const FAKE_INSTALLED: InstalledPlugin = {
 async function createLocalPlugin(root: string, name = "kimi-datasource"): Promise<string> {
 	const localPlugin = path.join(root, name);
 	await fs.mkdir(localPlugin, { recursive: true });
-	await Bun.write(
+	await bun.write(
 		path.join(localPlugin, "package.json"),
 		JSON.stringify({
 			name,
@@ -129,7 +131,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		await runPluginCommand({ action: "link", args: [localPlugin], flags: { dryRun: true, json: true } });
 
 		await expect(fs.lstat(linkTarget)).rejects.toHaveProperty("code", "ENOENT");
-		expect(await Bun.file(lockfile).exists()).toBe(false);
+		expect(await bun.file(lockfile).exists()).toBe(false);
 	});
 
 	test("real local plugin directory: install symlinks it like link would", async () => {
@@ -146,7 +148,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		expect(stat.isSymbolicLink()).toBe(true);
 		expect(await fs.readlink(linkTarget)).toBe(localPlugin);
 
-		const lock = await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json();
+		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["kimi-datasource"]).toEqual({
 			version: "1.0.0",
 			enabledFeatures: null,
@@ -160,7 +162,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		const localPlugin = await createLocalPlugin(tmpRoot);
 		const linkTarget = path.join(tmpRoot, "plugins", "node_modules", "kimi-datasource");
 		await fs.mkdir(linkTarget, { recursive: true });
-		await Bun.write(path.join(linkTarget, "package.json"), JSON.stringify({ name: "kimi-datasource" }));
+		await bun.write(path.join(linkTarget, "package.json"), JSON.stringify({ name: "kimi-datasource" }));
 
 		await new PluginManager(tmpRoot).link(localPlugin);
 
@@ -171,16 +173,16 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 	test("rejects a package name that could escape the plugin directory", async () => {
 		const localPlugin = path.join(tmpRoot, "malicious");
 		await fs.mkdir(localPlugin);
-		await Bun.write(
+		await bun.write(
 			path.join(localPlugin, "package.json"),
 			JSON.stringify({ name: "../../victim", version: "1.0.0" }),
 		);
 		const victim = path.join(tmpRoot, "victim");
 		await fs.mkdir(victim);
-		await Bun.write(path.join(victim, "sentinel.txt"), "keep");
+		await bun.write(path.join(victim, "sentinel.txt"), "keep");
 
 		await expect(new PluginManager(tmpRoot).link(localPlugin)).rejects.toThrow("Invalid package name");
-		expect(await Bun.file(path.join(victim, "sentinel.txt")).text()).toBe("keep");
+		expect(await bun.file(path.join(victim, "sentinel.txt")).text()).toBe("keep");
 	});
 
 	test("uninstall removes a linked scoped plugin from node_modules", async () => {
@@ -212,7 +214,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 	});
 
 	test("doctor --fix preserves linked local plugin state without package dependencies", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tmpRoot, "plugins", "package.json"),
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: {} }),
 		);
@@ -223,7 +225,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		const checks = await manager.doctor({ fix: true });
 
 		expect(checks.find(check => check.name === "orphan:kimi-datasource")).toBeUndefined();
-		const lock = await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json();
+		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["kimi-datasource"]).toEqual({
 			version: "1.0.0",
 			enabledFeatures: null,

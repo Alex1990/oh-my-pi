@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { generateThemeStyles, generateThemeVars, parseExportArgs } from "@oh-my-pi/pi-coding-agent/export/html";
 
 describe("HTML export themes", () => {

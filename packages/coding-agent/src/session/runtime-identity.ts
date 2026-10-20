@@ -10,6 +10,7 @@ import type { VcsGitRepo } from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { $env, isCompiledBinary, isRecord, logger, VERSION } from "@oh-my-pi/pi-utils";
 import type { SessionEntry } from "./session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface RuntimeIdentity {
 	/** omp package version. */
@@ -38,9 +39,9 @@ let ready: Promise<void> = Promise.resolve();
 /** Git handle of the checkout this module runs from; null for compiled binaries and package installs. */
 function findSourceCheckout(): VcsGitRepo | null {
 	// A git repository found above a node_modules install belongs to some other project.
-	if (isCompiledBinary() || import.meta.dir.split(/[\\/]/).includes("node_modules")) return null;
-	const repo = vcs.git(import.meta.dir);
-	return repo?.prefixOf(import.meta.dir)?.startsWith(SOURCE_PACKAGE_PREFIX) ? repo : null;
+	if (isCompiledBinary() || import.meta.dirname.split(/[\\/]/).includes("node_modules")) return null;
+	const repo = vcs.git(import.meta.dirname);
+	return repo?.prefixOf(import.meta.dirname)?.startsWith(SOURCE_PACKAGE_PREFIX) ? repo : null;
 }
 
 async function readUncommittedDiff(repo: VcsGitRepo, identity: RuntimeIdentity): Promise<void> {
@@ -53,7 +54,7 @@ async function readUncommittedDiff(repo: VcsGitRepo, identity: RuntimeIdentity):
 	}
 	current = {
 		...identity,
-		diff: patch === null ? UNKNOWN_DIFF : patch ? Bun.hash(patch).toString(16).padStart(16, "0") : undefined,
+		diff: patch === null ? UNKNOWN_DIFF : patch ? bun.hash(patch).toString(16).padStart(16, "0") : undefined,
 	};
 }
 

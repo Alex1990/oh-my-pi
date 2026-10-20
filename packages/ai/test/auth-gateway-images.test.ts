@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -38,7 +38,7 @@ async function withGateway(
 	if (options.seedCredentials !== false) {
 		for (const model of models) storage.keys.setRuntime(model.provider, `key-${model.provider}`);
 	}
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: ["gateway-token"],
 		storage,
@@ -293,7 +293,7 @@ describe("auth gateway images", () => {
 			expect(upstreamCalls).toBe(1);
 			if (!(upstreamImage instanceof File)) throw new Error("Expected upstream image file");
 			expect(upstreamImage.type).toBe(mimeType);
-			expect(new Uint8Array(await upstreamImage.arrayBuffer())).toEqual(Buffer.from(IMAGE_DATA, "base64"));
+			expect(new Uint8Array(await upstreamImage.arrayBuffer())).toEqual(new Uint8Array(Buffer.from(IMAGE_DATA, "base64")));
 		});
 	});
 

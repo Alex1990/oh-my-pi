@@ -35,6 +35,7 @@ import { UrlContainmentError } from "./filesystem-resource";
 import { parseInternalUrl } from "./parse";
 import { InternalUrlRouter } from "./router";
 import type { InternalResource, ProtocolHandler, ResolveContext, SchemeSpec } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const URL_PATH_RE = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/is;
 /** Symlink hops before ELOOP (Linux MAXSYMLINKS). */
@@ -312,7 +313,7 @@ export class InternalUrlFilesystem {
 	async readPrefix(input: string, maxBytes: number): Promise<Uint8Array> {
 		try {
 			const node = await this.#node(input, true, false);
-			if (node.kind !== "virtual") return await Bun.file(node.path).slice(0, maxBytes).bytes();
+			if (node.kind !== "virtual") return await bun.file(node.path).slice(0, maxBytes).bytes();
 			if (node.directory) throw new UrlFsError("EISDIR", `Is a directory: ${node.url}`);
 			return node.bytes.subarray(0, maxBytes);
 		} catch (error) {

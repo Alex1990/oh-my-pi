@@ -3,7 +3,6 @@
  * rendering a registered marker block (or one side of it) with its original
  * file line numbers, and splicing replacement content over registered blocks.
  */
-import * as fs from "node:fs/promises";
 import { type ConflictEntry, renderConflictRegion } from "@oh-my-pi/pi-tui/tools/conflict-detect";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { getEditStore } from "../edit/store";
@@ -24,6 +23,7 @@ import type { ToolSession } from "./index";
 import { formatPathRelativeToCwd } from "./path-utils";
 import { formatTextWithMode, hashlineHeaderContext, prependHashlineHeader } from "./read-format";
 import { maybeWriteSnapshotHeader, stripWriteContent } from "./write-content";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A rendered `conflict://<N>[/<scope>]` region. */
 export interface ConflictRegionRead {
@@ -135,12 +135,12 @@ async function resolveConflict(
 	signal: AbortSignal | undefined,
 ): Promise<InternalWriteResult> {
 	const absolutePath = entry.absolutePath;
-	if (!(await fs.exists(absolutePath))) {
+	if (!(await bun.file(absolutePath).exists())) {
 		throw new ToolError(`Conflict #${entry.id} target '${entry.displayPath}' no longer exists.`);
 	}
 
 	const expanded = expandContentTokens(replacementContent, entry);
-	const originalText = await Bun.file(absolutePath).text();
+	const originalText = await bun.file(absolutePath).text();
 	const splice = spliceConflict(originalText, entry, expanded);
 	const newContent = splice.text;
 
@@ -364,7 +364,7 @@ async function resolveAllConflicts(
 
 	for (const [absolutePath, fileEntries] of byFile) {
 		const sample = fileEntries[0]!;
-		if (!(await fs.exists(absolutePath))) {
+		if (!(await bun.file(absolutePath).exists())) {
 			failedFiles.push({
 				displayPath: sample.displayPath,
 				count: fileEntries.length,
@@ -380,7 +380,7 @@ async function resolveAllConflicts(
 		const staleEntries: ConflictEntry[] = [];
 		let failure: string | undefined;
 		try {
-			text = await Bun.file(absolutePath).text();
+			text = await bun.file(absolutePath).text();
 		} catch (error) {
 			failedFiles.push({
 				displayPath: sample.displayPath,

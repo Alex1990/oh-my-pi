@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { AuthStorage, SqliteAuthCredentialStore } from "../src/session/auth-storage";
 import { credentialPinHash, recordCredentialPin, seedCredentialPins } from "../src/session/credential-pin";

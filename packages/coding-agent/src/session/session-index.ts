@@ -19,7 +19,7 @@
  * against the right file. Never versions the db — `PRAGMA user_version` is
  * owned by HistoryStorage's rebuild pass, which drops only its own tables.
  */
-import { Database, type SQLQueryBindings, type Statement } from "bun:sqlite";
+import { Database, type SQLQueryBindings, type Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -29,7 +29,7 @@ import {
 	type SqliteFileIdentity,
 } from "@oh-my-pi/pi-utils";
 import { getHistoryDbPath } from "@oh-my-pi/pi-utils/dirs";
-import { getDbBusyTimeoutMs, isBunTestRuntime } from "@oh-my-pi/pi-utils/env";
+import { getDbBusyTimeoutMs, isTestRuntime } from "@oh-my-pi/pi-utils/env";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 
 const SESSION_INDEX_DDL = `
@@ -78,7 +78,7 @@ function openSessionIndex(): SessionIndexHandle | undefined {
 	// index opens only an agent dir the test chose (`setAgentDir` exports
 	// PI_CODING_AGENT_DIR). Otherwise every test naming a file-backed session
 	// leaves a title row behind in the real index.
-	if (isBunTestRuntime() && !process.env.PI_CODING_AGENT_DIR) return undefined;
+	if (isTestRuntime() && !process.env.PI_CODING_AGENT_DIR) return undefined;
 	const dbPath = getHistoryDbPath();
 	// A quarantined history.db is unlinked and recreated at the same path, so
 	// the path alone still matches a handle pinned to the dead inode. Reopen

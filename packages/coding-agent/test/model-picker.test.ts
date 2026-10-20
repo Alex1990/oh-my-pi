@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { beforeAll, describe, expect, type Mock, test, vi } from "bun:test";
+import { beforeAll, describe, expect, type Mock, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -10,6 +10,7 @@ import { resolveSegmentPalette } from "@oh-my-pi/pi-tui/chrome/segment-track";
 import { getThemeByName, setThemeInstance, theme } from "@oh-my-pi/pi-tui/theme";
 import type { ResolvedRoleModel } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function normalize(lines: readonly string[]): string {
 	return stripVTControlCharacters(lines.join("\n")).replace(/\s+/g, " ").trim();
@@ -174,7 +175,7 @@ describe("ModelPicker", () => {
 		refreshGate.resolve(true);
 		// Not a tuned delay: one zero-length tick drains the component's
 		// refreshIfStale().then(...) continuation chain deterministically.
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		picker.handleInput("\n");
 		expect(onPick.mock.calls[0]?.[0]?.id).toBe("cc-model");
 	});

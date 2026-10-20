@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool, AgentToolContext } from "@oh-my-pi/pi-agent-core";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -12,6 +12,7 @@ import { MCPTool } from "../../src/mcp/tool-bridge";
 import type { MCPServerConnection, MCPToolCallParams, MCPToolCallResult, MCPToolDefinition } from "../../src/mcp/types";
 import { SessionManager } from "../../src/session/session-manager";
 import { wrapToolWithMetaNotice } from "../../src/tools/output-meta";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function toolFor(result: MCPToolCallResult | ((params: MCPToolCallParams) => MCPToolCallResult)): MCPTool {
 	const connection = {
@@ -157,7 +158,7 @@ describe("MCP bridge structuredContent", () => {
 			await manager.flush();
 			const sessionFile = manager.getSessionFile();
 			if (!sessionFile) throw new Error("Expected session JSONL");
-			const entries = (await Bun.file(sessionFile).text())
+			const entries = (await bun.file(sessionFile).text())
 				.trim()
 				.split("\n")
 				.map(line => JSON.parse(line));
@@ -177,7 +178,7 @@ describe("MCP bridge structuredContent", () => {
 			expect(message.details?.structuredContent).toBe(structuredContent);
 			const artifactPath = await manager.getArtifactPath(artifactId);
 			if (!artifactPath) throw new Error("Expected recoverable artifact");
-			expect(await Bun.file(artifactPath).text()).toContain(renderedPayload);
+			expect(await bun.file(artifactPath).text()).toContain(renderedPayload);
 		} finally {
 			await manager.close();
 		}
@@ -237,7 +238,7 @@ describe("MCP bridge structuredContent", () => {
 			await manager.flush();
 			const sessionFile = manager.getSessionFile();
 			if (!sessionFile) throw new Error("Expected session JSONL");
-			const entries = (await Bun.file(sessionFile).text())
+			const entries = (await bun.file(sessionFile).text())
 				.trim()
 				.split("\n")
 				.map(line => JSON.parse(line));
@@ -266,7 +267,7 @@ describe("MCP result rendering with structuredContent", () => {
 		const theme = await getThemeByName("dark");
 		if (!theme) throw new Error("dark theme missing");
 		const built = await build(result);
-		return Bun.stripANSI(renderMCPResult(built, { expanded: true, isPartial: false }, theme).render(160).join("\n"));
+		return bun.stripANSI(renderMCPResult(built, { expanded: true, isPartial: false }, theme).render(160).join("\n"));
 	}
 
 	it("renders the appended structured payload, not just the ack", async () => {

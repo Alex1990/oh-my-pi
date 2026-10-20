@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AsyncJobManager, type AsyncJob } from "../../src/async/job-manager";
 import { type JobWidgetAuthorRequest, JobWidgets, TextTap } from "../../src/job-widgets";
 

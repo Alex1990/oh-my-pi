@@ -10,7 +10,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { type FileLockHandle, logger, readLines, untilAborted } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import { hostHasInheritableConsole, shouldHideKernelWindow } from "../eval/py/spawn-options";
 import { stageRunnerScript } from "../eval/runner-cache";
 import type { IdaRuntime } from "./runtime";
@@ -110,7 +110,7 @@ export class IdaWorker {
 	readonly pid: number;
 	#idbPath: string;
 	#info: IdaDatabaseInfo = { module: "", format: "", arch: "", bitness: 0 };
-	readonly #proc: Subprocess<"pipe", "pipe", "pipe">;
+	readonly #proc: Subprocess;
 	readonly #lock: FileLockHandle;
 	readonly #streamsDrained: Promise<unknown>;
 	#queue: Promise<void> = Promise.resolve();
@@ -136,7 +136,7 @@ export class IdaWorker {
 
 	private constructor(
 		loc: IdbLocation,
-		proc: Subprocess<"pipe", "pipe", "pipe">,
+		proc: Subprocess,
 		lock: FileLockHandle,
 		idleCloseMs: number,
 	) {
@@ -165,7 +165,7 @@ export class IdaWorker {
 		idleCloseMs: number,
 	): Promise<IdaWorker> {
 		const script = await stageRunnerScript("omp-ida-worker", "py", IDA_WORKER);
-		const proc = Bun.spawn([runtime.pythonPath, "-u", script], {
+		const proc = bun.spawn([runtime.pythonPath, "-u", script], {
 			cwd: loc.dir,
 			env: runtime.env,
 			stdin: "pipe",
@@ -522,3 +522,4 @@ async function removeCreationLeftovers(loc: IdbLocation): Promise<void> {
 		logger.warn("IDA cleanup after failed database creation failed", { id: loc.id, error: errorMessage(error) });
 	}
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

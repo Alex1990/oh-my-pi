@@ -4,6 +4,7 @@
 import * as path from "node:path";
 import * as prettier from "prettier";
 import { listFiles } from "./shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PRETTIER_OPTIONS: prettier.Options = {
 	printWidth: 100,
@@ -60,10 +61,10 @@ export async function formatDirectory(rootDir: string): Promise<void> {
 
 	for (const file of files) {
 		const fullPath = path.join(rootDir, file);
-		const content = await Bun.file(fullPath).text();
+		const content = await bun.file(fullPath).text();
 		const result = await formatContent(fullPath, content);
 		if (result.didFormat && result.formatted !== content) {
-			await Bun.write(fullPath, result.formatted);
+			await bun.write(fullPath, result.formatted);
 		}
 	}
 }

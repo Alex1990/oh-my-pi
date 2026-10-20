@@ -21,6 +21,8 @@ import {
 	ESCAPE_STOPPED_MESSAGE,
 	type RunErrorPayload,
 } from "./protocol";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker, type WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 const START_TIMEOUT_MS = 10_000;
 const CLOSE_TIMEOUT_MS = 1_500;
@@ -110,15 +112,17 @@ function wrapWorker(worker: Worker): ComputerWorkerHandle {
 			worker.postMessage(message);
 		},
 		onMessage(handler) {
-			const listener = (event: MessageEvent): void => handler(event.data as ComputerWorkerOutbound);
+			const listener = (event: Event): void => handler((event as MessageEvent).data as ComputerWorkerOutbound);
 			worker.addEventListener("message", listener);
 			return () => worker.removeEventListener("message", listener);
 		},
 		onError(handler) {
-			const onError = (event: ErrorEvent): void =>
-				handler(event.error instanceof Error ? event.error : new Error(event.message));
-			const onMessageError = (event: MessageEvent): void =>
-				handler(new Error(`Computer worker message error: ${String(event.data)}`));
+			const onError = (event: Event): void => {
+				const workerEvent = event as WorkerErrorEvent;
+				handler(workerEvent.error instanceof Error ? workerEvent.error : new Error(workerEvent.message));
+			};
+			const onMessageError = (event: Event): void =>
+				handler(new Error(`Computer worker message error: ${String((event as MessageEvent).data)}`));
 			const onClose = (): void => handler(new Error("Computer worker exited"));
 			worker.addEventListener("error", onError);
 			worker.addEventListener("messageerror", onMessageError);
@@ -148,8 +152,8 @@ export function spawnComputerWorker(): ComputerWorkerHandle {
 	}
 	const hostEntry = workerHostEntry();
 	const worker = hostEntry
-		? new Worker(hostEntry, { type: "module", argv: [COMPUTER_WORKER_ARG] })
-		: new Worker(new URL("./worker-entry.ts", import.meta.url).href, { type: "module" });
+		? new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: COMPUTER_WORKER_ARG } })
+		: new Worker(new URL("./worker-entry.ts", import.meta.url).href);
 	return wrapWorker(worker);
 }
 

@@ -1,4 +1,5 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import { stripVTControlCharacters } from "node:util";
 import { generateRoomKey, importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
@@ -17,6 +18,8 @@ import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-
 import type { TUI } from "@oh-my-pi/pi-tui";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "../../collab/helpers/in-memory-relay";
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 /**
  * Starts watching the shared spinner ticker; the returned probe reports whether
@@ -272,14 +275,14 @@ describe("ToolExecutionComponent live preview spinners", () => {
 			component.setTranscriptAllocation(1, { tick: 27, now: 3_200 });
 			const running = stripVTControlCharacters(component.render(24)[0] ?? "");
 			expect(running).toContain("Catalog · running 2s");
-			expect(Bun.stringWidth(running)).toBeLessThanOrEqual(24);
+			expect(bun.stringWidth(running)).toBeLessThanOrEqual(24);
 
 			component.updateResult({ content: [{ type: "text", text: "done" }] }, false);
 			const settled = stripVTControlCharacters(component.render(24)[0] ?? "");
 			expect(settled).toContain("Catalog");
 			expect(settled).not.toContain("running");
 			expect(settled).not.toMatch(/\d+s$/);
-			expect(Bun.stringWidth(settled)).toBeLessThanOrEqual(24);
+			expect(bun.stringWidth(settled)).toBeLessThanOrEqual(24);
 		} finally {
 			component.stopAnimation();
 		}
@@ -298,7 +301,7 @@ describe("ToolExecutionComponent live preview spinners", () => {
 			component.setTranscriptAllocation(1, { tick: 0, now: 0 });
 			const row = stripVTControlCharacters(component.render(30)[0] ?? "");
 			expect(row).toContain("Catalog · processing");
-			expect(Bun.stringWidth(row)).toBeLessThanOrEqual(30);
+			expect(bun.stringWidth(row)).toBeLessThanOrEqual(30);
 		} finally {
 			component.stopAnimation();
 		}
@@ -362,7 +365,7 @@ describe("ToolExecutionComponent live preview spinners", () => {
 	// intact even though its instance was orphaned.
 	it("unregisters a live tool block from the shared ticker via the guest resync teardown", async () => {
 		installInMemoryRelay();
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		try {
 			vi.useFakeTimers();
@@ -530,7 +533,7 @@ describe("ToolExecutionComponent live preview spinners", () => {
 	// `job-poll-displacement.test.ts` exercises in isolation.
 	it("folds a displaceable poll/todo block into orphan cleanup when guest resync staging fails", async () => {
 		installInMemoryRelay();
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		try {
 			vi.useFakeTimers();
@@ -733,7 +736,7 @@ describe("ToolExecutionComponent live preview spinners", () => {
 	// registration without touching children, is safe here.
 	it("seals rather than disposes orphaned blocks when guest resync staging fails", async () => {
 		installInMemoryRelay();
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		try {
 			vi.useFakeTimers();

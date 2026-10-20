@@ -1,6 +1,8 @@
+import type { TransferListItem } from "node:worker_threads";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
 
-export type Transferable = Bun.Transferable;
+/** Transferable payload accepted by `postMessage`. */
+export type Transferable = TransferListItem;
 
 export interface ObservationEntry {
 	id: number;

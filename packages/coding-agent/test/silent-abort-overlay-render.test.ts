@@ -8,7 +8,7 @@ import { agentTranscriptSource } from "@oh-my-pi/pi-coding-agent/modes/agent-hub
  * full chat-rebuild path through a real JSONL session file and an isolated
  * agent registry.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

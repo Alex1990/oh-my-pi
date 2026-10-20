@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Effort } from "@oh-my-pi/pi-ai";
 import { PluginSelectorComponent } from "@oh-my-pi/pi-tui/overlays/plugin-selector";
 import { QueueModeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/queue-mode-selector";

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { createAutoresearchExtension } from "@oh-my-pi/pi-coding-agent/autoresearch";
 import {
 	buildExperimentState,
@@ -17,6 +17,7 @@ import type {
 import type { VcsGitRepo, VcsGitRepoInfo } from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -115,7 +116,7 @@ describe("AutoresearchStorage round-trip", () => {
 	});
 
 	afterEach(async () => {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await dbDir.remove().catch(() => {});
 	});
 

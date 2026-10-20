@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +24,9 @@ import "@oh-my-pi/pi-coding-agent/discovery/agent-plugins";
 import "@oh-my-pi/pi-coding-agent/discovery/claude-plugins";
 import type { MCPServer } from "@oh-my-pi/pi-coding-agent/capability/mcp";
 import type { Skill } from "@oh-my-pi/pi-coding-agent/capability/skill";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+vi.mock("node:os", { spy: true });
 
 // Concatenation avoids the noTemplateCurlyInString lint on literal placeholder names.
 const PLUGIN_ROOT_VAR = "$" + "{PLUGIN_ROOT}";
@@ -292,7 +296,7 @@ describe("agent-plugins discovery", () => {
 		clearFsCache();
 		originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 		delete process.env.CLAUDE_CONFIG_DIR;
-		delete Bun.env.CLAUDE_CONFIG_DIR;
+		delete bun.env.CLAUDE_CONFIG_DIR;
 		tempDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agent-plugins-test-")));
 		pluginPath = path.join(tempDir, "plugins", "std-plugin");
 		await fs.mkdir(pluginPath, { recursive: true });

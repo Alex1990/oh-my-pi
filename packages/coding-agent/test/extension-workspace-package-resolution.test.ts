@@ -1,9 +1,10 @@
-import { afterEach, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { __rewriteLegacyExtensionSourceForTests } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempRoots: string[] = [];
 
@@ -15,7 +16,7 @@ afterEach(async () => {
 });
 
 async function writeJson(filePath: string, value: unknown): Promise<void> {
-	await Bun.write(filePath, `${JSON.stringify(value)}\n`);
+	await bun.write(filePath, `${JSON.stringify(value)}\n`);
 }
 
 /**
@@ -32,7 +33,7 @@ test("bare workspace-member imports resolve through the workspace root manifest"
 	const memberRoot = path.join(repoRoot, "packages", "contracts");
 	await fs.mkdir(path.dirname(importer), { recursive: true });
 	await fs.mkdir(path.join(memberRoot, "src"), { recursive: true });
-	await Bun.write(importer, "export {};\n");
+	await bun.write(importer, "export {};\n");
 	await writeJson(path.join(repoRoot, "package.json"), {
 		name: "monorepo-plugin",
 		version: "1.0.0",
@@ -44,9 +45,9 @@ test("bare workspace-member imports resolve through the workspace root manifest"
 		main: "dist/index.js",
 		exports: { ".": { bun: "./src/index.ts", default: "./dist/index.js" } },
 	});
-	await Bun.write(path.join(memberRoot, "src", "index.ts"), "export const marker = 1;\n");
+	await bun.write(path.join(memberRoot, "src", "index.ts"), "export const marker = 1;\n");
 
-	spyOn(Bun, "resolveSync").mockImplementation(() => {
+	spyOn(bun, "resolveSync").mockImplementation(() => {
 		throw new Error("compiled fallback");
 	});
 
@@ -69,7 +70,7 @@ test("installed node_modules copies shadow workspace members at the same level",
 	await fs.mkdir(path.dirname(importer), { recursive: true });
 	await fs.mkdir(memberRoot, { recursive: true });
 	await fs.mkdir(installedRoot, { recursive: true });
-	await Bun.write(importer, "export {};\n");
+	await bun.write(importer, "export {};\n");
 	await writeJson(path.join(repoRoot, "package.json"), {
 		name: "monorepo-plugin",
 		version: "1.0.0",
@@ -80,15 +81,15 @@ test("installed node_modules copies shadow workspace members at the same level",
 		version: "1.0.0",
 		main: "member.js",
 	});
-	await Bun.write(path.join(memberRoot, "member.js"), "export default 1;\n");
+	await bun.write(path.join(memberRoot, "member.js"), "export default 1;\n");
 	await writeJson(path.join(installedRoot, "package.json"), {
 		name: "@monorepo/dep",
 		version: "2.0.0",
 		main: "installed.js",
 	});
-	await Bun.write(path.join(installedRoot, "installed.js"), "export default 2;\n");
+	await bun.write(path.join(installedRoot, "installed.js"), "export default 2;\n");
 
-	spyOn(Bun, "resolveSync").mockImplementation(() => {
+	spyOn(bun, "resolveSync").mockImplementation(() => {
 		throw new Error("compiled fallback");
 	});
 

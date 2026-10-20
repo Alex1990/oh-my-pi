@@ -4,6 +4,7 @@ import { getTinyModelsCacheDir, isEnoent, logger, withFileLock } from "@oh-my-pi
 import { withDownload } from "../downloads/activity";
 import { sha256File } from "../utils/file-hash";
 import { downloadFile } from "../utils/tools-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * On-demand weights for the `smollm` word-completion engine
@@ -91,7 +92,7 @@ export function getSmolLmModelDir(): string {
 
 async function readReadyMarker(dir: string): Promise<string | null> {
 	try {
-		return (await Bun.file(path.join(dir, READY_MARKER)).text()).trim();
+		return (await bun.file(path.join(dir, READY_MARKER)).text()).trim();
 	} catch (error) {
 		if (isEnoent(error)) return null;
 		throw error;
@@ -173,7 +174,7 @@ export async function ensureSmolLmWeights(options: EnsureSmolLmWeightsOptions = 
 			finished += file.size;
 		}
 		onProgress?.(finished, "verified");
-		await Bun.write(path.join(dir, READY_MARKER), `${READY_STAMP}\n`);
+		await bun.write(path.join(dir, READY_MARKER), `${READY_STAMP}\n`);
 		// Engines read their weights at load, so a running one is unaffected.
 		for (const name of OBSOLETE_FILES) await fs.rm(path.join(dir, name), { force: true });
 		logger.debug("smollm weights: ready", { dir, files: SMOLLM_FILES.map(file => file.name) });

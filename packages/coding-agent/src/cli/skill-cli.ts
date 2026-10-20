@@ -21,6 +21,7 @@ import { parseSkillSpec, type SkillSpec, SkillshareClient, SkillshareError } fro
 import { installSkills, searchSkills, showSkillInfo, uninstallSkills, updateSkills } from "../skillshare/installer";
 import { bumpVersion, type PackResult, packSkill, SEMVER_RE } from "../skillshare/pack";
 import { handleSkillList } from "./skill-list";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type SkillAction =
 	| "publish"
@@ -314,7 +315,7 @@ async function handleTag(cmd: SkillCommandArgs): Promise<number> {
 	const version = exactVersionOrThrow(spec, usage);
 	const tag = cmd.args[1];
 	if (!tag) throw new CliUsageError(usage);
-	if (SEMVER_RE.test(tag) || Bun.semver.satisfies(version, tag)) {
+	if (SEMVER_RE.test(tag) || bun.semver.satisfies(version, tag)) {
 		throw new CliUsageError(`tag ${JSON.stringify(tag)} looks like a version or range; tags must be names`);
 	}
 	await withClient(cmd.flags, false, client => client.setTag(spec.scope, spec.name, tag, version));
@@ -351,7 +352,7 @@ async function handleDeprecate(cmd: SkillCommandArgs): Promise<number> {
 			const packument = await client.packument(spec.scope, spec.name);
 			const range = spec.range;
 			versions = Object.keys(packument.versions).filter(
-				version => range === undefined || Bun.semver.satisfies(version, range),
+				version => range === undefined || bun.semver.satisfies(version, range),
 			);
 			if (versions.length === 0) {
 				process.stderr.write(`skill deprecate: no versions of @${spec.scope}/${spec.name} match ${range}\n`);
@@ -452,7 +453,7 @@ async function handleImport(cmd: SkillCommandArgs): Promise<number> {
 	const resolved = path.resolve(cmd.cwd, file);
 	let zip: Uint8Array;
 	try {
-		zip = await Bun.file(resolved).bytes();
+		zip = await bun.file(resolved).bytes();
 	} catch (error) {
 		if (isEnoent(error)) throw new CliUsageError(`file not found: ${resolved}`);
 		throw error;

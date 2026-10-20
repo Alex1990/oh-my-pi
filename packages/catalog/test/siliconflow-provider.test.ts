@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { getBundledModelReferenceIndex } from "@oh-my-pi/pi-catalog/identity/bundled";
 import { resolveModelReference } from "@oh-my-pi/pi-catalog/identity/reference";
 import { providerEntry } from "@oh-my-pi/pi-catalog/compat/providers";

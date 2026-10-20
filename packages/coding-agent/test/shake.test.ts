@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { scheduler } from "node:timers/promises";
 import { type } from "@oh-my-pi/omptype";
@@ -23,6 +23,7 @@ import {
 	cfgCompactionThresholdTokens,
 	cfgContextPromotionEnabled,
 } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const usage = {
 	input: 16,
@@ -200,7 +201,7 @@ describe("AgentSession shake", () => {
 			if (!result.artifactId) throw new Error("Expected shake artifact");
 			const artifactPath = await sessionManager.getArtifactPath(result.artifactId);
 			if (!artifactPath) throw new Error("Expected persisted shake artifact");
-			expect(await Bun.file(artifactPath).text()).toContain(largeText);
+			expect(await bun.file(artifactPath).text()).toContain(largeText);
 
 			const latestUser = sessionManager
 				.getBranch()

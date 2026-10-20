@@ -4,7 +4,7 @@
  * that adds or removes a server reaches the live child instead of the child
  * retaining its spawn-time snapshot forever.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,7 +22,7 @@ import { createMCPProxyTools, followMCPTools } from "@oh-my-pi/pi-coding-agent/t
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { manyToolName } from "./fixtures/many-tools-mcp";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "many-tools-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "many-tools-mcp.ts");
 
 function fixtureConfig(): MCPStdioServerConfig {
 	return { type: "stdio", command: process.execPath, args: [FIXTURE_PATH] };

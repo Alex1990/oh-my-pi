@@ -13,6 +13,7 @@ import { readPageViewport } from "./launch";
 import { RunOutput } from "./run-output";
 import { whileDrawing } from "./screenshot";
 import type { ScreenshotResult, SessionSnapshot } from "./tab-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** JSON-safe metadata for one document frame. */
 export interface BrowserFrameInfo {
@@ -411,7 +412,7 @@ export async function captureFrameScreenshot(
 			)
 		: path.join(os.tmpdir(), `omp-frame-sshots-${Snowflake.next()}.${ext}`);
 	await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-	await Bun.write(dest, savedBuffer);
+	await bun.write(dest, savedBuffer);
 	screenshots.push({
 		dest,
 		mimeType: savedMimeType,

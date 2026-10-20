@@ -2,7 +2,7 @@
 
 Local SQLite memory engine for omp agents.
 
-This package is the Bun/TypeScript port of the Mnemosyne memory engine. It provides:
+This package is the TypeScript port of the Mnemosyne memory engine. It provides:
 
 - `Mnemopi`, a small facade for remember/recall/stats/sleep workflows.
 - `BeamMemory`, the lower-level working/episodic memory engine.
@@ -105,6 +105,6 @@ mnemopi sleep
 ## Tests
 
 ```sh
-bun --cwd packages/mnemopi test
-bun --cwd packages/mnemopi run check
+pnpm --dir packages/mnemopi exec vitest run
+pnpm --dir packages/mnemopi run check
 ```

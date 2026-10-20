@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -15,6 +15,7 @@ import { buildSystemPrompt, projectSystemPromptToolMetadata } from "../src/syste
 import { createMCPProxyTools } from "../src/task/executor";
 import { createMockConnection, createMockTransport } from "./mcp-test-utils";
 import type { CustomTool } from "../src/extensibility/custom-tools/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type CapturedRequest = { method: string; params: Record<string, unknown> | undefined };
 
@@ -92,7 +93,7 @@ describe("Skill URI reader capability", () => {
 			const skillDir = path.join(tempDir, "skills", "bridge-skill");
 			await fs.mkdir(skillDir, { recursive: true });
 			const skillFile = path.join(skillDir, "SKILL.md");
-			await Bun.write(skillFile, "# Bridge Skill\n");
+			await bun.write(skillFile, "# Bridge Skill\n");
 			const { systemPrompt } = await buildSystemPrompt({
 				cwd: tempDir,
 				contextFiles: [],

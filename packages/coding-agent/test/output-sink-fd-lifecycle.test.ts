@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,8 @@ import { bashToolRenderer } from "@oh-my-pi/pi-tui/tools/bash";
 import { formatOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { outputMeta } from "@oh-my-pi/pi-coding-agent/tools/output-meta";
 import { removeWithRetries, sanitizeText } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { FileSink, NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 const createdTempDirs: string[] = [];
 
@@ -25,7 +27,7 @@ afterEach(async () => {
 });
 
 // Force a spill on the first push: a tiny threshold plus a chunk larger than it
-// kicks off the async artifact `Bun.FileSink` creation. dump()/dispose() both
+// kicks off the async artifact `FileSink` creation. dump()/dispose() both
 // await that in-flight creation internally, so no wall-clock wait is needed to
 // observe the fd being opened and then closed.
 function spill(sink: OutputSink): void {
@@ -33,14 +35,14 @@ function spill(sink: OutputSink): void {
 }
 
 /** Substitute only this artifact's writer, retaining real file/descriptor behavior. */
-function instrumentArtifact(artifactPath: string): Bun.FileSink {
-	const file = Bun.file(artifactPath);
+function instrumentArtifact(artifactPath: string): FileSink {
+	const file = bun.file(artifactPath);
 	const writer = file.writer();
 	vi.spyOn(file, "writer").mockReturnValue(writer);
-	const realFile = Bun.file.bind(Bun);
-	vi.spyOn(Bun, "file").mockImplementation((source, options) => {
+	const realFile = bun.file.bind(bun);
+	vi.spyOn(bun, "file").mockImplementation((source: string | URL | NodeFile) => {
 		if (source === artifactPath) return file;
-		return realFile(source as string, options);
+		return realFile(source);
 	});
 	return writer;
 }
@@ -48,7 +50,7 @@ describe("OutputSink fd lifecycle", () => {
 	test("dispose() releases the spill descriptor on error/abort paths that skip dump()", async () => {
 		const dir = await createTempDir();
 		const skill = path.join(dir, "SKILL.md");
-		await Bun.write(skill, "# skill\n");
+		await bun.write(skill, "# skill\n");
 
 		// Cross the 64-descriptor limit used by the leak repro. More iterations do
 		// not strengthen that boundary and only multiply serial file I/O.
@@ -60,9 +62,9 @@ describe("OutputSink fd lifecycle", () => {
 			await sink.dispose();
 			// Descriptor released → the artifact is closed, complete, and readable,
 			// and the unrelated skill read never hits EMFILE.
-			const content = await Bun.file(artifactPath).text();
+			const content = await bun.file(artifactPath).text();
 			expect(content).toContain("x".repeat(64));
-			await Bun.file(skill).text();
+			await bun.file(skill).text();
 		}
 	});
 
@@ -80,7 +82,7 @@ describe("OutputSink fd lifecycle", () => {
 		// from double-closing the underlying FileSink.
 		await sink.dispose();
 
-		const content = await Bun.file(artifactPath).text();
+		const content = await bun.file(artifactPath).text();
 		expect(content).toContain("x".repeat(64));
 	});
 
@@ -96,7 +98,7 @@ describe("OutputSink fd lifecycle", () => {
 		sink.push(`${"y".repeat(64)}\n`);
 		await sink.dispose();
 
-		const content = await Bun.file(artifactPath).text();
+		const content = await bun.file(artifactPath).text();
 		expect(content).not.toContain("y".repeat(64));
 	});
 
@@ -130,7 +132,7 @@ describe("OutputSink fd lifecycle", () => {
 		expect(summary.artifactId).toBeUndefined();
 		expect(summary.artifactError).toBe("flush");
 		expect(end).toHaveBeenCalledTimes(1);
-		expect(await Bun.file(artifactPath).text()).toBe("h".repeat(20));
+		expect(await bun.file(artifactPath).text()).toBe("h".repeat(20));
 		expect(formatOutputNotice(outputMeta().truncationFromSummary(summary, { direction: "tail" }).get())).toContain(
 			"not saved completely",
 		);
@@ -152,7 +154,7 @@ describe("OutputSink fd lifecycle", () => {
 		expect(summary.artifactId).toBeUndefined();
 		expect(notice).toContain("not saved completely");
 		expect(notice).not.toContain("artifact://");
-		expect(await Bun.file(artifactPath).exists()).toBe(false);
+		expect(await bun.file(artifactPath).exists()).toBe(false);
 	});
 
 	test("a write failure preserves bounded output and stops subsequent capture writes", async () => {
@@ -179,7 +181,7 @@ describe("OutputSink fd lifecycle", () => {
 		expect(summary.artifactId).toBeUndefined();
 		expect(write).toHaveBeenCalledTimes(1);
 		expect(end).toHaveBeenCalledTimes(1);
-		expect(await Bun.file(path.join(dir, "write.txt")).text()).toBe("prefix");
+		expect(await bun.file(path.join(dir, "write.txt")).text()).toBe("prefix");
 	});
 
 	test("dump waits for rejected asynchronous writes before reporting recovery availability", async () => {
@@ -187,7 +189,7 @@ describe("OutputSink fd lifecycle", () => {
 		const artifactPath = path.join(dir, "async.txt");
 		const writer = instrumentArtifact(artifactPath);
 		const pendingWrite = Promise.withResolvers<number>();
-		vi.spyOn(writer, "write").mockReturnValue(pendingWrite.promise);
+		vi.spyOn(writer, "write").mockReturnValue(pendingWrite.promise as unknown as number);
 		const end = vi.spyOn(writer, "end");
 		const sink = new OutputSink({ artifactPath, artifactId: "async", spillThreshold: 4 });
 		sink.push("prefix");
@@ -254,7 +256,7 @@ describe("OutputSink fd lifecycle", () => {
 		expect(notice).toContain("not saved completely");
 		expect(notice).not.toContain("artifact://");
 		expect(end).toHaveBeenCalledTimes(1);
-		expect(await Bun.file(artifactPath).text()).toBe("prefix");
+		expect(await bun.file(artifactPath).text()).toBe("prefix");
 		const meta = outputMeta().truncationFromSummary(summary, { direction: "tail" }).get();
 		const uiTheme = await getThemeByName("dark");
 		if (!uiTheme) throw new Error("Expected dark theme");

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { LoopWatchdog } from "@oh-my-pi/pi-tui/loop-watchdog";
 import type { Terminal } from "@oh-my-pi/pi-tui/terminal";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import MODELS_JSON from "@oh-my-pi/pi-catalog/models.json" with { type: "json" };
 import { providerEntry } from "@oh-my-pi/pi-catalog/compat/providers";
 import { DEFAULT_MODEL_PER_PROVIDER } from "@oh-my-pi/pi-catalog/provider-models/descriptors";

@@ -51,6 +51,7 @@ import {
 	tinyWorkerName,
 } from "./title-protocol";
 import { cfgProvidersTinyModelDevice, cfgProvidersTinyModelDtype } from "../session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TITLE_PREFILL = "<title>";
 const TITLE_CLOSE = "</title>";
@@ -200,7 +201,7 @@ function mlxLaunch(
 ): TinyWorkerLaunch {
 	const spec = getTinyLocalModelSpec(modelKey);
 	if (!spec) throw new Error(`Unknown tiny local model: ${modelKey}`);
-	const tag = `mlx|${MLX_LM_VERSION}|${Bun.hash.crc32(MLX_SERVER_SCRIPT).toString(16)}`;
+	const tag = `mlx|${MLX_LM_VERSION}|${bun.hash.crc32(MLX_SERVER_SCRIPT).toString(16)}`;
 	return {
 		label: `tiny mlx worker for ${modelKey}`,
 		backend: "mlx",

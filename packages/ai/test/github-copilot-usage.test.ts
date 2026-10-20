@@ -15,7 +15,7 @@
  * the established "Premium Requests" wording rather than guessing.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { githubCopilotUsageProvider } from "../src/usage/github-copilot";
 

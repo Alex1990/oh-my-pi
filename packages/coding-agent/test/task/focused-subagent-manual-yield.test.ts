@@ -4,7 +4,7 @@
  * reach the parent like an IRC wake turn's: the `<id>.md` artifact is rewritten
  * and the parent's delivery sink receives the completion (#14428).
  */
-import { afterEach, beforeEach, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,9 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { __resetDirsFromEnvForTests, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const AGENT_ID = "FocusedYield";
 const PARENT_ID = "Main";
@@ -33,11 +36,11 @@ let manager: AsyncJobManager;
 function restoreEnvValue(key: string, value: string | undefined): void {
 	if (value === undefined) {
 		delete process.env[key];
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
 	process.env[key] = value;
-	Bun.env[key] = value;
+	bun.env[key] = value;
 }
 
 beforeEach(async () => {
@@ -161,7 +164,7 @@ async function spawnKeptAliveChild() {
 		throw error;
 	}
 	const artifact = path.join(artifactsDir, `${AGENT_ID}.md`);
-	expect(await Bun.file(artifact).text()).toContain("initial result");
+	expect(await bun.file(artifact).text()).toContain("initial result");
 	const session = AgentRegistry.global().get(AGENT_ID)?.session;
 	if (!session) {
 		close();
@@ -178,7 +181,7 @@ it("a focused manual prompt's yield rewrites the artifact and notifies the paren
 
 		// The job settles only after finalization has rewritten the artifact.
 		expect(await child.firstDelivery).toContain("manual result");
-		expect(await Bun.file(child.artifact).text()).toContain("manual result");
+		expect(await bun.file(child.artifact).text()).toContain("manual result");
 	} finally {
 		child.close();
 	}
@@ -213,7 +216,7 @@ it("a prompt typed while the previous turn awaits owned background work reports 
 		expect(manual).toHaveLength(1);
 		expect(final).toHaveLength(1);
 		expect(manual[0]).not.toContain("final result");
-		expect(await Bun.file(child.artifact).text()).toContain("final result");
+		expect(await bun.file(child.artifact).text()).toContain("final result");
 	} finally {
 		child.close();
 	}

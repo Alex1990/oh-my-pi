@@ -3,7 +3,7 @@
  * `clientCapabilities.auth.terminal`, advertises stable agentInfo, and keeps
  * the agentCapabilities contract that downstream clients rely on.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,6 +18,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { getConfigRootDir, setAgentDir, VERSION } from "@oh-my-pi/pi-utils";
 import type { AgentSideConnection, InitializeRequest } from "@oh-my-pi/pi-utils/acp";
 import { expectAcpStructure } from "./helpers/acp-schema";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const arkInitializeResponse = type({
 	protocolVersion: "number",
@@ -228,8 +229,8 @@ describe("ACP initialize conformance", () => {
 	it("declares agentInfo.version that matches the published package version", async () => {
 		const agent = await createAgent();
 		const response = await agent.initialize(buildInitializeRequest());
-		const pkgPath = path.join(import.meta.dir, "..", "package.json");
-		const pkg = (await Bun.file(pkgPath).json()) as { version: string };
+		const pkgPath = path.join(import.meta.dirname, "..", "package.json");
+		const pkg = (await bun.file(pkgPath).json()) as { version: string };
 		expect(response.agentInfo).toEqual(
 			expect.objectContaining({
 				title: "omp",

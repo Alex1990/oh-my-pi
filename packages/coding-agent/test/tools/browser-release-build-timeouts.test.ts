@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
@@ -8,12 +8,13 @@ import { getTab, releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { type Page, TimeoutError } from "puppeteer-core";
 import { chromiumAvailable } from "./chromium-probe";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // Release builds minify class names, and Puppeteer names each error after its class, so its
 // timeouts are named like `Og` in the shipped binary. These tests rename the class the same way.
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	// `/never-commits` must outlive the run budget instead of Bun's 10s idle cut.
 	idleTimeout: 0,

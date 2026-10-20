@@ -3,7 +3,7 @@
  * to `createAgentSession` so subagents skip the FS scans the parent already
  * paid for. Regression guard for issue #2190.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -775,7 +775,7 @@ describe("runSubprocess per-agent service-tier overrides", () => {
 });
 
 describe("runSubprocess follows the parent's MCP manager", () => {
-	const FIXTURE_PATH = path.join(import.meta.dir, "..", "fixtures", "many-tools-mcp.ts");
+	const FIXTURE_PATH = path.join(import.meta.dirname, "..", "fixtures", "many-tools-mcp.ts");
 	const fixtureConfig = (): MCPStdioServerConfig => ({
 		type: "stdio",
 		command: process.execPath,

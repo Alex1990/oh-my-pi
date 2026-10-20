@@ -90,8 +90,8 @@ The darwin-arm64 addon embeds the Apple Foundation Models bridge (`crates/pi-nat
 The root module intentionally omits `crate_universe`'s optional rendering lock. The extension is therefore non-reproducible, and Bazel records its full result in `MODULE.bazel.lock`, keyed by hashes of `Cargo.toml`, `Cargo.lock`, every member manifest, and the `crate.*` tags. While that entry is current, a clean output base (every CI pod) reuses it and never evaluates the extension. After any of those inputs changes (every release version bump, every dependency edit), each fresh server instead re-splices the workspace with `cargo-bazel splice`: about 240 s per CI job, with correct results. That is why the entry must be refreshed and committed together with Cargo changes:
 
 ```bash
-bun run gen:bazel-lock                  # bazelisk fetch --repo=@crates --lockfile_mode=update; needs bazelisk
-bun scripts/gen-bazel-lock.ts --check   # bazel fetch --repo=@crates --lockfile_mode=error; requires bazelisk/bazel
+pnpm run gen:bazel-lock                  # bazelisk fetch --repo=@crates --lockfile_mode=update; needs bazelisk
+node --experimental-transform-types scripts/gen-bazel-lock.ts --check   # bazel fetch --repo=@crates --lockfile_mode=error; requires bazelisk/bazel
 ```
 
 `scripts/release.ts` refreshes it after regenerating `Cargo.lock`. The `bazel_lock` CI job (hosted, every event including PRs) fails on a stale entry and uploads a refreshed `MODULE.bazel.lock` artifact. Staleness costs speed, not correctness, so it does not gate publishing.
@@ -105,15 +105,15 @@ bun scripts/gen-bazel-lock.ts --check   # bazel fetch --repo=@crates --lockfile_
 # detection), installed into packages/natives/native/. The host target builds
 # through the local cargo/napi-rs backend by default; set
 # OMP_NATIVE_BUILD_BACKEND=bazel (or pass bazel args after `--`) for bazel:
-bun --cwd=packages/natives run build          # = bun ../../scripts/bazel-natives.ts host --dest native
+pnpm --dir packages/natives run build          # = node --experimental-transform-types ../../scripts/bazel-natives.ts host --dest native
 # same, from the repo root:
-bun run build:native
+pnpm run build:native
 
 # The driver directly — targets are //:natives-* names plus pseudo-targets
 # host / all / darwin-all:
-bun scripts/bazel-natives.ts <target>... [--dest <dir>] [-- <extra bazel args>]
-bun scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native
-bun scripts/bazel-natives.ts darwin-all
+node --experimental-transform-types scripts/bazel-natives.ts <target>... [--dest <dir>] [-- <extra bazel args>]
+node --experimental-transform-types scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native
+node --experimental-transform-types scripts/bazel-natives.ts darwin-all
 
 # Or bazelisk directly (outputs stay in bazel-bin, nothing is installed):
 bazelisk build //:natives-darwin-arm64
@@ -131,7 +131,7 @@ The driver also supports `--source <dir>` to install prebuilt outputs arranged a
 `native/index.js`/`index.d.ts` are **committed**, so Bazel artifact builds never need the napi CLI. To regenerate after a Rust API change explicitly (the default Cargo-backed host build also performs this step):
 
 ```bash
-bun --cwd=packages/natives run build:bindings   # = bun scripts/build-bindings.ts
+pnpm --dir packages/natives run build:bindings   # = node --experimental-transform-types scripts/build-bindings.ts
 ```
 
 This runs the napi CLI (host-only, local cargo profile) against `crates/pi-natives`, installs the regenerated `index.d.ts`, normalizes the addon filename, and re-renders the explicit ESM exports + runtime enum objects via `gen-enums.ts`. Commit the resulting `index.js`/`index.d.ts` changes.
@@ -180,9 +180,9 @@ On main, `native_addons` builds `NATIVES_X64_TARGETS` and `native_addons_cross` 
 
 Bazel native jobs need no toolchain setup: bazelisk is baked into the kata runner image, while Bazel fetches Rust/zig/LLVM/xwin/Swift and the macOS SDK hermetically (the SDK unpack needs the image's python3). `macos-15` and `windows-11-arm` only run the release smoke tests; they build nothing.
 
-### Bun store warmer
+### pnpm store warmer
 
-`.github/workflows/bun-cache-warm.yml` seeds the shared bun store entry PR jobs restore but never save. It triggers only on pushes that can change it (`bun.lock`, the `bun-install` action).
+The CI cache warmer seeds the shared pnpm store entry that PR jobs restore but never save. It triggers only on pushes that can change it (`pnpm-lock.yaml`, the pnpm install action).
 
 ### `bazel-cache` action (`.github/actions/bazel-cache`)
 
@@ -194,7 +194,7 @@ Single source of truth for cache wiring, emitted as a bazelrc fragment (its `rc`
 
 ### Release binary builds and publishing
 
-Binary builds are build-only and run in parallel with the test fan-out. `release_binary` builds every binary on one `ubuntu-22.04` image (bun cross-compiles every target) and needs only the two addon jobs, whose workflow artifacts supply its addons. The darwin legs then sign with `scripts/ci-macos-sign.sh` (rcodesign: Developer ID + notarization when the `APPLE_*` secrets exist, ad hoc otherwise; see `docs/macos-signing-notarization.md`). Before publishing, the `release_smoke` matrix downloads each binary on its own platform and runs `--version` and `--smoke-test`: `ubuntu-22.04` / `ubuntu-24.04-arm` for linux (musl inside an Alpine container), `macos-15-intel` / `macos-15` for darwin (after `codesign --verify --strict`, plus a not-ad-hoc assertion when the `APPLE_*` secrets exist), `windows-2025` / `windows-11-arm` for win32.
+Binary builds are build-only and run in parallel with the test fan-out. `release_binary` builds every binary on one `ubuntu-22.04` image (esbuild bundles every target) and needs only the two addon jobs, whose workflow artifacts supply its addons. The darwin legs then sign with `scripts/ci-macos-sign.sh` (rcodesign: Developer ID + notarization when the `APPLE_*` secrets exist, ad hoc otherwise; see `docs/macos-signing-notarization.md`). Before publishing, the `release_smoke` matrix downloads each binary on its own platform and runs `--version` and `--smoke-test`: `ubuntu-22.04` / `ubuntu-24.04-arm` for linux (musl inside an Alpine container), `macos-15-intel` / `macos-15` for darwin (after `codesign --verify --strict`, plus a not-ad-hoc assertion when the `APPLE_*` secrets exist), `windows-2025` / `windows-11-arm` for win32.
 
 ## Debugging playbook
 
@@ -271,11 +271,13 @@ Runtime x64 candidate order also includes the unsuffixed default filename after 
   A directory shared by several `omp` versions is subject to the normal stale-version cleanup: a newer version's successful load removes older version directories idle for ten minutes, so a long-running older-version run whose directory was deleted re-extracts on its next fresh process start.
 - `PI_NATIVE_VARIANT`: x64 runtime override; valid values are `modern` and `baseline`. Invalid values are ignored; the inherited variant cache is consulted before detection.
 - `PI_DEBUG_STARTUP`: writes synchronous `[startup] native:…` markers to stderr around loader entry, embedded extraction, candidate loads, and native Tokio runtime installation; use it to localize startup hangs.
-- `PI_COMPILED`: compiled-mode signal. Release compilation constant-folds `process.env.PI_COMPILED` to `"true"`; a populated embedded-addon manifest and Bun embedded URL markers also signal compiled mode.
+- `PI_COMPILED`: compiled-mode signal. Release compilation constant-folds `process.env.PI_COMPILED` to `"true"`; a populated embedded-addon manifest also signals compiled mode.
 
-## Embed lifecycle (`embed-native.ts`)
+## Distribution bundle (`compile-binary.ts`)
 
-`compileCodingAgent` (`packages/coding-agent/scripts/compile-binary.ts`) calls `embeddedAddonFiles()` for the binary's target and hands the result to `Bun.build({ files })`. Nothing under `native/` is written; the checked-in `embedded-addon.js` stays the null stub.
+`compileCodingAgent` (`packages/coding-agent/scripts/compile-binary.ts`) bundles `src/cli.ts` with esbuild into `dist/cli.js` and writes the `dist/omp` / `dist/omp.cmd` launchers that exec it with Node. The native addon stays external and is resolved from the installed package at runtime, so the bundle carries no addon bytes.
+
+The remaining steps describe how an embedded addon manifest is produced when one is present:
 
 1. **Init**: the platform tag comes from the compile target (`CROSS_TARGET` for local builds, the release matrix entry for release builds, else the host).
 2. **Candidate set**:
@@ -287,7 +289,7 @@ Runtime x64 candidate order also includes the unsuffixed default filename after 
 
 The frames are a pure function of the addon bytes: no container, file names, or timestamps. A release whose addon only changes its version stamp therefore embeds nearly identical bytes, so consecutive binaries differ only where the addon did. Do not reintroduce tar/gzip or per-build metadata into the embedded data.
 
-The overrides stay in memory on purpose: `Bun.build` shares the runtime's directory cache and does not re-read it on a miss, so a build process that imported pi-natives before writing frames to `native/` could not resolve them.
+The overrides stay in memory on purpose: the bundler resolves the pi-natives entry once through the package's exports map, so a build process that imported pi-natives before writing frames to `native/` could not resolve them.
 
 ## Dev workflow vs shipped/compiled behavior
 
@@ -295,15 +297,15 @@ The overrides stay in memory on purpose: `Bun.build` shares the runtime's direct
 
 Typical local loop:
 
-1. Build addon: `bun --cwd=packages/natives run build`.
+1. Build addon: `pnpm --dir packages/natives run build`.
 2. In a workspace checkout, loader skips npm leaf packages and resolves package-local `native/` then executable-dir candidates per filename. Installed packages probe the platform leaf first.
 3. Generated declarations in `native/index.d.ts` describe the public TS API. The default Cargo-backed host build regenerates them; after a Rust API change, `build:bindings` explicitly performs the same generation.
-4. On Windows package installs, the loader first copies a `node_modules` addon into the versioned cache so a running process does not lock the file Bun must replace during a later global update.
+4. On Windows package installs, the loader first copies a `node_modules` addon into the versioned cache so a running process does not lock the file pnpm must replace during a later global update.
 5. After a successful load, older `major.minor.patch` cache directories with mtime at least ten minutes old are removed best-effort; cleanup failures never abort startup.
 
 ## Shipped/compiled binary workflow
 
-In compiled mode (`PI_COMPILED`, Bun embedded URL markers, or populated embedded manifest):
+In compiled mode (`PI_COMPILED` or a populated embedded manifest):
 
 1. Loader computes versioned cache dir: `<getNativesDir()>/<packageVersion>`. The root is `PI_NATIVES_DIR` first (trimmed, `~`-expanded, and normalized; empty or relative values are ignored), then `$XDG_DATA_HOME/omp/natives` when `$XDG_DATA_HOME/omp` already exists, otherwise `~/.omp/natives`.
 2. If the embedded manifest matches platform+version and has a selectable file, loader decompresses all missing or wrong-sized manifest files from their embedded `<addon>.node.zst` frames into that versioned directory.
@@ -349,9 +351,9 @@ Generated declarations currently include exports from these Rust modules:
 
 | Symptom                                                                | Likely cause                                                                                | Verify                                                            | Fix                                                                                                                                  |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `Cannot find module` or dynamic library load error for every candidate | Missing release artifact, wrong platform tag, or stale compiled cache                       | Inspect loader error list and `packages/natives/native` filenames | Build correct target (`bun scripts/bazel-natives.ts <t> --dest packages/natives/native`); delete stale cache for the package version |
+| `Cannot find module` or dynamic library load error for every candidate | Missing release artifact, wrong platform tag, or stale compiled cache                       | Inspect loader error list and `packages/natives/native` filenames | Build correct target (`node --experimental-transform-types scripts/bazel-natives.ts <t> --dest packages/natives/native`); delete stale cache for the package version |
 | Export is missing at runtime but present in TypeScript                 | Stale `.node` loaded, generated declarations newer than binary, or Rust export not compiled | Require the actual candidate and inspect `Object.keys(mod)`       | Rebuild native package and remove stale candidate/cache paths                                                                        |
-| x64 machine loads baseline when modern expected                        | `PI_NATIVE_VARIANT=baseline`, no AVX2 detected, or modern file unavailable                  | Check env and filenames in `native/`                              | Build and ship the modern target (`bun scripts/bazel-natives.ts linux-x64-modern --dest packages/natives/native`)                    |
+| x64 machine loads baseline when modern expected                        | `PI_NATIVE_VARIANT=baseline`, no AVX2 detected, or modern file unavailable                  | Check env and filenames in `native/`                              | Build and ship the modern target (`node --experimental-transform-types scripts/bazel-natives.ts linux-x64-modern --dest packages/natives/native`)                    |
 | gnu addon overwritten by musl (or vice versa)                          | Both built into one dest — they share canonical basenames by design                         | Compare `bazel-bin/natives-<t>/` sources vs installed file        | Separate invocations with separate `--dest` dirs (release matrix already does this)                                                  |
 | Compiled binary fails after upgrade                                    | Stale extracted cache, embedded frame/size mismatch, or embedded manifest version mismatch  | Inspect `<getNativesDir()>/<version>` and loader error list       | Delete versioned cache for the package version; regenerate embedded frames/manifest during packaging                                 |
 | Binary build fails with `No native addons found`                       | Required platform artifact was not built before embedding                                   | Check expected list in error text                                 | Build at least one expected artifact for the target, then rerun the binary build                                                     |
@@ -360,24 +362,24 @@ Generated declarations currently include exports from these Rust modules:
 
 ```bash
 # Addon for the current host, installed into packages/natives/native/
-bun --cwd=packages/natives run build
+pnpm --dir packages/natives run build
 
 # Explicit targets (x64 variants are separate targets, not env switches)
-bun scripts/bazel-natives.ts linux-x64-modern linux-x64-baseline --dest packages/natives/native
+node --experimental-transform-types scripts/bazel-natives.ts linux-x64-modern linux-x64-baseline --dest packages/natives/native
 
 # Raw bazel (output: bazel-bin/natives-<t>/pi_natives.<...>.node)
 bazelisk build //:natives-darwin-arm64
 
 # Regenerate TS typedefs + enum exports (napi CLI, only on Rust API changes)
-bun --cwd=packages/natives run build:bindings
+pnpm --dir packages/natives run build:bindings
 
 # Compile a standalone binary embedding the host addon (CROSS_TARGET=<id> for another target)
-bun --cwd=packages/coding-agent run build
+pnpm --dir packages/coding-agent run build
 ```
 
 ## Orchestrator-side content-addressed build cache (robomp)
 
-When `pi-natives` is built inside the robomp orchestrator (`python/robomp/`), workspaces share built artifacts through a content-addressed cache instead of rebuilding from scratch in every per-issue worktree. The cache is **orchestrator-side only** — `bun --cwd=packages/natives run build` itself is unchanged; the cache lives outside the build pipeline and is populated/captured around `ensure_workspace` and post-task success in `python/robomp/src/natives_cache.py`.
+When `pi-natives` is built inside the robomp orchestrator (`python/robomp/`), workspaces share built artifacts through a content-addressed cache instead of rebuilding from scratch in every per-issue worktree. The cache is **orchestrator-side only** — `pnpm --dir packages/natives run build` itself is unchanged; the cache lives outside the build pipeline and is populated/captured around `ensure_workspace` and post-task success in `python/robomp/src/natives_cache.py`.
 
 ### What is cached
 

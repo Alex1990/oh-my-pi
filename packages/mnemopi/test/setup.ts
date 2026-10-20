@@ -1,4 +1,4 @@
-import { afterEach, beforeEach } from "bun:test";
+import { afterEach, beforeEach } from "@oh-my-pi/pi-utils/test-runtime";
 
 import type { CompleteOptions, LlmBackend } from "@oh-my-pi/pi-mnemopi/core/llm-backends";
 import { resetHostLlmBackendForTests, setHostLlmBackend } from "@oh-my-pi/pi-mnemopi/core/llm-backends";

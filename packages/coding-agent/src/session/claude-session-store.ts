@@ -17,6 +17,7 @@ import { collectForeignJsonRecords, type ForeignJsonRecord, readForeignJsonRecor
 import type { ForeignSessionInfo, ForeignSessionStore } from "./foreign-session-store";
 import type { ModelChangeEntry, SessionMessageEntry } from "./session-entries";
 import { SessionManager } from "./session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface ClaudeHistoryMetadata {
 	firstMessage?: string;
@@ -102,7 +103,7 @@ async function readRegisteredProjects(root: string): Promise<string[]> {
 	const { configDir, configFile } = resolveClaudePaths();
 	const config = root === configDir ? configFile : path.join(path.dirname(root), ".claude.json");
 	try {
-		const parsed: unknown = await Bun.file(config).json();
+		const parsed: unknown = await bun.file(config).json();
 		if (!isRecord(parsed) || !isRecord(parsed.projects)) return [];
 		const projects: string[] = [];
 		for (const project in parsed.projects) {
@@ -139,7 +140,7 @@ const CLAUDE_CWD_PREFIX_BYTES = 64 * 1024;
  * that prefix has no cwd.
  */
 async function recordedCwd(file: string): Promise<string | undefined> {
-	const prefix = await Bun.file(file).slice(0, CLAUDE_CWD_PREFIX_BYTES).text();
+	const prefix = await bun.file(file).slice(0, CLAUDE_CWD_PREFIX_BYTES).text();
 	for (const value of parseJsonlLenient<unknown>(prefix)) {
 		if (!isRecord(value)) continue;
 		const cwd = stringField(value, "cwd");

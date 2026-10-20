@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,8 @@ import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/m
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { PluginRuntimeConfig } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 
 beforeAll(async () => {
 	await initTheme(false);
@@ -34,7 +36,7 @@ describe("plugin config", () => {
 	});
 
 	async function writeLegacyLockfile(pluginName: string): Promise<void> {
-		await Bun.write(
+		await bun.write(
 			lockfile,
 			JSON.stringify({
 				plugins: {
@@ -50,7 +52,7 @@ describe("plugin config", () => {
 
 		await new PluginManager(tmpRoot).setPluginSetting(pluginName, "autoContext.enabled", true);
 
-		const lock = await Bun.file(lockfile).json();
+		const lock = await bun.file(lockfile).json<PluginRuntimeConfig>();
 		expect(lock.settings[pluginName]).toEqual({ "autoContext.enabled": true });
 		expect(lock.plugins[pluginName]).toEqual({ version: "0.2.2", enabledFeatures: null, enabled: true });
 	});
@@ -66,7 +68,7 @@ describe("plugin config", () => {
 		const pluginName = "omp-commit";
 		const installPath = path.join(pluginsDir, "cache", pluginName);
 		const pluginPath = path.join(pluginsDir, "node_modules", pluginName);
-		await Bun.write(
+		await bun.write(
 			path.join(installPath, "package.json"),
 			JSON.stringify({
 				name: pluginName,
@@ -84,7 +86,7 @@ describe("plugin config", () => {
 		);
 		await fs.mkdir(path.dirname(pluginPath), { recursive: true });
 		await fs.symlink(installPath, pluginPath, "dir");
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "installed_plugins.json"),
 			JSON.stringify({
 				version: 2,
@@ -101,7 +103,7 @@ describe("plugin config", () => {
 				},
 			}),
 		);
-		await Bun.write(
+		await bun.write(
 			lockfile,
 			JSON.stringify({
 				plugins: {
@@ -123,7 +125,7 @@ describe("plugin config", () => {
 		const pluginName = "omp-featureful";
 		const installPath = path.join(pluginsDir, "cache", pluginName);
 		const pluginPath = path.join(pluginsDir, "node_modules", pluginName);
-		await Bun.write(
+		await bun.write(
 			path.join(installPath, "package.json"),
 			JSON.stringify({
 				name: pluginName,
@@ -133,7 +135,7 @@ describe("plugin config", () => {
 		);
 		await fs.mkdir(path.dirname(pluginPath), { recursive: true });
 		await fs.symlink(installPath, pluginPath, "dir");
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "installed_plugins.json"),
 			JSON.stringify({
 				version: 2,
@@ -150,7 +152,7 @@ describe("plugin config", () => {
 				},
 			}),
 		);
-		await Bun.write(
+		await bun.write(
 			lockfile,
 			JSON.stringify({
 				plugins: { [pluginName]: { version: "1.0.0", enabledFeatures: null, enabled: true } },
@@ -160,7 +162,7 @@ describe("plugin config", () => {
 		const projectPluginsDir = path.join(tmpRoot, ".omp", "plugins");
 		const projectInstallPath = path.join(tmpRoot, "project-cache", pluginName);
 		const projectPluginPath = path.join(projectPluginsDir, "node_modules", pluginName);
-		await Bun.write(
+		await bun.write(
 			path.join(projectInstallPath, "package.json"),
 			JSON.stringify({
 				name: pluginName,
@@ -170,7 +172,7 @@ describe("plugin config", () => {
 		);
 		await fs.mkdir(path.dirname(projectPluginPath), { recursive: true });
 		await fs.symlink(projectInstallPath, projectPluginPath, "dir");
-		await Bun.write(
+		await bun.write(
 			path.join(projectPluginsDir, "omp-plugins.lock.json"),
 			JSON.stringify({
 				plugins: { [pluginName]: { version: "2.0.0", enabledFeatures: null, enabled: true } },
@@ -184,18 +186,18 @@ describe("plugin config", () => {
 
 		spyOn(console, "log").mockImplementation(() => {});
 		await runPluginCommand({ action: "features", args: [pluginName], flags: { enable: "review", json: true } });
-		let lock = await Bun.file(lockfile).json();
+		let lock = await bun.file(lockfile).json<PluginRuntimeConfig>();
 		expect(lock.plugins[pluginName].enabledFeatures).toEqual(["review"]);
 
 		await expect(
 			runPluginCommand({ action: "features", args: [pluginName], flags: { enable: "projectOnly", json: true } }),
 		).rejects.toThrow(/Unknown feature "projectOnly" in omp-featureful/);
-		lock = await Bun.file(lockfile).json();
+		lock = await bun.file(lockfile).json<PluginRuntimeConfig>();
 		expect(lock.plugins[pluginName].enabledFeatures).toEqual(["review"]);
 	});
 
 	async function writeManifest(dir: string, manifest: Record<string, unknown>): Promise<void> {
-		await Bun.write(
+		await bun.write(
 			path.join(dir, "package.json"),
 			JSON.stringify({ name: "omp-commit", version: "2.0.0", ...manifest }),
 		);
@@ -212,7 +214,7 @@ describe("plugin config", () => {
 		const projectRoot = path.join(tmpRoot, ".omp", "plugins");
 		await fs.mkdir(path.join(projectRoot, "node_modules"), { recursive: true });
 		await fs.symlink(installPath, path.join(projectRoot, "node_modules", "omp-commit"), "dir");
-		await Bun.write(
+		await bun.write(
 			path.join(projectRoot, "omp-plugins.lock.json"),
 			JSON.stringify({
 				plugins: { "omp-commit": { version: "2.0.0", enabledFeatures: null, enabled } },
@@ -239,7 +241,7 @@ describe("plugin config", () => {
 				settings: { splitMode: { type: "enum", values: ["auto", "manual"], default: "manual" } },
 			},
 		});
-		await Bun.write(
+		await bun.write(
 			lockfile,
 			JSON.stringify({
 				plugins: { "omp-commit": { version: "1.0.0", enabledFeatures: null, enabled: true } },
@@ -261,7 +263,7 @@ describe("plugin config", () => {
 				settings: { splitMode: { type: "enum", values: ["auto", "manual"], default: "manual" } },
 			},
 		});
-		await Bun.write(
+		await bun.write(
 			lockfile,
 			JSON.stringify({
 				plugins: { "omp-commit": { version: "1.0.0", enabledFeatures: null, enabled: true } },

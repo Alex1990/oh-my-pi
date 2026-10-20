@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { generateProtoTs, parseProto } from "../scripts/proto-parser";
 
 it("emits a requested message's transitive schema and enum dependencies", () => {

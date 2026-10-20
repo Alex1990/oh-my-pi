@@ -11,7 +11,7 @@
  * cache-aware discovery pass and retries resolution when the initial fallback
  * fails and discoverable providers exist.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,6 +22,7 @@ import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("issue #6114 fresh launch default role from discovery-only local provider", () => {
 	let tempDir: string;
@@ -31,8 +32,8 @@ describe("issue #6114 fresh launch default role from discovery-only local provid
 	beforeEach(() => {
 		tempDir = path.join(os.tmpdir(), `pi-sdk-default-role-local-${Snowflake.next()}`);
 		fs.mkdirSync(tempDir, { recursive: true });
-		originalLmStudioBaseUrl = Bun.env.LM_STUDIO_BASE_URL;
-		delete Bun.env.LM_STUDIO_BASE_URL;
+		originalLmStudioBaseUrl = bun.env.LM_STUDIO_BASE_URL;
+		delete bun.env.LM_STUDIO_BASE_URL;
 	});
 
 	afterEach(() => {
@@ -41,9 +42,9 @@ describe("issue #6114 fresh launch default role from discovery-only local provid
 		}
 		authStoragesToClose.length = 0;
 		if (originalLmStudioBaseUrl === undefined) {
-			delete Bun.env.LM_STUDIO_BASE_URL;
+			delete bun.env.LM_STUDIO_BASE_URL;
 		} else {
-			Bun.env.LM_STUDIO_BASE_URL = originalLmStudioBaseUrl;
+			bun.env.LM_STUDIO_BASE_URL = originalLmStudioBaseUrl;
 		}
 		if (tempDir && fs.existsSync(tempDir)) {
 			fs.rmSync(tempDir, { recursive: true, force: true });

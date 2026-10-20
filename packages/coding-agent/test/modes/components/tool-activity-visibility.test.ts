@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import type { Rule } from "@oh-my-pi/pi-coding-agent/capability/rule";
 import { TodoReminderComponent } from "@oh-my-pi/pi-tui/chat/todo-reminder";

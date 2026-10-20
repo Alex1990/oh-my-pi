@@ -4,7 +4,7 @@
  * background discovery runs, so the session itself has to pick the warning up
  * once the initial refresh settles.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("env-redirected implicit provider discovery warning", () => {
 	let tempDir: string;
@@ -22,8 +23,8 @@ describe("env-redirected implicit provider discovery warning", () => {
 	beforeEach(() => {
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-env-endpoint-warning-"));
 		for (const key of ["OLLAMA_BASE_URL", "OLLAMA_HOST"] as const) {
-			savedEnv[key] = Bun.env[key];
-			delete Bun.env[key];
+			savedEnv[key] = bun.env[key];
+			delete bun.env[key];
 		}
 	});
 
@@ -31,14 +32,14 @@ describe("env-redirected implicit provider discovery warning", () => {
 		authStorage?.close();
 		authStorage = undefined;
 		for (const [key, value] of Object.entries(savedEnv)) {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	});
 
 	test("surfaces the failure in session.configWarnings after background discovery", async () => {
-		Bun.env.OLLAMA_BASE_URL = "http://ollama.typo:11434";
+		bun.env.OLLAMA_BASE_URL = "http://ollama.typo:11434";
 		authStorage = await AuthStorage.create(path.join(tempDir, "auth.db"));
 		authStorage.keys.setRuntime("openai", "test-openai-key");
 		const modelRegistry = new ModelRegistry(authStorage, path.join(tempDir, "models.yml"), {

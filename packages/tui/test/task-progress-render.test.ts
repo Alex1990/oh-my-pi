@@ -1,7 +1,7 @@
 import * as os from "node:os";
 import { setFeedModelBadgeEnabled } from "../src/render/render-utils";
 import { setShimmerMode } from "../src/theme/shimmer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type RenderResultOptions, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import { taskToolRenderer } from "@oh-my-pi/pi-tui/tools/task";
@@ -9,6 +9,7 @@ import { getSubprocessToolRenderer } from "@oh-my-pi/pi-tui/tools/subprocess";
 import type { AgentProgress, SingleResult, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { FEED_MODEL_BADGE_WIDTH } from "@oh-my-pi/pi-tui/render/render-utils";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function runningProgress(overrides: Partial<AgentProgress> = {}): AgentProgress {
 	return {
@@ -56,7 +57,7 @@ function findRow(component: { render: (w: number) => readonly string[] }, needle
 		.render(120)
 		.join("\n")
 		.split("\n")
-		.find(line => Bun.stripANSI(line).includes(needle));
+		.find(line => bun.stripANSI(line).includes(needle));
 	expect(row).toBeDefined();
 	return row!;
 }
@@ -89,7 +90,7 @@ describe("task progress rendering", () => {
 					? { recentTools: [{ tool: "read", args, argsKey: key, endMs: 1 }] }
 					: { currentTool: "read", currentToolArgs: args, currentToolArgsKey: key },
 			);
-			const text = Bun.stripANSI(
+			const text = bun.stripANSI(
 				taskToolRenderer
 					.renderResult(
 						{ content: [], details: detailsFor(progress) },
@@ -108,7 +109,7 @@ describe("task progress rendering", () => {
 		const theme = (await getThemeByName("dark"))!;
 		const file = `${os.homedir()}/private/file`;
 		const render = (progress: AgentProgress) =>
-			Bun.stripANSI(
+			bun.stripANSI(
 				taskToolRenderer
 					.renderResult(
 						{ content: [], details: detailsFor(progress) },
@@ -154,7 +155,7 @@ describe("task progress rendering", () => {
 	it("shows the agent's probe stage on running rows only, sanitized to one line", async () => {
 		const theme = (await getThemeByName("dark"))!;
 		const render = (progress: AgentProgress) =>
-			Bun.stripANSI(
+			bun.stripANSI(
 				taskToolRenderer
 					.renderResult(
 						{ content: [], details: detailsFor(progress) },
@@ -183,7 +184,7 @@ describe("task progress rendering", () => {
 			runningProgress({ currentTool: "read", currentToolArgs: "x", currentToolIntent: `Reading ${file}` }),
 			runningProgress({ recentTools: [{ tool: "read", args: "x", intent: `Reading ${file}`, endMs: 1 }] }),
 		]) {
-			const text = Bun.stripANSI(
+			const text = bun.stripANSI(
 				taskToolRenderer
 					.renderResult(
 						{ content: [], details: detailsFor(progress) },
@@ -212,7 +213,7 @@ describe("task progress rendering", () => {
 			requests: 3,
 			cost: 0.25,
 		});
-		const row = Bun.stripANSI(
+		const row = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{ content: [], details: detailsFor(progress) },
@@ -235,7 +236,7 @@ describe("task progress rendering", () => {
 		setFeedModelBadgeEnabled(true);
 		const theme = (await getThemeByName("dark"))!;
 		const renderRow = (advisor: boolean): string =>
-			Bun.stripANSI(
+			bun.stripANSI(
 				findRow(
 					taskToolRenderer.renderResult(
 						{
@@ -308,7 +309,7 @@ describe("task progress rendering", () => {
 			for (const width of [160, 40, 160]) {
 				const rows = component.render(width);
 				for (const row of rows) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
-				const plainRows = rows.map(row => Bun.stripANSI(row));
+				const plainRows = rows.map(row => bun.stripANSI(row));
 				const firstStatusRow = plainRows.find(row => row.startsWith(theme.boxRound.vertical));
 				expect(firstStatusRow).toBeDefined();
 				expect(firstStatusRow).toContain(metadata.id);
@@ -347,7 +348,7 @@ describe("task progress rendering", () => {
 			{ projectAgentsDir: null, totalDurationMs: 0, results: [finishedResult(metadata)] },
 		];
 		for (const details of snapshots) {
-			const row = Bun.stripANSI(
+			const row = bun.stripANSI(
 				findRow(
 					taskToolRenderer.renderResult(
 						{ content: [], details },
@@ -371,7 +372,7 @@ describe("task progress rendering", () => {
 			results: [finishedResult({ id: "UnknownWidthWorker", agent: "scout", exitCode: 1 })],
 		};
 		const component = getSubprocessToolRenderer("task")!.renderFinal!([details], theme, false);
-		const text = Bun.stripANSI(component.render(120).join("\n"));
+		const text = bun.stripANSI(component.render(120).join("\n"));
 		expect(text).toContain("UnknownWidthWorker");
 		expect(text).toContain(`${theme.format.bracketLeft}scout${theme.format.bracketRight}`);
 		expect(text).toContain(`${theme.format.bracketLeft}failed${theme.format.bracketRight}`);
@@ -399,7 +400,7 @@ describe("task progress rendering", () => {
 					theme,
 				);
 				for (const width of [40, 160, 40]) {
-					const rows = component.render(width).map(row => Bun.stripANSI(row));
+					const rows = component.render(width).map(row => bun.stripANSI(row));
 					for (const row of rows) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
 					const statusRow = rows.find(row => row.includes("LongWorker"))!;
 					expect(statusRow).toContain("LongWorker");
@@ -420,7 +421,7 @@ describe("task progress rendering", () => {
 			{ projectAgentsDir: null, totalDurationMs: 0, results: [finishedResult(metadata)] },
 		];
 		for (const details of snapshots) {
-			const row = Bun.stripANSI(
+			const row = bun.stripANSI(
 				findRow(
 					taskToolRenderer.renderResult(
 						{ content: [], details },
@@ -455,7 +456,7 @@ describe("task progress rendering", () => {
 
 		const rawRow0 = renderRow(0);
 		const rawRow1 = renderRow(700);
-		const strippedRow = Bun.stripANSI(rawRow0);
+		const strippedRow = bun.stripANSI(rawRow0);
 
 		expect(strippedRow).toContain(`${theme.status.done} CountPackages: List workspace packages`);
 		expect(strippedRow).not.toContain(theme.symbol("tool.task"));
@@ -472,7 +473,7 @@ describe("task progress rendering", () => {
 		const options: RenderResultOptions = { expanded: false, isPartial: true, spinnerFrame: 0 };
 		const badge = `${theme.format.bracketLeft}sonic${theme.format.bracketRight}`;
 
-		const progressRow = Bun.stripANSI(
+		const progressRow = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{
@@ -492,7 +493,7 @@ describe("task progress rendering", () => {
 			results: [finishedResult({ id: "SonicCount", agent: "sonic" })],
 			totalDurationMs: 0,
 		};
-		const resultRow = Bun.stripANSI(
+		const resultRow = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{ content: [{ type: "text", text: "" }], details: resultDetails },
@@ -504,7 +505,7 @@ describe("task progress rendering", () => {
 		);
 		expect(resultRow).toContain(badge);
 
-		const genericRow = Bun.stripANSI(
+		const genericRow = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{
@@ -531,7 +532,7 @@ describe("task progress rendering", () => {
 				runningProgress({ index: 1, id: "SonicCount", agent: "sonic" }),
 			],
 		};
-		const header = Bun.stripANSI(
+		const header = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{ content: [{ type: "text", text: "" }], details },
@@ -550,7 +551,7 @@ describe("task progress rendering", () => {
 		setShimmerMode("disabled");
 		const options: RenderResultOptions = { expanded: false, isPartial: true, spinnerFrame: 0 };
 
-		const strippedRow = Bun.stripANSI(
+		const strippedRow = bun.stripANSI(
 			findRow(
 				taskToolRenderer.renderResult(
 					{ content: [{ type: "text", text: "" }], details: detailsFor(runningProgress()) },
@@ -589,7 +590,7 @@ describe("task progress rendering", () => {
 
 		const rawRow0 = renderRow(0);
 		const rawRow1 = renderRow(700);
-		const strippedRow = Bun.stripANSI(rawRow0);
+		const strippedRow = bun.stripANSI(rawRow0);
 
 		expect(strippedRow).toContain(`${theme.status.done} BestGpt: Combine winners for gpt`);
 		expect(strippedRow).not.toContain(theme.status.pending);
@@ -614,7 +615,7 @@ describe("task progress rendering", () => {
 			"DonePkg",
 		);
 
-		const stripped = Bun.stripANSI(row);
+		const stripped = bun.stripANSI(row);
 		expect(stripped).toContain(`${theme.status.done} DonePkg: List workspace packages`);
 		expect(stripped).not.toContain(theme.symbol("tool.task"));
 		// Same dot as live rows; completion reads as the label settling from
@@ -636,7 +637,7 @@ describe("task progress rendering", () => {
 			"Task",
 		);
 
-		const stripped = Bun.stripANSI(header);
+		const stripped = bun.stripANSI(header);
 		expect(stripped).toContain(`${theme.symbol("tool.task")} Task`);
 		expect(stripped).not.toContain(theme.status.running);
 		expect(stripped).not.toContain(theme.getSpinnerFrames("status")[0]);
@@ -648,7 +649,7 @@ describe("task progress rendering", () => {
 		const options: RenderResultOptions = { expanded: false, isPartial: true, spinnerFrame: 0 };
 		const progress = runningProgress({ id: "BestGpt", status: "pending", description: "Combine winners" });
 
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			taskToolRenderer
 				.renderResult(
 					{ content: [{ type: "text", text: "Spawned agent BestGpt..." }], details: detailsFor(progress) },
@@ -681,7 +682,7 @@ describe("task progress rendering", () => {
 			],
 		};
 
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			taskToolRenderer
 				.renderResult({ content: [{ type: "text", text: "" }], details }, options, theme)
 				.render(120)
@@ -708,7 +709,7 @@ describe("task progress rendering", () => {
 			totalDurationMs: 9000,
 		};
 
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			taskToolRenderer
 				.renderResult({ content: [{ type: "text", text: "" }], details }, options, theme)
 				.render(120)
@@ -738,7 +739,7 @@ describe("task progress rendering", () => {
 		};
 		const result = { content: [{ type: "text", text: "" }], details };
 
-		const collapsed = Bun.stripANSI(
+		const collapsed = bun.stripANSI(
 			taskToolRenderer
 				.renderResult(result, { expanded: false, isPartial: true, spinnerFrame: 0 }, theme)
 				.render(120)
@@ -755,7 +756,7 @@ describe("task progress rendering", () => {
 		// The summary line sits above the visible rows (live edge at the bottom).
 		expect(collapsed.indexOf("more agents")).toBeLessThan(collapsed.indexOf("LiveOne"));
 
-		const expanded = Bun.stripANSI(
+		const expanded = bun.stripANSI(
 			taskToolRenderer
 				.renderResult(result, { expanded: true, isPartial: true, spinnerFrame: 0 }, theme)
 				.render(120)
@@ -782,7 +783,7 @@ describe("task progress rendering", () => {
 			totalDurationMs: 10000,
 		};
 
-		const collapsed = Bun.stripANSI(
+		const collapsed = bun.stripANSI(
 			taskToolRenderer
 				.renderResult(
 					{ content: [{ type: "text", text: "" }], details },
@@ -816,8 +817,8 @@ describe("task progress rendering", () => {
 			const rows = taskToolRenderer
 				.renderResult({ content: [], details }, { expanded: false, isPartial: !!details.progress }, theme)
 				.render(120);
-			for (const row of rows) expect(Bun.stripANSI(row)).not.toContain("\t");
-			const text = rows.map(row => Bun.stripANSI(row)).join("\n");
+			for (const row of rows) expect(bun.stripANSI(row)).not.toContain("\t");
+			const text = rows.map(row => bun.stripANSI(row)).join("\n");
 			expect(text).toContain("TabWorker");
 			expect(text).toContain("Inspect");
 			expect(text).toContain("rendering");
@@ -836,7 +837,7 @@ describe("task progress rendering", () => {
 				.renderResult({ content: [], details }, { expanded: false, isPartial: !!details.progress }, theme)
 				.render(40);
 			for (const row of rows) {
-				expect(Bun.stripANSI(row)).not.toContain("\t");
+				expect(bun.stripANSI(row)).not.toContain("\t");
 				expect(visibleWidth(row)).toBeLessThanOrEqual(40);
 			}
 		}
@@ -869,7 +870,7 @@ describe("task result detail-less state", () => {
 			theme,
 			{ agent: "scout", task: "Look around." },
 		);
-		const stripped = Bun.stripANSI(component.render(120).join("\n"));
+		const stripped = bun.stripANSI(component.render(120).join("\n"));
 
 		// A failed task must surface the error glyph and never the "done" bullet.
 		expect(stripped).toContain(theme.status.error);
@@ -887,7 +888,7 @@ describe("task result detail-less state", () => {
 			agent: "scout",
 			task: "Look around.",
 		});
-		const stripped = Bun.stripANSI(component.render(120).join("\n"));
+		const stripped = bun.stripANSI(component.render(120).join("\n"));
 
 		expect(stripped).toContain(theme.status.done);
 		expect(stripped).not.toContain(theme.status.error);

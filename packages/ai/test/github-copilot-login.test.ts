@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getOAuthApiKey } from "@oh-my-pi/pi-ai/registry/oauth";
 import { loginGitHubCopilot } from "@oh-my-pi/pi-ai/registry/oauth/github-copilot";

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -18,6 +18,7 @@ import {
 import { getBlobsDir, getConfigRootDir, setAgentDir } from "@oh-my-pi/pi-utils";
 import { readArchiveEntries, writeArchive } from "@oh-my-pi/pi-utils/ar";
 import { makeAssistantMessage } from "./session-manager/helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const IMAGE_DATA = Buffer.alloc(4096, 7).toString("base64");
 
@@ -87,8 +88,8 @@ describe("omp session pack/unpack archive", () => {
 		if (!file) throw new Error("session has no file");
 		await session.close();
 		const artifacts = file.slice(0, -".jsonl".length);
-		await Bun.write(path.join(artifacts, "0-Explore.jsonl"), '{"type":"session","id":"sub","cwd":"/x"}\n');
-		await Bun.write(path.join(artifacts, "1.bash.log"), "build output");
+		await bun.write(path.join(artifacts, "0-Explore.jsonl"), '{"type":"session","id":"sub","cwd":"/x"}\n');
+		await bun.write(path.join(artifacts, "1.bash.log"), "build output");
 		return file;
 	}
 
@@ -116,8 +117,8 @@ describe("omp session pack/unpack archive", () => {
 		expect(arrived.details).toEqual({ kind: "arrived", fromCwd: path.resolve(cwdA), cwd: path.resolve(cwdB) });
 
 		const artifacts = result.sessionFile.slice(0, -".jsonl".length);
-		expect(await Bun.file(path.join(artifacts, "1.bash.log")).text()).toBe("build output");
-		expect(await Bun.file(path.join(artifacts, "0-Explore.jsonl")).text()).toContain('"id":"sub"');
+		expect(await bun.file(path.join(artifacts, "1.bash.log")).text()).toBe("build output");
+		expect(await bun.file(path.join(artifacts, "0-Explore.jsonl")).text()).toContain('"id":"sub"');
 
 		// The journal keeps a blob ref; the bytes come from this machine's blob store.
 		expect(isBlobRef(userImage(after)?.data ?? "")).toBe(true);

@@ -1,9 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { ExtensionRuntime, loadExtensionFromFactory, loadExtensions } from "../src/extensibility/extensions/loader";
 import { ExtensionRunner } from "../src/extensibility/extensions/runner";
 import { EventBus } from "../src/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const okResult = { content: [{ type: "text" as const, text: "ok" }] };
 
@@ -71,7 +72,7 @@ describe("RegisteredTool sourceInfo (upstream pi compat)", () => {
 		const projectDir = TempDir.createSync("@registered-tool-source-info-");
 		const relativePath = "./plugin.ts";
 		const resolvedPath = path.join(projectDir.path(), "plugin.ts");
-		await Bun.write(
+		await bun.write(
 			resolvedPath,
 			`
 				export default function(api) {
@@ -104,7 +105,7 @@ describe("RegisteredTool sourceInfo (upstream pi compat)", () => {
 		const projectDir = TempDir.createSync("@registered-tool-relative-source-");
 		const relativePath = "./plugin.ts";
 		const resolvedPath = path.join(projectDir.path(), "plugin.ts");
-		await Bun.write(
+		await bun.write(
 			resolvedPath,
 			`
 				export default function(api) {

@@ -26,7 +26,7 @@ export class ManagedTimers {
 
 	/** Schedule a repeating callback whose throws are contained. */
 	setInterval(callback: (...args: unknown[]) => void, ms?: number, ...args: unknown[]): Timer {
-		const timer = setInterval(() => this.#run("interval", callback, args), ms, ...args);
+		const timer = setInterval<unknown[]>(() => this.#run("interval", callback, args), ms, ...args);
 		timer.unref?.();
 		this.#timers.add(timer);
 		return timer;
@@ -34,7 +34,7 @@ export class ManagedTimers {
 
 	/** Schedule a one-shot callback whose throws are contained. Deregisters after it fires. */
 	setTimeout(callback: (...args: unknown[]) => void, ms?: number, ...args: unknown[]): Timer {
-		const timer = setTimeout(
+		const timer = setTimeout<unknown[]>(
 			() => {
 				this.#timers.delete(timer);
 				this.#run("timeout", callback, args);

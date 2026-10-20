@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as runtimeIdentity from "@oh-my-pi/pi-coding-agent/session/runtime-identity";
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";

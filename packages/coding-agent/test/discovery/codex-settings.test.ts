@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,8 @@ import { loadCapability } from "@oh-my-pi/pi-coding-agent/discovery";
 import { cfgPersonality } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 describe("Codex config.toml settings", () => {
 	let root = "";

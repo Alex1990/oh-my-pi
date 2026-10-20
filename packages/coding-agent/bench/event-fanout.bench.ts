@@ -10,6 +10,7 @@ import { AuthStorage } from "../src/session/auth-storage";
 import { SessionManager } from "../src/session/session-manager";
 import { TASK_SUBAGENT_EVENT_CHANNEL } from "../src/task/types";
 import { EventBus } from "../src/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SESSION_EVENTS = 50_000;
 const RPC_EVENTS = 500_000;
@@ -23,7 +24,7 @@ async function measure(label: string, count: number, run: () => Promise<void>): 
 	await run();
 	const cpuMs: number[] = [];
 	for (let i = 0; i < MEASURE_RUNS; i++) {
-		Bun.gc(true);
+		bun.gc(true);
 		const beforeCpu = process.cpuUsage();
 		await run();
 		const usage = process.cpuUsage(beforeCpu);
@@ -89,7 +90,7 @@ async function measureSession(hasHandler: boolean): Promise<void> {
 		const before = seen;
 		const beforeExtension = extensionEmitted;
 		for (let i = 0; i < SESSION_EVENTS; i++) agent.emitExternalEvent(update);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		if (seen - before !== SESSION_EVENTS) throw new Error(`Received ${seen - before} updates`);
 		const expectedExtensions = hasHandler ? SESSION_EVENTS : 0;
 		if (extensionEmitted - beforeExtension !== expectedExtensions) {
@@ -107,7 +108,7 @@ async function measureRpc(): Promise<void> {
 	const payload = { id: "subagent", event: { type: "message_update" } };
 	await measure("rpc_subscription_off", RPC_EVENTS, async () => {
 		for (let i = 0; i < RPC_EVENTS; i++) bus.emit(TASK_SUBAGENT_EVENT_CHANNEL, payload);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	});
 	registry.dispose();
 }

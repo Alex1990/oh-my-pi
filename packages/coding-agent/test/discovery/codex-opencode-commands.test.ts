@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,9 @@ import { applyFilter } from "@oh-my-pi/pi-tui/overlays/extensions/state-manager"
 import type { Extension } from "@oh-my-pi/pi-tui/overlays/extensions/types";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const COMMAND_FILE = `---
 description: Deploy a service
@@ -102,7 +105,7 @@ describe("Codex and OpenCode slash-command frontmatter", () => {
 
 		const panel = new InspectorPanel();
 		panel.setExtension(ext);
-		const rendered = Bun.stripANSI(panel.render(72).join("\n"));
+		const rendered = bun.stripANSI(panel.render(72).join("\n"));
 		expect(rendered).toContain("Deploy a service");
 		expect(rendered).toContain("<service>");
 		expect(rendered).toContain("accepts $ARGUMENTS");
@@ -130,7 +133,7 @@ describe("Codex and OpenCode slash-command frontmatter", () => {
 
 		const panel = new InspectorPanel();
 		panel.setExtension(ext);
-		const rendered = Bun.stripANSI(panel.render(72).join("\n"));
+		const rendered = bun.stripANSI(panel.render(72).join("\n"));
 		expect(rendered).toContain("Deploy a service");
 		expect(rendered).toContain("<service>");
 

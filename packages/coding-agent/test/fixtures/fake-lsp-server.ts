@@ -1,4 +1,5 @@
 import { MessageFramer } from "../../src/jsonrpc/message-framing";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface JsonRpcMessage {
 	jsonrpc: "2.0";
@@ -176,7 +177,7 @@ function handleMessage(message: JsonRpcMessage): void {
 }
 
 const framer = new MessageFramer(Buffer.alloc(0));
-for await (const chunk of Bun.stdin.stream()) {
+for await (const chunk of bun.stdin.stream()) {
 	framer.push(Buffer.from(chunk));
 	for (const text of framer.drain(() => {})) {
 		handleMessage(JSON.parse(text) as JsonRpcMessage);

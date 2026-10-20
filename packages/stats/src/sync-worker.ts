@@ -11,6 +11,7 @@
  * for issue #1011 / PR #1027, where the worker silently failed to load).
  */
 
+import { parentPort } from "node:worker_threads";
 import { type ParseSessionResult, parseSessionFile, type SessionParserState } from "./parser";
 
 export type SyncWorkerRequest =
@@ -22,15 +23,17 @@ export type SyncWorkerResponse =
 	| { ok: true; kind: "pong" }
 	| { ok: false; error: string };
 
-declare const self: Worker & {
-	onmessage: ((event: MessageEvent<SyncWorkerRequest>) => void) | null;
-};
+if (!parentPort) throw new Error("sync-worker must be loaded inside a worker thread");
+const port = parentPort;
 
-self.onmessage = async event => {
-	const request = event.data;
+port.on("message", (message: unknown) => {
+	void handleRequest(message as SyncWorkerRequest);
+});
+
+async function handleRequest(request: SyncWorkerRequest): Promise<void> {
 	try {
 		if (request.kind === "ping") {
-			self.postMessage({ ok: true, kind: "pong" } satisfies SyncWorkerResponse);
+			port.postMessage({ ok: true, kind: "pong" } satisfies SyncWorkerResponse);
 			return;
 		}
 		const result = await parseSessionFile(
@@ -39,9 +42,9 @@ self.onmessage = async event => {
 			request.parserState,
 			request.replay,
 		);
-		self.postMessage({ ok: true, result } satisfies SyncWorkerResponse);
+		port.postMessage({ ok: true, result } satisfies SyncWorkerResponse);
 	} catch (err) {
 		const error = err instanceof Error ? (err.stack ?? err.message) : String(err);
-		self.postMessage({ ok: false, error } satisfies SyncWorkerResponse);
+		port.postMessage({ ok: false, error } satisfies SyncWorkerResponse);
 	}
-};
+}

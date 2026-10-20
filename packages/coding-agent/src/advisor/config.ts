@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { isEnoent, logger, slugify } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { expandAtImports } from "../discovery/at-imports";
 import { BUILTIN_TOOL_NAMES, normalizeToolNames } from "../tools/builtin-names";
 import { collectConfigCandidates } from "./watchdog";
@@ -14,6 +14,7 @@ import {
 	type AdvisorSyncBacklog,
 	type WatchdogConfigDoc,
 } from "@oh-my-pi/pi-tui/overlays/advisor-config";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { ADVISOR_REVIEW_MODES, ADVISOR_SYNC_BACKLOG_MODES } from "@oh-my-pi/pi-tui/overlays/advisor-config";
 export type { AdvisorReviewMode, AdvisorSyncBacklog } from "@oh-my-pi/pi-tui/overlays/advisor-config";
@@ -140,7 +141,7 @@ export function getOrCreateAdvisorProviderSessionId(
 	ids: Map<string, string>,
 	primarySessionId: string | undefined,
 	slug: string,
-	randomSessionId: () => string = () => Bun.randomUUIDv7(),
+	randomSessionId: () => string = () => bun.randomUUIDv7(),
 ): string | undefined {
 	if (!primarySessionId) return undefined;
 	const key = `${primarySessionId}${ADVISOR_PROVIDER_SESSION_KEY_SEPARATOR}${slug}`;
@@ -280,7 +281,7 @@ export async function resolveAdvisorConfigEditPath(
 	const dir = scope === "user" ? dirs.agentDir : dirs.projectDir;
 	const yml = path.join(dir, "WATCHDOG.yml");
 	const yaml = path.join(dir, "WATCHDOG.yaml");
-	if (!(await Bun.file(yml).exists()) && (await Bun.file(yaml).exists())) return yaml;
+	if (!(await bun.file(yml).exists()) && (await bun.file(yaml).exists())) return yaml;
 	return yml;
 }
 
@@ -294,7 +295,7 @@ export async function resolveAdvisorConfigEditPath(
 export async function loadWatchdogConfigFile(filePath: string): Promise<WatchdogConfigDoc> {
 	let text: string;
 	try {
-		text = await Bun.file(filePath).text();
+		text = await bun.file(filePath).text();
 	} catch (err) {
 		if (!isEnoent(err))
 			logger.warn("Advisor config: failed to read for edit", { path: filePath, error: String(err) });
@@ -433,5 +434,5 @@ export async function saveWatchdogConfigFile(filePath: string, doc: WatchdogConf
 		}
 		return;
 	}
-	await Bun.write(filePath, content);
+	await bun.write(filePath, content);
 }

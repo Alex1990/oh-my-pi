@@ -1,7 +1,8 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { pickWeightedTip, WelcomeComponent } from "@oh-my-pi/pi-tui/prompt/welcome";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("WelcomeComponent", () => {
 	beforeAll(async () => {
@@ -82,7 +83,7 @@ describe("WelcomeComponent", () => {
 
 	it("centers the lockup and every tip line in the terminal width", () => {
 		const columns = 140;
-		const rows = new WelcomeComponent("1.0.0").render(columns).map(row => Bun.stripANSI(row).trimEnd());
+		const rows = new WelcomeComponent("1.0.0").render(columns).map(row => bun.stripANSI(row).trimEnd());
 		const indent = (row: string) => visibleWidth(row) - visibleWidth(row.trimStart());
 		const expectCentered = (left: number, right: number) => expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
 
@@ -98,14 +99,14 @@ describe("WelcomeComponent", () => {
 	});
 
 	it("drops the tip below 50 columns", () => {
-		const text = (columns: number) => Bun.stripANSI(new WelcomeComponent("1.0.0").render(columns).join("\n"));
+		const text = (columns: number) => bun.stripANSI(new WelcomeComponent("1.0.0").render(columns).join("\n"));
 		expect(text(50)).toContain("Tip: ");
 		expect(text(49)).not.toContain("Tip: ");
 		expect(text(49)).toContain("v1.0.0");
 	});
 
 	it("sets the version under the wordmark while the lockup fits, else keeps the logo alone", () => {
-		const rows = (columns: number) => new WelcomeComponent("1.0.0").render(columns).map(row => Bun.stripANSI(row));
+		const rows = (columns: number) => new WelcomeComponent("1.0.0").render(columns).map(row => bun.stripANSI(row));
 
 		// The lockup needs 12 logo + 4 gap + 15 wordmark columns inside the 2-column margin.
 		const fits = rows(33);

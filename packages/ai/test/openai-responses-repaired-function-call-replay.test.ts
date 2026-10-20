@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildParams } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { ResponseStreamEvent } from "@oh-my-pi/pi-ai/providers/openai-responses-wire";
 import { processResponsesStream } from "@oh-my-pi/pi-ai/providers/openai-shared";

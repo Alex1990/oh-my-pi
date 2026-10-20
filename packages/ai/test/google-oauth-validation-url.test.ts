@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { googleGeminiCliProjectHook } from "@oh-my-pi/pi-ai/oauth/google-gemini-cli";
 import { extractGoogleValidationUrl } from "@oh-my-pi/pi-ai/utils/google-validation";
 

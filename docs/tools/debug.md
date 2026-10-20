@@ -144,7 +144,7 @@ Side-channel artifacts outside the model tool result:
    - `memory`: force GC, collect numeric process and heap statistics with `collectMemoryStats()`, then bundle
    - `logs`: build a `DebugLogSource` and mount `DebugLogViewerComponent`
    - `raw-sse`: resolve a `RawSseDebugBuffer` from the session and mount `RawSseViewerComponent`
-   - `remote-debugger`: reuse or start a loopback JavaScriptCore `RemoteInspectorServer` socket and display its host/port; the Bun API is process-wide and has no stop operation
+   - `remote-debugger`: reuse or start a loopback JavaScriptCore `RemoteInspectorServer` socket and display its host/port; the JSC API is process-wide and has no stop operation
    - `system`: call `collectSystemInfo()` and render `formatSystemInfo()` into the chat pane
    - `terminal`: `collectTerminalState()` + `formatTerminalState()` rendered into the chat pane
    - `protocols`: fires a test desktop notification (unless suppressed), then mounts `ProtocolProbeComponent` with a sample image
@@ -285,7 +285,7 @@ GDB example for an OpenOCD remote target:
   - `DapSessionManager` keeps session summaries, breakpoints, threads, stack frames, stop location, output capture, capabilities, and last-used timestamps in memory.
   - Active-session id is global to the singleton `dapSessionManager`.
   - `RawSseDebugBuffer` stores recent SSE events per owner/session.
-  - `remote-debugger.ts` caches the live inspector endpoint and coalesces concurrent starts; the underlying Bun inspector is one-way for the process.
+  - `remote-debugger.ts` caches the live inspector endpoint and coalesces concurrent starts; the underlying JSC inspector is one-way for the process.
   - The tool is `exclusive`; concurrent debug tool calls are blocked by the scheduler.
 - User-visible prompts / interactive UI
   - Debug selector shows confirmation before cache deletion.
@@ -365,7 +365,7 @@ GDB example for an OpenOCD remote target:
     Replace `v1.117.0` with the latest tag from the [releases page](https://github.com/microsoft/vscode-js-debug/releases).
   - Any other location via `JS_DEBUG_DAP_SERVER=<path-to-dapDebugServer.js>`.
   - Neovim users with Mason: `:MasonInstall js-debug-adapter` → discovered at `~/.local/share/nvim/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js`.
-- The adapter runs under `node` if on `PATH`, otherwise under the omp host (Bun); `resolveDefaultJsDebugAdapter()` falls back to `process.execPath`, so a Bun-only setup is supported.
+- The adapter runs under `node` if on `PATH`, otherwise under the omp host; `resolveDefaultJsDebugAdapter()` falls back to `process.execPath`.
 - `configurationDone` is sent automatically during root and child launch/attach handshakes and lazily before later requests if the initial handshake did not complete.
 - `startDebugging` reverse requests create recursive child sessions on the same TCP server; a stopped child becomes the target for thread-level actions.
 - `output` exposes the active session's merged DAP `output` events and `runInTerminal` stdout. DAP stdout/stderr/console categories are not separated; the terminal-spawn path does not add its separately drained stderr to this cache.
@@ -377,6 +377,6 @@ GDB example for an OpenOCD remote target:
 - Raw SSE buffer listener failures are swallowed so viewer bugs do not break capture.
 - `createDebugLogSource()` starts with the current process's log and orders other PID-qualified/rotated logs by day newest-first; `loadOlderLogs()` reverses each requested slice before concatenation.
 - `clearArtifactCache()` deletes directories by directory mtime, not per-file age.
-- `addDirectoryToArchive()` reads artifact files as text with `Bun.file(...).text()`. Binary artifact contents are not preserved byte-for-byte in the report bundle.
+- `addDirectoryToArchive()` reads artifact files as text with the `bun.file(...)` shim. Binary artifact contents are not preserved byte-for-byte in the report bundle.
 - The tool renderer truncates displayed output for the TUI preview, but the underlying text result still contains the full returned string.
-- The UI-only JavaScriptCore remote debugger is idempotent after startup and cannot be stopped because `bun:jsc` returns no handle. It binds only to `127.0.0.1`; a loopback readiness probe determines success because Bun may throw a spurious bind error on macOS even when the socket came up.
+- The UI-only JavaScriptCore remote debugger is idempotent after startup and cannot be stopped because the JSC binding returns no handle. It binds only to `127.0.0.1`; a loopback readiness probe determines success because the binding may throw a spurious bind error on macOS even when the socket came up.

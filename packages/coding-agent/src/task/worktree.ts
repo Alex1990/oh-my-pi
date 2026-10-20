@@ -13,6 +13,7 @@ import { withRepoLock } from "../utils/repo-lock";
 import { writeIsolationOwner } from "./isolation-ownership";
 import { mapWithConcurrencyLimit } from "./parallel";
 import type { cfgIsolationBackend } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const { IsoBackendKind } = natives;
 
@@ -603,7 +604,7 @@ function errorMessage(err: unknown): string {
 
 function getTaskIsolationSegment(repoRoot: string, id: string): string {
 	const key = `${path.resolve(repoRoot)}\0${id}`;
-	const digest = Bun.hash(key).toString(16).padStart(16, "0").slice(-TASK_ISOLATION_DIR_DIGEST_CHARS);
+	const digest = bun.hash(key).toString(16).padStart(16, "0").slice(-TASK_ISOLATION_DIR_DIGEST_CHARS);
 	return `${TASK_ISOLATION_DIR_PREFIX}${digest}`;
 }
 

@@ -1,15 +1,35 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fsSync from "node:fs";
 import * as fsPromises from "node:fs/promises";
+import type { symlink as FsSymlink } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { arFixture } from "./fixtures";
 import { extractArchive } from "../../src/ar/open";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
 
+// Node's ESM namespace for `node:fs/promises` is frozen, so `vi.spyOn` cannot
+// replace `symlink`. A hoisted mock keeps the real implementation as the
+// default and lets each test install its own behavior.
+const symlinkControl = vi.hoisted(() => ({
+	spy: vi.fn(),
+	real: null as null | typeof FsSymlink,
+}));
+
+vi.mock("node:fs/promises", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:fs/promises")>();
+	symlinkControl.real = actual.symlink;
+	symlinkControl.spy.mockImplementation((...args: Parameters<typeof actual.symlink>) => actual.symlink(...args));
+	return { ...actual, symlink: symlinkControl.spy };
+});
+
 afterEach(() => {
 	vi.restoreAllMocks();
+	symlinkControl.spy.mockReset();
+	symlinkControl.spy.mockImplementation((...args: Parameters<typeof FsSymlink>) => symlinkControl.real!(...args));
 	if (platformDescriptor) Object.defineProperty(process, "platform", platformDescriptor);
 });
 
@@ -116,15 +136,15 @@ describe("extractArchive symlink handling", () => {
 		const dest = await fsPromises.mkdtemp(path.join(os.tmpdir(), "omp-ar-copy-collision-"));
 		const occupied = path.join(dest, "current");
 		try {
-			await Bun.write(occupied, "existing user content");
-			vi.spyOn(fsPromises, "symlink").mockRejectedValueOnce(
+			await bun.write(occupied, "existing user content");
+			symlinkControl.spy.mockRejectedValueOnce(
 				Object.assign(new Error("Symlink privilege denied"), { code: "EPERM" }),
 			);
 			await expect(
 				extractArchive({ bytes: await arFixture("zip-symlink-mode.zip"), format: "zip" }, dest),
 			).rejects.toMatchObject({ code: "EEXIST" });
-			expect(await Bun.file(occupied).text()).toBe("existing user content");
-			expect(await Bun.file(path.join(dest, "bin/run.sh")).text()).toContain("zip mode");
+			expect(await bun.file(occupied).text()).toBe("existing user content");
+			expect(await bun.file(path.join(dest, "bin/run.sh")).text()).toContain("zip mode");
 		} finally {
 			await fsPromises.rm(dest, { recursive: true, force: true });
 		}
@@ -137,11 +157,11 @@ describe("extractArchive symlink handling", () => {
 		const occupied = path.join(dest, "current");
 		try {
 			await fsPromises.mkdir(dest);
-			await Bun.write(target, "existing outside content");
+			await bun.write(target, "existing outside content");
 			await fsPromises.symlink(target, occupied);
 			if (!platformDescriptor) throw new Error("process.platform descriptor is unavailable");
 			Object.defineProperty(process, "platform", { ...platformDescriptor, value: "win32" });
-			vi.spyOn(fsPromises, "symlink").mockRejectedValueOnce(
+			symlinkControl.spy.mockRejectedValueOnce(
 				Object.assign(new Error("Symlink privilege denied"), { code: "EPERM" }),
 			);
 			await expect(
@@ -149,7 +169,7 @@ describe("extractArchive symlink handling", () => {
 			).rejects.toMatchObject({ code: "EEXIST" });
 			expect((await fsPromises.lstat(occupied)).isSymbolicLink()).toBe(true);
 			expect(await fsPromises.readlink(occupied)).toBe(target);
-			expect(await Bun.file(target).text()).toBe("existing outside content");
+			expect(await bun.file(target).text()).toBe("existing outside content");
 		} finally {
 			await fsPromises.rm(root, { recursive: true, force: true });
 		}
@@ -167,9 +187,8 @@ describe("extractArchive symlink handling", () => {
 	test("extracts directory aliases and skips dangling links on Windows EPERM", async () => {
 		if (!platformDescriptor) throw new Error("process.platform descriptor is unavailable");
 		Object.defineProperty(process, "platform", { ...platformDescriptor, value: "win32" });
-		const realSymlink = fsPromises.symlink;
-		vi.spyOn(fsPromises, "symlink").mockImplementation(async (target, outputPath, type) => {
-			if (type === "junction") return realSymlink(target, outputPath, "junction");
+		symlinkControl.spy.mockImplementation(async (target, outputPath, type) => {
+			if (type === "junction") return symlinkControl.real!(target, outputPath, "junction");
 			const error = new Error("operation not permitted") as NodeJS.ErrnoException;
 			error.code = "EPERM";
 			throw error;
@@ -204,9 +223,8 @@ describe("extractArchive symlink handling", () => {
 		// refused link failed the whole extraction.
 		if (!platformDescriptor) throw new Error("process.platform descriptor is unavailable");
 		Object.defineProperty(process, "platform", { ...platformDescriptor, value: "win32" });
-		const realSymlink = fsPromises.symlink;
-		const symlink = vi.spyOn(fsPromises, "symlink").mockImplementation(async (target, outputPath, type) => {
-			if (type === "junction") return realSymlink(target, outputPath, "junction");
+		const symlink = symlinkControl.spy.mockImplementation(async (target, outputPath, type) => {
+			if (type === "junction") return symlinkControl.real!(target, outputPath, "junction");
 			const error = new Error("operation not permitted") as NodeJS.ErrnoException;
 			error.code = "EPERM";
 			throw error;

@@ -15,6 +15,7 @@ import { dedupeStrings, normalizePathSpec } from "../helpers";
 import { buildExperimentState } from "../state";
 import { openAutoresearchStorage, type SessionRow } from "../storage";
 import type { AutoresearchToolFactoryOptions } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HARNESS_COMMIT_TITLE = "autoresearch: harness setup";
 
@@ -67,7 +68,7 @@ export function createInitExperimentTool(
 			const requiresHarness = !existing || isNewSegmentInit;
 
 			if (requiresHarness) {
-				const harnessExists = await Bun.file(path.join(ctx.cwd, HARNESS_FILENAME)).exists();
+				const harnessExists = await bun.file(path.join(ctx.cwd, HARNESS_FILENAME)).exists();
 				if (!harnessExists) {
 					return {
 						content: [

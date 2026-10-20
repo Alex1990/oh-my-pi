@@ -32,11 +32,12 @@
  * (OpenRouter, OpenCode, Kilo, Fireworks, …) translates thinking into its
  * own native format and would reject the extra key.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { AssistantMessage, Context, FetchImpl, Model, ModelSpec } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 function abortedSignal(): AbortSignal {
 	const controller = new AbortController();
@@ -53,7 +54,7 @@ function sseDoneResponse(): Response {
 
 function mockFetch(): FetchImpl {
 	const fn = async (_input: string | URL | Request, _init?: RequestInit): Promise<Response> => sseDoneResponse();
-	return Object.assign(fn, { preconnect: fetch.preconnect });
+	return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 }
 
 function moonshotKimiModel(id: string, reasoning = true): Model<"openai-completions"> {

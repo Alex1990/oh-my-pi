@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {

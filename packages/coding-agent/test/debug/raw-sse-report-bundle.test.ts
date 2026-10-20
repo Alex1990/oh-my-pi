@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,8 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { RawSseDebugBuffer } from "@oh-my-pi/pi-tui/apps/debug/raw-sse-buffer";
 import { createReportBundle } from "@oh-my-pi/pi-coding-agent/debug/report-bundle";
 import { getConfigRootDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 const model: Model<"anthropic-messages"> = buildModel({
 	id: "claude-test",
@@ -70,7 +72,7 @@ describe("raw SSE report bundle", () => {
 		const result = await createReportBundle({ sessionFile: undefined, rawSseText });
 
 		expect(result.files).toContain("raw-sse.txt");
-		const archive = new Bun.Archive(await Bun.file(result.path).bytes());
+		const archive = new Archive(await bun.file(result.path).bytes());
 		const files = await archive.files();
 		expect(await files.get("raw-sse.txt")?.text()).toBe(rawSseText);
 	});

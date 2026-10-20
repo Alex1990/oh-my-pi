@@ -23,6 +23,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Matches relative module specifiers in generated declaration import/export forms:
 //   from "…", import "…", import("…"), and declare module "…".
@@ -61,7 +62,7 @@ async function exists(p: string): Promise<boolean> {
 
 /** Rewrite one emitted file in place. Returns the number of specifiers changed. */
 async function fixEmitFile(filePath: string, ext: EmitExt): Promise<number> {
-	const source = await Bun.file(filePath).text();
+	const source = await bun.file(filePath).text();
 	const fromDir = path.dirname(filePath);
 	let changed = 0;
 
@@ -81,7 +82,7 @@ async function fixEmitFile(filePath: string, ext: EmitExt): Promise<number> {
 		out = out.replace(match, replacement);
 		changed++;
 	}
-	await Bun.write(filePath, out);
+	await bun.write(filePath, out);
 	return changed;
 }
 

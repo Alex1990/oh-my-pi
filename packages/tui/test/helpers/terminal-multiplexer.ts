@@ -1,5 +1,6 @@
-import { afterEach, beforeEach } from "bun:test";
+import { afterEach, beforeEach } from "@oh-my-pi/pi-utils/test-runtime";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Neutralize every terminal-multiplexer signal for the calling test file.
@@ -16,15 +17,15 @@ export function withoutTerminalMultiplexer(): void {
 
 	beforeEach(() => {
 		for (const key of keys) {
-			previous.set(key, Bun.env[key]);
-			delete Bun.env[key];
+			previous.set(key, bun.env[key]);
+			delete bun.env[key];
 		}
 	});
 
 	afterEach(() => {
 		for (const [key, value] of previous) {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 		previous.clear();
 	});

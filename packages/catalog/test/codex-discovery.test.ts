@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -55,7 +55,6 @@ describe("Codex model discovery", () => {
 					{ headers: { etag: "models-v1" } },
 				);
 			},
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -108,7 +107,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -139,7 +137,6 @@ describe("Codex model discovery", () => {
 						{ slug: "gpt-5.5" },
 					],
 				}),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({ accessToken: "test-token", fetchFn });
 		const ultrafastBySlug = Object.fromEntries(
@@ -173,7 +170,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -214,7 +210,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -258,7 +253,6 @@ describe("Codex model discovery", () => {
 						},
 					],
 				}),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -303,7 +297,6 @@ describe("Codex model discovery", () => {
 						supported_in_api: true,
 					})),
 				}),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -352,7 +345,6 @@ describe("Codex model discovery", () => {
 						max_context_window: 872_000,
 					})),
 				}),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({ accessToken: "test-token", fetchFn });
 		const windows = Object.fromEntries(
@@ -401,7 +393,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -470,7 +461,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		try {
 			const result = await resolveProviderModels(
@@ -522,7 +512,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		try {
 			const result = await resolveProviderModels(
@@ -572,7 +561,6 @@ describe("Codex model discovery", () => {
 					}),
 				);
 			},
-			{ preconnect() {} },
 		);
 		try {
 			const options = openaiCodexModelManagerOptions({
@@ -621,7 +609,6 @@ describe("Codex model discovery", () => {
 				}
 				return Response.json({ models });
 			},
-			{ preconnect() {} },
 		);
 		try {
 			const result = await resolveProviderModels(
@@ -681,7 +668,6 @@ describe("Codex model discovery", () => {
 				}
 				return new Response("nope", { status: 500 });
 			},
-			{ preconnect() {} },
 		);
 		try {
 			const options = openaiCodexModelManagerOptions({
@@ -738,7 +724,6 @@ describe("Codex model discovery", () => {
 					],
 				});
 			},
-			{ preconnect() {} },
 		);
 		try {
 			const options = openaiCodexModelManagerOptions({
@@ -774,7 +759,6 @@ describe("Codex model discovery", () => {
 			maxTokens: 128_000,
 		};
 		const fetchFn: typeof fetch = Object.assign(async () => new Response("forbidden", { status: 403 }), {
-			preconnect() {},
 		});
 		try {
 			const options = openaiCodexModelManagerOptions({
@@ -925,7 +909,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -965,7 +948,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		try {
 			const options = openaiCodexModelManagerOptions({
@@ -1012,7 +994,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",
@@ -1041,7 +1022,6 @@ describe("Codex model discovery", () => {
 						],
 					}),
 				),
-			{ preconnect() {} },
 		);
 		const result = await fetchCodexModels({
 			accessToken: "test-token",

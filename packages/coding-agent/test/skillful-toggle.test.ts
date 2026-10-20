@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 import { cfgSkillful } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createUserMessage(content: string): UserMessage {
 	return { role: "user", content, timestamp: Date.now() };
@@ -138,7 +139,7 @@ describe("skillful setting and /skillful session toggle", () => {
 	it("announces URI syntax without catalog rows for hidden-only skills mid-session", async () => {
 		const skillDir = path.join(tempDir, ".omp", "skills", "test-skill");
 		const skillFile = path.join(skillDir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillFile,
 			`---\nname: test-skill\ndescription: A hidden test skill.\ndisable-model-invocation: true\n---\n# Test Skill\n`,
 		);

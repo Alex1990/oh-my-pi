@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	GALLERY_STATES,
 	GALLERY_SURFACES,
@@ -17,6 +17,7 @@ import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { toolRenderers } from "@oh-my-pi/pi-tui/tools";
 import { writeToolRenderer } from "@oh-my-pi/pi-tui/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -96,7 +97,7 @@ describe("gallery harness", () => {
 			errorResult: { content: [{ type: "text", text: "ERROR_OUT" }], isError: true, details: { exitCode: 1 } },
 		};
 		const render = async (state: (typeof GALLERY_STATES)[number]) =>
-			Bun.stripANSI((await renderGalleryState("bash", fixture, state, 100)).join("\n"));
+			bun.stripANSI((await renderGalleryState("bash", fixture, state, 100)).join("\n"));
 
 		const streaming = await render("streaming");
 		expect(streaming).toContain("STREAM_MARK");
@@ -124,7 +125,7 @@ describe("gallery harness", () => {
 		const task = resolveFixture("task");
 		expect(task.customRendered).toBe(true);
 		const lines = await renderGalleryState("task", task, "error", 100);
-		const stripped = lines.map(line => Bun.stripANSI(line).trim());
+		const stripped = lines.map(line => bun.stripANSI(line).trim());
 		// The framed result header carries the label inside the box border...
 		expect(stripped.some(line => line.startsWith(theme.boxRound.topLeft) && line.includes("Task"))).toBe(true);
 		// ...but no standalone "Task" label line precedes it.
@@ -135,7 +136,7 @@ describe("gallery harness", () => {
 		const cases = [["wait", "Subagent exited 1: Redis connection string is missing.", "42 pass"]] as const;
 
 		for (const [name, expected, forbidden] of cases) {
-			const output = Bun.stripANSI((await renderGalleryState(name, resolveFixture(name), "error", 100)).join("\n"));
+			const output = bun.stripANSI((await renderGalleryState(name, resolveFixture(name), "error", 100)).join("\n"));
 			expect(output).toContain(expected);
 			expect(output).not.toContain(forbidden);
 		}
@@ -143,7 +144,7 @@ describe("gallery harness", () => {
 
 	it("renders gallery-only read group fixtures", async () => {
 		const fixture = resolveFixture("read_group");
-		const success = Bun.stripANSI((await renderGalleryState("read_group", fixture, "success", 140)).join("\n"));
+		const success = bun.stripANSI((await renderGalleryState("read_group", fixture, "success", 140)).join("\n"));
 		const renderPathMatches = success.match(/packages\/coding-agent\/src\/task\/render\.ts/g) ?? [];
 
 		expect(success).toContain("Read (4)");
@@ -155,7 +156,7 @@ describe("gallery harness", () => {
 
 	it("renders URL coordination receipts, cancellation and process errors without file-write chrome", async () => {
 		const render = async (name: string, state: "streaming" | "success" | "error") =>
-			Bun.stripANSI((await renderGalleryState(name, resolveFixture(name), state, 100)).join("\n"));
+			bun.stripANSI((await renderGalleryState(name, resolveFixture(name), state, 100)).join("\n"));
 		expect(await render("write_agent", "success")).toContain("IRC");
 		expect(await render("write_agent", "success")).toContain("injected");
 		const broadcast = await render("write_agent_broadcast", "success");

@@ -33,6 +33,7 @@ import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { closeDaemonClients } from "../launch/client";
 import type { TextPredictMethod } from "../predict/protocol";
 import { closeTextPrediction, requestTextPrediction } from "../predict/client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Settings compared on this platform, in display order (`apple` needs macOS). */
 const ENGINES: readonly WordCompletionEngine[] =
@@ -120,9 +121,9 @@ class Lane {
 /** Keep the end of `text` (where the cursor and ghost are) within `width` cells. */
 function tail(text: string, width: number): string {
 	if (width <= 1) return "";
-	if (Bun.stringWidth(text) <= width) return text;
+	if (bun.stringWidth(text) <= width) return text;
 	let start = 0;
-	while (start < text.length && Bun.stringWidth(text.slice(start)) > width - 1) start++;
+	while (start < text.length && bun.stringWidth(text.slice(start)) > width - 1) start++;
 	return `…${text.slice(start)}`;
 }
 
@@ -318,9 +319,9 @@ class PredictCompareComponent implements Component, Focusable {
 		const textWidth = Math.max(8, width - LABEL_WIDTH - STATS_WIDTH - 2);
 		const rows = this.#lanes.map(lane => {
 			const ghost = lane.provider.getWordCompletion([value], 0, value.length) ?? "";
-			const typed = tail(replaceTabs(value), Math.max(1, textWidth - Bun.stringWidth(ghost)));
+			const typed = tail(replaceTabs(value), Math.max(1, textWidth - bun.stringWidth(ghost)));
 			const text = `${typed}${chalk.dim.underline(ghost)}`;
-			const pad = " ".repeat(Math.max(1, textWidth - Bun.stringWidth(typed) - Bun.stringWidth(ghost) + 1));
+			const pad = " ".repeat(Math.max(1, textWidth - bun.stringWidth(typed) - bun.stringWidth(ghost) + 1));
 			return truncateToWidth(`${chalk.cyan(lane.label.padEnd(LABEL_WIDTH))}${text}${pad}${lane.stats()}`, width);
 		});
 		return [

@@ -1,7 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { pathToFileURL } from "node:url";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 // Regression: `omp config set collab.autoStart control` on a fresh Windows profile over WinRM
 // exited 0 with no output and never wrote config.yml. The CLI entry is a floating `runCli()`
@@ -16,7 +19,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 // flight, then keeps running the loop; the command completed but exited 1 with the diagnostic.
 // Preloads that resume work from a `beforeExit` listener reproduce that runtime state.
 
-const repoRoot = path.resolve(import.meta.dir, "../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const cliEntry = path.join(repoRoot, "packages/coding-agent/src/cli.ts");
 const settingsUrl = new URL("../src/config/settings.ts", import.meta.url).href;
 const DIAGNOSTIC = "ended before completing";
@@ -60,13 +63,13 @@ async function runConfigSet(tempDir: TempDir, settingsInit: SettingsInitMode): P
 	const preloadArgs: string[] = [];
 	if (settingsInit !== "real") {
 		const preloadPath = tempDir.join("settings-init.ts");
-		await Bun.write(
+		await bun.write(
 			preloadPath,
 			[`import { Settings } from ${JSON.stringify(settingsUrl)};`, ...SETTINGS_INIT_PRELOADS[settingsInit]].join(
 				"\n",
 			),
 		);
-		preloadArgs.push("--preload", preloadPath);
+		preloadArgs.push("--import", pathToFileURL(preloadPath).href);
 	}
 	// The child must resolve its agent dir from the isolated home, not an inherited override or profile.
 	const env: Record<string, string | undefined> = { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: "1" };
@@ -78,8 +81,17 @@ async function runConfigSet(tempDir: TempDir, settingsInit: SettingsInitMode): P
 	delete env.XDG_CONFIG_HOME;
 	delete env.XDG_DATA_HOME;
 	delete env.XDG_STATE_HOME;
-	const proc = Bun.spawn(
-		[process.execPath, ...preloadArgs, cliEntry, "config", "set", "collab.autoStart", "control"],
+	const proc = bun.spawn(
+		[
+			process.execPath,
+			...nodeSourceFlags(),
+			...preloadArgs,
+			cliEntry,
+			"config",
+			"set",
+			"collab.autoStart",
+			"control",
+		],
 		{ cwd: tempDir.path(), env, stdin: "ignore", stdout: "pipe", stderr: "pipe" },
 	);
 	const [exitCode, stdout, stderr] = await Promise.all([
@@ -111,7 +123,7 @@ describe("one-shot CLI command settlement", () => {
 		expect(run.exitCode, run.stderr).toBe(0);
 		expect(run.stdout).toContain("Set collab.autoStart = control");
 		expect(run.stderr).not.toContain(DIAGNOSTIC);
-		expect(Bun.YAML.parse(await Bun.file(run.configPath).text())).toMatchObject({ collab: { autoStart: "control" } });
+		expect(bun.YAML.parse(await bun.file(run.configPath).text())).toMatchObject({ collab: { autoStart: "control" } });
 	}, 30_000);
 
 	it("keeps exit 0 when the loop resumes after a premature beforeExit and the command completes", async () => {
@@ -121,7 +133,7 @@ describe("one-shot CLI command settlement", () => {
 		expect(run.exitCode, run.stderr).toBe(0);
 		expect(run.stdout).toContain("Set collab.autoStart = control");
 		expect(run.stderr).not.toContain(DIAGNOSTIC);
-		expect(Bun.YAML.parse(await Bun.file(run.configPath).text())).toMatchObject({ collab: { autoStart: "control" } });
+		expect(bun.YAML.parse(await bun.file(run.configPath).text())).toMatchObject({ collab: { autoStart: "control" } });
 	}, 30_000);
 
 	it("keeps an explicit exit's code when the loop resumed after a premature beforeExit", async () => {

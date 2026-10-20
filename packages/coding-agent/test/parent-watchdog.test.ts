@@ -1,8 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Process } from "@oh-my-pi/pi-natives";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const FIXTURE = path.join(import.meta.dir, "fixtures", "parent-watchdog-orphan.ts");
+const FIXTURE = path.join(import.meta.dirname, "fixtures", "parent-watchdog-orphan.ts");
 
 describe("startParentWatchdog", () => {
 	// Issue #14340: an IPC worker whose main thread was pinned inside a
@@ -10,7 +12,7 @@ describe("startParentWatchdog", () => {
 	// as a multi-GiB PPID-1 orphan, because the parent-liveness watchdog ran on
 	// that same starved event loop.
 	it("kills an orphaned process whose main thread is blocked", async () => {
-		const middle = Bun.spawn([process.execPath, FIXTURE], { stdout: "pipe", stderr: "inherit" });
+		const middle = bun.spawn([process.execPath, ...nodeSourceFlags(), FIXTURE], { stdout: "pipe", stderr: "inherit" });
 		const childPid = Number.parseInt((await new Response(middle.stdout).text()).trim(), 10);
 		await middle.exited;
 		// The middle hard-killed itself after the child armed: a signal on POSIX,

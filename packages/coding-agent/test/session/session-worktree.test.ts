@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import {
 	type SessionWorktreeState,
 	type WorktreeExitAction,
 } from "../../src/session/session-worktree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const clean: SessionWorktreeState = { dirty: false, moved: false, offBranch: false };
 
@@ -40,7 +41,7 @@ describe("decideWorktreeExit", () => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-	const r = Bun.spawnSync(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", ...args], {
+	const r = bun.spawnSync(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", ...args], {
 		cwd,
 		stdout: "pipe",
 		stderr: "pipe",
@@ -57,7 +58,7 @@ function worktreePaths(repo: string): string[] {
 }
 
 function branchSha(repo: string, branch: string): string | null {
-	const r = Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
+	const r = bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
 		cwd: repo,
 		stdout: "pipe",
 	});
@@ -71,7 +72,7 @@ const exists = (p: string) =>
 	);
 
 const commitFile = async (cwd: string, name: string) => {
-	await Bun.write(path.join(cwd, name), "x\n");
+	await bun.write(path.join(cwd, name), "x\n");
 	git(cwd, "add", ".");
 	git(cwd, "commit", "-q", "-m", `add ${name}`);
 };
@@ -93,7 +94,7 @@ describe("session worktree helpers (real git)", () => {
 		setWorktreesDir(path.join(root, "wt"));
 		git(repo, "init", "-q", "-b", "main");
 		git(repo, "config", "core.autocrlf", "false");
-		await Bun.write(path.join(repo, "tracked.txt"), "base\n");
+		await bun.write(path.join(repo, "tracked.txt"), "base\n");
 		git(repo, "add", ".");
 		git(repo, "commit", "-q", "-m", "init");
 	});
@@ -184,18 +185,18 @@ describe("session worktree helpers (real git)", () => {
 	});
 
 	it("starts from clean HEAD with keepChanges:false and reports worktree edits as dirty", async () => {
-		await Bun.write(path.join(repo, "tracked.txt"), "edited\n");
-		await Bun.write(path.join(repo, "untracked.txt"), "u\n");
+		await bun.write(path.join(repo, "tracked.txt"), "edited\n");
+		await bun.write(path.join(repo, "untracked.txt"), "u\n");
 		const wt = await create(false);
 		expect(wt.keptChanges).toBe(false);
 		expect(wt.baseCommit).toBe(git(repo, "rev-parse", "HEAD"));
-		expect(await Bun.file(path.join(wt.path, "tracked.txt")).text()).toBe("base\n");
+		expect(await bun.file(path.join(wt.path, "tracked.txt")).text()).toBe("base\n");
 		expect(await exists(path.join(wt.path, "untracked.txt"))).toBe(false);
 		expect(git(wt.path, "status", "--porcelain")).toBe("");
 		expect(git(repo, "diff", "--name-only")).toBe("tracked.txt");
 		expect(git(repo, "ls-files", "--others", "--exclude-standard")).toBe("untracked.txt");
 		expect(await inspectSessionWorktree(wt)).toEqual(clean);
-		await Bun.write(path.join(wt.path, "tracked.txt"), "wt edit\n");
+		await bun.write(path.join(wt.path, "tracked.txt"), "wt edit\n");
 		expect(await inspectSessionWorktree(wt)).toEqual({ ...clean, dirty: true });
 	});
 
@@ -230,16 +231,16 @@ describe("session worktree helpers (real git)", () => {
 			() => {},
 		);
 		expect(plan.map(p => p.worktree)).toEqual([wt]);
-		await Bun.write(path.join(wt.path, "late.txt"), "written during teardown\n");
+		await bun.write(path.join(wt.path, "late.txt"), "written during teardown\n");
 		const messages = await removeExitWorktrees(plan);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("changed while the session was closing");
-		expect(await Bun.file(path.join(wt.path, "late.txt")).text()).toBe("written during teardown\n");
+		expect(await bun.file(path.join(wt.path, "late.txt")).text()).toBe("written during teardown\n");
 	});
 
 	it("keeps a confirmed dirty worktree that got more uncommitted edits after the prompt", async () => {
 		const wt = await create();
-		await Bun.write(path.join(wt.path, "dirty.txt"), "d\n");
+		await bun.write(path.join(wt.path, "dirty.txt"), "d\n");
 		const plan = await planWorktreeExit(
 			[wt],
 			"ask",
@@ -247,7 +248,7 @@ describe("session worktree helpers (real git)", () => {
 			() => {},
 		);
 		expect(plan.map(p => p.worktree)).toEqual([wt]);
-		await Bun.write(path.join(wt.path, "dirty.txt"), "more work written during teardown\n");
+		await bun.write(path.join(wt.path, "dirty.txt"), "more work written during teardown\n");
 		const messages = await removeExitWorktrees(plan);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("changed while the session was closing");
@@ -258,7 +259,7 @@ describe("session worktree helpers (real git)", () => {
 		const wt = await create();
 		await commitFile(wt.path, "work.txt");
 		const tip = git(wt.path, "rev-parse", "HEAD");
-		await Bun.write(path.join(wt.path, "dirty.txt"), "d\n");
+		await bun.write(path.join(wt.path, "dirty.txt"), "d\n");
 		const plan = await planWorktreeExit(
 			[wt],
 			"ask",

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { scheduler } from "node:timers/promises";
 import { type } from "@oh-my-pi/omptype";
@@ -46,6 +46,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { mockSchedulerWaitWithClock } from "./helpers/mock-scheduler-clock";
 
 import { cfgRetryUsageReservePolicy } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type AutoRetryStartEvent = Extract<AgentSessionEvent, { type: "auto_retry_start" }>;
 type AutoRetryEndEvent = Extract<AgentSessionEvent, { type: "auto_retry_end" }>;
@@ -2732,7 +2733,7 @@ describe("AgentSession retry fallback", () => {
 		await session.newSession();
 		releaseCredential.resolve();
 		await credentialReturned.promise;
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		expect(credentialSignal?.aborted).toBe(true);
 		expect(session.getAdvisorAgent()?.state.model).toMatchObject({
@@ -5838,7 +5839,7 @@ describe("AgentSession retry fallback", () => {
 		// accumulated context past 4000 while there, then the cooldown expired and
 		// a queued follow-up drained through the auto-continue path.
 		const modelsConfigPath = path.join(tempDir.path(), "revert-overflow-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -5951,7 +5952,7 @@ describe("AgentSession retry fallback", () => {
 		// skip the undersized candidate and advance to the first configured
 		// candidate whose window can hold the accumulated context.
 		const modelsConfigPath = path.join(tempDir.path(), "fallback-overflow-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -6043,7 +6044,7 @@ describe("AgentSession retry fallback", () => {
 
 	it("fits retry fallbacks after excluding the failed assistant turn", async () => {
 		const modelsConfigPath = path.join(tempDir.path(), "fallback-failed-turn-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -6128,7 +6129,7 @@ describe("AgentSession retry fallback", () => {
 
 	it("includes a preserved transport-error turn when fitting retry fallback windows", async () => {
 		const modelsConfigPath = path.join(tempDir.path(), "preserved-failed-turn-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -6491,7 +6492,7 @@ describe("AgentSession retry fallback", () => {
 			throw new Error("Expected bundled OpenAI test model to exist");
 		}
 		const modelsConfigPath = path.join(tempDir.path(), "cold-discovery-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -6547,7 +6548,7 @@ describe("AgentSession retry fallback", () => {
 			throw new Error("Expected bundled OpenAI test model to exist");
 		}
 		const modelsConfigPath = path.join(tempDir.path(), "cold-descriptor-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {
@@ -6774,7 +6775,7 @@ describe("AgentSession retry fallback", () => {
 
 	it("resolves awaitInitialBackgroundRefresh for a refresh started after the waiter is armed", async () => {
 		const modelsConfigPath = path.join(tempDir.path(), "late-refresh-models.json");
-		await Bun.write(
+		await bun.write(
 			modelsConfigPath,
 			JSON.stringify({
 				providers: {

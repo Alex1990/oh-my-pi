@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleDevTo } from "@oh-my-pi/pi-coding-agent/web/scrapers/devto";
 import { handleGitLab } from "@oh-my-pi/pi-coding-agent/web/scrapers/gitlab";
 import { handleHackerNews } from "@oh-my-pi/pi-coding-agent/web/scrapers/hackernews";
 import { handleLobsters } from "@oh-my-pi/pi-coding-agent/web/scrapers/lobsters";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 // =============================================================================
 // HackerNews Tests

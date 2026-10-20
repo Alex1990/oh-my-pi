@@ -113,7 +113,7 @@ Server-initiated notifications are surfaced through transport `onNotification`; 
 
 - Initial: `connected=false`, `process=null`, pending map empty
 - `connect()`:
-  - spawn subprocess with configured command/args/env/cwd (cwd defaults to `getProjectDir()`, env overlays `Bun.env`)
+  - spawn subprocess with configured command/args/env/cwd (cwd defaults to `getProjectDir()`, env overlays `process.env`)
   - derive platform spawn behavior: Linux/other non-macOS POSIX detach into a new session, macOS remains attached for TCC prompts, Windows remains attached and resolves npm shims/batch commands with platform-specific escaping
   - mark connected
   - start stdout read loop (`readJsonl`)

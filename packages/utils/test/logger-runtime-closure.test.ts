@@ -1,12 +1,20 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { LoggerCacheSnapshot } from "./fixtures/logger-cache-snapshot";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const fixtureDir = path.join(import.meta.dir, "fixtures");
+const fixtureDir = path.join(import.meta.dirname, "fixtures");
 const probePath = path.join(fixtureDir, "logger-cache-probe.ts");
 const positiveControlPath = path.join(fixtureDir, "logger-cache-positive-control.ts");
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 const roots: string[] = [];
 
 afterEach(async () => {
@@ -24,8 +32,8 @@ async function runProbe(scenario: "import" | "console" | "file"): Promise<Logger
 	const outputPath = path.join(root, "result.json");
 	const logsDir = path.join(root, "logs");
 	await fs.mkdir(logsDir);
-	const proc = Bun.spawn([process.execPath, probePath, scenario, outputPath, logsDir], {
-		cwd: path.resolve(import.meta.dir, "../../.."),
+	const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath, scenario, outputPath, logsDir], {
+		cwd: path.resolve(import.meta.dirname, "../../.."),
 		env: { ...process.env, TZ: "Etc/GMT+5" },
 		stdout: "ignore",
 		stderr: "pipe",
@@ -38,8 +46,8 @@ async function runProbe(scenario: "import" | "console" | "file"): Promise<Logger
 async function runPositiveControl(): Promise<LoggerCacheSnapshot> {
 	const root = await makeRoot("omp-logger-cache-control-");
 	const outputPath = path.join(root, "result.json");
-	const proc = Bun.spawn([process.execPath, positiveControlPath, outputPath], {
-		cwd: path.resolve(import.meta.dir, "../../.."),
+	const proc = bun.spawn([process.execPath, ...nodeTsArgs, positiveControlPath, outputPath], {
+		cwd: path.resolve(import.meta.dirname, "../../.."),
 		stdout: "pipe",
 		stderr: "pipe",
 	});

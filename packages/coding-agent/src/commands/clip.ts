@@ -9,6 +9,7 @@ import { uploadClip } from "../stream/clip-upload";
 import { latestRecording, recordingsDir } from "../stream/recording";
 
 import { cfgStreamServerUrl } from "../stream/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export default class Clip extends Command {
 	static description = commandHelp.description;
@@ -41,7 +42,7 @@ export default class Clip extends Command {
 		if (!file) throw new CliUsageError(`no recordings in ${recordingsDir()}; start one with /record`);
 		let recording: string;
 		try {
-			recording = await Bun.file(file).text();
+			recording = await bun.file(file).text();
 		} catch (error) {
 			if (isEnoent(error)) throw new CliUsageError(`recording not found: ${file}`);
 			throw error;

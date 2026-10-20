@@ -1,8 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import {
 	collapseChangelogTail,
 	collectPromotableAddedItemLines,
@@ -10,6 +10,7 @@ import {
 	runChangelogFixer,
 	splitArchiveFooter,
 } from "./fix-changelogs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("collectPromotableAddedItemLines", () => {
 	it("keeps new changelog item additions while ignoring moves and edits", () => {
@@ -383,14 +384,14 @@ describe("runChangelogFixer baseline pin", () => {
 		try {
 			const changelogPath = path.join(repoRoot, "packages/foo/CHANGELOG.md");
 			await git("init", "-b", "main");
-			await Bun.write(changelogPath, RELEASED_ONLY);
+			await bun.write(changelogPath, RELEASED_ONLY);
 			await git("add", "-A");
 			await git("commit", "-m", "release 1.0.0");
 			await git("tag", "v1.0.0");
 
 			// Simulate a `--recover` restoring a historically released bullet that the
 			// v1.0.0 snapshot no longer carries.
-			await Bun.write(changelogPath, RELEASED_PLUS_RECOVERED);
+			await bun.write(changelogPath, RELEASED_PLUS_RECOVERED);
 			await git("add", "-A");
 			await git("commit", "-m", "recover dropped bullet");
 
@@ -434,7 +435,7 @@ describe("runChangelogFixer size limit", () => {
 			await git("init", "-b", "main");
 			// The oldest section must outweigh the footer for a collapse to shrink the file.
 			const content = FOUR_SECTIONS.replace("- Fix one.", `- Fix one. ${"x".repeat(400)}`);
-			await Bun.write(changelogPath, content);
+			await bun.write(changelogPath, content);
 			await git("add", "-A");
 			await git("commit", "-m", "release 1.2.0");
 			await git("tag", "v1.2.0");
@@ -456,7 +457,7 @@ describe("runChangelogFixer size limit", () => {
 				},
 			]);
 
-			const collapsed = await Bun.file(changelogPath).text();
+			const collapsed = await bun.file(changelogPath).text();
 			expect(collapsed).not.toContain("## [1.0.0]");
 			expect(collapsed).toContain("## [1.1.0]");
 			expect(collapsed).toEndWith(`\n${expectedLink}\n`);
@@ -465,7 +466,7 @@ describe("runChangelogFixer size limit", () => {
 			// The footer survives a second run verbatim and nothing is re-collapsed.
 			const second = await runChangelogFixer({ repoRoot, maxBytes });
 			expect(second.changedFiles).toHaveLength(0);
-			expect(await Bun.file(changelogPath).text()).toBe(collapsed);
+			expect(await bun.file(changelogPath).text()).toBe(collapsed);
 		} finally {
 			await fs.rm(repoRoot, { recursive: true, force: true });
 		}

@@ -13,6 +13,7 @@ import {
 	requireCredential,
 	requireOption,
 } from "./uploader-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EMPTY_BYTES = new Uint8Array();
 
@@ -568,7 +569,7 @@ function createNativeB2Uploader(config: DestinationRuntimeConfig): BlobUploader 
 					headers: {
 						authorization: uploadTarget.authorizationToken,
 						"content-type": uploadRequest.mimeType,
-						"x-bz-content-sha1": new Bun.CryptoHasher("sha1").update(uploadRequest.bytes).digest("hex"),
+						"x-bz-content-sha1": new bun.CryptoHasher("sha1").update(uploadRequest.bytes).digest("hex"),
 						"x-bz-file-name": encodePath(key),
 						...(cacheControl ? { "x-bz-info-b2-cache-control": encodeURIComponent(cacheControl) } : {}),
 					},

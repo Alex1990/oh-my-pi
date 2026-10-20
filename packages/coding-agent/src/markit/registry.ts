@@ -6,6 +6,7 @@ import { PdfConverter } from "./converters/pdf";
 import { PptxConverter } from "./converters/pptx";
 import { XlsxConverter } from "./converters/xlsx";
 import type { ConversionResult, Converter, MarkitOptions, StreamInfo } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * In-house document → markdown engine (replaces the `markit-ai` package).
@@ -30,7 +31,7 @@ export class Markit {
 	}
 
 	async convertFile(filePath: string, extra?: { imageDir?: string }): Promise<ConversionResult> {
-		const buffer = Buffer.from(await Bun.file(filePath).arrayBuffer());
+		const buffer = Buffer.from(await bun.file(filePath).arrayBuffer());
 		const streamInfo: StreamInfo = {
 			localPath: filePath,
 			extension: path.extname(filePath).toLowerCase(),

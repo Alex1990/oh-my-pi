@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,8 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const profileArn = "arn:aws:bedrock:us-east-2:1234567890:application-inference-profile/company-opus-48";
 const profileModel: Model<"bedrock-converse-stream"> = buildModel({
@@ -42,7 +44,7 @@ describe("Bedrock inference profile ARNs", () => {
 				calls.push(String(input instanceof Request ? input.url : input));
 				return new Response("nope", { status: 418 });
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamBedrock(profileModel, userContext(), {
@@ -160,7 +162,7 @@ async function capturedRequestUrl(
 			calls.push(String(input instanceof Request ? input.url : input));
 			return new Response("nope", { status: 418 });
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	const result = await streamBedrock(model, userContext(), {
 		bearerToken: "test-token",
@@ -231,7 +233,7 @@ describe("Bedrock cross-region inference-profile geo routing", () => {
 		const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "bedrock-profile-region-"));
 		try {
 			const configPath = path.join(tmp, "config");
-			await Bun.write(configPath, "[profile regional]\nregion = eu-west-2\n");
+			await bun.write(configPath, "[profile regional]\nregion = eu-west-2\n");
 			await withEnv(
 				{
 					AWS_REGION: undefined,

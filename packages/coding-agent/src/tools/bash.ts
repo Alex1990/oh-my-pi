@@ -77,6 +77,7 @@ import {
 } from "../exec/settings";
 import { cfgSkillful } from "../session/settings";
 import { cfgWorktreeClone } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BASH_APPROVAL_SHELL_CONTROL_CHARS: Record<string, true> = {
 	"\n": true,
@@ -173,7 +174,7 @@ export function wrapShellLineForClientTerminal(
  * or "false". Controls whether the prompt advertises the in-process builtins.
  */
 function shellBuiltinsDisabled(settings: Settings): boolean {
-	const raw = settings.getShellConfig().env?.PI_DISABLE_UUTILS_BUILTINS ?? Bun.env.PI_DISABLE_UUTILS_BUILTINS;
+	const raw = settings.getShellConfig().env?.PI_DISABLE_UUTILS_BUILTINS ?? bun.env.PI_DISABLE_UUTILS_BUILTINS;
 	return !!raw && raw !== "0" && raw.toLowerCase() !== "false";
 }
 
@@ -319,7 +320,7 @@ async function saveBashOriginalArtifact(session: ToolSession, originalText: stri
 	try {
 		const alloc = await session.allocateOutputArtifact?.("bash-original");
 		if (!alloc?.path || !alloc.id) return undefined;
-		await Bun.write(alloc.path, originalText);
+		await bun.write(alloc.path, originalText);
 		return alloc.id;
 	} catch {
 		return undefined;
@@ -1304,7 +1305,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 			const bridgeGraphics = new TerminalSnapshotDecoder();
 			const killGraceMs = 1000;
 			const outputSnapshotGraceMs = 2000;
-			// Cancellable timeout: a bare Bun.sleep(timeoutMs) would leave a live,
+			// Cancellable timeout: a bare bun.sleep(timeoutMs) would leave a live,
 			// ref'd timer for the full command timeout after fast completions —
 			// accumulating timers and delaying process shutdown in SDK/headless use.
 			// `timeoutMs` is optional (#4642): without one, no timer is armed and
@@ -1427,7 +1428,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 						// The sleep settles within one tick even when an outcome wakes us first.
 						const tick = Promise.withResolvers<void>();
 						bridge.wake = tick.resolve;
-						void Bun.sleep(250).then(tick.resolve);
+						void bun.sleep(250).then(tick.resolve);
 						await tick.promise;
 					}
 					const outcome = bridge.outcome;
@@ -1435,7 +1436,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					if (outcome?.kind === "failed") throw outcome.error;
 
 					if (outcome?.kind === "aborted" || signal?.aborted) {
-						await Promise.race([fireKill(), Bun.sleep(killGraceMs)]);
+						await Promise.race([fireKill(), bun.sleep(killGraceMs)]);
 						throw new ToolAbortError("Command aborted");
 					}
 
@@ -1444,12 +1445,12 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 						// RPC cannot let a timed-out command keep running past the
 						// enforced timeout. The handle stays valid post-kill so the
 						// buffered output is still readable.
-						await Promise.race([fireKill(), Bun.sleep(killGraceMs)]);
+						await Promise.race([fireKill(), bun.sleep(killGraceMs)]);
 						let current = lastPolledOutput;
 						try {
 							current = await Promise.race([
 								handle.currentOutput(),
-								Bun.sleep(outputSnapshotGraceMs).then(() => lastPolledOutput),
+								bun.sleep(outputSnapshotGraceMs).then(() => lastPolledOutput),
 							]);
 						} catch (error) {
 							logger.warn("ACP terminal final output read failed", {
@@ -1505,7 +1506,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 				try {
 					finalOutput = await Promise.race([
 						handle.currentOutput(),
-						Bun.sleep(outputSnapshotGraceMs).then(() => lastPolledOutput),
+						bun.sleep(outputSnapshotGraceMs).then(() => lastPolledOutput),
 					]);
 				} catch (error) {
 					logger.warn("ACP terminal final output read failed", {
@@ -1556,7 +1557,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 						releaseHandle.release().catch((error: unknown) => {
 							logger.warn("ACP terminal release failed", { terminalId: releaseHandle.terminalId, error });
 						}),
-						Bun.sleep(killGraceMs),
+						bun.sleep(killGraceMs),
 					]);
 				}
 			}

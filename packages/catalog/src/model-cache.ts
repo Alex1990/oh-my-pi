@@ -2,11 +2,12 @@
  * SQLite-backed model cache for atomic cross-process access.
  * Replaces per-provider JSON files with a single cache.db.
  */
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as path from "node:path";
 import { getModelDbPath, isSqliteCorruptionError, logger, openSqliteDatabaseSync, VERSION } from "@oh-my-pi/pi-utils";
 import RULES from "./compat/rules.json" with { type: "json" };
 import type { Api, Model } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Rows persist fully materialized Models so compatible warm-cache reads do not
 // rerun the compat cascade. Request headers are intentionally omitted:
@@ -42,7 +43,7 @@ function materializationPolicy(): string {
 	if (cachedMaterializationPolicy === undefined) {
 		cachedMaterializationPolicy =
 			`app-${VERSION}:builder-${MODEL_MATERIALIZATION_VERSION}:rules-${RULES.version}-` +
-			Bun.hash(JSON.stringify(RULES)).toString(36);
+			bun.hash(JSON.stringify(RULES)).toString(36);
 	}
 	return cachedMaterializationPolicy;
 }
@@ -55,7 +56,7 @@ interface CacheRowMeta {
 	authoritative: number;
 	static_fingerprint: string;
 	/**
-	 * `Bun.hash` of `models`; empty for rows written before the column existed
+	 * `bun.hash` of `models`; empty for rows written before the column existed
 	 * (never equal). An in-place `UPDATE` of `models` that leaves the hash
 	 * untouched resets it to empty (`model_cache_models_hash_reset` trigger).
 	 */
@@ -720,7 +721,7 @@ export function writeModelCache<TApi extends Api>(
 			const serializedUnrestorable = JSON.stringify(unrestorableHeaderModelIds);
 			const serializedModels = JSON.stringify(cachedModels);
 			// Length prefix: a collision would also need an equal payload size.
-			const modelsHash = `${serializedModels.length.toString(36)}:${Bun.hash(serializedModels).toString(36)}`;
+			const modelsHash = `${serializedModels.length.toString(36)}:${bun.hash(serializedModels).toString(36)}`;
 			const outcome = db
 				.transaction((): "skipped" | "refreshed" | "written" => {
 					const matchStmt = db.prepare<

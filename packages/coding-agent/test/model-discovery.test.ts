@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -31,6 +31,7 @@ import { ProviderDiscoverySchema } from "@oh-my-pi/pi-coding-agent/config/models
 import { resetSettingsForTest } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ModelRegistry runtime discovery", () => {
 	let tempDir: string;
@@ -45,17 +46,17 @@ describe("ModelRegistry runtime discovery", () => {
 
 	beforeEach(async () => {
 		resetSettingsForTest();
-		originalOllamaBaseUrl = Bun.env.OLLAMA_BASE_URL;
-		originalOllamaHost = Bun.env.OLLAMA_HOST;
-		originalOllamaContextLength = Bun.env.OLLAMA_CONTEXT_LENGTH;
-		originalAnthropicApiKey = Bun.env.ANTHROPIC_API_KEY;
-		delete Bun.env.OLLAMA_BASE_URL;
-		delete Bun.env.OLLAMA_HOST;
-		delete Bun.env.OLLAMA_CONTEXT_LENGTH;
-		delete Bun.env.ANTHROPIC_API_KEY;
+		originalOllamaBaseUrl = bun.env.OLLAMA_BASE_URL;
+		originalOllamaHost = bun.env.OLLAMA_HOST;
+		originalOllamaContextLength = bun.env.OLLAMA_CONTEXT_LENGTH;
+		originalAnthropicApiKey = bun.env.ANTHROPIC_API_KEY;
+		delete bun.env.OLLAMA_BASE_URL;
+		delete bun.env.OLLAMA_HOST;
+		delete bun.env.OLLAMA_CONTEXT_LENGTH;
+		delete bun.env.ANTHROPIC_API_KEY;
 		// The developer's shell or ~/.omp/agent/.env must not redirect llama.cpp discovery probes.
-		originalLlamaCppBaseUrl = Bun.env.LLAMA_CPP_BASE_URL;
-		delete Bun.env.LLAMA_CPP_BASE_URL;
+		originalLlamaCppBaseUrl = bun.env.LLAMA_CPP_BASE_URL;
+		delete bun.env.LLAMA_CPP_BASE_URL;
 		tempDir = path.join(os.tmpdir(), `pi-test-model-registry-${Snowflake.next()}`);
 		fs.mkdirSync(tempDir, { recursive: true });
 		modelsJsonPath = path.join(tempDir, "models.json");
@@ -69,29 +70,29 @@ describe("ModelRegistry runtime discovery", () => {
 	afterEach(() => {
 		resetSettingsForTest();
 		if (originalOllamaBaseUrl === undefined) {
-			delete Bun.env.OLLAMA_BASE_URL;
+			delete bun.env.OLLAMA_BASE_URL;
 		} else {
-			Bun.env.OLLAMA_BASE_URL = originalOllamaBaseUrl;
+			bun.env.OLLAMA_BASE_URL = originalOllamaBaseUrl;
 		}
 		if (originalOllamaHost === undefined) {
-			delete Bun.env.OLLAMA_HOST;
+			delete bun.env.OLLAMA_HOST;
 		} else {
-			Bun.env.OLLAMA_HOST = originalOllamaHost;
+			bun.env.OLLAMA_HOST = originalOllamaHost;
 		}
 		if (originalOllamaContextLength === undefined) {
-			delete Bun.env.OLLAMA_CONTEXT_LENGTH;
+			delete bun.env.OLLAMA_CONTEXT_LENGTH;
 		} else {
-			Bun.env.OLLAMA_CONTEXT_LENGTH = originalOllamaContextLength;
+			bun.env.OLLAMA_CONTEXT_LENGTH = originalOllamaContextLength;
 		}
 		if (originalAnthropicApiKey === undefined) {
-			delete Bun.env.ANTHROPIC_API_KEY;
+			delete bun.env.ANTHROPIC_API_KEY;
 		} else {
-			Bun.env.ANTHROPIC_API_KEY = originalAnthropicApiKey;
+			bun.env.ANTHROPIC_API_KEY = originalAnthropicApiKey;
 		}
 		if (originalLlamaCppBaseUrl === undefined) {
-			delete Bun.env.LLAMA_CPP_BASE_URL;
+			delete bun.env.LLAMA_CPP_BASE_URL;
 		} else {
-			Bun.env.LLAMA_CPP_BASE_URL = originalLlamaCppBaseUrl;
+			bun.env.LLAMA_CPP_BASE_URL = originalLlamaCppBaseUrl;
 		}
 		authStorage.close();
 		if (tempDir && fs.existsSync(tempDir)) {
@@ -117,18 +118,18 @@ describe("ModelRegistry runtime discovery", () => {
 			| "OLLAMA_HOST",
 		value: string | undefined,
 	) {
-		const original = Bun.env[name];
+		const original = bun.env[name];
 		if (value === undefined) {
-			delete Bun.env[name];
+			delete bun.env[name];
 		} else {
-			Bun.env[name] = value;
+			bun.env[name] = value;
 		}
 		return {
 			[Symbol.dispose]() {
 				if (original === undefined) {
-					delete Bun.env[name];
+					delete bun.env[name];
 				} else {
-					Bun.env[name] = original;
+					bun.env[name] = original;
 				}
 			},
 		};
@@ -882,8 +883,8 @@ describe("ModelRegistry runtime discovery", () => {
 	});
 
 	test("auto-updates zenmux models keylessly and caches to models.db", async () => {
-		const originalKey = Bun.env.ZENMUX_API_KEY;
-		delete Bun.env.ZENMUX_API_KEY;
+		const originalKey = bun.env.ZENMUX_API_KEY;
+		delete bun.env.ZENMUX_API_KEY;
 		try {
 			// Phase 1: Online keyless discovery
 			let capturedHeaders: RequestInit["headers"];
@@ -953,9 +954,9 @@ describe("ModelRegistry runtime discovery", () => {
 			expect(offlineFable?.baseUrl).toBe("https://zenmux.ai/api/anthropic");
 		} finally {
 			if (originalKey === undefined) {
-				delete Bun.env.ZENMUX_API_KEY;
+				delete bun.env.ZENMUX_API_KEY;
 			} else {
-				Bun.env.ZENMUX_API_KEY = originalKey;
+				bun.env.ZENMUX_API_KEY = originalKey;
 			}
 		}
 	});

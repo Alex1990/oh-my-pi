@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,8 @@ import {
 } from "@oh-my-pi/pi-ai/auth-broker";
 import { discoverAuthStorage } from "@oh-my-pi/pi-coding-agent/sdk";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const ENV_KEYS = [
 	"OMP_AUTH_BROKER_URL",
@@ -51,7 +53,7 @@ async function waitUntil(predicate: () => boolean | Promise<boolean>, timeoutMs 
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		if (await predicate()) return;
-		await Bun.sleep(10);
+		await bun.sleep(10);
 	}
 	if (!(await predicate())) throw new Error("waitUntil timeout");
 }
@@ -103,7 +105,7 @@ describe("discoverAuthStorage auth-broker snapshot cache", () => {
 		let handle: AuthBrokerServerHandle | undefined;
 		let storage: AuthStorage | undefined;
 		try {
-			handle = startAuthBroker({
+			handle = await startAuthBroker({
 				storage: brokerStorage,
 				bind: "127.0.0.1:0",
 				bearerTokens: [TOKEN],
@@ -143,7 +145,7 @@ describe("discoverAuthStorage auth-broker snapshot cache", () => {
 
 	test("boots from a fresh cache when revalidation returns a server error", async () => {
 		const cachePath = path.join(tempDir, "snapshot.enc");
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: () => new Response("temporarily unavailable", { status: 503 }),
 		});

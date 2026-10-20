@@ -58,8 +58,10 @@ import {
 	hasBillableCost,
 	linkOpenAIPromotionTargets,
 } from "./generated-policies";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const packageRoot = path.join(import.meta.dir, "..");
+const packageRoot = path.join(import.meta.dirname, "..");
 
 /**
  * Local/self-hosted providers (Ollama, vLLM, LM Studio, LiteLLM). Their model
@@ -750,7 +752,7 @@ async function generateModels(selectedProvider?: string) {
 	}
 
 	// Generate JSON file
-	await Bun.write(path.join(packageRoot, "src/models.json"), JSON.stringify(sortObj(MODELS)));
+	await bun.write(path.join(packageRoot, "src/models.json"), JSON.stringify(sortObj(MODELS)));
 	console.log("Generated src/models.json");
 
 	// Print statistics for the rows this run regenerated.
@@ -803,8 +805,8 @@ export function buildGeneratedModel(model: ModelSpec<Api>): Model<Api> {
 	return buildModel(spec);
 }
 
-if (import.meta.main) {
-	const { values } = parseArgs({ args: Bun.argv.slice(2), options: { provider: { type: "string" } } });
+if (isMainModule(import.meta.url)) {
+	const { values } = parseArgs({ args: bun.argv.slice(2), options: { provider: { type: "string" } } });
 	generateModels(values.provider).catch(error => {
 		console.error(error);
 		process.exitCode = 1;

@@ -1,6 +1,7 @@
 import type { MermaidRenderOptions } from "@oh-my-pi/pi-natives";
 import { LRUCache } from "@oh-my-pi/pi-utils/lru";
 import * as mermaidAscii from "@oh-my-pi/pi-utils/mermaid-ascii";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Options controlling how fenced Mermaid source is resolved to terminal ASCII.
@@ -36,7 +37,7 @@ const DISPLAY_WIDTH = { countAnsiEscapeCodes: false } as const;
 function asciiDisplayWidth(ascii: string): number {
 	let max = 0;
 	for (const line of ascii.split("\n")) {
-		const width = Bun.stringWidth(line, DISPLAY_WIDTH);
+		const width = bun.stringWidth(line, DISPLAY_WIDTH);
 		if (width > max) max = width;
 	}
 	return max;

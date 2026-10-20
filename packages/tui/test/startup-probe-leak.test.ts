@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, CURSOR_MARKER } from "@oh-my-pi/pi-tui";
 import {
 	createProcessTerminalRenderHarness,
@@ -6,6 +6,7 @@ import {
 } from "./process-terminal-render-harness";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const COLUMNS = 40;
 const ROWS = 12;
@@ -26,21 +27,21 @@ describe("startup capability probes", () => {
 	let harness: ProcessTerminalRenderHarness | undefined;
 
 	beforeEach(() => {
-		for (const key of PROBE_ENV) previousEnv.set(key, Bun.env[key]);
+		for (const key of PROBE_ENV) previousEnv.set(key, bun.env[key]);
 		// bun test skips the APC probes by default; send them as a real session does.
-		Bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE = "1";
-		Bun.env.PI_TUI_NATIVE = "1";
-		delete Bun.env.PI_NO_GLYPH_PROTOCOL;
+		bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE = "1";
+		bun.env.PI_TUI_NATIVE = "1";
+		delete bun.env.PI_NO_GLYPH_PROTOCOL;
 		// `TERM_PROGRAM=tern` would start a TSP surface instead of the row renderer.
-		delete Bun.env.TERM_PROGRAM;
+		delete bun.env.TERM_PROGRAM;
 	});
 
 	afterEach(() => {
 		harness?.dispose();
 		harness = undefined;
 		for (const [key, value] of previousEnv) {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 		previousEnv.clear();
 	});

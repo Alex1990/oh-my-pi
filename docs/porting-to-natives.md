@@ -26,8 +26,8 @@ ties; Git-safe automation uses `repo` instead.
 
 Two commands serve different purposes:
 
-- `bun --cwd=packages/natives run build:bindings` runs napi-rs for the host, installs a local variant addon and generated declarations, and regenerates explicit ESM/enum exports. Use this when the Rust public type surface changes.
-- `bun --cwd=packages/natives run build` invokes `scripts/bazel-natives.ts host --dest native`. The host target builds through the local cargo/napi-rs backend by default and therefore also regenerates declarations and exports; `OMP_NATIVE_BUILD_BACKEND=bazel` opts into Bazel, which leaves those committed files unchanged.
+- `pnpm --dir packages/natives run build:bindings` runs napi-rs for the host, installs a local variant addon and generated declarations, and regenerates explicit ESM/enum exports. Use this when the Rust public type surface changes.
+- `pnpm --dir packages/natives run build` invokes `scripts/bazel-natives.ts host --dest native`. The host target builds through the local cargo/napi-rs backend by default and therefore also regenerates declarations and exports; `OMP_NATIVE_BUILD_BACKEND=bazel` opts into Bazel, which leaves those committed files unchanged.
 
 Release builds use Bazel targets and publish `.node` files in platform leaf packages. The core publish rewrite removes addons and injects lockstep optional dependencies generated from `LEAF_TARGETS` in `gen-npm-packages.ts`.
 
@@ -62,7 +62,7 @@ Match an existing export with the same scheduling/error shape rather than introd
 Run:
 
 ```bash
-bun --cwd=packages/natives run build:bindings
+pnpm --dir packages/natives run build:bindings
 ```
 
 Then verify:
@@ -118,7 +118,7 @@ For Promise-returning operations, use an async benchmark loop and await every ca
 Run the narrow scenario against the addon you just built. When diagnosing a candidate mismatch, inspect the candidate path reported by the loader:
 
 ```bash
-bun -e 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url); const mod = require(process.argv[1]); console.log(Object.keys(mod).sort())' -- /path/to/pi_natives.<tag>[-variant].node
+node --input-type=module -e 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url); const mod = require(process.argv[1]); console.log(Object.keys(mod).sort())' -- /path/to/pi_natives.<tag>[-variant].node
 ```
 
 Confirm the export is present and `__piNativesBuildVersion()` reports the package version for the newly built addon. The canonical driver also probes a host-loadable installed addon in a child process, with a 60-second timeout. Do not add optional consumer checks for a required export to conceal an artifact mismatch.

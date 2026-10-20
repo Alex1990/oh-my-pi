@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { initDb, insertMessageStats } from "@oh-my-pi/omp-stats/db";
@@ -6,6 +6,7 @@ import { dedupeProjects, getGainDashboardStats, normalizeProjectPath } from "@oh
 import type { MessageStats } from "@oh-my-pi/omp-stats/types";
 import { getStatsDbPath } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-gain-");
 
@@ -43,7 +44,7 @@ function makeMessage(sessionFile: string, folder: string, entryId: string, times
 async function writeSnapcompactJournal(records: unknown[]): Promise<void> {
 	const journalPath = path.join(path.dirname(getStatsDbPath()), "snapcompact-savings.jsonl");
 	await fs.mkdir(path.dirname(journalPath), { recursive: true });
-	await Bun.write(journalPath, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
+	await bun.write(journalPath, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
 }
 
 describe("gain project normalization", () => {

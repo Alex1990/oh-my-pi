@@ -9,13 +9,14 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as snapcompact from "../src/snapcompact";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const [textFile, shapeJson, outDir] = Bun.argv.slice(2);
+const [textFile, shapeJson, outDir] = bun.argv.slice(2);
 if (!textFile || !shapeJson || !outDir) {
 	throw new Error("usage: bun render_pages.ts <text-file> <shape-json> <out-dir>");
 }
 
-const text = await Bun.file(textFile).text();
+const text = await bun.file(textFile).text();
 const shape = JSON.parse(shapeJson) as snapcompact.Shape;
 if (!snapcompact.isShape(shape)) {
 	throw new Error(`shape json is not a complete Shape: ${shapeJson}`);
@@ -24,6 +25,6 @@ if (!snapcompact.isShape(shape)) {
 await fs.mkdir(outDir, { recursive: true });
 const frames = await snapcompact.renderMany(text, { shape });
 for (let i = 0; i < frames.length; i++) {
-	await Bun.write(path.join(outDir, `page-${String(i).padStart(3, "0")}.png`), Buffer.from(frames[i].data, "base64"));
+	await bun.write(path.join(outDir, `page-${String(i).padStart(3, "0")}.png`), Buffer.from(frames[i].data, "base64"));
 }
 console.log(frames.length);

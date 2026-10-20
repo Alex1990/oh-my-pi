@@ -11,23 +11,23 @@ duplicating prose that goes stale.
 
 ## Local development
 
-Run from `packages/coding-agent/` (or add `--cwd=packages/coding-agent`):
+Run from `packages/coding-agent/` (or use `pnpm --dir packages/coding-agent run <script>` from the repo root):
 
 | Task | Command |
 |---|---|
-| Typecheck + lint (the gate) | `bun run check` |
-| Types only | `bun run check:types` |
-| Lint only | `bun run lint` |
-| Tests | `bun run test` |
-| Autofix: lint + format prompts | `bun run fix` |
-| Build the `dist/omp` binary | `bun run build` |
+| Typecheck + lint (the gate) | `pnpm run check` |
+| Types only | `pnpm run check:types` |
+| Lint only | `pnpm run lint` |
+| Tests | `pnpm run test` |
+| Autofix: lint + format prompts | `pnpm run fix` |
+| Build the `dist/omp` launcher + `dist/cli.js` bundle | `pnpm run build` |
 
-Never invoke `tsc`/`npx tsc` directly — `bun run check` is the typecheck gate. After
+Never invoke `tsc`/`npx tsc` directly — `pnpm run check` is the typecheck gate. After
 changing the React tool renderers under `collab-web/src/tool-render/`, rebuild them
-with `bun run gen:tool-views`.
+with `pnpm run gen:tool-views`.
 
 Scope fake timers to the deadline a test exercises, then restore real timers
-before real socket listeners are started. Bun's mocked clock can defer
+before real socket listeners are started. Vitest's mocked clock can defer
 `server.listen` callbacks, leaving registry publication and teardown waiting.
 
 Tests that call `setAgentDir()` must snapshot and restore `PI_CODING_AGENT_DIR`,
@@ -43,7 +43,7 @@ to preserve unset values.
 process argv
    │
    ▼
-src/cli.ts (runCli)            ── worker-host dispatch + Bun version guard;
+src/cli.ts (runCli)            ── worker-host dispatch + Node version guard;
    │  default subcommand: launch    argv normalization
    ▼
 src/commands/* (+ src/cli/)   ── per-command adapters
@@ -172,5 +172,5 @@ Top-level entry modules: `cli.ts`, `main.ts`, `sdk.ts`, `index.ts` (SDK barrel),
 | A provider | [adding-a-provider.md](../../docs/adding-a-provider.md) |
 | Programmatic/SDK use | [sdk.md](../../docs/sdk.md) |
 
-See also `AGENTS.md` at the repo root for repo-wide conventions (Bun-over-Node,
+See also `AGENTS.md` at the repo root for repo-wide conventions (Node-first,
 logging, TUI sanitization, generated files, changelog, releasing).

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Context, Model, ModelSpec, SimpleStreamOptions } from "@oh-my-pi/pi-ai";
 import { clearCustomApis, registerCustomApi } from "@oh-my-pi/pi-ai";
 import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
@@ -17,20 +17,21 @@ import {
 	cfgThinkingBudgetsLow,
 } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { cfgToolsFormat } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("primary-agent provider settings changed mid-session", () => {
 	const sessions: Array<{ dispose(): Promise<void> }> = [];
-	const previousDialectEnv = Bun.env.PI_DIALECT;
+	const previousDialectEnv = bun.env.PI_DIALECT;
 
 	afterEach(async () => {
 		clearCustomApis();
 		for (const session of sessions.splice(0)) await session.dispose();
-		if (previousDialectEnv === undefined) delete Bun.env.PI_DIALECT;
-		else Bun.env.PI_DIALECT = previousDialectEnv;
+		if (previousDialectEnv === undefined) delete bun.env.PI_DIALECT;
+		else bun.env.PI_DIALECT = previousDialectEnv;
 	});
 
 	it("applies thinking budgets, Kimi format, websocket policy, and tool format on the next request", async () => {
-		delete Bun.env.PI_DIALECT;
+		delete bun.env.PI_DIALECT;
 		using tempDir = TempDir.createSync("@pi-live-provider-settings-");
 		const api = "test-live-provider-settings";
 		const requests: Array<{ context: Context; options: SimpleStreamOptions | undefined }> = [];

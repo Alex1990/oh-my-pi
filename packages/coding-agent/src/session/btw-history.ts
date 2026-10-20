@@ -4,6 +4,7 @@ import { type } from "@oh-my-pi/omptype";
 import { type BtwHistoryRecord, type BtwHistoryTurn, getBtwLatestTurn } from "@oh-my-pi/pi-tui/overlays/btw-history";
 import { acquireFileLock, type FileLockHandle, isEnoent, toError } from "@oh-my-pi/pi-utils";
 import { replaceFileAtomically } from "../utils/atomic-file";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export {
 	type BtwHistoryRecord,
@@ -70,7 +71,7 @@ async function readRecord(filePath: string): Promise<StoredRecord | undefined> {
 		if (path.basename(filePath) !== recordFileName(record.id)) {
 			throw new Error("Record id does not match its filename");
 		}
-		return { record, revision: new Bun.CryptoHasher("sha256").update(bytes).digest("hex") };
+		return { record, revision: new bun.CryptoHasher("sha256").update(bytes).digest("hex") };
 	} catch (error) {
 		if (isEnoent(error)) return undefined;
 		throw new Error(`Failed to read BTW history ${filePath}: ${toError(error).message}`, { cause: error });
@@ -81,7 +82,7 @@ function historyDirectory(artifactsDir: string, scope: string | undefined): stri
 	const root = path.join(artifactsDir, "btw-history");
 	if (scope === undefined) return root;
 	// Session ids come from session headers; never let one escape the history root.
-	const segment = /^[\w-]+$/.test(scope) ? scope : new Bun.CryptoHasher("sha256").update(scope).digest("hex");
+	const segment = /^[\w-]+$/.test(scope) ? scope : new bun.CryptoHasher("sha256").update(scope).digest("hex");
 	return path.join(root, "sessions", segment);
 }
 
@@ -185,7 +186,7 @@ export class BtwHistoryStore {
 			} finally {
 				await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
 			}
-			this.#revisions.set(snapshot.id, new Bun.CryptoHasher("sha256").update(content).digest("hex"));
+			this.#revisions.set(snapshot.id, new bun.CryptoHasher("sha256").update(content).digest("hex"));
 			this.#records.set(snapshot.id, snapshot);
 			this.#refreshSnapshot();
 			if (getBtwLatestTurn(snapshot).status !== "running") {

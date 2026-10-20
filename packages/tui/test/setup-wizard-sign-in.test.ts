@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AuthStorage } from "@oh-my-pi/pi-ai";
 import type { OAuthLoginCallbacks, OAuthProviderId } from "@oh-my-pi/pi-ai/oauth/types";
 import { providersSetupScene, SignInScene } from "@oh-my-pi/pi-tui/setup/scenes/sign-in";
@@ -10,6 +10,7 @@ import { SetupWizardComponent } from "@oh-my-pi/pi-tui/setup/wizard-overlay";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -80,7 +81,7 @@ describe("SignInScene", () => {
 			await expect(secretReceived.promise).resolves.toBe(secretValue);
 
 			const rendered = tab.render(36);
-			const compact = rendered.map(line => Bun.stripANSI(line).trim()).join("");
+			const compact = rendered.map(line => bun.stripANSI(line).trim()).join("");
 			expect(compact).toContain(url);
 			expect(compact).not.toContain("…");
 			expect(rendered.join("\n")).toContain(`\x1b]8;;${url}\x07Open login URL\x1b]8;;\x07`);
@@ -92,7 +93,7 @@ describe("SignInScene", () => {
 
 			// On a ~24-row terminal the wizard body ends up ~8 rows; the OSC8
 			// link, a plain URL row, and the focused input must survive that clip.
-			const clippedBody = rendered.slice(0, 8).map(line => Bun.stripANSI(line).trim());
+			const clippedBody = rendered.slice(0, 8).map(line => bun.stripANSI(line).trim());
 			const plainUrlIndex = clippedBody.findIndex(line => line.startsWith("https://example.com/oauth/authorize?"));
 			const inputIndex = clippedBody.findIndex(line => line.startsWith(">"));
 			expect(clippedBody.some(line => line.startsWith("Browser login: Open login URL"))).toBe(true);

@@ -9,12 +9,12 @@ keeping construction cheap without giving up hot-path validation speed.
 ```sh
 npm install @oh-my-pi/omptype
 # or
-bun add @oh-my-pi/omptype
+pnpm add @oh-my-pi/omptype
 ```
 
-Runs on Node 20+ (published as compiled ESM with bundled type declarations)
-and Bun 1.3.14+ (which resolves the TypeScript source directly via the `bun`
-export condition). No runtime dependencies.
+Runs on Node.js 22.12 or newer (the manifest exports the TypeScript source, so
+consumers run it through Node's type stripping or their bundler). No runtime
+dependencies.
 
 ## Usage
 
@@ -92,7 +92,7 @@ and re-exports the same `type` and `scope` implementations.
 Run the benchmark from the repository root:
 
 ```sh
-bun packages/omptype/bench/bench.ts
+node --experimental-transform-types --import ./scripts/text-loader.mjs packages/omptype/bench/bench.ts
 ```
 
 The harness first requires every candidate to accept, reject, and transform the

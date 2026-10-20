@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { resolveModelPolicy } from "@oh-my-pi/pi-catalog/compat/resolve";
@@ -161,7 +161,6 @@ describe("zhipu-coding-plan model discovery", () => {
 					headers: { "content-type": "application/json" },
 				});
 			},
-			{ preconnect: fetch.preconnect },
 		);
 
 		const options = zhipuCodingPlanModelManagerOptions({ apiKey: "test-key", fetch: mockFetch });
@@ -188,7 +187,6 @@ describe("zhipu-coding-plan model discovery", () => {
 					}),
 					{ headers: { "content-type": "application/json" } },
 				),
-			{ preconnect: fetch.preconnect },
 		);
 
 		const options = zhipuCodingPlanModelManagerOptions({ apiKey: "test-key", fetch: mockFetch });

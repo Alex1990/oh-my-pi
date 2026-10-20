@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { scheduler } from "node:timers/promises";
 import { Agent, AgentBusyError } from "@oh-my-pi/pi-agent-core";
 import { CompactionCancelledError } from "@oh-my-pi/pi-agent-core/compaction";
@@ -39,6 +39,7 @@ import {
 	cfgRetryMaxRetries,
 	cfgRetryModelFallback,
 } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const runtimeSignalStoreKey = "__ompRuntimeSignals";
 
@@ -193,7 +194,7 @@ describe("AgentSession auto-compaction queue resume", () => {
 		} finally {
 			try {
 				vi.useRealTimers();
-				await Bun.sleep(0);
+				await bun.sleep(0);
 			} finally {
 				getRuntimeSignals().length = 0;
 				(globalThis as typeof globalThis & { __ompManualCompactGate?: Promise<void> }).__ompManualCompactGate =

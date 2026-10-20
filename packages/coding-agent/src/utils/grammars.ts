@@ -4,6 +4,7 @@ import { type WasmGrammarInfo, type WasmGrammarQuery, wasmGrammarFor } from "@oh
 import { getNativeGrammarsDir, logger, withFileLock } from "@oh-my-pi/pi-utils";
 import { withDownload } from "../downloads/activity";
 import { downloadFile } from "./tools-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * On-demand tree-sitter grammars. Less common languages ship as WebAssembly
@@ -42,13 +43,13 @@ async function fetchGrammar(
 	logger.debug("grammar: downloading", { language: info.language, url });
 	try {
 		await downloadFile(url, compressed, { timeoutMs: DOWNLOAD_TIMEOUT_MS, onProgress });
-		const wasm = Bun.zstdDecompressSync(await Bun.file(compressed).bytes());
+		const wasm = bun.zstdDecompressSync(await bun.file(compressed).bytes());
 		if (wasm.byteLength !== info.size) {
 			throw new Error(`${info.file}: expected ${info.size} bytes, received ${wasm.byteLength}`);
 		}
-		const digest = new Bun.CryptoHasher("sha256").update(wasm).digest("hex");
+		const digest = new bun.CryptoHasher("sha256").update(wasm).digest("hex");
 		if (digest !== info.sha256.toLowerCase()) throw new Error(`${info.file}: SHA-256 mismatch (${digest})`);
-		await Bun.write(part, wasm);
+		await bun.write(part, wasm);
 		// Rename, never rewrite in place: the addon reads `<dir>/<file>` lazily and must never see a partial file.
 		await fs.rename(part, dest);
 	} finally {
@@ -64,7 +65,7 @@ async function installLocked(info: WasmGrammarInfo, dir: string, dest: string): 
 			`${dest}.install`,
 			async () => {
 				// Another process may have finished the install while we waited.
-				if (await Bun.file(dest).exists()) return true;
+				if (await bun.file(dest).exists()) return true;
 				await withDownload(
 					`${info.language} grammar`,
 					tracker => fetchGrammar(info, dest, (loaded, total) => tracker.update({ loaded, total })),

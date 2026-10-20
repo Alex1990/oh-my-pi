@@ -9,7 +9,7 @@
  * error log carrying the reason.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Model } from "@oh-my-pi/pi-ai";
@@ -19,6 +19,7 @@ import { startMemoryStartupTask } from "@oh-my-pi/pi-coding-agent/memories";
 import * as memoryStorage from "@oh-my-pi/pi-coding-agent/memories/storage";
 import { getAgentDbPath, logger, Snowflake, TempDir } from "@oh-my-pi/pi-utils";
 import { restoreEnvValue } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SessionLike {
 	sessionManager: {
@@ -82,7 +83,7 @@ describe("issue #846: phase1 stage1 failures must be logged", () => {
 		vi.restoreAllMocks();
 		restoreEnvValue("XDG_DATA_HOME", savedXdgData);
 		restoreEnvValue("XDG_STATE_HOME", savedXdgState);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		for (const dir of tempDirs.splice(0)) {
 			await dir.remove();
 		}
@@ -117,7 +118,7 @@ describe("issue #846: phase1 stage1 failures must be logged", () => {
 			refreshBaseSystemPrompt: vi.fn(async () => undefined),
 		};
 
-		// Seed a thread whose rolloutPath does not exist on disk -> Bun.file().text()
+		// Seed a thread whose rolloutPath does not exist on disk -> bun.file().text()
 		// throws ENOENT inside runStage1Job, which currently catches and silently
 		// records the reason in DB only.
 		const missingRollout = path.join(sessionDir, "thread-missing.jsonl");
@@ -160,7 +161,7 @@ describe("issue #846: phase1 stage1 failures must be logged", () => {
 				lastError = row.last_error;
 				break;
 			}
-			await Bun.sleep(20);
+			await bun.sleep(20);
 		}
 
 		expect(lastError).not.toBeNull();

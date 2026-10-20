@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 import type { TaskParams } from "@oh-my-pi/pi-tui/tools/task";
 import { taskToolRenderer } from "@oh-my-pi/pi-tui/tools/task";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("task renderer: streaming call preview", () => {
 	let theme: Theme;
@@ -15,7 +16,7 @@ describe("task renderer: streaming call preview", () => {
 
 	function render(args: TaskParams, expanded = false): string {
 		const component = taskToolRenderer.renderCall(args, { expanded, isPartial: true }, theme);
-		return Bun.stripANSI(component.render(160).join("\n"));
+		return bun.stripANSI(component.render(160).join("\n"));
 	}
 
 	// The preview must surface the dispatched agent type + name while args
@@ -167,7 +168,7 @@ describe("task renderer: streaming call preview", () => {
 			{ expanded: false, isPartial: true, renderContext: { hasResult: true } },
 			theme,
 		);
-		const out = Bun.stripANSI(component.render(160).join("\n"));
+		const out = bun.stripANSI(component.render(160).join("\n"));
 
 		expect(out).not.toContain("Review the auth module.");
 		expect(out).not.toContain("ReviewAuth");

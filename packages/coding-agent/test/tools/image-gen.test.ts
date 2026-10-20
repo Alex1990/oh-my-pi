@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Api, type FetchImpl, type Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { modelKind } from "@oh-my-pi/pi-catalog/types";
@@ -15,6 +15,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/tools/image-gen";
 import { hasFsCode, removeWithRetries, TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const generatedImagePaths: string[] = [];
 const PNG_DATA = Buffer.from("catalog-image").toString("base64");
@@ -547,7 +548,7 @@ describe("imageGenTool catalog routing", () => {
 			const tempDir = TempDir.createSync("@omp-image-special-file-");
 			const fifo = path.join(tempDir.path(), "input.png");
 			try {
-				expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+				expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 				let fetchCalls = 0;
 				const model = catalogModel("deepinfra", "test-image", "openai-images");
 				const ctx = createContext({
@@ -569,7 +570,7 @@ describe("imageGenTool catalog routing", () => {
 						() => undefined,
 						error => error,
 					);
-				const outcome = await Promise.race([loading, Bun.sleep(1_500).then(() => "HUNG" as const)]);
+				const outcome = await Promise.race([loading, bun.sleep(1_500).then(() => "HUNG" as const)]);
 				if (outcome === "HUNG") {
 					try {
 						fs.closeSync(fs.openSync(fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK));

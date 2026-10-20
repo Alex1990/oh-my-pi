@@ -1,4 +1,5 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -12,6 +13,22 @@ import {
 	resolveMovePath,
 } from "../../../src/modes/move-directory-source";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
+
+// `node:fs` is a frozen ESM namespace; expose the two operations this suite
+// counts through a hoisted mock module instead of spying on the namespace.
+const fsMock = vi.hoisted(() => ({ statSync: vi.fn(), readdirSync: vi.fn() }));
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	fsMock.statSync.mockImplementation(actual.statSync);
+	fsMock.readdirSync.mockImplementation(actual.readdirSync);
+	return { ...actual, statSync: fsMock.statSync, readdirSync: fsMock.readdirSync };
+});
+const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+
+beforeEach(() => {
+	fsMock.statSync.mockReset().mockImplementation(realFs.statSync);
+	fsMock.readdirSync.mockReset().mockImplementation(realFs.readdirSync);
+});
 
 // Strip SGR colors so assertions see visible text only.
 const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -209,20 +226,15 @@ describe("MoveOverlay", () => {
 			}
 			for (let i = 0; i < 10; i++) fs.mkdirSync(path.join(bulk, `sub_${i}`));
 
-			const statSpy = spyOn(fs, "statSync");
-			try {
-				const overlay = new MoveOverlay(bulk, () => {}, moveDirectorySource);
-				statSpy.mockClear();
-				overlay.handleInput("s");
-				overlay.handleInput("u");
-				overlay.handleInput("b");
-				// Each keystroke may `statSync` at most once — the
-				// `resolveExistingDirectory` probe on the typed prefix. Entries
-				// are classified via `Dirent`, not one stat apiece.
-				expect(statSpy.mock.calls.length).toBeLessThanOrEqual(3);
-			} finally {
-				statSpy.mockRestore();
-			}
+			const overlay = new MoveOverlay(bulk, () => {}, moveDirectorySource);
+			fsMock.statSync.mockClear();
+			overlay.handleInput("s");
+			overlay.handleInput("u");
+			overlay.handleInput("b");
+			// Each keystroke may `statSync` at most once — the
+			// `resolveExistingDirectory` probe on the typed prefix. Entries
+			// are classified via `Dirent`, not one stat apiece.
+			expect(fsMock.statSync.mock.calls.length).toBeLessThanOrEqual(3);
 		} finally {
 			await fsp.rm(bulk, { recursive: true, force: true });
 		}
@@ -251,18 +263,14 @@ describe("MoveOverlay", () => {
 					isFIFO: () => false,
 					isSocket: () => false,
 				}) as fs.Dirent;
-			const readdirSpy = spyOn(fs, "readdirSync").mockReturnValue([
+			fsMock.readdirSync.mockReturnValue([
 				fakeDirent("real-dir"),
 				fakeDirent("real-file.txt"),
 			] as never);
-			try {
-				const overlay = new MoveOverlay(unknownFs, () => {}, moveDirectorySource);
-				const text = strip(overlay.render(80));
-				expect(text).toContain("real-dir/");
-				expect(text).not.toContain("real-file.txt");
-			} finally {
-				readdirSpy.mockRestore();
-			}
+			const overlay = new MoveOverlay(unknownFs, () => {}, moveDirectorySource);
+			const text = strip(overlay.render(80));
+			expect(text).toContain("real-dir/");
+			expect(text).not.toContain("real-file.txt");
 		} finally {
 			await fsp.rm(unknownFs, { recursive: true, force: true });
 		}

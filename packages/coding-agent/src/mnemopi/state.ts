@@ -30,6 +30,7 @@ import mnemopiInstructions from "../prompts/system/mnemopi-instructions.md" with
 import { type MnemopiBackendConfig, type MnemopiScoping, truncateApproxTokens } from "./config";
 import { mnemopiEmbedClient } from "./embed-client";
 import { cfgMnemopiInjectionTokenLimit } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A rendered recall block and where each tracked memory's text starts in it. */
 interface RecallBlock {
@@ -978,7 +979,7 @@ export class MnemopiSessionState {
 			const remainingMs = deadline - performance.now();
 			const completed =
 				remainingMs > 0
-					? await Promise.race([consolidatePromise.then(() => true), Bun.sleep(remainingMs).then(() => false)])
+					? await Promise.race([consolidatePromise.then(() => true), bun.sleep(remainingMs).then(() => false)])
 					: false;
 			if (!completed) {
 				logger.warn("Mnemopi: consolidate-on-dispose exceeded shutdown budget; detaching to background.", {

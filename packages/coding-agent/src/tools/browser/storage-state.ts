@@ -6,6 +6,7 @@ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { Cookie, CookieParam, Page } from "puppeteer-core";
 import { resolveToCwd } from "../path-utils";
 import { throwIfAborted } from "../tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Web Storage area exposed by the browser helpers. */
 export type StorageKind = "local" | "session";
@@ -484,7 +485,7 @@ export async function saveStorageState(
 		readOriginStorage(page, signal),
 	]);
 	const state: BrowserStorageState = { cookies: browserCookies.map(cookieView), origins: origin ? [origin] : [] };
-	await untilAborted(signal, () => Bun.write(destination, `${JSON.stringify(state, null, 2)}\n`));
+	await untilAborted(signal, () => bun.write(destination, `${JSON.stringify(state, null, 2)}\n`));
 	return destination;
 }
 
@@ -497,7 +498,7 @@ export async function readStorageStateFile(
 	if (typeof requestedPath !== "string" || requestedPath.length === 0) throw new ToolError(STORAGE_STATE_ERROR);
 	const source = resolveToCwd(requestedPath, cwd);
 	try {
-		const text = await untilAborted(signal, () => Bun.file(source).text());
+		const text = await untilAborted(signal, () => bun.file(source).text());
 		return parseStorageState(JSON.parse(text) as unknown);
 	} catch (error) {
 		throwIfAborted(signal);

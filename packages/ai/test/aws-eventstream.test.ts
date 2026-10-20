@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { crc32, decodeEventStream, decodeMessage } from "@oh-my-pi/pi-ai/providers/aws-eventstream";
 
 // ---- Frame builder (mirrors @smithy/eventstream-codec but in-process so the

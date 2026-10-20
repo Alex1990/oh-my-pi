@@ -1,5 +1,7 @@
 import { workerHostEntry } from "@oh-my-pi/pi-utils/worker-host";
 import { PARENT_WATCHDOG_WORKER_ARG } from "../cli/worker-selectors";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker } from "@oh-my-pi/pi-utils/worker";
 
 /**
  * SIGKILL this process once `parentPid` exits or this process is reparented.
@@ -15,8 +17,8 @@ import { PARENT_WATCHDOG_WORKER_ARG } from "../cli/worker-selectors";
 export function startParentWatchdog(parentPid: number): void {
 	const hostEntry = workerHostEntry();
 	const worker = hostEntry
-		? new Worker(hostEntry, { type: "module", argv: [PARENT_WATCHDOG_WORKER_ARG] })
-		: new Worker(new URL("./parent-watchdog-worker.ts", import.meta.url).href, { type: "module" });
+		? new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: PARENT_WATCHDOG_WORKER_ARG } })
+		: new Worker(new URL("./parent-watchdog-worker.ts", import.meta.url).href);
 	worker.postMessage(parentPid);
 	worker.unref();
 }

@@ -17,6 +17,7 @@
 
 import { isInsideTerminalMultiplexer, terminalMultiplexerSessions } from "./terminal-multiplexer";
 import { wrapTmuxPassthroughIfNeeded } from "./tmux";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Kitty Unicode placeholder base character (U+10EEEE, Plane 16 PUA). */
 export const KITTY_PLACEHOLDER = "\u{10eeee}";
@@ -73,7 +74,7 @@ export interface KittyGraphicsFeatures {
  * `PI_NO_KITTY_PLACEHOLDERS=1` and `PI_KITTY_PLACEHOLDERS=0` remain hard
  * opt-outs; `PI_KITTY_PLACEHOLDERS=1` explicitly opts in anywhere else.
  */
-export function detectKittyUnicodePlaceholdersSupport(terminalId: string, env: NodeJS.ProcessEnv = Bun.env): boolean {
+export function detectKittyUnicodePlaceholdersSupport(terminalId: string, env: NodeJS.ProcessEnv = bun.env): boolean {
 	const offRaw = env.PI_NO_KITTY_PLACEHOLDERS?.trim().toLowerCase();
 	if (offRaw === "1" || offRaw === "true" || offRaw === "on" || offRaw === "yes" || offRaw === "y") return false;
 	const force = env.PI_KITTY_PLACEHOLDERS?.trim().toLowerCase();

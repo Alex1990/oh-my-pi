@@ -1,30 +1,31 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const originalXaiApiKey = Bun.env.XAI_API_KEY;
+const originalXaiApiKey = bun.env.XAI_API_KEY;
 
 afterEach(() => {
 	if (originalXaiApiKey === undefined) {
-		delete Bun.env.XAI_API_KEY;
+		delete bun.env.XAI_API_KEY;
 	} else {
-		Bun.env.XAI_API_KEY = originalXaiApiKey;
+		bun.env.XAI_API_KEY = originalXaiApiKey;
 	}
 	vi.restoreAllMocks();
 });
 
 describe("xAI API login wiring", () => {
 	test("resolves XAI_API_KEY from environment", () => {
-		Bun.env.XAI_API_KEY = "xai-env-key";
+		bun.env.XAI_API_KEY = "xai-env-key";
 		expect(getEnvApiKey("xai")).toBe("xai-env-key");
 	});
 
 	test("XAI_API_KEY alone does not mark SuperGrok as available", async () => {
-		const originalOauthToken = Bun.env.XAI_OAUTH_TOKEN;
-		Bun.env.XAI_API_KEY = "xai-env-key";
-		delete Bun.env.XAI_OAUTH_TOKEN;
+		const originalOauthToken = bun.env.XAI_OAUTH_TOKEN;
+		bun.env.XAI_API_KEY = "xai-env-key";
+		delete bun.env.XAI_OAUTH_TOKEN;
 		const store = new SqliteAuthCredentialStore(new Database(":memory:"));
 		const storage = new AuthStorage(store);
 		await storage.credentials.reload();
@@ -38,18 +39,18 @@ describe("xAI API login wiring", () => {
 			expect(storage.keys.source("xai-oauth")).toBeUndefined();
 		} finally {
 			if (originalOauthToken === undefined) {
-				delete Bun.env.XAI_OAUTH_TOKEN;
+				delete bun.env.XAI_OAUTH_TOKEN;
 			} else {
-				Bun.env.XAI_OAUTH_TOKEN = originalOauthToken;
+				bun.env.XAI_OAUTH_TOKEN = originalOauthToken;
 			}
 			store.close();
 		}
 	});
 
 	test("XAI_OAUTH_TOKEN marks SuperGrok available without a paid API key", async () => {
-		const originalOauthToken = Bun.env.XAI_OAUTH_TOKEN;
-		delete Bun.env.XAI_API_KEY;
-		Bun.env.XAI_OAUTH_TOKEN = "xai-oauth-env";
+		const originalOauthToken = bun.env.XAI_OAUTH_TOKEN;
+		delete bun.env.XAI_API_KEY;
+		bun.env.XAI_OAUTH_TOKEN = "xai-oauth-env";
 		const store = new SqliteAuthCredentialStore(new Database(":memory:"));
 		const storage = new AuthStorage(store);
 		await storage.credentials.reload();
@@ -59,9 +60,9 @@ describe("xAI API login wiring", () => {
 			expect(storage.keys.source("xai-oauth")).toEqual({ kind: "env", concrete: true });
 		} finally {
 			if (originalOauthToken === undefined) {
-				delete Bun.env.XAI_OAUTH_TOKEN;
+				delete bun.env.XAI_OAUTH_TOKEN;
 			} else {
-				Bun.env.XAI_OAUTH_TOKEN = originalOauthToken;
+				bun.env.XAI_OAUTH_TOKEN = originalOauthToken;
 			}
 			store.close();
 		}

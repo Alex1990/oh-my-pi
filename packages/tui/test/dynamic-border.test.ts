@@ -1,11 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { DynamicBorder } from "@oh-my-pi/pi-tui/chrome/dynamic-border";
 import { getThemeByName, setThemeInstance, theme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeScriptArgs } from "./helpers/node-subprocess";
 
-const componentPath = path.resolve(import.meta.dir, "../src/chrome/dynamic-border.ts");
+const componentPath = path.resolve(import.meta.dirname, "../src/chrome/dynamic-border.ts");
+const componentUrl = pathToFileURL(componentPath).href;
 
 describe("DynamicBorder", () => {
 	// Regression for #5366: extensions importing legacy pi UI components get a
@@ -19,16 +23,20 @@ describe("DynamicBorder", () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-dynamic-border-"));
 		try {
 			const script = [
-				`import { DynamicBorder } from ${JSON.stringify(componentPath)};`,
+				`import { DynamicBorder } from ${JSON.stringify(componentUrl)};`,
 				'const custom = new DynamicBorder(str => "<" + str + ">");',
 				`if (JSON.stringify(custom.render(4)) !== JSON.stringify(["<────>"])) process.exit(1);`,
 				"const plain = new DynamicBorder();",
 				`if (JSON.stringify(plain.render(3)) !== JSON.stringify(["───"])) process.exit(2);`,
 				"",
 			].join("\n");
-			const file = path.join(dir, "uninitialized-theme.ts");
-			await Bun.write(file, script);
-			const proc = Bun.spawn(["bun", file], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+			const file = path.join(dir, "uninitialized-theme.mts");
+			await bun.write(file, script);
+			const proc = bun.spawn([process.execPath, ...nodeScriptArgs(file)], {
+				stdin: "ignore",
+				stdout: "pipe",
+				stderr: "pipe",
+			});
 			const [exitCode, stderr] = await Promise.all([
 				proc.exited,
 				new Response(proc.stderr as ReadableStream<Uint8Array>).text(),

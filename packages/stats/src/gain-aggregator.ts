@@ -14,6 +14,7 @@ import { getStatsDbPath, isEnoent, logger } from "@oh-my-pi/pi-utils";
 import { getTimeRangeConfig } from "./aggregator";
 import { initDb } from "./db";
 import type { GainDashboardStats, GainSourceTotals, GainTimeSeriesPoint } from "./shared-types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BYTES_PER_TOKEN_ESTIMATE = 4;
 const SQLITE_VARIABLE_CHUNK_SIZE = 500;
@@ -177,7 +178,7 @@ async function readSnapcompactRecords(cutoff: number | null, project: string | n
 	} else {
 		let text: string;
 		try {
-			text = await Bun.file(filePath).text();
+			text = await bun.file(filePath).text();
 		} catch (readErr) {
 			if (isEnoent(readErr)) return { records: [], projects: new Set() };
 			logger.debug("gain-aggregator: failed to read snapcompact-savings.jsonl", { err: String(readErr) });

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { getSupportedEfforts } from "@oh-my-pi/pi-catalog/model-thinking";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const model = buildModel({
 	id: "kimi-k3",
@@ -32,7 +33,7 @@ async function capturePayload(reasoning: Effort): Promise<unknown> {
 				{ headers: { "content-type": "text/event-stream" } },
 			);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 
 	await streamOpenAICompletions(model, context, {

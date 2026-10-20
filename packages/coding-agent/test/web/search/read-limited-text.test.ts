@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { readLimitedText } from "@oh-my-pi/pi-coding-agent/web/search/providers/utils";
 
 describe("readLimitedText", () => {

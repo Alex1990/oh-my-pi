@@ -70,7 +70,7 @@ Single-shot result.
 8. If not an archive, it tries SQLite candidates. Existing non-SQLite files suppress SQLite interpretation; candidates that are neither regular files nor directories (FIFO, device, socket) are rejected before the SQLite header is read.
 9. SQLite writes call `enforcePlanModeWrite(..., { op: "update" })`, then `#writeSqliteRow()`.
    - The database must already exist.
-   - It opens Bun SQLite with `{ create: false, strict: true }` and `PRAGMA busy_timeout = 3000`.
+   - It opens `node:sqlite` with `{ create: false, strict: true }` and `PRAGMA busy_timeout = 3000`.
    - Whitespace-only `content` with a row key deletes a row.
    - Non-empty `content` is parsed with `Bun.JSON5.parse()`, must be an object, and is routed to insert/update helpers.
    - The scan cache is invalidated and the connection closes in `finally`.
@@ -168,7 +168,7 @@ content: ""
   - Resolves conflict markers in files for `conflict://...` writes.
   - May chmod a shebang file executable after a successful plain-file write.
 - Subprocesses / native bindings
-  - Uses Bun SQLite bindings via `bun:sqlite`.
+  - Uses the SQLite bindings from `node:sqlite`.
   - Uses the unified archive utilities in `packages/utils/src/ar`: tar serialization plus gzip/zstd framing for compressed tars, `node:zlib`-backed DEFLATE framing for ZIP, and an ASAR encoder.
   - May talk to configured LSP servers through `packages/coding-agent/src/lsp/index.ts`.
 - Session state

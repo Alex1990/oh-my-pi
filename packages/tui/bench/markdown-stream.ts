@@ -14,6 +14,7 @@
 import { clearRenderCache, Markdown } from "../src/components/markdown";
 import { getMarkdownTheme, getMarkdownThemeWithLinkTargets, initTheme } from "../src/theme/theme";
 import { defaultMarkdownTheme } from "../test/test-themes";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WIDTH = 100;
 const deltaArgument = process.argv.find(argument => argument.startsWith("--delta="));
@@ -79,14 +80,14 @@ function streamOnce(text: string): number {
 	clearRenderCache();
 	const component = new Markdown("", 0, 0, theme);
 	component.transientRenderCache = true;
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let len = DELTA; len < text.length; len += DELTA) {
 		component.setText(text.slice(0, len));
 		component.render(WIDTH);
 	}
 	component.setText(text);
 	const rendered = component.render(WIDTH);
-	const elapsed = (Bun.nanoseconds() - start) / 1e6;
+	const elapsed = (bun.nanoseconds() - start) / 1e6;
 	clearRenderCache();
 	const cold = new Markdown(text, 0, 0, theme).render(WIDTH);
 	if (JSON.stringify(rendered) !== JSON.stringify(cold)) throw new Error("Streaming rows differ from cold rendering");
@@ -95,9 +96,9 @@ function streamOnce(text: string): number {
 
 function coldOnce(text: string): number {
 	clearRenderCache();
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	new Markdown(text, 0, 0, theme).render(WIDTH);
-	return (Bun.nanoseconds() - start) / 1e6;
+	return (bun.nanoseconds() - start) / 1e6;
 }
 
 console.log(`doc: ${DOC.length} chars, ${Math.ceil(DOC.length / DELTA)} streaming steps, width ${WIDTH}`);

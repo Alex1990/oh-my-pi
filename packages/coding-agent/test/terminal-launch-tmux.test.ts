@@ -1,18 +1,19 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createTerminalLauncher, type TerminalLaunchResult } from "../src/subprocess/terminal-launch";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const tmuxPath = Bun.which("tmux");
+const tmuxPath = bun.which("tmux");
 
 async function runTmux(
 	socket: string,
 	cwd: string,
 	...args: string[]
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-	const proc = Bun.spawn([tmuxPath ?? "tmux", "-S", socket, ...args], {
+	const proc = bun.spawn([tmuxPath ?? "tmux", "-S", socket, ...args], {
 		cwd,
 		env: { ...process.env, TMUX: undefined, TMUX_PANE: undefined },
 		stdout: "pipe",
@@ -33,7 +34,7 @@ function assertTmuxSuccess(result: { stdout: string; stderr: string; exitCode: n
 }
 
 const captureScript =
-	"import * as fs from 'node:fs';\nconst destination = process.argv[2];\nconst temporary = destination + '.' + process.pid + '.tmp';\nawait Bun.write(temporary, JSON.stringify({ argv: process.argv.slice(3), cwd: process.cwd() }));\nawait fs.promises.rename(temporary, destination);\n";
+	"import * as fs from 'node:fs';\nconst destination = process.argv[2];\nconst temporary = destination + '.' + process.pid + '.tmp';\nawait bun.write(temporary, JSON.stringify({ argv: process.argv.slice(3), cwd: process.cwd() }));\nawait fs.promises.rename(temporary, destination);\n";
 
 function createSocketLauncher(socket: string) {
 	return createTerminalLauncher({
@@ -59,7 +60,7 @@ async function captureLaunch(
 	try {
 		const result = await start();
 		await captured.promise;
-		return { result, record: JSON.parse(await Bun.file(recordPath).text()) };
+		return { result, record: JSON.parse(await bun.file(recordPath).text()) };
 	} finally {
 		watcher.close();
 	}
@@ -82,7 +83,7 @@ it.skipIf(!tmuxPath)("preserves literal semicolons in tmux operands and direct c
 	try {
 		serverStarted = true;
 		await fsp.mkdir(cwd, { recursive: true });
-		await Bun.write(capturePath, captureScript);
+		await bun.write(capturePath, captureScript);
 
 		const seed = await runTmux(
 			socket,
@@ -182,7 +183,7 @@ it.skipIf(!tmuxPath)("opens a literal # cwd and runs shell mode without the tmux
 	try {
 		serverStarted = true;
 		await fsp.mkdir(cwd);
-		await Bun.write(capturePath, captureScript);
+		await bun.write(capturePath, captureScript);
 		const seed = await runTmux(
 			socket,
 			root,
@@ -199,7 +200,7 @@ it.skipIf(!tmuxPath)("opens a literal # cwd and runs shell mode without the tmux
 		assertTmuxSuccess(seed, "private server setup");
 		// Stands in for fish/nu: a single-argument command handed to default-shell never runs.
 		// `false` lives in /usr/bin on macOS and tmux rejects a default-shell that does not exist.
-		const falseShell = Bun.which("false");
+		const falseShell = bun.which("false");
 		if (!falseShell) throw new Error("`false` is not on PATH");
 		assertTmuxSuccess(
 			await runTmux(socket, root, "set-option", "-g", "default-shell", falseShell),

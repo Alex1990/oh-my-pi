@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -8,10 +8,11 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { SettingsSelectorComponent } from "@oh-my-pi/pi-tui/overlays/settings-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../helpers/settings-test-state";
 
 import { cfgSearxngEndpoint } from "@oh-my-pi/pi-coding-agent/web/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let state: SettingsTestState | undefined;
 let tempDir: TempDir;
@@ -38,10 +39,10 @@ afterEach(() => {
 });
 
 it("clearing a settings-panel text field removes the key from config.yml so its env fallback applies again", async () => {
-	Bun.env.SEARXNG_ENDPOINT = "https://env.example";
-	Bun.env.HINDSIGHT_API_TOKEN = "env-secret";
+	bun.env.SEARXNG_ENDPOINT = "https://env.example";
+	bun.env.HINDSIGHT_API_TOKEN = "env-secret";
 	const configPath = path.join(agentDir, "config.yml");
-	await Bun.write(configPath, YAML.stringify({ searxng: { endpoint: "https://cfg.example" }, temperature: 0.4 }));
+	await bun.write(configPath, YAML.stringify({ searxng: { endpoint: "https://cfg.example" }, temperature: 0.4 }));
 	await Settings.init({ cwd: projectDir, agentDir });
 	const host = createSettingsHost();
 	// The panel edits the configured layers: env values are never shown or pre-filled.
@@ -66,5 +67,5 @@ it("clearing a settings-panel text field removes the key from config.yml so its 
 
 	expect(cfgSearxngEndpoint.get(settings)).toBe("https://env.example");
 	await settings.flush();
-	expect(YAML.parse(await Bun.file(configPath).text())).toEqual({ temperature: 0.4 });
+	expect(YAML.parse(await bun.file(configPath).text())).toEqual({ temperature: 0.4 });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { lmStudioModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 import type { FetchImpl } from "@oh-my-pi/pi-catalog/types";
 

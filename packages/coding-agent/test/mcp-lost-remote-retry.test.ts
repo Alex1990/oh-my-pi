@@ -17,7 +17,7 @@
  * - a reconnect that never replaced the live connection (a declined auth
  *   challenge) does not schedule one that would.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -27,6 +27,8 @@ import type { MCPTool } from "@oh-my-pi/pi-coding-agent/mcp/tool-bridge";
 import type { MCPHttpServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { type FlakyHttpMcpServer, startFlakyHttpMcpServer } from "./fixtures/flaky-http-mcp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** Short ladder, fast schedule: three attempts per reconnect, retries at 20/40/80/80… ms. */
 const FAST: MCPReconnectPolicy = { ladderMs: [10, 10], retryBaseMs: 20, retryMaxMs: 80 };
@@ -40,7 +42,7 @@ async function until(check: () => boolean, what: string): Promise<void> {
 	const deadline = Date.now() + GUARD_MS;
 	while (!check()) {
 		if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-		await Bun.sleep(5);
+		await bun.sleep(5);
 	}
 }
 
@@ -59,7 +61,7 @@ describe("MCP lost remote server retry schedule", () => {
 
 	async function connected(policy: MCPReconnectPolicy) {
 		workDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mcp-lost-remote-"));
-		flaky = startFlakyHttpMcpServer();
+		flaky = await startFlakyHttpMcpServer();
 		manager = new MCPManager(workDir, null, undefined, policy);
 		const statuses: McpConnectionStatusEvent["type"][] = [];
 		manager.addConnectionStatusListener(event => statuses.push(event.type));
@@ -122,8 +124,8 @@ describe("MCP lost remote server retry schedule", () => {
 		flaky.setDown(false);
 		// Negative contract: there is no event to wait for, so wait out the
 		// longest delay the schedule can arm (see QUIET_MS). Fake timers cannot
-		// drive a real Bun.serve + fetch round trip.
-		await Bun.sleep(QUIET_MS);
+		// drive a real serve + fetch round trip.
+		await bun.sleep(QUIET_MS);
 
 		expect(flaky.initializes).toBe(initializesAtDisconnect);
 		expect(manager.getConnectionStatus("flaky")).toBe("disconnected");
@@ -137,7 +139,7 @@ describe("MCP lost remote server retry schedule", () => {
 		expect(await manager.reconnectServer("flaky", { authChallenge: { wwwAuthenticate: ["Bearer"] } })).toBeNull();
 		expect(manager.getConnectionStatus("flaky")).toBe("connected");
 
-		await Bun.sleep(QUIET_MS); // negative contract, see above
+		await bun.sleep(QUIET_MS); // negative contract, see above
 
 		expect(flaky.initializes).toBe(initializesBefore);
 		expect(statuses.filter(status => status === "connected")).toHaveLength(1);
@@ -146,7 +148,7 @@ describe("MCP lost remote server retry schedule", () => {
 
 	it("does not schedule a server that never connected", async () => {
 		workDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mcp-lost-remote-"));
-		flaky = startFlakyHttpMcpServer();
+		flaky = await startFlakyHttpMcpServer();
 		flaky.setDown(true);
 		manager = new MCPManager(workDir, null, undefined, FAST);
 		const config: MCPHttpServerConfig = { type: "http", url: flaky.url, timeout: GUARD_MS };
@@ -158,7 +160,7 @@ describe("MCP lost remote server retry schedule", () => {
 		expect(await manager.reconnectServer("flaky", { manual: true })).toBeNull();
 
 		flaky.setDown(false);
-		await Bun.sleep(QUIET_MS); // negative contract, see above
+		await bun.sleep(QUIET_MS); // negative contract, see above
 
 		expect(flaky.initializes).toBe(0);
 		expect(manager.getConnectionStatus("flaky")).toBe("disconnected");

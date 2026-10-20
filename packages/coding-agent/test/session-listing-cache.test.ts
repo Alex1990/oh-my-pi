@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { listSessions } from "@oh-my-pi/pi-coding-agent/session/session-listing";
 import { MemorySessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 

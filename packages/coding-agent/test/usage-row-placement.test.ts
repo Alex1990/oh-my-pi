@@ -3,7 +3,7 @@
  * Read-only turns keep their metrics inside the compact read group; other
  * assistant turns retain a standalone row below their visible content/tools.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -18,6 +18,7 @@ import { formatNumber } from "@oh-my-pi/pi-utils";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
 
 import { cfgDisplayShowTokenUsage } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // 4242 → "4.2K": distinctive enough not to collide with a read group's render.
 const USAGE_INPUT = 4242;
@@ -119,7 +120,7 @@ describe("UiHelpers.renderSessionContext token-usage row placement", () => {
 			(component): component is ReadToolGroupComponent => component instanceof ReadToolGroupComponent,
 		);
 		expect(groups).toHaveLength(1);
-		const lines = Bun.stripANSI(groups[0]!.render(120).join("\n")).split("\n");
+		const lines = bun.stripANSI(groups[0]!.render(120).join("\n")).split("\n");
 		const fooIndex = lines.findIndex(line => line.includes("src/foo.ts"));
 		const firstUsageIndex = lines.findIndex(line => line.includes(USAGE_TS_LABEL));
 		const barIndex = lines.findIndex(line => line.includes("src/bar.ts"));
@@ -208,7 +209,7 @@ describe("ChatTranscriptBuilder token-usage row timestamp", () => {
 		]);
 
 		const rendered = builder.container.render(120);
-		expect(Bun.stripANSI(rendered.join("\n"))).toContain("echo ok");
+		expect(bun.stripANSI(rendered.join("\n"))).toContain("echo ok");
 		expect(builder.rowForEntry("tool-entry")).toBe(0);
 	});
 

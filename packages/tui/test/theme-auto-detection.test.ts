@@ -1,13 +1,38 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import * as nativesModule from "@oh-my-pi/pi-natives";
 import { type MacAppearanceObserver, MacOSAppearance } from "@oh-my-pi/pi-natives";
+
 import type { Terminal, TerminalAppearance } from "@oh-my-pi/pi-tui";
 import { getTerminalBackgroundColor, setTerminalBackgroundColor } from "@oh-my-pi/pi-tui/terminal-capabilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type * as NativesModule from "@oh-my-pi/pi-natives";
+
+// The native addon's class methods are non-configurable, so `vi.spyOn` cannot
+// replace them. The mock below swaps only `MacAppearanceObserver` and forwards
+// `start` to this hoisted spy, which keeps every call-history assertion intact.
+const nativeObserver = vi.hoisted(() => ({
+	start: vi.fn<(callback: (err: null | Error, appearance: MacOSAppearance) => void) => MacAppearanceObserver>(),
+}));
+
+vi.mock("@oh-my-pi/pi-natives", async importOriginal => {
+	const actual = await importOriginal<typeof NativesModule>();
+	return {
+		...actual,
+		MacAppearanceObserver: class {
+			static start(callback: (err: null | Error, appearance: MacOSAppearance) => void): MacAppearanceObserver {
+				return nativeObserver.start(callback);
+			}
+
+			stop(): void {}
+		},
+	};
+});
 
 const originalPlatform = process.platform;
-const originalColorfgbg = Bun.env.COLORFGBG;
-const originalZellij = Bun.env.ZELLIJ;
+const originalColorfgbg = bun.env.COLORFGBG;
+const originalZellij = bun.env.ZELLIJ;
 
 type ThemeTestGlobals = {
 	platform?: NodeJS.Platform;
@@ -22,11 +47,11 @@ const withThemeTestGlobals = (globals: ThemeTestGlobals = {}) => {
 		writable: true,
 	});
 
-	if (globals.colorfgbg === undefined) delete Bun.env.COLORFGBG;
-	else Bun.env.COLORFGBG = globals.colorfgbg;
+	if (globals.colorfgbg === undefined) delete bun.env.COLORFGBG;
+	else bun.env.COLORFGBG = globals.colorfgbg;
 
-	if (globals.zellij === undefined) delete Bun.env.ZELLIJ;
-	else Bun.env.ZELLIJ = globals.zellij;
+	if (globals.zellij === undefined) delete bun.env.ZELLIJ;
+	else bun.env.ZELLIJ = globals.zellij;
 
 	return {
 		[Symbol.dispose]() {
@@ -36,10 +61,10 @@ const withThemeTestGlobals = (globals: ThemeTestGlobals = {}) => {
 				configurable: true,
 				writable: true,
 			});
-			if (originalColorfgbg === undefined) delete Bun.env.COLORFGBG;
-			else Bun.env.COLORFGBG = originalColorfgbg;
-			if (originalZellij === undefined) delete Bun.env.ZELLIJ;
-			else Bun.env.ZELLIJ = originalZellij;
+			if (originalColorfgbg === undefined) delete bun.env.COLORFGBG;
+			else bun.env.COLORFGBG = originalColorfgbg;
+			if (originalZellij === undefined) delete bun.env.ZELLIJ;
+			else bun.env.ZELLIJ = originalZellij;
 			vi.restoreAllMocks();
 		},
 	};
@@ -102,13 +127,13 @@ function mockMacAppearanceObserver() {
 	const stop = vi.fn();
 	const observer: MacAppearanceObserver = { stop };
 	let callback: ((err: null | Error, appearance: MacOSAppearance) => void) | undefined;
-	const start = vi.spyOn(nativesModule.MacAppearanceObserver, "start").mockImplementation(nextCallback => {
+	nativeObserver.start.mockImplementation(nextCallback => {
 		callback = nextCallback;
 		return observer;
 	});
 
 	return {
-		start,
+		start: nativeObserver.start,
 		stop,
 		emit(appearance: MacOSAppearance): void {
 			if (!callback) throw new Error("Mac appearance observer has not started");
@@ -133,6 +158,7 @@ describe("theme auto-detection", () => {
 		}
 		themeModule.setThemeInstance(darkTheme);
 		vi.restoreAllMocks();
+		nativeObserver.start.mockReset();
 	});
 
 	afterEach(() => {
@@ -146,7 +172,7 @@ describe("theme auto-detection", () => {
 		expect(getTerminalBackgroundColor()).toBe(0xffffff);
 		setTerminalBackgroundColor(0x102030);
 		expect(getTerminalBackgroundColor()).toBe(0x102030);
-		Bun.env.COLORFGBG = "15;0";
+		bun.env.COLORFGBG = "15;0";
 		expect(getTerminalBackgroundColor()).toBe(0x102030);
 		setTerminalBackgroundColor(undefined);
 		expect(getTerminalBackgroundColor()).toBe(0x000000);
@@ -167,7 +193,7 @@ describe("theme auto-detection", () => {
 		expect(themeModule.detectTerminalBackground()).toBe("dark");
 		expect(getTerminalBackgroundColor()).toBe(0x000000);
 
-		Bun.env.COLORFGBG = "0;15";
+		bun.env.COLORFGBG = "0;15";
 		themeModule.onTerminalAppearanceChange("dark");
 		expect(themeModule.detectTerminalBackground()).toBe("light");
 		expect(getTerminalBackgroundColor()).toBe(0xffffff);
@@ -214,7 +240,7 @@ describe("theme auto-detection", () => {
 
 		observer.emit(MacOSAppearance.Dark);
 		expect(getTerminalBackgroundColor()).toBe(0x000000);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		expect(themeModule.getCurrentThemeName()).toBe("dark");
 		themeModule.stopThemeWatcher();

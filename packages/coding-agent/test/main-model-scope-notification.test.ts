@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { ScopedModel } from "@oh-my-pi/pi-coding-agent/config/model-resolver";
 import { buildModelScopeNotification } from "@oh-my-pi/pi-coding-agent/main";

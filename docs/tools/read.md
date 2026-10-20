@@ -215,7 +215,7 @@ Literal filesystem paths take precedence over selector interpretation, so an exi
 - Rendering caps in `packages/coding-agent/src/tools/sqlite-reader.ts`:
    - ASCII table width `120` (`MAX_RENDER_WIDTH`)
    - per-column width `40` (`MAX_COLUMN_WIDTH`)
-- `openSqliteReadConnection()` in `sqlite-reader.ts` uses strict Bun SQLite with `PRAGMA query_only = ON` and `busy_timeout = 3000`. It normally opens read-only; missing WAL sidecars or `SQLITE_CANTOPEN` trigger a read-write connection (`create: false`) solely to initialize sidecars.
+- `openSqliteReadConnection()` in `sqlite-reader.ts` uses strict `node:sqlite` with `PRAGMA query_only = ON` and `busy_timeout = 3000`. It normally opens read-only; missing WAL sidecars or `SQLITE_CANTOPEN` trigger a read-write connection (`create: false`) solely to initialize sidecars.
 
 ### Documents
 
@@ -311,7 +311,7 @@ Notes: ...
 - Network
    - URL mode performs HTTP fetches, binary refetches, and alternate-endpoint probes.
 - Subprocesses / native bindings
-   - Uses Bun SQLite for `.db`/`.sqlite*`.
+   - Uses `node:sqlite` for `.db`/`.sqlite*`.
    - Reads archives through the unified `@oh-my-pi/pi-utils/ar` registry; ZIP is framed in `packages/utils/src/ar/zip.ts` over the `node:zlib` DEFLATE codec.
    - URL HTML rendering can delegate into site handlers and HTML-to-text backends from `packages/coding-agent/src/tools/fetch.ts`.
    - Video invokes `ffmpeg`/`ffprobe`; PDF page screenshots use headless Chromium; executable views may create/open an IDA database and request rendered views.

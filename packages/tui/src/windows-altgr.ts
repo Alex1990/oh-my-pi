@@ -21,7 +21,7 @@
  * table entry (`ToUnicodeEx` reports them as pending composition, not text), so those
  * chords keep reaching Alt bindings.
  */
-import { dlopen, FFIType, type Library, type Pointer, ptr } from "bun:ffi";
+import { dlopen, FFIType, type Library, ptr } from "@oh-my-pi/pi-utils/ffi";
 import { parseKittySequence } from "./keys";
 
 const KITTY_MOD_SHIFT = 1;
@@ -55,8 +55,10 @@ type User32 = Library<typeof USER32_SYMBOLS>;
 
 /** AltGr layer of one keyboard layout: `"<baseCodepoint>:<shift 0|1>"` → produced text. */
 type AltGrTable = Map<string, string>;
-/** Keyboard layout handle (`HKL`) as `bun:ffi` surfaces pointer-sized values. */
-export type KeyboardLayoutHandle = Pointer | bigint;
+/** Keyboard layout handle (`HKL`). The FFI layer types `void *` returns as
+ *  `unknown`, and the value is only ever passed back into an FFI call, so it is
+ *  deliberately opaque here. */
+export type KeyboardLayoutHandle = unknown;
 
 let user32: User32 | null | undefined;
 let cachedLayout: { hkl: KeyboardLayoutHandle | null; table: AltGrTable } | undefined;

@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("native streaming edit previews", () => {
 	beforeAll(async () => {
@@ -31,12 +32,12 @@ describe("native streaming edit previews", () => {
 				streaming: true,
 				files: [{ path: "/tmp/mod.ts", diff: "@@ -1 +1 @@\n-const a = 1;\n+const a = 2;", firstChangedLine: 1 }],
 			});
-			const first = Bun.stripANSI(component.render(100).join("\n"));
+			const first = bun.stripANSI(component.render(100).join("\n"));
 			expect(first).toContain("const a = 2;");
 			expect(renders).toBe(1);
 
 			component.updateStreamPreview({ generation: 2, streaming: true, files: [] });
-			expect(Bun.stripANSI(component.render(100).join("\n"))).toContain("const a = 2;");
+			expect(bun.stripANSI(component.render(100).join("\n"))).toContain("const a = 2;");
 			expect(renders).toBe(1);
 
 			component.updateStreamPreview({
@@ -44,7 +45,7 @@ describe("native streaming edit previews", () => {
 				streaming: true,
 				files: [{ path: "/tmp/mod.ts", diff: "@@ -1 +1 @@\n-const a = 1;\n+const a = 3;", firstChangedLine: 1 }],
 			});
-			expect(Bun.stripANSI(component.render(100).join("\n"))).toContain("const a = 3;");
+			expect(bun.stripANSI(component.render(100).join("\n"))).toContain("const a = 3;");
 			expect(renders).toBe(2);
 		} finally {
 			component.stopAnimation();
@@ -66,7 +67,7 @@ describe("native streaming edit previews", () => {
 				streaming: false,
 				files: [{ path: "/tmp/mod.ts", diff: "@@ -1 +1 @@\n-old\n+late", firstChangedLine: 1 }],
 			});
-			const rendered = Bun.stripANSI(component.render(100).join("\n"));
+			const rendered = bun.stripANSI(component.render(100).join("\n"));
 			expect(rendered).toContain("final");
 			expect(rendered).not.toContain("late");
 		} finally {

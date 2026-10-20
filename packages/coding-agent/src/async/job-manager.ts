@@ -4,6 +4,7 @@ import { logger } from "@oh-my-pi/pi-utils";
 import type { StructuredSubagentOutput } from "@oh-my-pi/pi-tui/tools/task";
 import type { OutputMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import type { JobWidgetInputs, JobWidgetRegistry } from "../job-widgets/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DELIVERY_RETRY_BASE_MS = 500;
 const DELIVERY_RETRY_MAX_MS = 30_000;
@@ -807,7 +808,7 @@ export class AsyncJobManager {
 				return false;
 			}
 
-			await Promise.race([loop, Bun.sleep(remainingMs)]);
+			await Promise.race([loop, bun.sleep(remainingMs)]);
 			if (Date.now() >= deadline && this.hasPendingDeliveries(filter)) {
 				return false;
 			}
@@ -943,7 +944,7 @@ export class AsyncJobManager {
 		void this.#waitForJobDeliverySettledBounded(jobId)
 			.then(() =>
 				!bypassGrace && this.#retainedArtifactsCleanupGraceMs > 0
-					? Bun.sleep(this.#retainedArtifactsCleanupGraceMs)
+					? bun.sleep(this.#retainedArtifactsCleanupGraceMs)
 					: undefined,
 			)
 			.then(cleanup)
@@ -1315,7 +1316,7 @@ export class AsyncJobManager {
 		let timedOut = false;
 		await Promise.race([
 			promise,
-			Bun.sleep(remainingMs).then(() => {
+			bun.sleep(remainingMs).then(() => {
 				timedOut = true;
 			}),
 		]);

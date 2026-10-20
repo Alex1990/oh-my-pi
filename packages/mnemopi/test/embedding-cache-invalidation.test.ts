@@ -6,7 +6,7 @@
  * The invalidation is deliberately gated on rows actually committing: a provider that returns a
  * short or empty matrix inserts nothing, changes no ranking, and must not discard a valid cache.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { initBeam } from "@oh-my-pi/pi-mnemopi/core/beam/schema";
 import { remember } from "@oh-my-pi/pi-mnemopi/core/beam/store";
 import type { BeamEvent, BeamMemoryState } from "@oh-my-pi/pi-mnemopi/core/beam/types";

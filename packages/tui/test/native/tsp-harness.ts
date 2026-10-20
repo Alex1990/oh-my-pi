@@ -17,6 +17,7 @@ import { splitTspMessage, type TspHello } from "@oh-my-pi/pi-tui/native/encode";
 import type { Terminal, TerminalAppearance, TerminalStartOptions, TspHelloHandler } from "@oh-my-pi/pi-tui/terminal";
 import { type RenderScheduler, type RenderTimer, TUI } from "@oh-my-pi/pi-tui/tui";
 import { TSP_KINDS, type TspEvent, type TspFrame, type TspNode, type TspPalette } from "@oh-my-pi/pi-wire";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface TspHarnessOptions {
 	cols?: number;
@@ -57,7 +58,7 @@ export interface TspHarnessOptions {
 
 /** The id Tern names a blob by. */
 function blobId(bytes: Uint8Array): string {
-	return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	return new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
 interface Task {
@@ -150,7 +151,10 @@ export class TspTestTerminal implements Terminal {
 		if (!dir || !/^[0-9a-f]{64}$/.test(id)) return false;
 		let bytes: Uint8Array;
 		try {
-			bytes = fs.readFileSync(path.join(dir, id));
+			// `readFileSync` hands back a `Buffer`; store a plain `Uint8Array` like
+			// every other blob so equality checks do not depend on the subclass.
+			const read = fs.readFileSync(path.join(dir, id));
+			bytes = new Uint8Array(read.buffer, read.byteOffset, read.byteLength);
 		} catch {
 			return false;
 		}
@@ -339,7 +343,9 @@ export class TspTestTerminal implements Terminal {
 			}
 			case "b": {
 				// Named by the sha256 of its bytes, as Tern names it.
-				const bytes = Buffer.from(body, "base64");
+				const decoded = Buffer.from(body, "base64");
+				// `Buffer` is a `Uint8Array` subclass; store the plain view.
+				const bytes = new Uint8Array(decoded.buffer, decoded.byteOffset, decoded.byteLength);
 				const id = blobId(bytes);
 				if (this.#options.requireBlobId && raw.params.id !== id) return;
 				this.blobs.set(id, bytes);
@@ -385,9 +391,9 @@ export class TspHarness {
 		const scheduler = new ManualScheduler();
 		const harness = new TspHarness(new TspTestTerminal(options), scheduler);
 		// The terminal's blob cache is the fake one, never the cache of a Tern running the tests.
-		harness.#blobDirBefore = { value: Bun.env.TERN_BLOB_DIR };
-		if (options.blobDir) Bun.env.TERN_BLOB_DIR = options.blobDir;
-		else delete Bun.env.TERN_BLOB_DIR;
+		harness.#blobDirBefore = { value: bun.env.TERN_BLOB_DIR };
+		if (options.blobDir) bun.env.TERN_BLOB_DIR = options.blobDir;
+		else delete bun.env.TERN_BLOB_DIR;
 		setup?.(harness.tui);
 		harness.tui.start({ deferInput: options.deferInput });
 		harness.flush();
@@ -415,7 +421,7 @@ export class TspHarness {
 			this.flush();
 			if (done()) return;
 			if (Date.now() > deadline) throw new Error("condition not met in time");
-			await Bun.sleep(1);
+			await bun.sleep(1);
 		}
 	}
 
@@ -473,7 +479,7 @@ export class TspHarness {
 		const before = this.#blobDirBefore;
 		this.#blobDirBefore = undefined;
 		if (!before) return;
-		if (before.value === undefined) delete Bun.env.TERN_BLOB_DIR;
-		else Bun.env.TERN_BLOB_DIR = before.value;
+		if (before.value === undefined) delete bun.env.TERN_BLOB_DIR;
+		else bun.env.TERN_BLOB_DIR = before.value;
 	}
 }

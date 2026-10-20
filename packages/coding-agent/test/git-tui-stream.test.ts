@@ -1,11 +1,11 @@
-import { beforeAll, describe, expect, spyOn, test } from "bun:test";
+import { beforeAll, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as natives from "@oh-my-pi/pi-natives";
 import { DiffSide, DiffStream } from "@oh-my-pi/pi-natives";
 import { sanitizeText } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import {
 	buildDiffDocument,
 	buildLineSelectionPatch,
@@ -16,6 +16,7 @@ import type { ChangedFile } from "@oh-my-pi/pi-tui/apps/git/state";
 import { GitModel } from "../src/cli/git-tui/state";
 import { ImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const RED_PNG = Buffer.from(
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
@@ -36,7 +37,7 @@ async function withReviewRepo(run: (repo: string) => Promise<void>): Promise<voi
 		await $`git init --initial-branch=main`.cwd(repo).quiet();
 		await $`git config user.name "Test User"`.cwd(repo).quiet();
 		await $`git config user.email "test@example.com"`.cwd(repo).quiet();
-		await Bun.write(path.join(repo, "seed.txt"), "seed\n");
+		await bun.write(path.join(repo, "seed.txt"), "seed\n");
 		await $`git add seed.txt`.cwd(repo).quiet();
 		await $`git commit -m base`.cwd(repo).quiet();
 		await run(repo);
@@ -71,7 +72,7 @@ async function streamedDocument(oldText: string, newText: string, options: DiffB
 describe("git TUI streamed document", () => {
 	test("uses an empty base side for a staged added file", async () => {
 		await withReviewRepo(async repo => {
-			await Bun.write(path.join(repo, "added.ts"), "export const added = true;\n");
+			await bun.write(path.join(repo, "added.ts"), "export const added = true;\n");
 			await $`git add added.ts`.cwd(repo).quiet();
 
 			const model = new GitModel(repo);
@@ -95,10 +96,10 @@ describe("git TUI streamed document", () => {
 			const filePath = path.join(repo, "seed.txt");
 			const original = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n";
 			const modified = original.replace("line 5\nline 6", "changed 5\nchanged 6");
-			await Bun.write(filePath, original);
+			await bun.write(filePath, original);
 			await $`git add seed.txt`.cwd(repo).quiet();
 			await $`git commit -m lines`.cwd(repo).quiet();
-			await Bun.write(filePath, modified);
+			await bun.write(filePath, modified);
 
 			const model = new GitModel(repo);
 			const doc = buildDiffDocument(original, modified, "seed.txt");
@@ -111,7 +112,7 @@ describe("git TUI streamed document", () => {
 				"changed 5",
 				"line 6",
 			]);
-			expect(await Bun.file(filePath).text()).toBe(modified);
+			expect(await bun.file(filePath).text()).toBe(modified);
 
 			const staged = buildDiffDocument(original, await $`git show :seed.txt`.cwd(repo).quiet().text(), "seed.txt");
 			const stagedRow = staged.rows.findIndex(item => item.newRaw === "changed 5");
@@ -119,7 +120,7 @@ describe("git TUI streamed document", () => {
 			if (!undo) throw new Error("staged row produced no reverse patch");
 			await model.applyPatch(undo, { cached: true });
 			expect(await $`git show :seed.txt`.cwd(repo).quiet().text()).toBe(original);
-			expect(await Bun.file(filePath).text()).toBe(modified);
+			expect(await bun.file(filePath).text()).toBe(modified);
 		});
 	});
 
@@ -129,16 +130,16 @@ describe("git TUI streamed document", () => {
 			const original = Array.from({ length: 60 }, (_, index) => `line ${index + 1}`).join("\n") + "\n";
 			const expected = original.replace("line 40\n", "changed 40\n");
 			const modified = expected.replace("line 5\n", "changed 5\n");
-			await Bun.write(filePath, original);
+			await bun.write(filePath, original);
 			await $`git add seed.txt`.cwd(repo).quiet();
 			await $`git commit -m lines`.cwd(repo).quiet();
-			await Bun.write(filePath, modified);
+			await bun.write(filePath, modified);
 
 			const doc = buildDiffDocument(original, modified, "seed.txt");
 			expect(doc.hunks).toHaveLength(2);
 			await new GitModel(repo).applyPatch(doc.hunks[1].patch, { cached: true });
 			expect(await $`git show :seed.txt`.cwd(repo).quiet().text()).toBe(expected);
-			expect(await Bun.file(filePath).text()).toBe(modified);
+			expect(await bun.file(filePath).text()).toBe(modified);
 		});
 	});
 
@@ -177,7 +178,7 @@ describe("git TUI streamed document", () => {
 describe("git TUI asset previews", () => {
 	test("renders raster Git objects as media instead of binary placeholders", async () => {
 		await withReviewRepo(async repo => {
-			await Bun.write(path.join(repo, "image.png"), RED_PNG);
+			await bun.write(path.join(repo, "image.png"), RED_PNG);
 			await $`git add image.png`.cwd(repo).quiet();
 
 			const { contents, file } = await loadStagedContents(repo, "image.png");
@@ -200,20 +201,20 @@ describe("git TUI asset previews", () => {
 		await withReviewRepo(async repo => {
 			const logo = path.join(repo, "logo.png");
 			const gone = path.join(repo, "gone.png");
-			await Bun.write(logo, RED_PNG);
-			await Bun.write(gone, RED_PNG);
+			await bun.write(logo, RED_PNG);
+			await bun.write(gone, RED_PNG);
 			await $`git add logo.png gone.png`.cwd(repo).quiet();
 			await $`git commit -m add`.cwd(repo).quiet();
 			const added = (await $`git rev-parse HEAD`.cwd(repo).quiet().text()).trim();
-			await Bun.write(logo, GRAY_PNG);
+			await bun.write(logo, GRAY_PNG);
 			await $`git commit -am gray`.cwd(repo).quiet();
 			const gray = (await $`git rev-parse HEAD`.cwd(repo).quiet().text()).trim();
 			// logo.png: staged (gray → red) and unstaged (red → raw bytes); gone.png deleted; fresh.png untracked.
-			await Bun.write(logo, RED_PNG);
+			await bun.write(logo, RED_PNG);
 			await $`git add logo.png`.cwd(repo).quiet();
-			await Bun.write(logo, new Uint8Array([0xff, 0xfe, 0xfd, 0xfc]));
+			await bun.write(logo, new Uint8Array([0xff, 0xfe, 0xfd, 0xfc]));
 			await fs.rm(gone);
-			await Bun.write(path.join(repo, "fresh.png"), RED_PNG);
+			await bun.write(path.join(repo, "fresh.png"), RED_PNG);
 
 			const model = new GitModel(repo);
 			await model.refresh();
@@ -243,7 +244,7 @@ describe("git TUI asset previews", () => {
 		await withReviewRepo(async repo => {
 			const svg =
 				'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="red"/></svg>';
-			await Bun.write(path.join(repo, "diagram.svg"), svg);
+			await bun.write(path.join(repo, "diagram.svg"), svg);
 			await $`git add diagram.svg`.cwd(repo).quiet();
 
 			const { contents, file } = await loadStagedContents(repo, "diagram.svg");
@@ -297,11 +298,11 @@ describe("git TUI asset previews", () => {
 
 	test("resolves staged Git LFS pointers from local object storage", async () => {
 		await withReviewRepo(async repo => {
-			const oid = new Bun.CryptoHasher("sha256").update(RED_PNG).digest("hex");
+			const oid = new bun.CryptoHasher("sha256").update(RED_PNG).digest("hex");
 			const objectPath = path.join(repo, ".git", "lfs", "objects", oid.slice(0, 2), oid.slice(2, 4), oid);
 			await fs.mkdir(path.dirname(objectPath), { recursive: true });
-			await Bun.write(objectPath, RED_PNG);
-			await Bun.write(
+			await bun.write(objectPath, RED_PNG);
+			await bun.write(
 				path.join(repo, "lfs-image.png"),
 				`${LFS_POINTER_VERSION}\noid sha256:${oid}\nsize ${RED_PNG.byteLength}\n`,
 			);
@@ -323,7 +324,7 @@ describe("git TUI asset previews", () => {
 	test("shows unavailable Git LFS objects explicitly", async () => {
 		await withReviewRepo(async repo => {
 			const oid = "0".repeat(64);
-			await Bun.write(
+			await bun.write(
 				path.join(repo, "missing.png"),
 				`${LFS_POINTER_VERSION}\noid sha256:${oid}\nsize ${RED_PNG.byteLength}\n`,
 			);
@@ -343,7 +344,7 @@ describe("git TUI asset previews", () => {
 
 	test("keeps invalid UTF-8 Git objects out of the text renderer", async () => {
 		await withReviewRepo(async repo => {
-			await Bun.write(path.join(repo, "object.bin"), new Uint8Array([0xff, 0xfe, 0xfd, 0xfc]));
+			await bun.write(path.join(repo, "object.bin"), new Uint8Array([0xff, 0xfe, 0xfd, 0xfc]));
 			await $`git add object.bin`.cwd(repo).quiet();
 
 			const { contents, file } = await loadStagedContents(repo, "object.bin");

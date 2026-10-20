@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { generateOpenAIImage } from "@oh-my-pi/pi-ai/images/openai-images";
 import { resolveOpenAIRequestSetup } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
@@ -7,6 +7,7 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { SearchParams } from "@oh-my-pi/pi-coding-agent/web/search/providers/base";
 import { searchXAI } from "@oh-my-pi/pi-coding-agent/web/search/providers/xai";
 import { createInMemoryAuthStorage } from "../../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SELECTED_MODEL_ID = "grok-selected-grounding";
 const SELECTED_BASE_URL = "https://xai-grounding.example.test/v1";
@@ -584,10 +585,10 @@ describe("xAI Responses answer extraction from relay output items", () => {
 });
 
 describe("XAI_BASE_URL", () => {
-	const originalXaiBaseUrl = Bun.env.XAI_BASE_URL;
+	const originalXaiBaseUrl = bun.env.XAI_BASE_URL;
 	afterEach(() => {
-		if (originalXaiBaseUrl === undefined) delete Bun.env.XAI_BASE_URL;
-		else Bun.env.XAI_BASE_URL = originalXaiBaseUrl;
+		if (originalXaiBaseUrl === undefined) delete bun.env.XAI_BASE_URL;
+		else bun.env.XAI_BASE_URL = originalXaiBaseUrl;
 	});
 
 	function captureUrl(): { fetch: FetchImpl; url: () => string | undefined } {
@@ -603,7 +604,7 @@ describe("XAI_BASE_URL", () => {
 	}
 
 	it("redirects a model on the bundled xAI endpoint", async () => {
-		Bun.env.XAI_BASE_URL = "https://xai-env.example.test/v1/";
+		bun.env.XAI_BASE_URL = "https://xai-env.example.test/v1/";
 		const bundled = { ...model, baseUrl: "https://api.x.ai/v1" };
 		const capture = captureUrl();
 		await searchXAI(makeParams(capture.fetch, { model: bundled }));
@@ -611,7 +612,7 @@ describe("XAI_BASE_URL", () => {
 	});
 
 	it("keeps a custom model baseUrl", async () => {
-		Bun.env.XAI_BASE_URL = "https://xai-env.example.test/v1";
+		bun.env.XAI_BASE_URL = "https://xai-env.example.test/v1";
 		const capture = captureUrl();
 		await searchXAI(makeParams(capture.fetch));
 		expect(capture.url()).toBe(`${SELECTED_BASE_URL}/responses`);
@@ -621,7 +622,7 @@ describe("XAI_BASE_URL", () => {
 describe("XAI_BASE_URL credential routing agrees across chat, images, and search", () => {
 	const ENV_BASE_URL = "https://xai-env.example.test/v1";
 	const BUNDLED_BASE_URL = "https://api.x.ai/v1";
-	const originalXaiBaseUrl = Bun.env.XAI_BASE_URL;
+	const originalXaiBaseUrl = bun.env.XAI_BASE_URL;
 	// xAI OAuth access tokens are JWTs; the signature is irrelevant to routing.
 	const OAUTH_ACCESS_TOKEN = [
 		Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url"),
@@ -630,8 +631,8 @@ describe("XAI_BASE_URL credential routing agrees across chat, images, and search
 	].join(".");
 
 	afterEach(() => {
-		if (originalXaiBaseUrl === undefined) delete Bun.env.XAI_BASE_URL;
-		else Bun.env.XAI_BASE_URL = originalXaiBaseUrl;
+		if (originalXaiBaseUrl === undefined) delete bun.env.XAI_BASE_URL;
+		else bun.env.XAI_BASE_URL = originalXaiBaseUrl;
 		vi.restoreAllMocks();
 	});
 
@@ -687,7 +688,7 @@ describe("XAI_BASE_URL credential routing agrees across chat, images, and search
 
 	for (const routing of cases) {
 		it(routing.name, async () => {
-			Bun.env.XAI_BASE_URL = `${ENV_BASE_URL}/`;
+			bun.env.XAI_BASE_URL = `${ENV_BASE_URL}/`;
 			const xaiModel = { ...model, provider: routing.provider, baseUrl: BUNDLED_BASE_URL };
 
 			const chatBaseUrl = resolveOpenAIRequestSetup(xaiModel, { apiKey: routing.bearer, messages: [] }).baseUrl;

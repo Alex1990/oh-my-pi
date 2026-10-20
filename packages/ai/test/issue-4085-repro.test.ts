@@ -1,7 +1,9 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { POLL_MAX_ATTEMPTS, pollOperation } from "@oh-my-pi/pi-ai/registry/oauth/google-gemini-cli";
 import { oauthFetch } from "@oh-my-pi/pi-ai/registry/oauth/google-oauth-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /**
  * A loopback server whose handler never resolves — models a stalled Cloud Code
@@ -9,8 +11,8 @@ import { oauthFetch } from "@oh-my-pi/pi-ai/registry/oauth/google-oauth-shared";
  * keeps the request open instead of letting Bun close it, so the only escape is
  * the caller's own signal/timeout.
  */
-function stallingServer() {
-	return Bun.serve({ port: 0, idleTimeout: 0, fetch: () => Promise.withResolvers<Response>().promise });
+async function stallingServer() {
+	return await serve({ port: 0, idleTimeout: 0, fetch: () => Promise.withResolvers<Response>().promise });
 }
 
 describe("issue #4085 — Google OAuth provisioning honors cancel/timeout", () => {
@@ -23,7 +25,7 @@ describe("issue #4085 — Google OAuth provisioning honors cancel/timeout", () =
 	});
 
 	it("oauthFetch aborts an in-flight request when the signal fires mid-fetch", async () => {
-		const server = stallingServer();
+		const server = await stallingServer();
 		try {
 			const ctrl = new AbortController();
 			const pending = oauthFetch(
@@ -44,7 +46,7 @@ describe("issue #4085 — Google OAuth provisioning honors cancel/timeout", () =
 	});
 
 	it("oauthFetch surfaces a stalled endpoint as an OAuthError timeout", async () => {
-		const server = stallingServer();
+		const server = await stallingServer();
 		try {
 			const err = await oauthFetch(
 				`http://127.0.0.1:${server.port}/`,
@@ -59,7 +61,7 @@ describe("issue #4085 — Google OAuth provisioning honors cancel/timeout", () =
 	});
 
 	it("pollOperation is bounded: a never-done operation fails after POLL_MAX_ATTEMPTS", async () => {
-		const sleepSpy = spyOn(Bun, "sleep").mockImplementation((() => Promise.resolve()) as typeof Bun.sleep);
+		const sleepSpy = spyOn(bun, "sleep").mockImplementation((() => Promise.resolve()) as typeof bun.sleep);
 		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
 			(async () =>
 				new Response(JSON.stringify({ done: false }), { status: 200 })) as unknown as typeof globalThis.fetch,

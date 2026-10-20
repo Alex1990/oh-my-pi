@@ -5,6 +5,7 @@ import { applyStealthPatches, applyViewport } from "../../../tools/browser/launc
 import { acquireBrowser, holdBrowser, releaseBrowser } from "../../../tools/browser/registry";
 import { buildBrowserNavigationHeaders } from "./browser-headers";
 import { SEARCH_HARD_TIMEOUT_MS } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** HTML plus the response status and final URL after redirects or browser navigation. */
 export interface LoadedHtmlPage {
@@ -95,7 +96,7 @@ async function browseHtmlPage(
 			);
 		}
 		for (let attempt = 0; attempt < attempts; attempt++) {
-			if (attempt > 0 && options.retryDelayMs) await Bun.sleep(options.retryDelayMs);
+			if (attempt > 0 && options.retryDelayMs) await bun.sleep(options.retryDelayMs);
 
 			const response = await untilAborted(signal, () =>
 				activePage.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs }),

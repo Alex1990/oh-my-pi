@@ -9,6 +9,7 @@ import type { Theme, ThemeColor } from "../theme/theme";
 import { node, span } from "../native/describe";
 import type { NativeNode } from "../native/node";
 import { plainText } from "../native/spans";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Max depth for JSON tree rendering */
 export const JSON_TREE_MAX_DEPTH_COLLAPSED = 2;
@@ -27,9 +28,9 @@ const HIDDEN_ARG_KEYS = { [INTENT_FIELD]: 1, __partialJson: 1 };
 const DEFAULT_HIDDEN_ROOT_KEYS: readonly string[] = Object.keys(HIDDEN_ARG_KEYS);
 
 const ARGS_INLINE_PAIR_SEP = ", ";
-const ARGS_INLINE_PAIR_SEP_WIDTH = Bun.stringWidth(ARGS_INLINE_PAIR_SEP);
+const ARGS_INLINE_PAIR_SEP_WIDTH = bun.stringWidth(ARGS_INLINE_PAIR_SEP);
 const ARGS_INLINE_MORE = "…";
-const ARGS_INLINE_MORE_WIDTH = Bun.stringWidth(ARGS_INLINE_MORE);
+const ARGS_INLINE_MORE_WIDTH = bun.stringWidth(ARGS_INLINE_MORE);
 /** Minimal value footprint (quotes + a couple chars) reserved for each not-yet-rendered key. */
 const ARGS_INLINE_TAIL_VALUE_RESERVE = 4;
 
@@ -118,16 +119,16 @@ export function formatArgsInline(
 		let tailReserve = 0;
 		for (let j = i + 1; j < keys.length; j++) {
 			const tailKey = options.sanitizeText?.(keys[j]) ?? keys[j];
-			tailReserve += ARGS_INLINE_PAIR_SEP_WIDTH + Bun.stringWidth(tailKey) + 1 + ARGS_INLINE_TAIL_VALUE_RESERVE;
+			tailReserve += ARGS_INLINE_PAIR_SEP_WIDTH + bun.stringWidth(tailKey) + 1 + ARGS_INLINE_TAIL_VALUE_RESERVE;
 		}
 		// Budget the whole `key=value` piece against the width left after the
 		// tail reserve, then back out the value's share. The last key reserves
 		// nothing and fills the line.
 		const pieceBudget = Math.min(cap, maxWidth - current - tailReserve);
-		const valueMaxLen = Math.max(1, pieceBudget - Bun.stringWidth(key) - 3);
+		const valueMaxLen = Math.max(1, pieceBudget - bun.stringWidth(key) - 3);
 		const valueStr = formatScalar(value, valueMaxLen, options);
 		const piece = `${key}=${valueStr}`;
-		const pieceW = Bun.stringWidth(piece);
+		const pieceW = bun.stringWidth(piece);
 		if (pieceW > pieceBudget) {
 			return `${result}${sep}${truncateToWidth(piece, cap)}`;
 		}
@@ -259,10 +260,10 @@ export function renderJsonTreeLines(
 
 	const prefixStyle = { vertical: (symbol: string) => symbol };
 	const hook = theme.tree.hook;
-	const hookPad = " ".repeat(Bun.stringWidth(hook));
+	const hookPad = " ".repeat(bun.stringWidth(hook));
 	const bullet = theme.format.bullet;
 	// Nested rows drop the root's three-cell gutter and branch from under the root label.
-	const rootGutter = `${hookPad} ${" ".repeat(Bun.stringWidth(bullet))} `;
+	const rootGutter = `${hookPad} ${" ".repeat(bun.stringWidth(bullet))} `;
 	let renderedLineCount = 0;
 	let scalarTruncated = false;
 
@@ -348,7 +349,7 @@ export function renderJsonTreeLines(
 					const displayedCount = Math.min(sourceLines.length, Math.max(1, available - 1));
 					const head = `${label}: `;
 					// Continuation rows sit under the opening quote.
-					const indent = " ".repeat(Bun.stringWidth(Bun.stripANSI(head)) + 1);
+					const indent = " ".repeat(bun.stringWidth(bun.stripANSI(head)) + 1);
 					const scalarLines = [
 						`${head}${theme.fg("syntaxString", `"${truncateToWidth(sourceLines[0] ?? "", maxScalarLen)}`)}`,
 					];

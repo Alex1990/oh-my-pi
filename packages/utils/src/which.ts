@@ -1,6 +1,6 @@
 // OS-agnostic "which" helper with robust macOS toolchain lookup and flexible cache control.
 //
-// - Falls back to macOS Xcode/CLT toolchain directories if standard `Bun.which()` fails on Darwin.
+// - Falls back to macOS Xcode/CLT toolchain directories if standard `bun.which()` fails on Darwin.
 //   Resolves the active developer directory via $DEVELOPER_DIR / /var/db/xcode_select_link symlink
 //   to avoid spawning xcrun subprocesses.
 // - Supports four cache modes (`none`, `fresh`, `ro`, `cached`) for control over discovery cost and determinism.
@@ -12,6 +12,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { isFullyQualifiedPath } from "./path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { WhichOptions as RuntimeWhichOptions } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Tools shipped by Xcode / Command Line Tools that callers actually look up.
 // Keeps the set small so darwinWhich can fast-reject non-Xcode commands without
@@ -172,7 +174,7 @@ export enum WhichCachePolicy {
 }
 
 // Extension: additional cache policy for tool path lookup
-export interface WhichOptions extends Bun.WhichOptions {
+export interface WhichOptions extends RuntimeWhichOptions {
 	/**
 	 * Cache policy for the lookup.
 	 * Defaults to `WhichCachePolicy.Cached`.
@@ -188,8 +190,8 @@ export interface WhichOptions extends Bun.WhichOptions {
 
 // Darwin-specific "which" shim: consult Xcode/CLT toolchain directories after $PATH.
 // Uses cached directory listings instead of per-command existsSync or xcrun subprocesses.
-function darwinWhich(command: string, options?: Bun.WhichOptions): string | null {
-	const regular = Bun.which(command, options);
+function darwinWhich(command: string, options?: WhichOptions): string | null {
+	const regular = bun.which(command, options);
 	if (regular) return regular;
 	if (isXcodeBin(command)) {
 		return getMacosToolPaths().get(command) ?? null;
@@ -207,17 +209,17 @@ function filterAbsoluteSearchPath(rawPath: string | undefined): string | null {
 }
 
 // Which function that incorporates Darwin Xcode logic if platform reports as 'darwin'.
-// Look `Bun.which` up per call rather than capturing it at import, so a `Bun.which`
+// Look `bun.which` up per call rather than capturing it at import, so a `bun.which`
 // stub installed later (the per-test seam) is honoured on every platform.
 export const whichFresh =
 	os.platform() === "darwin"
 		? darwinWhich
-		: (command: string, options?: Bun.WhichOptions): string | null => Bun.which(command, options);
+		: (command: string, options?: WhichOptions): string | null => bun.which(command, options);
 
 // Length-prefixed (command, cwd, PATH) tuple: exact, unlike the 64-bit hash
 // chain it replaced, and the length prefixes keep `("ab", "c")` and
 // `("a", "bc")` distinct without a separator that cwd/PATH could contain.
-function cacheKey(command: string, options?: Bun.WhichOptions): string {
+function cacheKey(command: string, options?: WhichOptions): string {
 	if (!options) return command;
 	const cwd = options?.cwd ?? "";
 	const binPath = options?.PATH ?? "";
@@ -228,7 +230,7 @@ function cacheKey(command: string, options?: Bun.WhichOptions): string {
  * Locate binary on PATH (with flexible caching).
  *
  * @param command - Binary name to resolve
- * @param options - Bun.WhichOptions plus `cache` control
+ * @param options - WhichOptions plus `cache` control
  * @returns Filesystem path if found, else null
  */
 export function $which(command: string, options?: WhichOptions): string | null {

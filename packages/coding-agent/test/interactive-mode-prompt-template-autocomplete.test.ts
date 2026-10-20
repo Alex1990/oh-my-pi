@@ -5,7 +5,7 @@
  * never passed `session.promptTemplates` into the autocomplete provider.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
@@ -23,6 +23,9 @@ import type { AutocompleteProvider } from "@oh-my-pi/pi-tui";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgStartupQuiet } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function makeTool(name: string): AgentTool {
 	return {
@@ -102,7 +105,7 @@ describe("InteractiveMode prompt-template autocomplete (#2462)", () => {
 		// SessionManager and AgentSession can't be shared: AgentSession.dispose() closes
 		// its SessionManager, so each test gets a fresh pair. They're cheap (in-memory)
 		// next to the hoisted ModelRegistry/AuthStorage/temp-dir setup.
-		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${Bun.nanoseconds()}`));
+		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${bun.nanoseconds()}`));
 		const created = new AgentSession({
 			agent: new Agent({
 				initialState: {

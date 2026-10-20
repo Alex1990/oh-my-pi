@@ -2,7 +2,7 @@
  * Tests for ExtensionRunner - conflict detection, error handling, tool wrapping.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Type } from "@oh-my-pi/omptype/typebox";
@@ -35,6 +35,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { getProjectAgentDir, logger, TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ExtensionRunner", () => {
 	let tempDir: TempDir;
@@ -1148,7 +1149,7 @@ describe("ExtensionRunner", () => {
 				});
 			}
 		`;
-			await Bun.write(path.join(extensionsDir, "session-stop.ts"), extCode);
+			await bun.write(path.join(extensionsDir, "session-stop.ts"), extCode);
 
 			const result = await loadTestExtensions();
 			const runner = new ExtensionRunner(
@@ -1186,7 +1187,7 @@ describe("ExtensionRunner", () => {
 				signal: new AbortController().signal,
 			});
 
-			const events = (await Bun.file(eventsPath).text())
+			const events = (await bun.file(eventsPath).text())
 				.trim()
 				.split("\n")
 				.map(line => JSON.parse(line));
@@ -1207,7 +1208,7 @@ describe("ExtensionRunner", () => {
 		it("skips cancelled handlers, releases in-flight handlers, and preserves timeout errors", async () => {
 			const extensionPath = path.join(tempDir.path(), "cancel-session-stop.ts");
 			const startedPath = path.join(tempDir.path(), "session-stop-started.txt");
-			await Bun.write(
+			await bun.write(
 				extensionPath,
 				`
 				import * as fs from "node:fs";
@@ -1244,7 +1245,7 @@ describe("ExtensionRunner", () => {
 					signal: preAborted.signal,
 				}),
 			).resolves.toBeUndefined();
-			expect(await Bun.file(startedPath).exists()).toBe(false);
+			expect(await bun.file(startedPath).exists()).toBe(false);
 
 			const emission = runner.emitSessionStop({
 				messages: [],
@@ -1253,7 +1254,7 @@ describe("ExtensionRunner", () => {
 				stop_hook_active: false,
 				signal: controller.signal,
 			});
-			expect(await Bun.file(startedPath).text()).toBe("started");
+			expect(await bun.file(startedPath).text()).toBe("started");
 			controller.abort();
 
 			await expect(emission).resolves.toBeUndefined();
@@ -1281,7 +1282,7 @@ describe("ExtensionRunner", () => {
 
 		it("observes a session_stop signal aborted synchronously by the handler", async () => {
 			const extensionPath = path.join(tempDir.path(), "self-cancel-session-stop.ts");
-			await Bun.write(
+			await bun.write(
 				extensionPath,
 				`
 				export default function(pi) {
@@ -1355,7 +1356,7 @@ describe("ExtensionRunner", () => {
 			}
 		});
 		it("gives a later hard block precedence over advisory continuation feedback", async () => {
-			await Bun.write(
+			await bun.write(
 				path.join(extensionsDir, "session-stop-precedence.ts"),
 				`
 				export default function(pi) {
@@ -2363,7 +2364,7 @@ describe("ExtensionRunner", () => {
 				}
 			`;
 			const explicitExtensionPath = path.join(tempDir.path(), "service-tiers.ts");
-			await Bun.write(explicitExtensionPath, extCode);
+			await bun.write(explicitExtensionPath, extCode);
 			const result = await loadTestExtensions([explicitExtensionPath]);
 			const runner = new ExtensionRunner(
 				result.extensions,
@@ -4604,7 +4605,7 @@ describe("ExtensionRunner", () => {
 		it("anchors Anthropic rolling breakpoints on persisted history behind injected messages", async () => {
 			const extensionCode = `
 				export default function(pi) {
-					const name = import.meta.path.endsWith("inject-a.ts") ? "a" : "b";
+					const name = import.meta.filename.endsWith("inject-a.ts") ? "a" : "b";
 					pi.on("context", async event => ({
 						messages: [...event.messages.map(message => ({ ...message })), {
 							role: "custom",
@@ -4617,8 +4618,8 @@ describe("ExtensionRunner", () => {
 					}));
 				}
 			`;
-			await Bun.write(path.join(extensionsDir, "inject-a.ts"), extensionCode);
-			await Bun.write(path.join(extensionsDir, "inject-b.ts"), extensionCode);
+			await bun.write(path.join(extensionsDir, "inject-a.ts"), extensionCode);
+			await bun.write(path.join(extensionsDir, "inject-b.ts"), extensionCode);
 			const result = await loadTestExtensions();
 			const runner = new ExtensionRunner(
 				result.extensions,

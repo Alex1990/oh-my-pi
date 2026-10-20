@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Container, Text } from "@oh-my-pi/pi-tui";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { ReportPanel } from "@oh-my-pi/pi-tui/overlays/report-panel";
@@ -8,6 +8,7 @@ import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -54,7 +55,7 @@ async function mountReport(bodyRows: number) {
 	dock.addChild(panel);
 	composer.ui.requestRender();
 	await scheduler.settle(terminal);
-	const screen = () => terminal.getViewport().map(row => Bun.stripANSI(row).trim());
+	const screen = () => terminal.getViewport().map(row => bun.stripANSI(row).trim());
 	const entries = () =>
 		screen()
 			.map(row => row.match(/Entry (\d+)/)?.[1])
@@ -174,7 +175,7 @@ describe("ReportPanel in text mode", () => {
 		cap = 4;
 		const shrunk = panel.render(60);
 		expect(shrunk).toHaveLength(4);
-		expect(Bun.stripANSI(shrunk[0]!)).toContain("Report");
+		expect(bun.stripANSI(shrunk[0]!)).toContain("Report");
 	});
 
 	it("names the key that closes it: the editor's while docked, its own once it holds focus", () => {
@@ -186,7 +187,7 @@ describe("ReportPanel in text mode", () => {
 			closeKey: "Ctrl+Q",
 			onClose: () => closed++,
 		});
-		const footer = () => Bun.stripANSI(panel.render(60).join("\n"));
+		const footer = () => bun.stripANSI(panel.render(60).join("\n"));
 		expect(footer()).toContain("Ctrl+Q to close");
 
 		panel.holdFocus();

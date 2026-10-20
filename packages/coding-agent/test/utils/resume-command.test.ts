@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resumeCommand } from "@oh-my-pi/pi-coding-agent/utils/resume-command";
 import { APP_NAME, getActiveProfile, setProfile } from "@oh-my-pi/pi-utils/dirs";
 

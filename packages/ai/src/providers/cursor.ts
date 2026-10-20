@@ -264,6 +264,7 @@ import {
 	shellDeadlineSeconds,
 } from "./cursor/exec-modern";
 import { handleInteractionQuery, protoUnknownFields } from "./cursor/interaction-query";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const CURSOR_API_URL = CURSOR_DEFAULT_BASE_URL;
 export { CURSOR_CLIENT_VERSION };
@@ -1729,7 +1730,7 @@ function streamCursorWithWireMode(
 			const checkpointHash =
 				retryCheckpoint === undefined
 					? undefined
-					: Bun.hash(toBinary(ConversationStateStructureSchema, retryCheckpoint)).toString(36);
+					: bun.hash(toBinary(ConversationStateStructureSchema, retryCheckpoint)).toString(36);
 			const repeatedCheckpoint = checkpointHash !== undefined && checkpointHash === retryContext?.checkpointHash;
 			const noProgressResumes = repeatedCheckpoint ? (retryContext?.noProgressResumes ?? 0) + 1 : 0;
 			const canRetryFromCheckpoint =
@@ -5586,7 +5587,7 @@ function handleConversationCheckpointUpdate(
 
 function createBlobId(data: Uint8Array): Uint8Array {
 	const id = new Uint8Array(32);
-	Bun.SHA256.hash(data, id);
+	bun.SHA256.hash(data, id);
 	return id;
 }
 
@@ -5618,24 +5619,24 @@ interface CursorTurnBinding {
 	toolResults: ReadonlyMap<string, ToolResultMessage>;
 }
 
-/** Chains `Bun.hash` over message parts from `seed`, without copying them. */
+/** Chains `bun.hash` over message parts from `seed`, without copying them. */
 function hashCursorParts(
 	parts: string | readonly (TextContent | ImageContent)[],
 	seed: number | bigint,
 ): number | bigint {
-	if (typeof parts === "string") return Bun.hash(parts, seed);
+	if (typeof parts === "string") return bun.hash(parts, seed);
 	let hash = seed;
 	for (const item of parts) {
-		hash = Bun.hash(item.type, hash);
-		if (item.type === "text") hash = Bun.hash(item.text, hash);
-		else hash = Bun.hash(item.data, Bun.hash(item.mimeType, hash));
+		hash = bun.hash(item.type, hash);
+		if (item.type === "text") hash = bun.hash(item.text, hash);
+		else hash = bun.hash(item.data, bun.hash(item.mimeType, hash));
 	}
 	return hash;
 }
 
 /** Hash of a tool result's error state and content, chained from `seed`. */
 function hashCursorToolResult(result: ToolResultMessage, seed: number | bigint = 0): number | bigint {
-	return hashCursorParts(result.content, Bun.hash(result.isError ? "error" : "ok", seed));
+	return hashCursorParts(result.content, bun.hash(result.isError ? "error" : "ok", seed));
 }
 
 /** Hash of the user or developer message that opened a turn, chained from `seed`. */
@@ -5660,7 +5661,7 @@ function cursorWireRoute(
 /** Hash of a blob-id list's bytes in order; taken before `onPayload`, it survives the hook mutating the ids. */
 function hashCursorBlobIds(ids: readonly Uint8Array[]): number | bigint {
 	let hash: number | bigint = ids.length;
-	for (const id of ids) hash = Bun.hash(id, hash);
+	for (const id of ids) hash = bun.hash(id, hash);
 	return hash;
 }
 
@@ -5674,13 +5675,13 @@ function hashCursorBlobIds(ids: readonly Uint8Array[]): number | bigint {
 function cursorTurnDigest({ userMessage, content, toolResults }: Omit<CursorTurnBinding, "wireRoute">): string {
 	let digest = hashCursorUserMessage(userMessage);
 	for (const block of content) {
-		digest = Bun.hash(block.type, digest);
-		if (block.type === "text") digest = Bun.hash(block.text, digest);
-		else if (block.type === "thinking") digest = Bun.hash(block.thinking, digest);
+		digest = bun.hash(block.type, digest);
+		if (block.type === "text") digest = bun.hash(block.text, digest);
+		else if (block.type === "thinking") digest = bun.hash(block.thinking, digest);
 		else if (block.type === "toolCall") {
-			digest = Bun.hash(JSON.stringify(block.arguments), Bun.hash(block.name, Bun.hash(block.id, digest)));
+			digest = bun.hash(JSON.stringify(block.arguments), bun.hash(block.name, bun.hash(block.id, digest)));
 			const result = toolResults.get(block.id);
-			digest = result === undefined ? Bun.hash("unpaired", digest) : hashCursorToolResult(result, digest);
+			digest = result === undefined ? bun.hash("unpaired", digest) : hashCursorToolResult(result, digest);
 		}
 	}
 	return digest.toString(36);
@@ -5894,7 +5895,7 @@ function cursorUserContentKey(content: string | (TextContent | ImageContent)[]):
 	if (typeof content === "string") {
 		return content.trim();
 	}
-	const hash = new Bun.SHA256();
+	const hash = new bun.SHA256();
 	for (const item of content) {
 		hash.update(item.type);
 		if (item.type === "text") {

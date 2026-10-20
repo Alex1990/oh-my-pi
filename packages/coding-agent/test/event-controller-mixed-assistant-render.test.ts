@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolCall, ToolResultMessage, Usage } from "@oh-my-pi/pi-ai";
@@ -14,6 +14,7 @@ import { type Component, TERMINAL } from "@oh-my-pi/pi-tui";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
 
 import { cfgTerminalShowImages } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOOL_CALL_A_ID = "toolu_mixed_text_order_a";
 const TOOL_CALL_B_ID = "toolu_mixed_text_order_b";
@@ -181,7 +182,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 				partial: withSecondToolCall,
 			},
 		} as Extract<AgentSessionEvent, { type: "message_update" }>);
-		const liveLines = chatContainer.render(120).map(line => Bun.stripANSI(line));
+		const liveLines = chatContainer.render(120).map(line => bun.stripANSI(line));
 		expect(lineContaining(liveLines, INTRO_MARKER)).toBeLessThan(lineContaining(liveLines, MIDDLE_MARKER));
 		await controller.handleEvent({
 			type: "tool_execution_start",
@@ -214,7 +215,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			{ type: "message_end" }
 		>);
 
-		const lines = chatContainer.render(120).map(line => Bun.stripANSI(line));
+		const lines = chatContainer.render(120).map(line => bun.stripANSI(line));
 		const introLine = lineContaining(lines, INTRO_MARKER);
 		const toolResultALine = lineContaining(lines, TOOL_RESULT_A_MARKER);
 		const middleLine = lineContaining(lines, MIDDLE_MARKER);
@@ -260,7 +261,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 				partial: streaming,
 			},
 		} as Extract<AgentSessionEvent, { type: "message_update" }>);
-		expect(Bun.stripANSI(live.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/oh-my-pi");
+		expect(bun.stripANSI(live.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/oh-my-pi");
 
 		const executionOnly = createFixture(false, toolByName);
 		await executionOnly.controller.handleEvent({
@@ -269,7 +270,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			toolName: toolCall.name,
 			args: toolCall.arguments,
 		} as Extract<AgentSessionEvent, { type: "tool_execution_start" }>);
-		expect(Bun.stripANSI(executionOnly.chatContainer.render(120).join("\n"))).toContain(
+		expect(bun.stripANSI(executionOnly.chatContainer.render(120).join("\n"))).toContain(
 			"GitHub Repo can1357/oh-my-pi",
 		);
 
@@ -282,7 +283,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			injectedTtsrRules: [],
 			mode: "none",
 		});
-		expect(Bun.stripANSI(rebuilt.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/oh-my-pi");
+		expect(bun.stripANSI(rebuilt.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/oh-my-pi");
 
 		// Canonicalization is presentation-only; provider replay keeps the wire spelling.
 		expect(toolCall.name).toBe("xd://github");
@@ -356,7 +357,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			{ type: "message_end" }
 		>);
 
-		const rendered = Bun.stripANSI(chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(chatContainer.render(120).join("\n"));
 		expect(rendered).toContain(INTRO_MARKER);
 		expect(rendered).toContain(MIDDLE_MARKER);
 		expect(rendered).toContain(FINAL_MARKER);
@@ -408,7 +409,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 		const groups = chatContainer.children.filter(child => child instanceof ReadToolGroupComponent);
 		expect(groups).toHaveLength(1);
 		expect(ctx.pendingTools.size).toBe(0);
-		expect(Bun.stripANSI(chatContainer.render(120).join("\n"))).toContain("stable-completed-read.ts");
+		expect(bun.stripANSI(chatContainer.render(120).join("\n"))).toContain("stable-completed-read.ts");
 	});
 
 	it("settles a grouped read whose result arrives before the streamed card", async () => {
@@ -444,7 +445,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 		const groups = chatContainer.children.filter(child => child instanceof ReadToolGroupComponent);
 		expect(groups).toHaveLength(1);
 		expect(ctx.pendingTools.size).toBe(0);
-		expect(Bun.stripANSI(groups[0]!.render(120).join("\n"))).toContain("result-before-card.ts");
+		expect(bun.stripANSI(groups[0]!.render(120).join("\n"))).toContain("result-before-card.ts");
 	});
 
 	it("finalizes closed inter-tool reasoning so multiple completed greps can retire", async () => {
@@ -517,7 +518,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 		}
 		expect(assistants.at(-1)!.isTranscriptBlockFinalized()).toBe(false);
 
-		const flushed = Bun.stripANSI(chatContainer.peekFlushBatch(120)?.rows.join("\n") ?? "");
+		const flushed = bun.stripANSI(chatContainer.peekFlushBatch(120)?.rows.join("\n") ?? "");
 		expect(flushed).toContain("GREP_RESULT_1_UNIQUE");
 		expect(flushed).toContain("GREP_RESULT_2_UNIQUE");
 	});
@@ -571,7 +572,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 				};
 				await controller.handleEvent(update);
 				await controller.handleEvent(update);
-				const rendered = Bun.stripANSI(chatContainer.render(120).join("\n"));
+				const rendered = bun.stripANSI(chatContainer.render(120).join("\n"));
 				expect(rendered.match(/\[Image: image\/png\]/g)).toHaveLength(1);
 				expect(ctx.pendingTools.size).toBe(0);
 			} finally {

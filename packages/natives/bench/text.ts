@@ -17,7 +17,7 @@ import sliceAnsi from "slice-ansi";
 import stringWidth from "string-width";
 import wrapAnsi from "wrap-ansi";
 // The TS-side width measurer every TUI render path actually calls. Backed by
-// Bun.stringWidth with a printable-ASCII fast path; the N-API `visibleWidth`
+// bun.stringWidth with a printable-ASCII fast path; the N-API `visibleWidth`
 // below is only the raw binding (its ~150 ns floor is per-call FFI overhead:
 // UTF-16 -> UTF-8 marshal + result box, not the width algorithm).
 import { visibleWidth as tuiVisibleWidth } from "../../tui/src/utils";
@@ -31,6 +31,7 @@ import {
 	visibleWidth,
 	wrapTextWithAnsi,
 } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testCases = {
 	shortAscii: "const x = 42; // standard code snippet",
@@ -100,7 +101,7 @@ function nextWidthInput(kind: keyof typeof widthInputVariants): string {
 }
 
 // ============================================================================
-// 1. visibleWidth: pi-tui hot path vs raw N-API binding vs Bun.stringWidth vs
+// 1. visibleWidth: pi-tui hot path vs raw N-API binding vs bun.stringWidth vs
 //    string-width npm package
 // ============================================================================
 
@@ -108,8 +109,8 @@ summary(() => {
 	bench("visibleWidth: short ascii (pi-tui)", () => do_not_optimize(tuiVisibleWidth(nextWidthInput("shortAscii"))));
 	bench("visibleWidth: short ascii (native N-API)", () =>
 		do_not_optimize(visibleWidth(nextWidthInput("shortAscii"), 3)));
-	bench("visibleWidth: short ascii (Bun.stringWidth)", () =>
-		do_not_optimize(Bun.stringWidth(nextWidthInput("shortAscii"))));
+	bench("visibleWidth: short ascii (bun.stringWidth)", () =>
+		do_not_optimize(bun.stringWidth(nextWidthInput("shortAscii"))));
 	bench("visibleWidth: short ascii (string-width npm)", () =>
 		do_not_optimize(stringWidth(nextWidthInput("shortAscii"))));
 });
@@ -118,8 +119,8 @@ summary(() => {
 	bench("visibleWidth: long ascii (pi-tui)", () => do_not_optimize(tuiVisibleWidth(nextWidthInput("longAscii"))));
 	bench("visibleWidth: long ascii (native N-API)", () =>
 		do_not_optimize(visibleWidth(nextWidthInput("longAscii"), 3)));
-	bench("visibleWidth: long ascii (Bun.stringWidth)", () =>
-		do_not_optimize(Bun.stringWidth(nextWidthInput("longAscii"))));
+	bench("visibleWidth: long ascii (bun.stringWidth)", () =>
+		do_not_optimize(bun.stringWidth(nextWidthInput("longAscii"))));
 	bench("visibleWidth: long ascii (string-width npm)", () =>
 		do_not_optimize(stringWidth(nextWidthInput("longAscii"))));
 });
@@ -128,8 +129,8 @@ summary(() => {
 	bench("visibleWidth: ansi styled (pi-tui)", () => do_not_optimize(tuiVisibleWidth(nextWidthInput("ansiStyled"))));
 	bench("visibleWidth: ansi styled (native N-API)", () =>
 		do_not_optimize(visibleWidth(nextWidthInput("ansiStyled"), 3)));
-	bench("visibleWidth: ansi styled (Bun.stringWidth)", () =>
-		do_not_optimize(Bun.stringWidth(nextWidthInput("ansiStyled"))));
+	bench("visibleWidth: ansi styled (bun.stringWidth)", () =>
+		do_not_optimize(bun.stringWidth(nextWidthInput("ansiStyled"))));
 	bench("visibleWidth: ansi styled (string-width npm)", () =>
 		do_not_optimize(stringWidth(nextWidthInput("ansiStyled"))));
 });
@@ -138,8 +139,8 @@ summary(() => {
 	bench("visibleWidth: emoji / CJK (pi-tui)", () => do_not_optimize(tuiVisibleWidth(nextWidthInput("emojiCjk"))));
 	bench("visibleWidth: emoji / CJK (native N-API)", () =>
 		do_not_optimize(visibleWidth(nextWidthInput("emojiCjk"), 3)));
-	bench("visibleWidth: emoji / CJK (Bun.stringWidth)", () =>
-		do_not_optimize(Bun.stringWidth(nextWidthInput("emojiCjk"))));
+	bench("visibleWidth: emoji / CJK (bun.stringWidth)", () =>
+		do_not_optimize(bun.stringWidth(nextWidthInput("emojiCjk"))));
 	bench("visibleWidth: emoji / CJK (string-width npm)", () =>
 		do_not_optimize(stringWidth(nextWidthInput("emojiCjk"))));
 });

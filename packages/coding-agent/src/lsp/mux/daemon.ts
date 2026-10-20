@@ -30,6 +30,7 @@ import {
 	type MuxConnectParams,
 	type MuxConnectResult,
 } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CONNECT_TIMEOUT_MS = 3_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -345,7 +346,7 @@ export async function smokeTestLspMux(): Promise<void> {
 				alive = true;
 				break;
 			}
-			await Bun.sleep(200);
+			await bun.sleep(200);
 		}
 		if (!alive) {
 			throw new Error(`lsp mux smoke failed: no ping response (${proc.peekStderr().slice(-500) || "no stderr"})`);

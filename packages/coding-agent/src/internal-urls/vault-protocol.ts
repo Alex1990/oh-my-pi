@@ -21,6 +21,7 @@ import type {
 	SchemeSpec,
 } from "./types";
 import { cfgVaultEnabled } from "../tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DARWIN_OBSIDIAN_BINARY = "/Applications/Obsidian.app/Contents/MacOS/obsidian";
 const DEFAULT_OBSIDIAN_TIMEOUT_MS = 30_000;
@@ -243,7 +244,7 @@ export async function spawnObsidian(
 ): Promise<ObsidianSpawnResult> {
 	if (signal?.aborted) throw abortError();
 
-	const proc = Bun.spawn({
+	const proc = bun.spawn({
 		cmd: [bin, ...args],
 		stdout: "pipe",
 		stderr: "pipe",
@@ -823,7 +824,7 @@ export class VaultProtocolHandler implements ProtocolHandler {
 			throw new Error(`vault:// URL must resolve to a file or directory: ${parsed.url}`);
 		}
 
-		const content = await Bun.file(realTargetPath).text();
+		const content = await bun.file(realTargetPath).text();
 		return {
 			url: parsed.url,
 			content,

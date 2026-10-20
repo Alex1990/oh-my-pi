@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { assistantMsg } from "./utilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("AgentSession.fork(entryId)", () => {
 	let tempDir: string;
@@ -76,10 +77,10 @@ describe("AgentSession.fork(entryId)", () => {
 		expect(session.sessionFile).not.toBe(sourceFile);
 		const keptPath = await session.sessionManager.getArtifactPath(artifactId);
 		expect(keptPath).not.toBeNull();
-		expect(await Bun.file(keptPath!).text()).toBe("kept tool output");
+		expect(await bun.file(keptPath!).text()).toBe("kept tool output");
 		const newId = await session.sessionManager.saveArtifact("fork output", "bash");
 		expect(newId).not.toBe(artifactId);
-		expect(await Bun.file(keptPath!).text()).toBe("kept tool output");
+		expect(await bun.file(keptPath!).text()).toBe("kept tool output");
 	});
 
 	it("leaves the session file and live messages untouched when session_before_branch vetoes", async () => {
@@ -92,7 +93,7 @@ describe("AgentSession.fork(entryId)", () => {
 		} as unknown as ExtensionRunner;
 		const { session, forkAt } = await createSeededSession(extensionRunner);
 		const sourceFile = session.sessionFile!;
-		const sourceRaw = await Bun.file(sourceFile).text();
+		const sourceRaw = await bun.file(sourceFile).text();
 		const sourceMessages = structuredClone(session.messages);
 
 		expect(await session.fork(forkAt)).toBe(false);
@@ -100,7 +101,7 @@ describe("AgentSession.fork(entryId)", () => {
 		expect(emit).toHaveBeenCalledWith({ type: "session_before_branch", reason: "fork", entryId: forkAt });
 		expect(session.sessionFile).toBe(sourceFile);
 		expect(session.messages).toEqual(sourceMessages);
-		expect(await Bun.file(sourceFile).text()).toBe(sourceRaw);
+		expect(await bun.file(sourceFile).text()).toBe(sourceRaw);
 		expect((await fs.readdir(path.dirname(sourceFile))).filter(name => name.endsWith(".jsonl"))).toEqual([
 			path.basename(sourceFile),
 		]);

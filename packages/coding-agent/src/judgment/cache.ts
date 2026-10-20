@@ -16,7 +16,7 @@
  * usage   (id, state → states.id, results = JSON [oracle.id…], provider, model, tokens, price)
  * ```
  */
-import type { Database, Statement } from "bun:sqlite";
+import type { Database, Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { Answer, JudgmentRequest, JudgmentResult, Question, Questions } from "@oh-my-pi/pi-ai";
@@ -25,12 +25,13 @@ import { isEmbeddedImageContent } from "@oh-my-pi/pi-ai/images/shared";
 import {
 	checkpointWal,
 	getJudgmentCacheDbPath,
-	isBunTestRuntime,
+	isTestRuntime,
 	logger,
 	openSqliteDatabaseSync,
 	postmortem,
 	stableStringifyJson,
 } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SCHEMA = `
 PRAGMA journal_mode=WAL;
@@ -106,7 +107,7 @@ function cacheStateIdentity(request: JudgmentRequest): string {
 		return {
 			// The wire lowercases MIME types, so case variants of one image share an answer.
 			mimeType: image.mimeType.toLowerCase(),
-			digest: new Bun.CryptoHasher("sha256").update(Buffer.from(image.data, "base64")).digest("hex"),
+			digest: new bun.CryptoHasher("sha256").update(Buffer.from(image.data, "base64")).digest("hex"),
 			detail: image.detail ?? "auto",
 		};
 	});
@@ -127,7 +128,7 @@ let shared: JudgmentCache | null | undefined;
  * user's cache; tests inject {@link JudgmentCache.open} explicitly.
  */
 export function sharedJudgmentCache(): JudgmentCache | undefined {
-	if (isBunTestRuntime()) return undefined;
+	if (isTestRuntime()) return undefined;
 	if (shared === undefined) {
 		try {
 			const cache = JudgmentCache.open();
@@ -183,7 +184,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 	 */
 	lookup(model: string, request: JudgmentRequest): CachedAnswers {
 		const state = cacheStateIdentity(request);
-		const stateId = new Bun.CryptoHasher("sha256").update(state).digest("hex");
+		const stateId = new bun.CryptoHasher("sha256").update(state).digest("hex");
 		const answers: Record<string, Answer> = {};
 		try {
 			for (const name in request.questions) {

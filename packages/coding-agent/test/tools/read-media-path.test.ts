@@ -3,7 +3,7 @@
  * read of it, whatever the model receives: images, SVG source, 3D models, PDFs. Sidecars and
  * partial line-range reads carry none.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { ternShowsMedia } from "@oh-my-pi/pi-coding-agent/tools/tern-media";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TINY_PNG = Buffer.from(
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -58,10 +59,10 @@ describe("read mediaPath", () => {
 
 	beforeEach(async () => {
 		dir = await fs.mkdtemp(path.join(os.tmpdir(), "read-media-path-"));
-		await Bun.write(path.join(dir, "house.obj"), HOUSE_OBJ);
-		await Bun.write(path.join(dir, "house.mtl"), "newmtl brick\nmap_Kd brick.png\n");
-		await Bun.write(path.join(dir, "brick.png"), TINY_PNG);
-		await Bun.write(path.join(dir, "logo.svg"), TINY_SVG);
+		await bun.write(path.join(dir, "house.obj"), HOUSE_OBJ);
+		await bun.write(path.join(dir, "house.mtl"), "newmtl brick\nmap_Kd brick.png\n");
+		await bun.write(path.join(dir, "brick.png"), TINY_PNG);
+		await bun.write(path.join(dir, "logo.svg"), TINY_SVG);
 		tool = new ReadTool(makeSession(dir));
 	});
 

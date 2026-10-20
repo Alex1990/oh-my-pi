@@ -1,13 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { BiomeClient } from "../src/lsp/clients/biome-client";
 import type { ServerConfig } from "../src/lsp/types";
 import { writeFakeExecutable } from "./helpers/fake-executable";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
-const repoRoot = path.resolve(import.meta.dir, "../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
 function resolveRepoBiome(): string | null {
 	const platformPackages: Partial<Record<NodeJS.Platform, Partial<Record<NodeJS.Architecture, string[]>>>> = {
@@ -21,10 +22,10 @@ function resolveRepoBiome(): string | null {
 	const executable = process.platform === "win32" ? "biome.exe" : "biome";
 	for (const packageName of platformPackages[process.platform]?.[process.arch] ?? []) {
 		try {
-			return Bun.resolveSync(`@biomejs/${packageName}/${executable}`, repoRoot);
+			return bun.resolveSync(`@biomejs/${packageName}/${executable}`, repoRoot);
 		} catch {}
 	}
-	return Bun.which("biome");
+	return bun.which("biome");
 }
 
 const repoBiome = resolveRepoBiome();
@@ -46,8 +47,8 @@ async function createFakeBiomeCommand(
 ): Promise<string> {
 	const expectedInputPath = path.join(tempDir, "expected-input.ts");
 	const formattedOutputPath = path.join(tempDir, "formatted-output.ts");
-	await Bun.write(expectedInputPath, expectedInput);
-	await Bun.write(formattedOutputPath, formattedOutput);
+	await bun.write(expectedInputPath, expectedInput);
+	await bun.write(formattedOutputPath, formattedOutput);
 	return writeFakeExecutable(
 		tempDir,
 		"biome",
@@ -77,23 +78,23 @@ describe("BiomeClient format", () => {
 		const targetFile = path.join(tempDir, "example.ts");
 		const unformatted = "export const value:number=1\n";
 		const formatted = "export const value: number = 1;\n";
-		await Bun.write(targetFile, "export const stale = true;\n");
+		await bun.write(targetFile, "export const stale = true;\n");
 		const command = await createFakeBiomeCommand(tempDir, unformatted, formatted);
 		const result = await new BiomeClient(biomeConfig(command), tempDir).format(targetFile, unformatted);
 
 		expect(result).toBe(formatted);
-		expect(await Bun.file(targetFile).text()).toBe(formatted);
+		expect(await bun.file(targetFile).text()).toBe(formatted);
 	});
 
 	test.skipIf(repoBiome === null)("formats config-included TypeScript with a real Biome", async () => {
 		const root = await fs.realpath(await makeTempDir());
-		await Bun.write(
+		await bun.write(
 			path.join(root, "biome.json"),
 			JSON.stringify({ formatter: { enabled: true }, files: { includes: ["src/**/*.ts"] } }),
 		);
 		const targetFile = path.join(root, "src", "configured.ts");
 		const unformatted = "export const configured:number=1\n";
-		await Bun.write(targetFile, unformatted);
+		await bun.write(targetFile, unformatted);
 
 		const result = await new BiomeClient(biomeConfig(repoBiome as string), root).format(targetFile, unformatted);
 
@@ -102,13 +103,13 @@ describe("BiomeClient format", () => {
 
 	test.skipIf(repoBiome === null)("leaves config-excluded content unchanged with a real Biome", async () => {
 		const root = await fs.realpath(await makeTempDir());
-		await Bun.write(
+		await bun.write(
 			path.join(root, "biome.json"),
 			JSON.stringify({ formatter: { enabled: true }, files: { includes: ["src/**/*.ts"] } }),
 		);
 		const targetFile = path.join(root, "excluded", "excluded.ts");
 		const unformatted = "export const excluded:number=1\n";
-		await Bun.write(targetFile, unformatted);
+		await bun.write(targetFile, unformatted);
 
 		const result = await new BiomeClient(biomeConfig(repoBiome as string), root).format(targetFile, unformatted);
 
@@ -148,13 +149,13 @@ describe("BiomeClient lint", () => {
 
 	test.skipIf(repoBiome === null)("surfaces Biome 2.x --reporter=json diagnostics", async () => {
 		const tempDir = await makeTempDir();
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, "biome.json"),
 			`${JSON.stringify({ linter: { enabled: true, rules: { recommended: true } } })}\n`,
 		);
 		const targetFile = path.join(tempDir, "lint-me.ts");
 		// `x == 2` triggers lint/suspicious/noDoubleEquals (a recommended rule).
-		await Bun.write(targetFile, "const x: number = 1;\nif (x == 2) {\n}\n");
+		await bun.write(targetFile, "const x: number = 1;\nif (x == 2) {\n}\n");
 
 		const diagnostics = await new BiomeClient(biomeConfig(repoBiome as string), tempDir).lint(targetFile);
 
@@ -173,12 +174,12 @@ describe("BiomeClient lint", () => {
 
 	test.skipIf(repoBiome === null)("returns no diagnostics for a clean file", async () => {
 		const tempDir = await makeTempDir();
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, "biome.json"),
 			`${JSON.stringify({ linter: { enabled: true, rules: { recommended: true } } })}\n`,
 		);
 		const targetFile = path.join(tempDir, "clean.ts");
-		await Bun.write(targetFile, "export const value = 1;\n");
+		await bun.write(targetFile, "export const value = 1;\n");
 
 		const diagnostics = await new BiomeClient(biomeConfig(repoBiome as string), tempDir).lint(targetFile);
 

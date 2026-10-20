@@ -1,14 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { type DOMWindow, parseHTML } from "../src/dom";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const fixtureDirectory = new URL("./fixtures/dom/", import.meta.url);
 const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
 let reactRoot: Root | null = null;
 
 async function fixture(name: string): Promise<string> {
-	return Bun.file(new URL(name, fixtureDirectory)).text();
+	return bun.file(new URL(name, fixtureDirectory)).text();
 }
 
 function text(element: { textContent: string | null } | null): string | null {
@@ -48,7 +49,7 @@ afterEach(async () => {
 
 describe("DOM scraper compatibility", () => {
 	test("matches linkedom golden extraction across real scraper pipelines", async () => {
-		const golden = await Bun.file(new URL("golden.json", fixtureDirectory)).json();
+		const golden = await bun.file(new URL("golden.json", fixtureDirectory)).json();
 		const searchDoc = parseHTML(await fixture("search-results.html")).document;
 		const search = {
 			ecosia: searchDoc.querySelectorAll('article[data-test-id="organic-result"]').map(article => ({

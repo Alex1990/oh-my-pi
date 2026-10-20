@@ -1,15 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { connectToServer } from "@oh-my-pi/pi-coding-agent/mcp/client";
 import { MCPTransportError } from "@oh-my-pi/pi-coding-agent/mcp/errors";
 import { analyzeAuthError } from "@oh-my-pi/pi-coding-agent/mcp/oauth-discovery";
 import { HttpTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/http";
 import { postmortem } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { listen } from "@oh-my-pi/pi-utils/net-compat";
 
 const encoder = new TextEncoder();
 const REQUEST_TIMEOUT_MS = 50;
 const GUARD_TIMEOUT_MS = 500;
 
-let server: Bun.Server<undefined> | null = null;
+let server: Server<undefined> | null = null;
 
 type ToolList = {
 	tools: { name: string; inputSchema: { type: string } }[];
@@ -47,7 +51,7 @@ function stalledBodyResponse(bodyPrefix: string, init?: ResponseInit): Response 
 async function withPendingGuard<T>(promise: Promise<T>, label: string): Promise<T> {
 	return await Promise.race([
 		promise,
-		Bun.sleep(GUARD_TIMEOUT_MS).then(() => {
+		bun.sleep(GUARD_TIMEOUT_MS).then(() => {
 			throw new Error(`${label} stayed pending past ${GUARD_TIMEOUT_MS}ms`);
 		}),
 	]);
@@ -58,7 +62,7 @@ describe("MCP Streamable HTTP initialization", () => {
 		const requests: string[] = [];
 		let initialized = false;
 		let sessionValid = true;
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				if (req.method === "GET") {
@@ -106,7 +110,7 @@ describe("MCP Streamable HTTP initialization", () => {
 
 	it("aborts a stalled GET SSE listener start on the caller signal when timeouts are disabled", async () => {
 		const listenerStarted = Promise.withResolvers<void>();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				if (req.method === "GET") {
@@ -148,7 +152,7 @@ describe("MCP Streamable HTTP initialization", () => {
 
 describe("MCP Streamable HTTP failure diagnostics", () => {
 	it("classifies an abrupt socket reset without leaking Bun fetch advice", async () => {
-		const tcp = Bun.listen({
+		const tcp = await listen({
 			hostname: "127.0.0.1",
 			port: 0,
 			socket: {
@@ -185,7 +189,7 @@ describe("MCP Streamable HTTP failure diagnostics", () => {
 	});
 
 	it("distinguishes connection refusal from a reset", async () => {
-		const unused = Bun.listen({
+		const unused = await listen({
 			hostname: "127.0.0.1",
 			port: 0,
 			socket: { data() {} },
@@ -209,7 +213,7 @@ describe("MCP Streamable HTTP failure diagnostics", () => {
 	});
 
 	it("classifies malformed JSON-RPC responses at the decode stage", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				return new Response("{not-json", { headers: { "Content-Type": "application/json" } });
@@ -226,7 +230,7 @@ describe("MCP Streamable HTTP failure diagnostics", () => {
 	});
 
 	it("preserves bounded redacted JSON-RPC data and a response trace ID", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				const body = (await req.json()) as { id: string | number };
@@ -266,7 +270,7 @@ describe("MCP Streamable HTTP failure diagnostics", () => {
 
 	it("keeps a bare Bearer resource_metadata challenge while redacting echoed credentials", async () => {
 		const metadataUrl = "https://auth.example.test/prm/probe";
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				return new Response("rejected Authorization: Bearer server-secret", {
@@ -291,7 +295,7 @@ describe("MCP Streamable HTTP failure diagnostics", () => {
 
 describe("MCP Streamable HTTP transport timeouts", () => {
 	it("keeps the request timeout active until a JSON response body is fully read", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				return stalledBodyResponse('{"jsonrpc":"2.0","id":"', {
@@ -315,10 +319,10 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 		// abort path, and elapsed time is the end-to-end contract under test.
 		const timeoutMs = 250;
 		const headerDelayMs = 160;
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch() {
-				await Bun.sleep(headerDelayMs);
+				await bun.sleep(headerDelayMs);
 				return stalledBodyResponse(": accepted\n\n", {
 					headers: { "Content-Type": "text/event-stream" },
 				});
@@ -423,7 +427,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 	});
 
 	it("keeps the notify timeout active while reading HTTP error bodies", async () => {
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				return stalledBodyResponse("partial failure body", {
@@ -441,7 +445,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 
 	it("close aborts and drains an in-flight SSE POST request", async () => {
 		const requestReceived = Promise.withResolvers<void>();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				requestReceived.resolve();
@@ -474,7 +478,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 	it("preserves caller cancellation when it wins a stalled SSE response", async () => {
 		const requestReceived = Promise.withResolvers<void>();
 		const caller = new AbortController();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				requestReceived.resolve();
@@ -508,7 +512,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 		const caller = new AbortController();
 		const notificationReceived = Promise.withResolvers<void>();
 		const sendNotification = Promise.withResolvers<void>();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			async fetch(req) {
 				const body = (await req.json()) as { id: string | number };
@@ -557,7 +561,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 	it("keeps draining an accepted notification stream past the POST deadline", async () => {
 		const notificationReceived = Promise.withResolvers<void>();
 		const sendNotification = Promise.withResolvers<void>();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				let cancelled = false;
@@ -594,7 +598,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 			await transport.notify("notifications/initialized");
 			// Let the former read timeout expire on the real fetch/body stream,
 			// then prove the accepted response remains owned by the transport.
-			await Bun.sleep(REQUEST_TIMEOUT_MS * 2);
+			await bun.sleep(REQUEST_TIMEOUT_MS * 2);
 			sendNotification.resolve();
 			await withPendingGuard(notificationReceived.promise, "notification response drain");
 		} finally {
@@ -605,7 +609,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 	it("keeps an abandoned SSE request rejection observed after caller cancellation", async () => {
 		const requestReceived = Promise.withResolvers<void>();
 		const caller = new AbortController();
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				requestReceived.resolve();
@@ -637,7 +641,7 @@ describe("MCP Streamable HTTP transport timeouts", () => {
 describe("MCP Streamable HTTP protocol version header", () => {
 	it("never lets a configured MCP-Protocol-Version reach the server", async () => {
 		const seen: { pre: string | null; post: string | null } = { pre: null, post: null };
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				const body = req.headers.get("MCP-Protocol-Version");
@@ -671,7 +675,7 @@ describe("MCP Streamable HTTP protocol version header", () => {
 describe("MCP Streamable HTTP POST response resumption", () => {
 	it("reports a timeout when a resumed HTTP error body stalls", async () => {
 		let posts = 0;
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method === "POST") {
@@ -700,7 +704,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 	it("bounds resumed-stream auth refresh by the original request deadline", async () => {
 		const refresh = Promise.withResolvers<Record<string, string> | null>();
 		let posts = 0;
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method === "POST") {
@@ -735,7 +739,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 			postClosedAt: number;
 			resumedAt: number;
 		} = { lastEventId: null, protocolVersion: null, postClosedAt: 0, resumedAt: 0 };
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method === "POST") {
@@ -771,7 +775,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 	});
 	it("refreshes auth on a 401 resume GET without replaying the POST", async () => {
 		const observed = { posts: 0, gets: 0, auth: [] as (string | null)[], lastEventId: null as string | null };
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method === "POST") {
@@ -815,7 +819,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 
 	it("never replays the POST when a resume GET stays unauthorized", async () => {
 		const observed = { posts: 0, gets: 0, refreshes: 0 };
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method === "POST") {
@@ -852,7 +856,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 	});
 	it("marks a clean accepted SSE EOF without an event ID as non-replayable", async () => {
 		let posts = 0;
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch() {
 				posts++;
@@ -874,7 +878,7 @@ describe("MCP Streamable HTTP POST response resumption", () => {
 describe("MCP Streamable HTTP GET listener resumption", () => {
 	it("resumes the long-lived GET stream with Last-Event-ID instead of reconnecting", async () => {
 		const observed = { gets: 0, lastEventIds: [] as (string | null)[] };
-		server = Bun.serve({
+		server = await serve({
 			port: 0,
 			fetch(req) {
 				if (req.method !== "GET") {

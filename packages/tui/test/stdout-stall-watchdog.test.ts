@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { StdoutStallWatchdog } from "@oh-my-pi/pi-tui/terminal";
 
 // The TUI must bound a never-draining stdout consumer (#6854) without killing a

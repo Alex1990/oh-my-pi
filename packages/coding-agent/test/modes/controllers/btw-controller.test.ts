@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, Usage } from "@oh-my-pi/pi-ai";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -14,6 +14,7 @@ import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/typ
 import * as clipboard from "@oh-my-pi/pi-coding-agent/utils/clipboard";
 import { Container, replaceTabs, type TUI } from "@oh-my-pi/pi-tui";
 import type { NativeChild, NativeNode } from "@oh-my-pi/pi-tui/native/node";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const usage: Usage = {
 	input: 0,
@@ -110,13 +111,13 @@ describe("BtwPanelComponent", () => {
 		const panel = new BtwPanelComponent({ question: "Question?", tui: ui });
 		panel.setAnswer("Answer");
 		panel.markComplete();
-		expect(Bun.stripANSI(panel.render(80).join("\n"))).not.toContain("Copied");
+		expect(bun.stripANSI(panel.render(80).join("\n"))).not.toContain("Copied");
 		panel.markCopied();
-		const copied = Bun.stripANSI(panel.render(80).join("\n"));
+		const copied = bun.stripANSI(panel.render(80).join("\n"));
 		expect(copied).toContain("Copied");
 		expect(panel.title).toContain("Copied");
 		panel.appendText(" more");
-		expect(Bun.stripANSI(panel.render(80).join("\n"))).not.toContain("Copied");
+		expect(bun.stripANSI(panel.render(80).join("\n"))).not.toContain("Copied");
 	});
 });
 
@@ -333,7 +334,7 @@ describe("BtwController", () => {
 			await controller.start("");
 			const panel = showOverlay.mock.calls.at(-1)?.[0];
 			if (!(panel instanceof BtwHistoryPanel)) throw new Error("Expected BTW history");
-			expect(Bun.stripANSI(panel.render(120).join("\n"))).not.toContain("Main question?");
+			expect(bun.stripANSI(panel.render(120).join("\n"))).not.toContain("Main question?");
 
 			await controller.start("Worker question?");
 			await drainBtwRequest();
@@ -379,7 +380,7 @@ describe("BtwController", () => {
 		});
 		await drainBtwRequest();
 
-		const rendered = Bun.stripANSI(btwContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(btwContainer.render(120).join("\n"));
 		expect(rendered).toContain("Streaming worker answer");
 		expect(controller.canCopy()).toBe(true);
 		expect(controller.canFollowUp()).toBe(false);
@@ -477,7 +478,7 @@ describe("BtwController", () => {
 		expect(controller.handlesBranchKey()).toBe(true);
 
 		const panel = btwContainer.children[0];
-		expect(Bun.stripANSI(panel?.render(120).join("\n") ?? "")).toContain("Branching to chat");
+		expect(bun.stripANSI(panel?.render(120).join("\n") ?? "")).toContain("Branching to chat");
 		expect(controller.handleEscape()).toBe(true);
 		expect(btwContainer.children).toHaveLength(1);
 
@@ -539,7 +540,7 @@ describe("BtwController", () => {
 		expect(controller.canCopy()).toBe(true);
 		expect(await controller.handleCopy()).toBe(true);
 		expect(copySpy).toHaveBeenCalledWith(replaceTabs("Visible\tanswer\n\nfrom /btw"));
-		expect(Bun.stripANSI(ctx.btwContainer.render(100).join("\n"))).toContain("Copied");
+		expect(bun.stripANSI(ctx.btwContainer.render(100).join("\n"))).toContain("Copied");
 	});
 	it("does not confirm a superseded panel when the clipboard settles late", async () => {
 		const { promise: copyGate, resolve: releaseCopy } = Promise.withResolvers<void>();
@@ -562,7 +563,7 @@ describe("BtwController", () => {
 			releaseCopy();
 			expect(await copyPromise).toBe(true);
 			expect(copySpy).toHaveBeenCalledTimes(1);
-			expect(Bun.stripANSI(btwContainer.render(100).join("\n"))).not.toContain("Copied");
+			expect(bun.stripANSI(btwContainer.render(100).join("\n"))).not.toContain("Copied");
 		} finally {
 			await controller.dispose();
 		}
@@ -718,13 +719,13 @@ describe("BtwController", () => {
 			manager.appendMessage({ role: "user", content: "Main task", timestamp: Date.now() });
 			await manager.ensureOnDisk();
 			const file = manager.getSessionFile()!;
-			const before = await Bun.file(file).text();
+			const before = await bun.file(file).text();
 			const leaf = manager.getLeafId();
 			await controller.start("Side question");
 			await drainBtwRequest();
 			controller.handleEscape();
 			await controller.flush();
-			expect(await Bun.file(file).text()).toBe(before);
+			expect(await bun.file(file).text()).toBe(before);
 			expect(manager.getLeafId()).toBe(leaf);
 			expect(JSON.stringify(manager.buildSessionContext().messages)).not.toContain("Saved side answer");
 			await controller.dispose();
@@ -737,7 +738,7 @@ describe("BtwController", () => {
 			panel.handleInput("c");
 			await drainBtwRequest();
 			expect(copy).toHaveBeenCalledWith("Saved side answer");
-			expect(Bun.stripANSI(panel.render(120).join("\n"))).toContain("Copied");
+			expect(bun.stripANSI(panel.render(120).join("\n"))).toContain("Copied");
 			await restored.dispose();
 		} finally {
 			await controller.dispose();
@@ -768,7 +769,7 @@ describe("BtwController", () => {
 			await controller.start("");
 			const panel = showOverlay.mock.calls.at(-1)?.[0];
 			if (!(panel instanceof BtwHistoryPanel)) throw new Error("Expected BTW history");
-			expect(Bun.stripANSI(panel.render(100).join("\n"))).not.toContain("Partial answer");
+			expect(bun.stripANSI(panel.render(100).join("\n"))).not.toContain("Partial answer");
 		} finally {
 			await controller.dispose();
 			await fs.rm(directory, { recursive: true, force: true });

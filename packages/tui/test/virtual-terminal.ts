@@ -1,5 +1,6 @@
 import type { Terminal, TerminalAppearance } from "@oh-my-pi/pi-tui/terminal";
 import { CELL_U32, CellFlags, type GraphicsPlacement, KittyTerminal, loadModuleSync } from "kitty-vt-wasm";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ---------------------------------------------------------------------------
 // Shared kitty VT engine
@@ -22,7 +23,7 @@ import { CELL_U32, CellFlags, type GraphicsPlacement, KittyTerminal, loadModuleS
 // (no top-level await): `bun test --parallel` leaves any module with top-level
 // await broken. Each `VirtualTerminal` instantiates its own engine so
 // allocator and grid state stay isolated across tests.
-const kittyModule = loadModuleSync(Bun.resolveSync("kitty-vt-wasm/kitty-vt.wasm", import.meta.dir));
+const kittyModule = loadModuleSync(bun.resolveSync("kitty-vt-wasm/kitty-vt.wasm", import.meta.dirname));
 
 function createEngine(
 	columns: number,
@@ -233,10 +234,10 @@ export class VirtualTerminal implements Terminal {
 		const nextTick = Promise.withResolvers<void>();
 		process.nextTick(nextTick.resolve);
 		await nextTick.promise;
-		await Bun.sleep(40);
+		await bun.sleep(40);
 		if (until) {
 			const deadline = Date.now() + 2_000;
-			while (!until() && Date.now() < deadline) await Bun.sleep(10);
+			while (!until() && Date.now() < deadline) await bun.sleep(10);
 		}
 		await this.flush();
 	}

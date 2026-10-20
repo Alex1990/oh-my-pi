@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { Settings } from "../src/config/settings";
 import type { ToolSession } from "../src/tools";
 import { BashTool } from "../src/tools/bash";
 import { WriteTool } from "../src/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let cwd: string;
 let manager: AsyncJobManager;
@@ -38,7 +39,7 @@ it.skipIf(process.platform === "win32")(
 	"allows a cancelled bash job to run its TERM cleanup",
 	async () => {
 		const script = path.join(cwd, "cleanup.sh");
-		await Bun.write(
+		await bun.write(
 			script,
 			"trap 'sleep 0.2; printf cleaned >> cleaned; exit 0' TERM\nprintf 'ready\\n'\nwhile :; do :; done\n",
 		);
@@ -70,7 +71,7 @@ it.skipIf(process.platform === "win32")(
 			expect(cancelled.details?.proc).toMatchObject({ cancelled: [{ id, status: "cancelled" }] });
 			await manager.waitForAll();
 			expect(await Promise.race([cleaned, deadline.promise])).toBe(true);
-			expect(await Bun.file(path.join(cwd, "cleaned")).text()).toBe("cleaned");
+			expect(await bun.file(path.join(cwd, "cleaned")).text()).toBe("cleaned");
 		} finally {
 			clearTimeout(watchdog);
 			watchAbort.abort();

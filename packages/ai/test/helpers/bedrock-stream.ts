@@ -3,6 +3,7 @@ import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";
 import { withEnv } from "./index";
+import { preconnectOf } from "../../src/utils/fetch-preconnect";
 
 // Shared harness for the Bedrock Converse-Stream provider tests: encodes the
 // AWS eventstream wire format, captures what `streamBedrock` actually sends,
@@ -99,7 +100,7 @@ export function capturingBedrockFetch(seen: BedrockCapture): FetchImpl {
 				headers: { "content-type": "application/vnd.amazon.eventstream" },
 			});
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	) as FetchImpl;
 }
 

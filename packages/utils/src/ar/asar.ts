@@ -11,6 +11,7 @@ import {
 } from "./paths";
 import type { ByteSource } from "./source";
 import type { ArchiveIndexEntry, FormatReader, FormatReadOptions, MemberSource } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ASAR_HEADER_DECODER = new TextDecoder("utf-8", { fatal: true });
 const ASAR_HEADER_ENCODER = new TextEncoder();
@@ -91,7 +92,7 @@ function parseIntegrity(value: unknown, entryPath: string, size: number): AsarIn
 
 function verifyIntegrity(bytes: Uint8Array, integrity: AsarIntegrity | undefined, memberPath: string): void {
 	if (!integrity) return;
-	const actual = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	const actual = new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 	if (actual !== integrity.hash) {
 		throw new ArchiveError(
 			`ASAR member '${formatArchivePathForError(memberPath)}' failed SHA256 integrity verification`,
@@ -152,7 +153,7 @@ class UnpackedAsarMemberSource implements MemberSource {
 		if (!this.#filePath) {
 			throw new ArchiveError(`Archive file '${label}' is unpacked and requires a filesystem-backed ASAR archive`);
 		}
-		const file = Bun.file(this.#filePath);
+		const file = bun.file(this.#filePath);
 		const stat = await file.stat().catch(() => {
 			throw new ArchiveError(`Unpacked ASAR file '${label}' was not found`);
 		});

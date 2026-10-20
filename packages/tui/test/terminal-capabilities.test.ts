@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	detectStyledUnderlineSupport,
 	detectTerminalId,
@@ -19,6 +20,12 @@ import {
 } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
 import { withFakeTmux } from "./helpers/fake-tmux";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeEvalArgs } from "./helpers/node-subprocess";
+
+// This package is not linked into its own node_modules, so a child process must
+// import the source module by URL.
+const CAPABILITIES_URL = pathToFileURL(path.resolve(import.meta.dirname, "../src/terminal-capabilities.ts")).href;
 
 describe("hasTerminalMultiplexerSession", () => {
 	it("recognizes Herdr session identity while ignoring client-only settings", () => {
@@ -169,12 +176,13 @@ describe("tmux client terminal resolution", () => {
 		return withFakeTmux(
 			{ [CLIENT_QUERY]: clientReport, [PASSTHROUGH_QUERY]: "on" },
 			async binDir => {
-				const proc = Bun.spawn({
+				const proc = bun.spawn({
 					cmd: [
 						process.execPath,
-						"--eval",
-						`import { TERMINAL, TERMINAL_ID } from "@oh-my-pi/pi-tui/terminal-capabilities";
+						...nodeEvalArgs(
+							`import {  TERMINAL, TERMINAL_ID  } from ${JSON.stringify(CAPABILITIES_URL)};
 console.log(JSON.stringify({ id: TERMINAL_ID, notifyProtocol: TERMINAL.notifyProtocol, imageProtocol: TERMINAL.imageProtocol }));`,
+						),
 					],
 					env: subprocessEnv({
 						PI_TEST_RUNTIME: undefined,
@@ -187,7 +195,7 @@ console.log(JSON.stringify({ id: TERMINAL_ID, notifyProtocol: TERMINAL.notifyPro
 						TMUX: "/tmp/tmux-1000/default,4242,0",
 						TMUX_PANE: undefined,
 						SSH_CONNECTION: "client 1 server 22",
-						PATH: `${binDir}${path.delimiter}${Bun.env.PATH ?? ""}`,
+						PATH: `${binDir}${path.delimiter}${bun.env.PATH ?? ""}`,
 					}),
 					stdout: "pipe",
 					stderr: "pipe",
@@ -365,12 +373,13 @@ describe("Warp terminal capabilities", () => {
 			delete env[key];
 		}
 
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [
 				process.execPath,
-				"--eval",
-				`import { ImageProtocol, TERMINAL, TERMINAL_ID } from "@oh-my-pi/pi-tui/terminal-capabilities";
+				...nodeEvalArgs(
+					`import {  ImageProtocol, TERMINAL, TERMINAL_ID  } from ${JSON.stringify(CAPABILITIES_URL)};
 console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProtocol, expected: ImageProtocol.Kitty }));`,
+				),
 			],
 			env,
 			stdout: "pipe",
@@ -395,7 +404,7 @@ console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProto
 		// Warp lacks Kitty graphics on Windows hosts, including WSL.
 		const windowsHost =
 			process.platform === "win32" ||
-			(process.platform === "linux" && Boolean(Bun.env.WSL_DISTRO_NAME || Bun.env.WSL_INTEROP));
+			(process.platform === "linux" && Boolean(bun.env.WSL_DISTRO_NAME || bun.env.WSL_INTEROP));
 		expect(warp.imageProtocol).toBe(windowsHost ? null : ImageProtocol.Kitty);
 		expect(warp.trueColor).toBe(true);
 		expect(warp.hyperlinks).toBe(false);
@@ -446,7 +455,7 @@ console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProto
  * independent of which terminal it runs inside (full-suite safe).
  */
 function subprocessEnv(overrides: Record<string, string | undefined>): Record<string, string | undefined> {
-	const env: Record<string, string | undefined> = { ...Bun.env };
+	const env: Record<string, string | undefined> = { ...bun.env };
 	for (const key of [
 		"PI_FORCE_IMAGE_PROTOCOL",
 		"PASEO_TERMINAL_ID",
@@ -501,12 +510,13 @@ describe("otty terminal capabilities", () => {
 			COLORTERM: "truecolor",
 		});
 
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [
 				process.execPath,
-				"--eval",
-				`import { ImageProtocol, TERMINAL, TERMINAL_ID } from "@oh-my-pi/pi-tui/terminal-capabilities";
+				...nodeEvalArgs(
+					`import {  ImageProtocol, TERMINAL, TERMINAL_ID  } from ${JSON.stringify(CAPABILITIES_URL)};
 console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProtocol, expected: ImageProtocol.Kitty }));`,
+				),
 			],
 			env,
 			stdout: "pipe",
@@ -551,7 +561,7 @@ describe("tmux image protocol selection", () => {
 			const replies = { "show-options -Apqv -t %7 allow-passthrough": passthrough };
 			await withFakeTmux(replies, async binDir => {
 				const env = {
-					PATH: `${binDir}:${Bun.env.PATH ?? ""}`,
+					PATH: `${binDir}:${bun.env.PATH ?? ""}`,
 					TMUX: `/tmp/tmux-1000/default,${socket},0`,
 					TMUX_PANE: "%7",
 					TERM: "tmux-256color",
@@ -612,12 +622,13 @@ describe("Paseo embedder carve-out", () => {
 	it("drops Kitty graphics when Paseo hosts the terminal", async () => {
 		const env = subprocessEnv({ TERM_PROGRAM: "kitty", PASEO_TERMINAL_ID: "term-1" });
 
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [
 				process.execPath,
-				"--eval",
-				`import { ImageProtocol, TERMINAL, TERMINAL_ID } from "@oh-my-pi/pi-tui/terminal-capabilities";
+				...nodeEvalArgs(
+					`import {  ImageProtocol, TERMINAL, TERMINAL_ID  } from ${JSON.stringify(CAPABILITIES_URL)};
 console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProtocol, expected: ImageProtocol.Kitty }));`,
+				),
 			],
 			env,
 			stdout: "pipe",
@@ -641,12 +652,13 @@ console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProto
 	it("keeps Kitty graphics for a real kitty without PASEO_TERMINAL_ID", async () => {
 		const env = subprocessEnv({ TERM_PROGRAM: "kitty" });
 
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [
 				process.execPath,
-				"--eval",
-				`import { ImageProtocol, TERMINAL, TERMINAL_ID } from "@oh-my-pi/pi-tui/terminal-capabilities";
+				...nodeEvalArgs(
+					`import {  ImageProtocol, TERMINAL, TERMINAL_ID  } from ${JSON.stringify(CAPABILITIES_URL)};
 console.log(JSON.stringify({ id: TERMINAL_ID, imageProtocol: TERMINAL.imageProtocol, expected: ImageProtocol.Kitty }));`,
+				),
 			],
 			env,
 			stdout: "pipe",

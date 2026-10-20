@@ -1,9 +1,10 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, ImageContent } from "@oh-my-pi/pi-ai";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { ImageProtocol, setTerminalImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const IMAGE: ImageContent = {
 	type: "image",
@@ -19,7 +20,7 @@ describe("Tool image rendering", () => {
 
 	beforeEach(() => {
 		setTerminalImageProtocol(ImageProtocol.Kitty);
-		vi.spyOn(Bun.Image.prototype, "png").mockImplementation(() => {
+		vi.spyOn(Image.prototype, "png").mockImplementation(() => {
 			throw new TypeError("synchronous image conversion failure");
 		});
 	});
@@ -92,7 +93,7 @@ describe("Kitty PNG conversion cache", () => {
 	let evictedImage: ImageContent;
 	const floodImages: ImageContent[] = [];
 	let encodes = 0;
-	let originalPng: typeof Bun.Image.prototype.png;
+	let originalPng: typeof Image.prototype.png;
 	/** When set, conversions publish this base64 payload instead of the real PNG. */
 	let oversizedPng: string | undefined;
 
@@ -129,7 +130,7 @@ describe("Kitty PNG conversion cache", () => {
 	}
 
 	async function webpImage(edge: number): Promise<ImageContent> {
-		const webp = await new Bun.Image(SEED_PNG).resize(edge, edge).webp().bytes();
+		const webp = await new Image(SEED_PNG).resize(edge, edge).webp().bytes();
 		return { type: "image", data: Buffer.from(webp).toString("base64"), mimeType: "image/webp" };
 	}
 
@@ -146,8 +147,8 @@ describe("Kitty PNG conversion cache", () => {
 		setTerminalImageProtocol(ImageProtocol.Kitty);
 		encodes = 0;
 		oversizedPng = undefined;
-		originalPng = Bun.Image.prototype.png;
-		vi.spyOn(Bun.Image.prototype, "png").mockImplementation(function (this: Bun.Image) {
+		originalPng = Image.prototype.png;
+		vi.spyOn(Image.prototype, "png").mockImplementation(function (this: Image) {
 			encodes++;
 			const encoder = originalPng.call(this);
 			if (oversizedPng === undefined) return encoder;

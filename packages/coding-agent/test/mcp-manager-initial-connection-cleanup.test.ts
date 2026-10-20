@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -109,7 +109,7 @@ describe("MCPManager initial connection ownership", () => {
 		const config: MCPStdioServerConfig = {
 			type: "stdio",
 			command: process.execPath,
-			args: [path.join(import.meta.dir, "fixtures", "delayed-tool-mcp.ts"), marker],
+			args: [path.join(import.meta.dirname, "fixtures", "delayed-tool-mcp.ts"), marker],
 			timeout: 1_000,
 		};
 		manager.setOnToolsChanged(tools => {
@@ -237,7 +237,7 @@ describe("MCPManager initial connection ownership", () => {
 
 	it("aborts a handshake still in flight on disconnectAll instead of leaving it to its timeout", async () => {
 		const manager = new MCPManager(process.cwd());
-		const hangFixture = path.join(import.meta.dir, "fixtures", "hang-during-init-mcp.ts");
+		const hangFixture = path.join(import.meta.dirname, "fixtures", "hang-during-init-mcp.ts");
 		const connect = mcpClient.connectToServer;
 		const handshakes: Promise<unknown>[] = [];
 		vi.spyOn(mcpClient, "connectToServer").mockImplementation((...args) => {
@@ -271,7 +271,7 @@ describe("MCPManager initial connection ownership", () => {
 
 	it("reports only handshakes that failed before disconnectAll, not the ones it aborted", async () => {
 		const manager = new MCPManager(process.cwd());
-		const hangFixture = path.join(import.meta.dir, "fixtures", "hang-during-init-mcp.ts");
+		const hangFixture = path.join(import.meta.dirname, "fixtures", "hang-during-init-mcp.ts");
 		const deadFailed = Promise.withResolvers<void>();
 
 		try {
@@ -298,7 +298,7 @@ describe("MCPManager initial connection ownership", () => {
 
 	it("stops a reconnect still resolving its credentials on disconnectAll without starting its handshake", async () => {
 		const manager = new MCPManager(process.cwd());
-		const hangFixture = path.join(import.meta.dir, "fixtures", "hang-during-init-mcp.ts");
+		const hangFixture = path.join(import.meta.dirname, "fixtures", "hang-during-init-mcp.ts");
 		const connectSpy = vi.spyOn(mcpClient, "connectToServer");
 		const config: MCPStdioServerConfig = {
 			type: "stdio",

@@ -17,6 +17,7 @@ import {
 	parseDaemonRpcResult,
 	parseDaemonWireMessage,
 } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CONNECT_TIMEOUT_MS = 10_000;
 const CONNECT_RETRY_MS = 50;
@@ -71,7 +72,7 @@ async function readOrCreateToken(runtimeDir: string): Promise<string> {
 	const tokenPath = path.join(runtimeDir, TOKEN_FILE);
 	for (let attempt = 0; attempt < 100; attempt++) {
 		try {
-			// node:fs, not Bun.file().text(): on Windows (Bun 1.4.2) a Bun.file
+			// node:fs, not bun.file().text(): on Windows (Bun 1.4.2) a bun.file
 			// read that rejects with ENOENT holds no event-loop ref, so the loop
 			// drains mid-await — `omp --smoke-test` exited 1 via the unsettled-entry
 			// guard, and a bare script silently stops at that await.
@@ -93,7 +94,7 @@ async function readOrCreateToken(runtimeDir: string): Promise<string> {
 		} catch (error) {
 			if (!isEexist(error)) throw error;
 		}
-		await Bun.sleep(10);
+		await bun.sleep(10);
 	}
 	throw new Error(`Timed out initializing daemon broker token in ${runtimeDir}`);
 }
@@ -293,7 +294,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
 				return;
 			} catch (error) {
 				lastError = error instanceof Error ? error : new Error(String(error));
-				await Bun.sleep(CONNECT_RETRY_MS);
+				await bun.sleep(CONNECT_RETRY_MS);
 			}
 		}
 		throw new Error(
@@ -310,7 +311,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
 			[DAEMON_RUNTIME_DIR_ENV]: this.#runtimeDir,
 		};
 		if (this.#idleGraceMs !== undefined) overlay[DAEMON_IDLE_GRACE_ENV] = String(this.#idleGraceMs);
-		const child = Bun.spawn(spawn.cmd, {
+		const child = bun.spawn(spawn.cmd, {
 			cwd: spawn.cwd,
 			env: workerEnvFromParent(overlay),
 			stdin: "ignore",

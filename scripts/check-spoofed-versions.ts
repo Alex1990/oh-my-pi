@@ -15,8 +15,9 @@
 
 import * as path from "node:path";
 import { USER_AGENT } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const REPO_ROOT = path.join(import.meta.dir, "..");
+const REPO_ROOT = path.join(import.meta.dirname, "..");
 const SEMVER_RE = /(\d+\.\d+\.\d+)/;
 
 interface VersionCheck {
@@ -88,7 +89,7 @@ async function run() {
 
 	for (const check of checks) {
 		const file = path.join(REPO_ROOT, check.file);
-		const source = await Bun.file(file).text();
+		const source = await bun.file(file).text();
 		const match = check.sourcePattern.exec(source);
 		if (!match?.[1]) {
 			console.error(`[WARN] Could not extract current ${check.name} version from ${check.file}`);
@@ -111,7 +112,7 @@ async function run() {
 		console.log(`[DRIFT] ${check.name}: ${current} -> ${latest}`);
 		anyDrift = true;
 		if (doUpdate) {
-			await Bun.write(file, source.replace(match[0], match[0].replace(current, latest)));
+			await bun.write(file, source.replace(match[0], match[0].replace(current, latest)));
 			console.log(`       Updated ${check.file}`);
 		}
 	}

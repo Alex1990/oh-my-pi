@@ -1,9 +1,10 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent, resetThinkingSpeedTracker } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { setTerminalImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 
@@ -32,7 +33,7 @@ function erroredMessage(errorMessage: string): AssistantMessage {
 
 function renderLines(message: AssistantMessage, hideThinkingBlock = false): string[] {
 	const component = new AssistantMessageComponent(message, hideThinkingBlock);
-	return Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"))
+	return bun.stripANSI(component.render(RENDER_WIDTH).join("\n"))
 		.split("\n")
 		.map(line => line.trimEnd());
 }
@@ -90,7 +91,7 @@ describe("AssistantMessageComponent error rendering", () => {
 		const lines = renderLines(erroredMessage(proxy502));
 		// Every row fits the terminal, and the 300-char line is fully readable
 		// across rows rather than ending in an ellipsis at a fixed column.
-		for (const line of lines) expect(Bun.stringWidth(line)).toBeLessThanOrEqual(RENDER_WIDTH);
+		for (const line of lines) expect(bun.stringWidth(line)).toBeLessThanOrEqual(RENDER_WIDTH);
 		const body = lines.filter(line => !line.includes("more lines"));
 		expect((body.join("").match(/x/g) ?? []).length).toBe(300);
 		expect(body.some(line => line.includes("…"))).toBe(false);
@@ -166,7 +167,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 	function liveLines(message: AssistantMessage, hideThinkingBlock = true): string[] {
 		const component = new AssistantMessageComponent(undefined, hideThinkingBlock);
 		component.updateContent(message);
-		const lines = Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"))
+		const lines = bun.stripANSI(component.render(RENDER_WIDTH).join("\n"))
 			.split("\n")
 			.map(line => line.trimEnd());
 		component.dispose();
@@ -215,10 +216,10 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 	it("removes the pulse when the block is finalized", () => {
 		const component = new AssistantMessageComponent(undefined, true);
 		component.updateContent(streaming([{ type: "thinking", thinking: "private reasoning" }]));
-		expect(Bun.stripANSI(component.render(RENDER_WIDTH).join("\n")).includes(PULSE)).toBe(true);
+		expect(bun.stripANSI(component.render(RENDER_WIDTH).join("\n")).includes(PULSE)).toBe(true);
 
 		component.markTranscriptBlockFinalized();
-		const afterFinalize = Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
+		const afterFinalize = bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
 		expect(afterFinalize.includes(PULSE)).toBe(false);
 		expect(afterFinalize.includes("private reasoning")).toBe(false);
 		component.dispose();
@@ -229,7 +230,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		// (the fast path early-returns on a stable shape, so the placeholder must
 		// persist) until visible text arrives and replaces it.
 		const component = new AssistantMessageComponent(undefined, true);
-		const rendered = () => Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
+		const rendered = () => bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
 		component.updateContent(streaming([{ type: "thinking", thinking: "a" }]));
 		expect(rendered().includes(PULSE)).toBe(true);
 		component.updateContent(streaming([{ type: "thinking", thinking: "ab" }]));
@@ -260,7 +261,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		mockTime = 2000;
 		component.updateContent(streaming([{ type: "thinking", thinking: "ab" }], 57), { transient: true });
 
-		const plain = Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
+		const plain = bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
 		// Layout: "<glyph> Thinking · <total> · <rate> toks/s" — 57 provider tokens, 47.0 tok/s.
 		expect(plain).toContain("57 · 47.0 toks/s");
 
@@ -281,7 +282,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		mockTime = 1100;
 		component.updateContent(streaming([{ type: "thinking", thinking: "a" }], 987), { transient: true });
 
-		const plain = Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
+		const plain = bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
 		expect(plain).toContain("200.0 toks/s");
 
 		nowSpy.mockRestore();
@@ -304,7 +305,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		// rather than lingering on "0.0 toks/s" while retaining descriptive text.
 		mockTime = 30_000;
 		component.updateContent(streaming([{ type: "thinking", thinking: "ab" }], 57), { transient: true });
-		const plain = Bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
+		const plain = bun.stripANSI(component.render(RENDER_WIDTH).join("\n"));
 		expect(plain).not.toContain("toks/s");
 		expect(plain).not.toContain("57");
 		expect(plain.includes(PULSE)).toBe(true);
@@ -325,7 +326,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		a.updateContent(streaming([{ type: "thinking", thinking: "a" }], 10), { transient: true });
 		mockTime = 2000;
 		a.updateContent(streaming([{ type: "thinking", thinking: "ab" }], 57), { transient: true });
-		expect(Bun.stripANSI(a.render(RENDER_WIDTH).join("\n"))).toContain("toks/s");
+		expect(bun.stripANSI(a.render(RENDER_WIDTH).join("\n"))).toContain("toks/s");
 		a.dispose();
 
 		// Block B starts moments later with provider tokens but no positive delta of
@@ -333,7 +334,7 @@ describe("AssistantMessageComponent streaming thinking pulse", () => {
 		mockTime = 2500;
 		const b = new AssistantMessageComponent(undefined, true);
 		b.updateContent(streaming([{ type: "thinking", thinking: "xyz" }], 99), { transient: true });
-		const plain = Bun.stripANSI(b.render(RENDER_WIDTH).join("\n"));
+		const plain = bun.stripANSI(b.render(RENDER_WIDTH).join("\n"));
 		expect(plain).not.toContain("toks/s");
 		expect(plain).not.toContain("99");
 		expect(plain.includes(PULSE)).toBe(true);

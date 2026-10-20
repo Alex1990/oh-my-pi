@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { computeFactId, VeracityConsolidator } from "@oh-my-pi/pi-mnemopi/core/veracity-consolidation";
 import { closeQuietly } from "@oh-my-pi/pi-mnemopi/db";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -35,7 +36,7 @@ describe("compute_fact_id", () => {
 			Buffer.from("9:"),
 			Buffer.from("developer"),
 		]);
-		expect(id).toBe(`cf_${Bun.SHA256.hash(framed, "hex").slice(0, 24)}`);
+		expect(id).toBe(`cf_${bun.SHA256.hash(framed, "hex").slice(0, 24)}`);
 	});
 
 	it("distinguishes long, separator-smuggled, and differently bucketed SPOs", () => {

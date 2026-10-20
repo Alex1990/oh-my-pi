@@ -9,6 +9,7 @@ import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { cfgAsyncEnabled } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Real SDK session (goal tool registered as in production), RPC dispatch and goal
 // runtime; only the model is scripted.
@@ -23,12 +24,12 @@ authStorage.keys.setRuntime("anthropic", "test-key");
 const modelRegistry = new ModelRegistry(authStorage, path.join(cwd, "models.yml"));
 const settings = await Settings.init({ inMemory: true, cwd });
 cfgAsyncEnabled.set(settings, false);
-cfgGoalContinuationModes.set(settings, Bun.env.GOAL_RPC_CONTINUATION === "1" ? ["rpc"] : ["interactive"]);
+cfgGoalContinuationModes.set(settings, bun.env.GOAL_RPC_CONTINUATION === "1" ? ["rpc"] : ["interactive"]);
 const { session } = await createAgentSession({
 	cwd,
 	agentDir: cwd,
 	// GOAL_RPC_PERSIST=1: a file-backed session, so /goaltest-reload really reopens it.
-	sessionManager: Bun.env.GOAL_RPC_PERSIST === "1" ? SessionManager.create(cwd) : SessionManager.inMemory(cwd),
+	sessionManager: bun.env.GOAL_RPC_PERSIST === "1" ? SessionManager.create(cwd) : SessionManager.inMemory(cwd),
 	authStorage,
 	modelRegistry,
 	settings,
@@ -69,9 +70,9 @@ const { session } = await createAgentSession({
 });
 // GOAL_RPC_SCRIPT="slow": the first turn stalls long enough for the host to abort it.
 const turns: MockResponse[] =
-	Bun.env.GOAL_RPC_SCRIPT === "idle"
+	bun.env.GOAL_RPC_SCRIPT === "idle"
 		? []
-		: Bun.env.GOAL_RPC_SCRIPT === "slow"
+		: bun.env.GOAL_RPC_SCRIPT === "slow"
 			? [{ content: [{ type: "toolCall", id: "s1", name: "goal", arguments: { op: "get" } }], delayMs: 10_000 }]
 			: [
 					{ content: [{ type: "toolCall", id: "t1", name: "goal", arguments: { op: "get" } }] },
@@ -81,7 +82,7 @@ const turns: MockResponse[] =
 				];
 const mock = createMockModel({ handler: () => turns.shift() ?? { content: ["Nothing left to do."] } });
 session.agent.streamFn = mock.stream;
-if (Bun.env.GOAL_RPC_PLAN === "1") {
+if (bun.env.GOAL_RPC_PLAN === "1") {
 	session.setPlanModeState({ enabled: true, planFilePath: path.join(cwd, "plan.md") });
 }
 await runRpcMode(session);

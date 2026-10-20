@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { colorLuma, hexToOklch, hslToHex, oklchToHex, relativeLuminance } from "@oh-my-pi/pi-utils/color";
 
 describe("relativeLuminance (WCAG, linearized sRGB)", () => {

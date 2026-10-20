@@ -12,7 +12,7 @@
  * `enableMCP: false`, regardless of what `baseOptions` carries.
  */
 
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createAcpSessionFactory } from "@oh-my-pi/pi-coding-agent/main";
@@ -20,6 +20,7 @@ import type { CreateAgentSessionOptions, CreateAgentSessionResult } from "@oh-my
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStorage = createInMemoryAuthStorage();
 const modelRegistry = new ModelRegistry(authStorage);
@@ -111,11 +112,11 @@ describe("createAcpSessionFactory MCP isolation (issue #1234)", () => {
 			const trustedPath = tempDir.join("trusted.ts");
 			const firedPath = tempDir.join("trusted-event-fired");
 			const ambientFiredPath = tempDir.join("ambient-extension-loaded");
-			await Bun.write(
+			await bun.write(
 				tempDir.join(".omp/extensions/ambient.ts"),
 				`import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(ambientFiredPath)}, "loaded"); export default function () {}`,
 			);
-			await Bun.write(
+			await bun.write(
 				trustedPath,
 				`import { writeFileSync } from "node:fs"; export default function (pi) { pi.events.on("acp-session-live", () => writeFileSync(${JSON.stringify(firedPath)}, "fired")); }`,
 			);
@@ -148,8 +149,8 @@ describe("createAcpSessionFactory MCP isolation (issue #1234)", () => {
 
 			expect(captured?.eventBus).toBeDefined();
 			expect(captured?.preloadedExtensions?.extensions).toHaveLength(1);
-			expect(await Bun.file(firedPath).text()).toBe("fired");
-			expect(await Bun.file(ambientFiredPath).exists()).toBe(false);
+			expect(await bun.file(firedPath).text()).toBe("fired");
+			expect(await bun.file(ambientFiredPath).exists()).toBe(false);
 		} finally {
 			await tempDir.remove();
 		}
@@ -160,7 +161,7 @@ describe("createAcpSessionFactory MCP isolation (issue #1234)", () => {
 		try {
 			const settings = Settings.isolated({});
 			const trustedPath = tempDir.join("throwing.ts");
-			await Bun.write(trustedPath, 'throw new Error("trusted extension fixture");');
+			await bun.write(trustedPath, 'throw new Error("trusted extension fixture");');
 			let createCalls = 0;
 			const factory = createAcpSessionFactory({
 				baseOptions: {
@@ -194,7 +195,7 @@ describe("createAcpSessionFactory TITLE_SYSTEM.md per-cwd resolution (PR #3736)"
 			const settings = Settings.isolated({});
 
 			const projectDir = tempDir.join("project");
-			await Bun.write(`${projectDir}/.omp/TITLE_SYSTEM.md`, "Project-specific title policy.");
+			await bun.write(`${projectDir}/.omp/TITLE_SYSTEM.md`, "Project-specific title policy.");
 
 			const fakeSession = {} as AgentSession;
 			const captured: CreateAgentSessionOptions[] = [];

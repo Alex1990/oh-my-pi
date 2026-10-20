@@ -28,6 +28,8 @@ import { resolveReadPath } from "../tools/path-utils";
 import { formatDimensionNote, resizeImage } from "./image-resize";
 import { VideoError, buildVideoContactSheetPng, formatVideoDetails, probeVideo, videoMimeForPath } from "./video";
 import { createVideoPreviewImage, isVideoPath } from "@oh-my-pi/pi-tui/prompt/video";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Regex to match @filepath patterns in text */
 const FILE_MENTION_REGEX = /@(?:"([^"]+)"|'([^']+)'|([^\s@]+))/g;
@@ -64,7 +66,7 @@ async function resolveMentionPath(
 	// files; that disambiguation belongs to the selector's display, not post-send.
 	const absolutePath = resolveReadPath(filePath, cwd);
 	try {
-		await Bun.file(absolutePath).stat();
+		await bun.file(absolutePath).stat();
 		return { resolvedPath: filePath, absolutePath };
 	} catch {
 		return null;
@@ -107,7 +109,7 @@ function buildTextOutput(textContent: string): { output: string; lineCount: numb
 async function buildDirectoryListing(absolutePath: string): Promise<{ output: string; lineCount: number }> {
 	let entries: string[];
 	try {
-		entries = await Array.fromAsync(new Bun.Glob("*").scan({ cwd: absolutePath, dot: true, onlyFiles: false }));
+		entries = await Array.fromAsync(new Glob("*").scan({ cwd: absolutePath, dot: true, onlyFiles: false }));
 	} catch {
 		return { output: "(empty directory)", lineCount: 1 };
 	}
@@ -128,7 +130,7 @@ async function buildDirectoryListing(absolutePath: string): Promise<{ output: st
 		let age = "";
 
 		try {
-			const stat = await Bun.file(fullPath).stat();
+			const stat = await bun.file(fullPath).stat();
 			if (stat.isDirectory()) {
 				suffix = "/";
 			}
@@ -207,7 +209,7 @@ export async function generateFileMentionMessages(
 		}
 		const { resolvedPath, absolutePath } = resolved;
 		try {
-			const stat = await Bun.file(absolutePath).stat();
+			const stat = await bun.file(absolutePath).stat();
 			if (stat.isDirectory()) {
 				const { output, lineCount } = await buildDirectoryListing(absolutePath);
 				files.push({ path: resolvedPath, content: output, lineCount });
@@ -305,7 +307,7 @@ export async function generateFileMentionMessages(
 				continue;
 			}
 
-			const content = await Bun.file(absolutePath).text();
+			const content = await bun.file(absolutePath).text();
 			const snapshotStore = options?.useHashLines ? options.snapshotStore : undefined;
 			const normalized = snapshotStore ? normalizeToLF(content) : content;
 			const displayText = snapshotStore ? splitAddressableFileLines(normalized).join("\n") : normalized;

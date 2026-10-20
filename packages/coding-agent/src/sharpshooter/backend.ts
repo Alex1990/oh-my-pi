@@ -17,6 +17,7 @@ import { startSharpshooterScheduler } from "./scheduler";
 import { SHARPSHOOTER_MEMORY_FILES } from "./types";
 
 import { cfgSharpshooterInjectionTokenLimit, cfgSharpshooterIntervalMinutes } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SharpshooterSessionResources {
 	unsubscribe: () => void;
@@ -54,7 +55,7 @@ async function readMemoryFile(
 	cwd: string,
 	name: (typeof SHARPSHOOTER_MEMORY_FILES)[number],
 ): Promise<SharpshooterFileSnapshot> {
-	const file = Bun.file(sharpshooterMemoryFilePath(agentDir, cwd, name));
+	const file = bun.file(sharpshooterMemoryFilePath(agentDir, cwd, name));
 	if (!(await file.exists())) return { name, content: "", lines: 0, bytes: 0 };
 	const content = await file.text();
 	const normalized = content.trimEnd();

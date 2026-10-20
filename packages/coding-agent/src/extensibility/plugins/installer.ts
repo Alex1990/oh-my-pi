@@ -1,11 +1,23 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getAgentDir, getProjectDir } from "@oh-my-pi/pi-utils";
-import { runBunCli } from "./bun-cli";
+import { runPackageManagerCli } from "./package-manager-cli";
 import { extractPackageName } from "./parser";
-import type { InstalledPlugin } from "./types";
+import type { InstalledPlugin, PluginManifest } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PLUGINS_DIR = path.join(getAgentDir(), "plugins");
+
+/** Fields of a plugin package's `package.json` this module reads. */
+interface PluginPackageJson {
+	name: string;
+	version: string;
+	/** Plugin manifest carried by OMP-aware packages. */
+	omp?: PluginManifest;
+	/** Plugin manifest carried by legacy Pi packages. */
+	pi?: PluginManifest;
+	dependencies?: Record<string, string>;
+}
 
 // Valid npm package name pattern (scoped and unscoped)
 const VALID_PACKAGE_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(@[a-z0-9-._^~>=<]+)?$/i;
@@ -40,13 +52,13 @@ export async function installPlugin(packageName: string): Promise<InstalledPlugi
 
 	// Initialize package.json if it doesn't exist
 	const pkgJsonPath = path.join(PLUGINS_DIR, "package.json");
-	const pkgJson = Bun.file(pkgJsonPath);
+	const pkgJson = bun.file(pkgJsonPath);
 	if (!(await pkgJson.exists())) {
 		await pkgJson.write(JSON.stringify({ name: "omp-plugins", private: true, dependencies: {} }, null, 2));
 	}
 
 	// Run npm install in plugins directory
-	const { exitCode, stderr } = await runBunCli(["install", packageName], PLUGINS_DIR);
+	const { exitCode, stderr } = await runPackageManagerCli(["install", packageName], PLUGINS_DIR);
 	if (exitCode !== 0) {
 		throw new Error(`Failed to install ${packageName}: ${stderr}`);
 	}
@@ -56,12 +68,12 @@ export async function installPlugin(packageName: string): Promise<InstalledPlugi
 
 	// Read the installed package's package.json
 	const pkgPath = path.join(PLUGINS_DIR, "node_modules", actualName, "package.json");
-	const pkgFile = Bun.file(pkgPath);
+	const pkgFile = bun.file(pkgPath);
 	if (!(await pkgFile.exists())) {
 		throw new Error(`Package installed but package.json not found at ${pkgPath}`);
 	}
 
-	const pkg = await pkgFile.json();
+	const pkg = await pkgFile.json<PluginPackageJson>();
 
 	return {
 		name: pkg.name,
@@ -79,27 +91,27 @@ export async function uninstallPlugin(name: string): Promise<void> {
 
 	await ensurePluginsDir();
 
-	const { exitCode } = await runBunCli(["uninstall", name], PLUGINS_DIR);
+	const { exitCode } = await runPackageManagerCli(["uninstall", name], PLUGINS_DIR);
 	if (exitCode !== 0) {
 		throw new Error(`Failed to uninstall ${name}`);
 	}
 }
 
 export async function listPlugins(): Promise<InstalledPlugin[]> {
-	const pkgJsonPath = Bun.file(path.join(PLUGINS_DIR, "package.json"));
+	const pkgJsonPath = bun.file(path.join(PLUGINS_DIR, "package.json"));
 	if (!(await pkgJsonPath.exists())) {
 		return [];
 	}
 
-	const pkg = await pkgJsonPath.json();
+	const pkg = await pkgJsonPath.json<{ dependencies?: Record<string, string> }>();
 	const deps = pkg.dependencies || {};
 
 	const plugins: InstalledPlugin[] = [];
 	for (const [name, _version] of Object.entries(deps)) {
 		const pluginPath = path.join(PLUGINS_DIR, "node_modules", name);
-		const fpkg = Bun.file(path.join(pluginPath, "package.json"));
+		const fpkg = bun.file(path.join(pluginPath, "package.json"));
 		if (await fpkg.exists()) {
-			const pkg = await fpkg.json();
+			const pkg = await fpkg.json<PluginPackageJson>();
 			plugins.push({
 				name,
 				version: pkg.version,
@@ -126,7 +138,7 @@ export async function linkPlugin(localPath: string): Promise<void> {
 	}
 
 	// Validate package.json exists
-	const pkgFile = Bun.file(path.join(absolutePath, "package.json"));
+	const pkgFile = bun.file(path.join(absolutePath, "package.json"));
 	if (!(await pkgFile.exists())) {
 		throw new Error(`package.json not found at ${absolutePath}`);
 	}

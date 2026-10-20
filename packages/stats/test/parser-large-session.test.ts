@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { parseSessionFile } from "@oh-my-pi/omp-stats/parser";
 import { getSessionsDir } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-large-session-");
 
@@ -47,7 +48,7 @@ async function writeLargeSessionFile(): Promise<string> {
 			}),
 		);
 	}
-	await Bun.write(sessionFile, `${lines.join("\n")}\n`);
+	await bun.write(sessionFile, `${lines.join("\n")}\n`);
 	return sessionFile;
 }
 
@@ -70,9 +71,9 @@ describe("large session parsing", () => {
 		expect(result.userLinks).toEqual([]);
 	});
 
-	it("parses multi-megabyte JSONL without entering Bun.JSONL.parseChunk", async () => {
+	it("parses multi-megabyte JSONL without entering bun.JSONL.parseChunk", async () => {
 		const sessionFile = await writeLargeSessionFile();
-		vi.spyOn(Bun.JSONL, "parseChunk").mockImplementation(() => {
+		vi.spyOn(bun.JSONL, "parseChunk").mockImplementation(() => {
 			throw new Error("native JSONL parser unavailable");
 		});
 

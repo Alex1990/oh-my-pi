@@ -2,6 +2,7 @@ const trailingEvents = new WeakSet<ServerSentEvent>();
 
 import { abortableSource } from "./abortable";
 import { parseStreamingJson } from "./json-parse";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LF = 0x0a;
 const CR = 0x0d;
@@ -50,7 +51,7 @@ export async function* readJsonl<T>(stream: ReadableStream<Uint8Array>, signal?:
 			const tail = buffer.flush();
 			if (tail) {
 				buffer.clear();
-				const { values, error, done } = Bun.JSONL.parseChunk(tail, 0, tail.length);
+				const { values, error, done } = bun.JSONL.parseChunk(tail, 0, tail.length);
 				if (values.length > 0) {
 					yield* values as T[];
 				}
@@ -186,7 +187,7 @@ export class ConcatSink {
 		}
 	}
 
-	appendAndFlushText(chunk: Uint8Array, decoder: TextDecoder): string | undefined {
+	appendAndFlushText(chunk: Uint8Array, decoder: InstanceType<typeof TextDecoder>): string | undefined {
 		let start = 0;
 		if (this.#skipLeadingLf) {
 			if (chunk.length === 0) return undefined;
@@ -225,7 +226,7 @@ export class ConcatSink {
 		}
 
 		if (this.isEmpty) {
-			const { values, error, read, done } = Bun.JSONL.parseChunk(chunk, beg, end);
+			const { values, error, read, done } = bun.JSONL.parseChunk(chunk, beg, end);
 			if (values.length > 0) {
 				yield* values as T[];
 			}
@@ -242,7 +243,7 @@ export class ConcatSink {
 		space.set(chunk.subarray(beg, end), offset);
 		this.#length = total;
 
-		const { values, error, read, done } = Bun.JSONL.parseChunk(space, 0, total);
+		const { values, error, read, done } = bun.JSONL.parseChunk(space, 0, total);
 		if (values.length > 0) {
 			yield* values as T[];
 		}
@@ -602,7 +603,7 @@ export async function* readSseEvents(
 /**
  * Parse a complete JSONL string, skipping malformed lines instead of throwing.
  *
- * Uses `Bun.JSONL.parseChunk` internally. On parse errors, the malformed
+ * Uses `bun.JSONL.parseChunk` internally. On parse errors, the malformed
  * region is skipped up to the next newline and parsing continues.
  *
  * @param options.onMalformedRecord Called once for every skipped JSONL record.
@@ -615,7 +616,7 @@ export function parseJsonlLenient<T>(buffer: string, options: { onMalformedRecor
 	let entries: T[] | undefined;
 
 	while (buffer.length > 0) {
-		const { values, error, read, done } = Bun.JSONL.parseChunk(buffer);
+		const { values, error, read, done } = bun.JSONL.parseChunk(buffer);
 		if (values.length > 0) {
 			const ext = values as T[];
 			if (!entries) {

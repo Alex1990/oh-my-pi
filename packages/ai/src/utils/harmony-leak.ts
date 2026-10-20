@@ -8,6 +8,7 @@
  * abort-and-retry handled by the agent loop.
  */
 import type { AssistantMessage, Model, ToolCall } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Single source of truth for the marker pattern. `M` in the errata.
 // Use a fresh non-global instance for `.test()` to avoid lastIndex pitfalls.
@@ -371,7 +372,7 @@ export function createHarmonyAuditEvent(params: {
 		removedLen: params.removed.length,
 		removedSha8: sha8(params.removed),
 		removedPreview: redactedJunkPreview(params.removed),
-		removedBlob: Bun.env.OMP_HARMONY_DEBUG === "1" ? params.removed : undefined,
+		removedBlob: bun.env.OMP_HARMONY_DEBUG === "1" ? params.removed : undefined,
 	};
 }
 
@@ -469,7 +470,7 @@ function truncateAtLineAndAppendSentinel(
 }
 
 function sha8(text: string): string {
-	return Bun.sha(text, "hex").slice(0, 8);
+	return bun.sha(text, "hex").slice(0, 8);
 }
 
 const PREVIEW_KEEP_RE = new RegExp(`[${SCRIPT_CLASS}\\s】【”“…」「、。]`, "u");

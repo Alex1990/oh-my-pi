@@ -9,7 +9,7 @@ have different quarantine behavior from browser downloads (see below).
 
 Like every other release build, the macOS binaries are built and signed on
 Linux: the Darwin legs of the `release_binary` matrix
-(`.github/workflows/ci.yml`) cross-compile them with bun and sign them with
+(`.github/workflows/ci.yml`) build them with esbuild and sign them with
 `scripts/ci-macos-sign.sh`, which drives
 [rcodesign](https://github.com/indygreg/apple-platform-rs) (the open-source
 implementation of `codesign` and `notarytool`, pinned and sha256-checked by the
@@ -19,10 +19,10 @@ script signs with the Developer ID and notarizes; with none, it signs ad hoc
 
 ## How it works
 
-1. `ci:release:build-binaries` cross-compiles the binary on Linux. Bun's own
-   signature is not shippable: arm64 gets a bare linker signature, and x86_64
-   keeps the Bun runtime's Developer ID signature, which no longer matches the
-   appended payload.
+1. `ci:release:build-binaries` builds the release artifacts on Linux: an
+   esbuild bundle (`cli.js`) plus the `omp` launcher. Neither is a Mach-O
+   executable, so there is no linker or runtime signature to replace; the
+   signature covers only native addons the bundle loads.
 2. `scripts/ci-macos-sign.sh` replaces it. With credentials it:
    - signs with the Developer ID certificate, the hardened runtime
      (`--code-signature-flags runtime`), a secure timestamp
@@ -45,12 +45,11 @@ script signs with the Developer ID and notarizes; with none, it signs ad hoc
 
 ### Why the entitlements are mandatory
 
-The binary is a Bun single-file executable that also launches Xcode's MCP
-bridge, so the hardened runtime needs:
+The launcher also starts Xcode's MCP bridge, so the hardened runtime needs:
 
 | Entitlement                                              | Reason                                                                                                                                                                                                                                                                                                                        |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `com.apple.security.cs.allow-jit`                        | JavaScriptCore JITs at runtime.                                                                                                                                                                                                                                                                                               |
+| `com.apple.security.cs.allow-jit`                        | The JavaScript runtime JITs at runtime.                                                                                                                                                                                                                                                                                               |
 | `com.apple.security.cs.allow-unsigned-executable-memory` | JSC executable memory pages.                                                                                                                                                                                                                                                                                                  |
 | `com.apple.security.automation.apple-events`             | Allows macOS to prompt for Automation permission when `xcrun mcpbridge` connects to Xcode; without it, first-time Xcode MCP initialization hangs until timeout.                                                                                                                                                                |
 | `com.apple.security.cs.disable-library-validation`       | omp extracts its native addon (`pi_natives.<triple>.node`) and other optional dylibs to a runtime cache and `dlopen()`s them. They do not share the main binary's Team ID, so without this the hardened runtime aborts with _"mapping process and mapped file have different Team IDs"_ — breaking effectively every command. |
@@ -151,7 +150,7 @@ You can exercise the full sign+notarize path on a Linux machine (real cert +
 API key) by exporting the five env vars and running:
 
 ```sh
-RELEASE_TARGETS=darwin-arm64 bun run ci:release:build-binaries
+RELEASE_TARGETS=darwin-arm64 pnpm run ci:release:build-binaries
 APPLE_CERTIFICATE_P12=… APPLE_CERTIFICATE_PASSWORD=… \
 APPLE_API_KEY_ID=… APPLE_API_ISSUER_ID=… APPLE_API_KEY=… \
   bash scripts/ci-macos-sign.sh packages/coding-agent/binaries/omp-darwin-arm64

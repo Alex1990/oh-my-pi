@@ -1,5 +1,5 @@
-import type { BodyInit } from "bun";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -14,10 +14,11 @@ import {
 } from "@oh-my-pi/pi-coding-agent/web/search/providers/exa";
 import { isRecord } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type PostedMcpRequest = Record<string, unknown> & { id: string | number };
 
-function parsePostedMcpRequest(body: BodyInit | null | undefined): PostedMcpRequest {
+function parsePostedMcpRequest(body: RequestInit["body"] | null | undefined): PostedMcpRequest {
 	const request: unknown = JSON.parse(String(body));
 	if (!isRecord(request) || (typeof request.id !== "string" && typeof request.id !== "number")) {
 		throw new Error("Expected an MCP JSON-RPC request body");
@@ -357,7 +358,7 @@ describe("searchExa", () => {
 		const controller = new AbortController();
 		const startedAt = Date.now();
 		const pending = searchExa({ query: "cancelled request", fetch: fetchMock, signal: controller.signal });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		controller.abort(new Error("cancelled Exa throttle wait"));
 
 		await expect(pending).rejects.toThrow("cancelled Exa throttle wait");
@@ -386,7 +387,7 @@ describe("searchExa", () => {
 		const second = searchExa({ query: "second request", fetch: fetchMock, signal: secondController.signal });
 		const startedAt = Date.now();
 		const third = searchExa({ query: "third request", fetch: fetchMock, signal: thirdController.signal });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		thirdController.abort(new Error("cancelled queued Exa throttle wait"));
 
 		await expect(third).rejects.toThrow("cancelled queued Exa throttle wait");

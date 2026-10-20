@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { sortMCPToolsByName } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 
 // `sortMCPToolsByName` is the cache-stability invariant: Anthropic prompt caching

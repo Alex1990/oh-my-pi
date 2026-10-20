@@ -13,7 +13,7 @@
  * distinguished them. `verifyHostAddonLoads` turns that into an immediate,
  * attributable build failure.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { existsSync, readFileSync } from "node:fs";
 import { copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,11 +27,12 @@ import {
 } from "../../../scripts/bazel-natives";
 import { detectHostAvx2Support, resolveLocalHostAddon } from "../../../scripts/host-detect";
 import { hasVersionStampSlot, stampNativeVersion } from "../../../scripts/stamp-native-version";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // x64 addon filenames carry an ISA suffix (-modern/-baseline), so the name must
 // come from the same resolver the build uses, not `${platform}-${arch}`.
 const hostAddon = path.join(
-	import.meta.dir,
+	import.meta.dirname,
 	"..",
 	"native",
 	resolveLocalHostAddon({ platform: process.platform, arch: process.arch, avx2: detectHostAvx2Support() }).filename,
@@ -104,7 +105,7 @@ describe("verifyHostAddonLoads", () => {
 		async () => {
 			const directory = await mkdtemp(path.join(tmpdir(), "omp-addon-load-"));
 			const addon = path.join(directory, "pi_natives.hang.node");
-			expect(Bun.spawnSync(["mkfifo", addon]).exitCode).toBe(0);
+			expect(bun.spawnSync(["mkfifo", addon]).exitCode).toBe(0);
 
 			try {
 				const failure = await failureOf(verifyHostAddonLoads(addon, 500));

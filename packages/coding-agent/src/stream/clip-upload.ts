@@ -1,5 +1,6 @@
 import { type ClipUploadResponse, STREAM_ROUTES } from "@oh-my-pi/pi-wire";
 import { parseRecording, type RecordingHeader } from "./recording";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface ClipUploadOptions {
 	/** Stream server base URL (`stream.serverUrl`), e.g. https://live.omp.sh. */
@@ -40,7 +41,7 @@ export async function uploadClip(options: ClipUploadOptions): Promise<ClipUpload
 			"Content-Type": "application/x-ndjson",
 			"Content-Encoding": "gzip",
 		},
-		body: Bun.gzipSync(body),
+		body: bun.gzipSync(body),
 	});
 	const payload: unknown = await response.json().catch(() => null);
 	if (!response.ok) {

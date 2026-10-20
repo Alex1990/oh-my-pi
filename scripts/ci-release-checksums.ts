@@ -1,9 +1,9 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Generate a `sha256sum`-compatible checksums file for release assets.
  *
  * Usage:
- *   bun scripts/ci-release-checksums.ts <out-file> <asset>...
+ *   node scripts/ci-release-checksums.ts <out-file> <asset>...
  *
  * Each `<asset>` is hashed and written as a `<sha256>  <basename>` line,
  * sorted by basename, so the result can be verified after download with
@@ -15,6 +15,8 @@
  */
 
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface ChecksumEntry {
 	name: string;
@@ -37,18 +39,18 @@ async function main(): Promise<void> {
 
 	const entries = await Promise.all(
 		assetPaths.map(async assetPath => {
-			const hasher = new Bun.CryptoHasher("sha256");
-			for await (const chunk of Bun.file(assetPath).stream()) {
+			const hasher = new bun.CryptoHasher("sha256");
+			for await (const chunk of bun.file(assetPath).stream()) {
 				hasher.update(chunk);
 			}
 			return { name: path.basename(assetPath), sha256: hasher.digest("hex") };
 		}),
 	);
 
-	await Bun.write(outFile, formatChecksums(entries));
+	await bun.write(outFile, formatChecksums(entries));
 	console.log(`Wrote ${entries.length} checksum(s) to ${outFile}`);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }

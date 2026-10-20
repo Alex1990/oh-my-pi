@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
@@ -12,6 +12,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import * as natives from "@oh-my-pi/pi-natives";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { postmortem, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("InteractiveMode restart", () => {
 	let tempDir: TempDir;
@@ -57,7 +58,7 @@ describe("InteractiveMode restart", () => {
 		process.argv = [originalArgv[0], originalArgv[1], ...argv];
 		// Stop only at the process replacement boundary; teardown and argv production run for real.
 		const exec = vi.spyOn(natives, "execReplace").mockImplementation(() => undefined as never);
-		const spawn = vi.spyOn(Bun, "spawn").mockReturnValue({ exited: Promise.resolve(0) } as never);
+		const spawn = vi.spyOn(bun, "spawn").mockReturnValue({ exited: Promise.resolve(0) } as never);
 		vi.spyOn(postmortem, "cleanup").mockResolvedValue();
 		vi.spyOn(postmortem, "drainStdout").mockResolvedValue();
 		vi.spyOn(postmortem, "quit").mockResolvedValue();
@@ -154,6 +155,6 @@ describe("InteractiveMode restart", () => {
 		expect(parsed.messages).toEqual([]);
 		expect(sessionManager.isSessionOnDisk()).toBe(false);
 		if (!file) throw new Error("expected allocated journal path");
-		expect(await Bun.file(file).exists()).toBe(false);
+		expect(await bun.file(file).exists()).toBe(false);
 	});
 });

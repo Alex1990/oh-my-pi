@@ -15,9 +15,9 @@
  */
 
 import { createAgentSession, RedisSessionStorage, SessionManager } from "@oh-my-pi/pi-coding-agent";
-import { RedisClient } from "bun";
+import { RedisClient } from "@oh-my-pi/pi-utils/redis-client";
 
-// `bun:redis` picks up `REDIS_URL` / `VALKEY_URL` from the environment, or
+// The built-in client picks up `REDIS_URL` / `VALKEY_URL` from the environment, or
 // you can pass an explicit `redis://`/`rediss://` URL.
 const redis = new RedisClient();
 await redis.ping();

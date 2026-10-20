@@ -74,6 +74,7 @@ import { getDefaultModelDiscoveryBaseUrl, resolveModelCacheProviderId } from "./
 import { getClinePassModelMetadata } from "./cline-pass";
 import type { ModelManagerConfig } from "./descriptor-types";
 import { filterModelsDevCatalogRows } from "./models-dev-policies";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function revisionAtLeast(revision: string | undefined, floor: string): boolean {
 	if (revision === undefined) return false;
@@ -260,7 +261,7 @@ async function fetchCatalogPayload(
 	}
 	const bytes = new Uint8Array(await response.arrayBuffer());
 	const isZstd = bytes.length >= 4 && new DataView(bytes.buffer, bytes.byteOffset).getUint32(0, true) === ZSTD_MAGIC;
-	const text = new TextDecoder().decode(isZstd ? await Bun.zstdDecompress(bytes) : bytes);
+	const text = new TextDecoder().decode(isZstd ? await bun.zstdDecompress(bytes) : bytes);
 	const payload: unknown = JSON.parse(text);
 	session.payload = payload;
 	session.etag = response.headers.get("etag");
@@ -4373,7 +4374,7 @@ export function lmStudioModelManagerOptions(
 	config?: LmStudioModelManagerConfig,
 ): ModelManagerOptions<"openai-completions"> {
 	const apiKey = config?.apiKey;
-	const baseUrl = config?.baseUrl ?? Bun.env.LM_STUDIO_BASE_URL ?? "http://127.0.0.1:1234/v1";
+	const baseUrl = config?.baseUrl ?? bun.env.LM_STUDIO_BASE_URL ?? "http://127.0.0.1:1234/v1";
 	const references = createBundledReferenceMap<"openai-completions">("lm-studio" as any);
 	return {
 		providerId: "lm-studio",
@@ -4754,7 +4755,7 @@ export function coreWeaveModelManagerOptions(
 ): ModelManagerOptions<"openai-completions"> {
 	return createSimpleOpenAICompletionsOptions("coreweave", "https://api.inference.wandb.ai/v1", {
 		...config,
-		headers: () => coreWeaveProjectHeaders(Bun.env),
+		headers: () => coreWeaveProjectHeaders(bun.env),
 	});
 }
 
@@ -4937,7 +4938,7 @@ export function moonshotModelManagerOptions(
 		// `MOONSHOT_BASE_URL` redirects discovery (and the streaming request that
 		// inherits this baseUrl) at the Kimi China platform `api.moonshot.cn`; an
 		// explicit `config.baseUrl` still wins. Mirrors LITELLM_BASE_URL/LM_STUDIO_BASE_URL. (#2883)
-		defaultBaseUrl: Bun.env.MOONSHOT_BASE_URL ?? "https://api.moonshot.ai/v1",
+		defaultBaseUrl: bun.env.MOONSHOT_BASE_URL ?? "https://api.moonshot.ai/v1",
 		config,
 		requireApiKey: true,
 		mapModel: (entry, defaults, reference) => {
@@ -5010,7 +5011,7 @@ export interface SakanaModelManagerConfig {
 
 export function sakanaModelManagerOptions(config?: SakanaModelManagerConfig): ModelManagerOptions<"openai-responses"> {
 	const apiKey = config?.apiKey;
-	const baseUrl = normalizeSakanaBaseUrl(config?.baseUrl ?? Bun.env.SAKANA_BASE_URL ?? Bun.env.FUGU_BASE_URL);
+	const baseUrl = normalizeSakanaBaseUrl(config?.baseUrl ?? bun.env.SAKANA_BASE_URL ?? bun.env.FUGU_BASE_URL);
 	const references = createBundledReferenceMap<"openai-responses">("sakana");
 	return {
 		providerId: "sakana",
@@ -5141,7 +5142,7 @@ export interface AiandModelManagerConfig {
  */
 export function aiandModelManagerOptions(config?: AiandModelManagerConfig): ModelManagerOptions<"openai-completions"> {
 	const apiKey = config?.apiKey;
-	const baseUrl = normalizeAiandBaseUrl(config?.baseUrl ?? Bun.env.AIAND_BASE_URL);
+	const baseUrl = normalizeAiandBaseUrl(config?.baseUrl ?? bun.env.AIAND_BASE_URL);
 	return {
 		providerId: "aiand",
 		dynamicModelsAuthoritative: true,

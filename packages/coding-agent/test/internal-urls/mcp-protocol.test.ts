@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import type { ReadToolDetails } from "@oh-my-pi/pi-tui/tools/read";
 import { withTimeout } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createMockManager(opts: {
 	servers?: string[];
@@ -654,8 +655,8 @@ describe("skill:// falls back to an MCP resource with the same URI", () => {
 		tmpDirs.push(tmp);
 		const skillDir = path.join(tmp, "figma");
 		await fs.mkdir(path.join(skillDir, "figma-use"), { recursive: true });
-		await Bun.write(path.join(skillDir, "SKILL.md"), "---\nname: figma\ndescription: local\n---\n# figma\n");
-		await Bun.write(path.join(skillDir, "figma-use", "SKILL.md"), "local copy");
+		await bun.write(path.join(skillDir, "SKILL.md"), "---\nname: figma\ndescription: local\n---\n# figma\n");
+		await bun.write(path.join(skillDir, "figma-use", "SKILL.md"), "local copy");
 
 		const { skills } = await loadSkillsFromDir({ dir: tmp, source: "test" });
 		expect(skills.some(s => s.name === "figma")).toBe(true);

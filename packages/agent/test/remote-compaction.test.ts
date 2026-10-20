@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import { ThinkingLevel, Tokenizer } from "@oh-my-pi/pi-agent-core";
 import {
 	type CompactionPreparation,
@@ -44,6 +45,36 @@ import { __resetProxyCache } from "@oh-my-pi/pi-ai/utils/proxy";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";
 import * as piUtils from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import type * as NodeServe from "@oh-my-pi/pi-utils/node-serve";
+
+// `packages/ai` imports the Codex WebSocket class from `node-serve`, so replacing
+// `globalThis.WebSocket` alone no longer intercepts the transport. Route that
+// module export through a swappable facade that `installCodexCompactionWebSocket`
+// points at the scripted socket for the duration of each test.
+const codexWebSocketFactory = vi.hoisted(() => ({
+	current: undefined as
+		| (new (url: string, options?: { headers?: Record<string, string> }) => { readyState: number })
+		| undefined,
+}));
+
+vi.mock("@oh-my-pi/pi-utils/node-serve", async importOriginal => {
+	const actual = await importOriginal<typeof NodeServe>();
+	class TestWebSocket {
+		static readonly CONNECTING = 0;
+		static readonly OPEN = 1;
+		static readonly CLOSING = 2;
+		static readonly CLOSED = 3;
+
+		constructor(url: string, options?: { headers?: Record<string, string> }) {
+			const factory = codexWebSocketFactory.current;
+			if (factory === undefined) throw new Error("No Codex test WebSocket installed");
+			return new factory(url, options);
+		}
+	}
+	return { ...actual, WebSocket: TestWebSocket };
+});
 
 const { isRecord } = piUtils;
 const TEST_INSTALLATION_ID = "00000000-0000-4000-8000-000000000001";
@@ -130,6 +161,7 @@ function installCodexCompactionWebSocket(options?: {
 	restore(): void;
 } {
 	const originalWebSocket = globalThis.WebSocket;
+	const originalWebSocketFactory = codexWebSocketFactory.current;
 	const sockets: CodexCompactionTestSocket[] = [];
 
 	class CodexCompactionWebSocket implements CodexCompactionTestSocket {
@@ -185,9 +217,11 @@ function installCodexCompactionWebSocket(options?: {
 		writable: true,
 		value: CodexCompactionWebSocket,
 	});
+	codexWebSocketFactory.current = CodexCompactionWebSocket;
 	return {
 		sockets,
 		restore: () => {
+			codexWebSocketFactory.current = originalWebSocketFactory;
 			Object.defineProperty(globalThis, "WebSocket", {
 				configurable: true,
 				writable: true,
@@ -2036,8 +2070,8 @@ test("keeps the LiteLLM conversation session header on V1 compaction unless conf
 });
 
 test("uses Azure request shape for Azure Responses remote compaction", async () => {
-	const previousDeploymentMap = Bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP;
-	Bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP = "gpt-5-compact=azure-gpt-5-compact";
+	const previousDeploymentMap = bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP;
+	bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP = "gpt-5-compact=azure-gpt-5-compact";
 	const model = makeAzureModel({
 		headers: { "x-custom-header": "custom" },
 		remoteCompaction: {
@@ -2086,9 +2120,9 @@ test("uses Azure request shape for Azure Responses remote compaction", async () 
 	expect(requestCustomHeader).toBe("custom");
 	expect(requestBody).toMatchObject({ model: "azure-gpt-5-compact" });
 	if (previousDeploymentMap === undefined) {
-		delete Bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP;
+		delete bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP;
 	} else {
-		Bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP = previousDeploymentMap;
+		bun.env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP = previousDeploymentMap;
 	}
 });
 
@@ -2258,7 +2292,7 @@ describe("compact() remote compaction failure handling", () => {
 	test("V1 compact drops mixed-provider Anthropic state and keeps unrelated preserve data", async () => {
 		const compactionItem = { type: "compaction", encrypted_content: "enc-current-v1" };
 		const compactPaths: string[] = [];
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch(req) {
@@ -3183,19 +3217,19 @@ describe("Amazon Bedrock OpenAI routes", () => {
 	] as const;
 
 	async function withAwsEnv<T>(env: Partial<Record<(typeof AWS_ENV_KEYS)[number], string>>, run: () => Promise<T>) {
-		const previous = new Map(AWS_ENV_KEYS.map(key => [key, Bun.env[key]]));
+		const previous = new Map(AWS_ENV_KEYS.map(key => [key, bun.env[key]]));
 		try {
 			for (const key of AWS_ENV_KEYS) {
 				const value = env[key];
-				if (value === undefined) delete Bun.env[key];
-				else Bun.env[key] = value;
+				if (value === undefined) delete bun.env[key];
+				else bun.env[key] = value;
 			}
 			clearAwsCredentialCache();
 			return await run();
 		} finally {
 			for (const [key, value] of previous) {
-				if (value === undefined) delete Bun.env[key];
-				else Bun.env[key] = value;
+				if (value === undefined) delete bun.env[key];
+				else bun.env[key] = value;
 			}
 			clearAwsCredentialCache();
 		}
@@ -3393,8 +3427,8 @@ describe("Amazon Bedrock compaction request preparation", () => {
 			provider: "compaction-proxy-test",
 			baseUrl: runtimeUrl,
 		});
-		const previous = Bun.env.PI_PROXY_COMPACTION_PROXY_TEST;
-		Bun.env.PI_PROXY_COMPACTION_PROXY_TEST = "http://proxy.example.test:8080";
+		const previous = bun.env.PI_PROXY_COMPACTION_PROXY_TEST;
+		bun.env.PI_PROXY_COMPACTION_PROXY_TEST = "http://proxy.example.test:8080";
 		__resetProxyCache();
 		const proxies: unknown[] = [];
 		const fetchMock: FetchImpl = async (input, init) => {
@@ -3413,8 +3447,8 @@ describe("Amazon Bedrock compaction request preparation", () => {
 				{ fetch: fetchMock },
 			);
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_PROXY_COMPACTION_PROXY_TEST;
-			else Bun.env.PI_PROXY_COMPACTION_PROXY_TEST = previous;
+			if (previous === undefined) delete bun.env.PI_PROXY_COMPACTION_PROXY_TEST;
+			else bun.env.PI_PROXY_COMPACTION_PROXY_TEST = previous;
 			__resetProxyCache();
 		}
 

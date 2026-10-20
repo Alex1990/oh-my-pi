@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -20,6 +20,7 @@ import {
 import { TempDir } from "@oh-my-pi/pi-utils";
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import type { SessionTitleUpdate } from "@oh-my-pi/pi-coding-agent/session/session-title-slot";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface DetachableWriter extends SessionStorageWriter {
 	detach(): void;
@@ -527,7 +528,7 @@ describe("SessionManager cross-process rewrite freshness", () => {
 			const ownedId = creator.getSessionId();
 			if (!owned || !artifactId) throw new Error("Expected session file and artifact");
 			await creator.close();
-			const ownedBytes = await Bun.file(owned).text();
+			const ownedBytes = await bun.file(owned).text();
 
 			const storage = new OwnedElsewhereStorage(ownedId);
 			const ours = await SessionManager.open(owned, tempDir.path(), storage, { suppressBreadcrumb: true });
@@ -552,7 +553,7 @@ describe("SessionManager cross-process rewrite freshness", () => {
 
 			const sibling = ours.getSessionFile();
 			if (!sibling) throw new Error("Expected session file");
-			expect(await Bun.file(owned).text()).toBe(ownedBytes);
+			expect(await bun.file(owned).text()).toBe(ownedBytes);
 			expect(path.dirname(sibling)).toBe(path.dirname(owned));
 			expect(notices).toEqual([{ reason: "open-elsewhere", from: owned, to: sibling }]);
 			expect(errors).toEqual([]);
@@ -564,11 +565,11 @@ describe("SessionManager cross-process rewrite freshness", () => {
 			// artifact saved during the copy got a fresh id instead of overwriting one.
 			const artifactPath = await ours.getArtifactPath(artifactId);
 			expect(artifactPath && path.dirname(artifactPath)).toBe(sibling.slice(0, -".jsonl".length));
-			expect(artifactPath && (await Bun.file(artifactPath).text())).toBe("tool output");
+			expect(artifactPath && (await bun.file(artifactPath).text())).toBe("tool output");
 			expect(laterArtifactId).toBeDefined();
 			expect(laterArtifactId).not.toBe(artifactId);
 			const laterArtifactPath = laterArtifactId && (await ours.getArtifactPath(laterArtifactId));
-			expect(laterArtifactPath && (await Bun.file(laterArtifactPath).text())).toBe("output after the move");
+			expect(laterArtifactPath && (await bun.file(laterArtifactPath).text())).toBe("output after the move");
 			// The sibling is a new session pointing back, so one id never names two files.
 			const movedSessionId = ours.getSessionId();
 			expect(movedSessionId).not.toBe(ownedSessionId);

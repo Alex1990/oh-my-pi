@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { type Component, Container, Text } from "@oh-my-pi/pi-tui";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
@@ -8,6 +8,7 @@ import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -84,7 +85,7 @@ describe("transcript rows under chrome that outlives the turn", () => {
 
 			const counts = new Map<number, number>();
 			for (const row of terminal.getScrollBuffer()) {
-				const token = /QZC(\d{3})/.exec(Bun.stripANSI(row))?.[1];
+				const token = /QZC(\d{3})/.exec(bun.stripANSI(row))?.[1];
 				if (token !== undefined) counts.set(Number(token), (counts.get(Number(token)) ?? 0) + 1);
 			}
 			const missing = Array.from({ length: REPLY_LINES }, (_, i) => i + 1).filter(n => !counts.has(n));
@@ -131,7 +132,7 @@ describe("transcript rows under chrome that outlives the turn", () => {
 				const history = (): string[] =>
 					terminal
 						.getScrollBuffer()
-						.map(row => Bun.stripANSI(row).trim())
+						.map(row => bun.stripANSI(row).trim())
 						.filter(row => /^(shell\d+|QZI\d{3} alpha bravo)$/.test(row));
 				expect(history()).toEqual([...shell, ...lines]);
 				chrome.rows = 7;
@@ -141,7 +142,7 @@ describe("transcript rows under chrome that outlives the turn", () => {
 				expect(
 					terminal
 						.getViewport()
-						.map(row => Bun.stripANSI(row).trim())
+						.map(row => bun.stripANSI(row).trim())
 						.filter(row => row.startsWith("Turn chrome row ")),
 				).toEqual(Array.from({ length: 7 }, (_, i) => `Turn chrome row ${i}`));
 
@@ -185,7 +186,7 @@ describe("transcript rows under chrome that outlives the turn", () => {
 			await scheduler.advance(terminal, 300);
 			const seen = new Set<string>();
 			for (const row of terminal.getScrollBuffer()) {
-				const token = /QZS\d{3}/.exec(Bun.stripANSI(row))?.[0];
+				const token = /QZS\d{3}/.exec(bun.stripANSI(row))?.[0];
 				if (token !== undefined) seen.add(token);
 			}
 			return lines.filter(line => !seen.has(line));

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { sanitizeErrorLine } from "@oh-my-pi/pi-tui/chrome/error-block";
 import { TRUNCATE_LENGTHS } from "@oh-my-pi/pi-tui/render/render-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("safe error lines", () => {
 	it("shortens multiple quoted home paths without splitting a home directory containing spaces", () => {
@@ -57,7 +58,7 @@ describe("safe error lines", () => {
 		expect(line).toContain("EACCES ~/file retry");
 		expect(line).not.toMatch(/[\x00-\x1f\x7f-\x9f]/);
 		expect(line).not.toContain("https://host");
-		expect(Bun.stringWidth(line)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
-		expect(Bun.stringWidth(sanitizeErrorLine("EACCES /home/alice/file", 8, "/home/alice"))).toBeLessThanOrEqual(8);
+		expect(bun.stringWidth(line)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
+		expect(bun.stringWidth(sanitizeErrorLine("EACCES /home/alice/file", 8, "/home/alice"))).toBeLessThanOrEqual(8);
 	});
 });

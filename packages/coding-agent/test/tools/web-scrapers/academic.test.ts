@@ -1,11 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleArxiv } from "@oh-my-pi/pi-coding-agent/web/scrapers/arxiv";
 import { handleIacr } from "@oh-my-pi/pi-coding-agent/web/scrapers/iacr";
 import { handlePubMed } from "@oh-my-pi/pi-coding-agent/web/scrapers/pubmed";
 import { handleSemanticScholar } from "@oh-my-pi/pi-coding-agent/web/scrapers/semantic-scholar";
 import type { RenderResult } from "@oh-my-pi/pi-coding-agent/web/scrapers/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleSemanticScholar", () => {
 	it("fetches a known paper", async () => {

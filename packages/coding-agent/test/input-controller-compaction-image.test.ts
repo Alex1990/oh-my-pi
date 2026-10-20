@@ -20,7 +20,7 @@
  *     with the draft's leading markers and submit picked the wrong images.
  */
 
-import { beforeAll, describe, expect, mock, test } from "bun:test";
+import { beforeAll, describe, expect, mock, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";

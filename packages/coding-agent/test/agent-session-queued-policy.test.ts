@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { setImmediate } from "node:timers/promises";
 import { Type } from "@oh-my-pi/omptype/typebox";
 import { Agent, type AgentMessage, type AgentTool } from "@oh-my-pi/pi-agent-core";
@@ -13,7 +13,7 @@ import type { BeforeAgentStartEvent, Extension } from "@oh-my-pi/pi-coding-agent
 import { HindsightApi } from "@oh-my-pi/pi-coding-agent/hindsight/client";
 import { loadHindsightConfig } from "@oh-my-pi/pi-coding-agent/hindsight/config";
 import { HindsightSessionState } from "@oh-my-pi/pi-coding-agent/hindsight/state";
-import * as memoryBackend from "@oh-my-pi/pi-coding-agent/memory-backend";
+import * as memoryBackend from "../src/memory-backend/resolve";
 import type { MemoryBackend } from "@oh-my-pi/pi-coding-agent/memory-backend/types";
 import { loadMnemopiConfig } from "@oh-my-pi/pi-coding-agent/mnemopi/config";
 import {

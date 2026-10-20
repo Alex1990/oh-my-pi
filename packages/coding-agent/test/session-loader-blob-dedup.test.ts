@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { BlobStore } from "@oh-my-pi/pi-coding-agent/session/blob-store";
@@ -8,6 +8,7 @@ import {
 	resolveBlobRefsInEntriesSync,
 } from "@oh-my-pi/pi-coding-agent/session/session-loader";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function image(data: string): ImageContent {
 	return { type: "image", data, mimeType: "image/png" };
@@ -131,7 +132,7 @@ describe("session image blob hydration", () => {
 			using tempDir = TempDir.createSync("@session-blob-dedup-missing-");
 			const store = new BlobStore(tempDir.path());
 			const bytes = Buffer.from("published after the first load");
-			const ref = `blob:sha256:${new Bun.SHA256().update(bytes).digest("hex")}`;
+			const ref = `blob:sha256:${new bun.SHA256().update(bytes).digest("hex")}`;
 			const malformed = "blob:sha256:not-a-hash";
 			const images = [image(ref), image(ref), image(malformed)];
 			const read = vi.spyOn(store, mode === "synchronous" ? "getSync" : "get");

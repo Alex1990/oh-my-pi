@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { AnthropicApiError } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import { AnthropicUserProfilesClient, type UserProfile } from "@oh-my-pi/pi-ai/providers/anthropic-user-profiles";
 import type { Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const profile: UserProfile = {
 	type: "user_profile",
@@ -34,7 +35,7 @@ function json(body: unknown, status = 200): Response {
 describe("AnthropicUserProfilesClient", () => {
 	it("creates a profile with workspace, beta and API-key auth and parses the response", async () => {
 		const requests: Array<{ method: string; url: string; headers: Headers; body: unknown }> = [];
-		const upstream = Bun.serve({
+		const upstream = await serve({
 			port: 0,
 			fetch: async request => {
 				requests.push({
@@ -68,7 +69,7 @@ describe("AnthropicUserProfilesClient", () => {
 
 	it("follows next_page cursors and supports retrieve, update, and enrollment URL", async () => {
 		const requests: Array<{ method: string; path: string; body: unknown }> = [];
-		const upstream = Bun.serve({
+		const upstream = await serve({
 			port: 0,
 			fetch: async request => {
 				const url = new URL(request.url);
@@ -120,7 +121,7 @@ describe("AnthropicUserProfilesClient", () => {
 	});
 
 	it("maps an API rejection to AnthropicApiError with status", async () => {
-		const upstream = Bun.serve({
+		const upstream = await serve({
 			port: 0,
 			fetch: () => json({ type: "error", error: { type: "not_found_error", message: "Unknown user profile" } }, 404),
 		});
@@ -156,7 +157,7 @@ it("forwards inbound Anthropic user-profile attribution through the gateway to u
 		{ type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 1 } },
 		{ type: "message_stop" },
 	];
-	const upstream = Bun.serve({
+	const upstream = await serve({
 		port: 0,
 		fetch: request => {
 			upstreamHeaders.push(request.headers.get("anthropic-user-profile-id") ?? "");
@@ -181,7 +182,7 @@ it("forwards inbound Anthropic user-profile attribution through the gateway to u
 		contextWindow: 200_000,
 		maxTokens: 8192,
 	});
-	const gateway = startAuthGateway({
+	const gateway = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: ["test-token"],
 		storage,

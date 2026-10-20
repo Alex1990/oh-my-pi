@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { AnthropicMessagesClient } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import type { MessageCreateParamsStreaming } from "@oh-my-pi/pi-ai/providers/anthropic-wire";
@@ -15,11 +15,20 @@ type FetchCall = { url: string; init: RequestInit };
 
 function createFetchMock(responses: Array<Response | Error>): { calls: FetchCall[]; fetch: FetchImpl } {
 	const calls: FetchCall[] = [];
+	// Rebuild each response instead of `clone()`: undici never settles
+	// `clone.body.cancel()`, and the client cancels discarded retry bodies.
+	const bodies = new Map<number, Promise<ArrayBuffer>>();
 	const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
 		calls.push({ url: String(input), init: init ?? {} });
-		const next = responses[Math.min(calls.length - 1, responses.length - 1)];
+		const index = Math.min(calls.length - 1, responses.length - 1);
+		const next = responses[index];
 		if (next instanceof Error) throw next;
-		return next.clone();
+		let body = bodies.get(index);
+		if (!body) {
+			body = next.arrayBuffer();
+			bodies.set(index, body);
+		}
+		return new Response(await body, { status: next.status, statusText: next.statusText, headers: next.headers });
 	}) as typeof fetch;
 	return { calls, fetch: fetchImpl };
 }

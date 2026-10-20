@@ -10,6 +10,7 @@ import type { Message } from "@oh-my-pi/pi-ai";
 import { builtinCredentialSecretEntries } from "../src/secrets";
 import { obfuscateMessages, obfuscateProviderContext } from "../src/secrets/message-transform";
 import { type SecretEntry, SecretObfuscator } from "../src/secrets/obfuscator";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PLAIN = "SYNTHETIC_PLAIN_SECRET_7_ABCDEFGHIJK";
 const AWS = `AKIA${"A".repeat(16)}`;
@@ -72,15 +73,15 @@ for (const count of sizes.length > 0 ? sizes : [400, 1600]) {
 	const obfuscator = new SecretObfuscator(buildEntries(), "synthetic-bench-key");
 	const history = buildHistory(count);
 	const characters = JSON.stringify(history).length;
-	let start = Bun.nanoseconds();
+	let start = bun.nanoseconds();
 	const output = JSON.stringify(request(obfuscator, history));
-	const coldMs = (Bun.nanoseconds() - start) / 1e6;
+	const coldMs = (bun.nanoseconds() - start) / 1e6;
 	for (const secret of [PLAIN, AWS, "synthetic_token_0_000000000000"]) {
 		if (output.includes(secret)) throw new Error(`leaked ${secret}`);
 	}
-	start = Bun.nanoseconds();
+	start = bun.nanoseconds();
 	for (let i = 0; i < ITERS; i++) request(obfuscator, history);
-	const warmMs = (Bun.nanoseconds() - start) / 1e6 / ITERS;
+	const warmMs = (bun.nanoseconds() - start) / 1e6 / ITERS;
 	console.log(
 		`${count} messages, ${(characters / 1024 / 1024).toFixed(2)} MiB: first request ${coldMs.toFixed(1)}ms, steady ${warmMs.toFixed(1)}ms/request`,
 	);

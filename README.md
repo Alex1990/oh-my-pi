@@ -14,7 +14,7 @@
   <a href="https://github.com/can1357/oh-my-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/can1357/oh-my-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&colorA=222222&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-DEA584?style=flat&colorA=222222&logo=rust&logoColor=white" alt="Rust"></a>
-  <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-f472b6?style=flat&colorA=222222" alt="Bun"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/runtime-Node.js%2024-339933?style=flat&colorA=222222&logo=node.js&logoColor=white" alt="Node.js"></a>
   <a href="https://discord.gg/4NMW9cdXZa"><img src="https://img.shields.io/badge/Discord-5865F2?style=flat&colorA=222222&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
@@ -40,7 +40,7 @@ The most capable agent surface that ships. Continuously tuned by real-world use 
 curl -fsSL https://omp.sh/install | sh
 ```
 
-Without a usable bun (or with `--binary`), the install scripts fetch the prebuilt binary from `build.stencil.so` and check its SHA-256 before installing it. Pin a release with `curl -fsSL https://omp.sh/install | sh -s -- --binary --ref v<version>` (PowerShell: `-Binary -Ref v<version>`).
+Without a usable Node.js runtime (or with `--binary`), the install scripts fetch the prebuilt bundle from `build.stencil.so` and check its SHA-256 before installing it. Pin a release with `curl -fsSL https://omp.sh/install | sh -s -- --binary --ref v<version>` (PowerShell: `-Binary -Ref v<version>`).
 
 > **Alpine / musl:** the prebuilt musl binary links `libstdc++`/`libgcc` dynamically, which stock Alpine does not ship. Install them first: `apk add libstdc++ libgcc`.
 
@@ -50,10 +50,10 @@ Without a usable bun (or with `--binary`), the install scripts fetch the prebuil
 brew install can1357/tap/omp
 ```
 
-**Bun (recommended)**
+**pnpm (recommended)**
 
 ```sh
-bun install -g @oh-my-pi/pi-coding-agent
+pnpm add -g @oh-my-pi/pi-coding-agent
 ```
 
 **Nix**
@@ -93,7 +93,7 @@ irm https://omp.sh/install.ps1 | iex
 mise use -g github:can1357/oh-my-pi
 ```
 
-macOS · Linux · Windows · bun ≥ 1.3.14
+macOS · Linux · Windows · Node.js ≥ 22.12
 
 ### Shell completions
 
@@ -134,7 +134,7 @@ Originally built on [Mario Zechner](https://github.com/mariozechner)'s wonderful
 
 ### 01 · Code execution w/ tool-calling
 
-Most harnesses give the agent a Python sandbox and call it done. Ours runs persistent Python and a Bun worker, and either kernel can call back into the agent's own tools — read, search, task — over a loopback bridge. The agent loads a CSV with tool.read from inside Python, charts it from JavaScript, and never leaves the cell.
+Most harnesses give the agent a Python sandbox and call it done. Ours runs persistent Python and a JavaScript worker, and either kernel can call back into the agent's own tools — read, search, task — over a loopback bridge. The agent loads a CSV with tool.read from inside Python, charts it from JavaScript, and never leaves the cell.
 
 ![omp TUI running Python code and rendering a chart.](assets/python.webp)
 
@@ -610,32 +610,26 @@ Use `--no-extensions` to skip ambient extension discovery; or use `--trusted-ext
 Fresh clones need both workspace dependencies and the local Rust/N-API addon before the source CLI can start.
 
 ```sh
-bun setup
-bun dev
+pnpm run setup
+pnpm run dev
 ```
 
-`bun setup` installs Bun workspaces and builds `@oh-my-pi/pi-natives`. Re-run `bun run build:native` after changing Rust crates or `packages/natives`.
+`pnpm run setup` installs the pnpm workspace dependencies and builds `@oh-my-pi/pi-natives`. Re-run `pnpm run build:native` after changing Rust crates or `packages/natives`.
 
-Nix users get the pinned Bun and Rust toolchains plus all native build dependencies:
+Nix users get the pinned Node.js and Rust toolchains plus all native build dependencies:
 
 ```sh
 nix develop
-bun setup
-bun dev
+pnpm run setup
+pnpm run dev
 ```
 
-Build and smoke-test the distributable Nix package with `nix build .#omp`. Wayland screencast support is off by default (linking libpipewire adds ~750 MB of runtime closure); enable it with `omp.override { withWaylandScreencast = true; }`. `nix/bun.nix` is generated only when `bun.lock` changes; releases regenerate it automatically. For dependency changes, run:
-
-```sh
-bun run gen:nix
-```
-
-The command uses `bun2nix` from `nix develop` when available, otherwise enters the development shell through Nix, then falls back to the pinned `bunx bun2nix@2.1.2`. Do not edit `nix/bun.nix` manually.
+Build and smoke-test the distributable Nix package with `nix build .#omp`. Wayland screencast support is off by default (linking libpipewire adds ~750 MB of runtime closure); enable it with `omp.override { withWaylandScreencast = true; }`. The derivation installs dependencies from `pnpm-lock.yaml`; when that lockfile changes, refresh the `pnpmDeps` hash in `nix/package.nix` with the SRI hash Nix reports on the failed build.
 
 For a non-interactive smoke check:
 
 ```sh
-bun dev -- --version
+pnpm run dev -- --version
 ```
 
 ### Debug Command

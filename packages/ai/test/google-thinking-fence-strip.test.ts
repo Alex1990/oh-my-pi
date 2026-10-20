@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ThinkingFenceStripper } from "@oh-my-pi/pi-ai/dialect/thinking-fence-strip";
 import { consumeGoogleStream } from "@oh-my-pi/pi-ai/providers/google-shared";
 import type { GenerateContentResponse, Part } from "@oh-my-pi/pi-ai/providers/google-types";

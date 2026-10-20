@@ -1,18 +1,19 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolveOpenAIRequestSetup } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry/registry";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const loginMoonshot = getProviderDefinition("moonshot")!.login!;
 
-const ORIGINAL_MOONSHOT_BASE_URL = Bun.env.MOONSHOT_BASE_URL;
+const ORIGINAL_MOONSHOT_BASE_URL = bun.env.MOONSHOT_BASE_URL;
 
 function restoreMoonshotBaseUrl(): void {
 	if (ORIGINAL_MOONSHOT_BASE_URL === undefined) {
-		delete Bun.env.MOONSHOT_BASE_URL;
+		delete bun.env.MOONSHOT_BASE_URL;
 		return;
 	}
-	Bun.env.MOONSHOT_BASE_URL = ORIGINAL_MOONSHOT_BASE_URL;
+	bun.env.MOONSHOT_BASE_URL = ORIGINAL_MOONSHOT_BASE_URL;
 }
 
 afterEach(() => {
@@ -29,7 +30,7 @@ describe("Moonshot China base URL override (issue #2883)", () => {
 	};
 
 	test("redirects the moonshot provider to api.moonshot.cn when MOONSHOT_BASE_URL is set", () => {
-		Bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
+		bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
 		const setup = resolveOpenAIRequestSetup(moonshotModel, {
 			apiKey: "sk-china-key",
 			messages: [],
@@ -38,7 +39,7 @@ describe("Moonshot China base URL override (issue #2883)", () => {
 	});
 
 	test("keeps the bundled international endpoint when MOONSHOT_BASE_URL is unset", () => {
-		delete Bun.env.MOONSHOT_BASE_URL;
+		delete bun.env.MOONSHOT_BASE_URL;
 		const setup = resolveOpenAIRequestSetup(moonshotModel, {
 			apiKey: "sk-intl-key",
 			messages: [],
@@ -47,7 +48,7 @@ describe("Moonshot China base URL override (issue #2883)", () => {
 	});
 
 	test("validates login against the configured Moonshot endpoint", async () => {
-		Bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1/";
+		bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1/";
 		const fetchMock: FetchImpl = vi.fn(async (input: string | URL | Request) => {
 			const url = typeof input === "string" ? input : input.toString();
 			expect(url).toBe("https://api.moonshot.cn/v1/models");
@@ -64,7 +65,7 @@ describe("Moonshot China base URL override (issue #2883)", () => {
 	});
 
 	test("does not redirect other openai-completions providers", () => {
-		Bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
+		bun.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
 		const setup = resolveOpenAIRequestSetup(
 			{ provider: "openai", id: "gpt-5.5", baseUrl: "https://api.openai.com/v1" },
 			{ apiKey: "sk-openai", messages: [] },

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,15 +7,18 @@ import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config
 import { initializeWithSettings, loadCapability, resetCapabilityForTests } from "@oh-my-pi/pi-coding-agent/discovery";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { __resetDirsFromEnvForTests, getProjectAgentDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function restoreEnv(key: string, value: string | undefined): void {
 	if (value === undefined) {
 		delete process.env[key];
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
 	process.env[key] = value;
-	Bun.env[key] = value;
+	bun.env[key] = value;
 }
 
 /** Linked-worktree shape `vcs.git` resolves without invoking git. */
@@ -195,7 +198,7 @@ describe("contextFiles.extra", () => {
 		await fs.mkdir(agentDir, { recursive: true });
 		await fs.writeFile(path.join(agentDir, "secrets.md"), "# user secret\n");
 		await fs.writeFile(path.join(tempDir, "secrets.md"), "# project file\n");
-		await Bun.write(
+		await bun.write(
 			path.join(getProjectAgentDir(tempDir), "config.yml"),
 			"contextFiles:\n  extra:\n    - secrets.md\n",
 		);

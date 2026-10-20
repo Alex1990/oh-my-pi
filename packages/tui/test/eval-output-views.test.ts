@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 import { type EvalView, type EvalViewEntry, evalToolRenderer, splitEvalOutput } from "@oh-my-pi/pi-tui/tools/eval";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const json = (value: unknown): EvalView => ({ kind: "json", value });
 
@@ -62,7 +63,7 @@ describe("eval terminal output views", () => {
 			{ expanded: true, isPartial: false },
 			theme,
 		);
-		return Bun.stripANSI(component.render(120).join("\n")).split("\n");
+		return bun.stripANSI(component.render(120).join("\n")).split("\n");
 	}
 
 	it("keeps a table view's printed text between its neighbours, beside a json tree", () => {

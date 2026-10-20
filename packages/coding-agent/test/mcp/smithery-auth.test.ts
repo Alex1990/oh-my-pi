@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { pollSmitheryCliAuthSession } from "../../src/mcp/smithery-auth";
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 describe("pollSmitheryCliAuthSession fetch cancellation", () => {
 	afterEach(() => {
@@ -16,7 +17,7 @@ describe("pollSmitheryCliAuthSession fetch cancellation", () => {
 				if (init?.signal instanceof AbortSignal) signals.push(init.signal);
 				return Response.json({ status: "pending" });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 

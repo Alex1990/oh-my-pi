@@ -1,17 +1,18 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { MCPTransportError } from "@oh-my-pi/pi-coding-agent/mcp/errors";
 import { resolveStdioSpawnCommand, StdioTransport, writeFrame } from "@oh-my-pi/pi-coding-agent/mcp/transports/stdio";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("resolveStdioSpawnCommand", () => {
 	it("resolves bare Windows commands through PATHEXT and wraps .cmd shims with cmd.exe", async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-stdio-"));
 		try {
 			const shim = path.join(tempDir, "codegraph.cmd");
-			await Bun.write(shim, "@echo off\r\n");
+			await bun.write(shim, "@echo off\r\n");
 
 			const result = await resolveStdioSpawnCommand(
 				{ type: "stdio", command: "codegraph", args: ["serve", "--mcp"] },
@@ -48,8 +49,8 @@ describe("resolveStdioSpawnCommand", () => {
 		try {
 			const localShim = path.join(projectDir, "server.cmd");
 			const globalShim = path.join(globalDir, "server.cmd");
-			await Bun.write(localShim, "@echo off\r\nrem local\r\n");
-			await Bun.write(globalShim, "@echo off\r\nrem global\r\n");
+			await bun.write(localShim, "@echo off\r\nrem local\r\n");
+			await bun.write(globalShim, "@echo off\r\nrem global\r\n");
 
 			const result = await resolveStdioSpawnCommand(
 				{ type: "stdio", command: "server.cmd", args: ["serve"] },
@@ -85,7 +86,7 @@ describe("resolveStdioSpawnCommand", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-npx-"));
 		try {
 			const shim = path.join(tempDir, "npx.cmd");
-			await Bun.write(
+			await bun.write(
 				shim,
 				[
 					"@ECHO off",
@@ -144,7 +145,7 @@ describe("resolveStdioSpawnCommand", () => {
 		try {
 			const shim = path.join(tempDir, "codegraph.cmd");
 			const entry = path.join(tempDir, "node_modules", "@colbymchenry", "codegraph", "npm-shim.js");
-			await Bun.write(
+			await bun.write(
 				shim,
 				[
 					"@ECHO off",
@@ -194,7 +195,7 @@ describe("resolveStdioSpawnCommand", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-pyshim-"));
 		try {
 			const shim = path.join(tempDir, "pyserver.cmd");
-			await Bun.write(
+			await bun.write(
 				shim,
 				[
 					"@ECHO off",
@@ -253,8 +254,8 @@ describe("resolveStdioSpawnCommand", () => {
 		try {
 			const bare = path.join(tempDir, "codegraph");
 			const shim = `${bare}.cmd`;
-			await Bun.write(bare, "#!/bin/sh\n");
-			await Bun.write(shim, "@echo off\r\n");
+			await bun.write(bare, "#!/bin/sh\n");
+			await bun.write(shim, "@echo off\r\n");
 
 			const result = await resolveStdioSpawnCommand(
 				{ type: "stdio", command: bare, args: ["serve", "--mcp"] },
@@ -333,13 +334,13 @@ describe("resolveStdioSpawnCommand", () => {
 	});
 
 	it("routes unresolvable bare Windows commands through cmd.exe so PATHEXT can find a .cmd shim (#3250)", async () => {
-		// Bun.spawn -> CreateProcess only appends `.exe` to extensionless names.
+		// bun.spawn -> CreateProcess only appends `.exe` to extensionless names.
 		// Commands shipped as `.cmd` shims (`npx`, `yarn`, most pnpm-installed
 		// binaries on Windows) cannot be launched directly. When our PATH walk
 		// finds nothing — empty PATH under a restricted parent, locked-down
 		// shell, UNC mounts that reject `fs.access` — we must delegate to
 		// cmd.exe so its native PATHEXT lookup runs. The legacy fallback
-		// handed `Bun.spawn` the bare name and the subprocess died ~140ms
+		// handed `bun.spawn` the bare name and the subprocess died ~140ms
 		// after spawn with ENOENT/EINVAL (issue #3250).
 		const result = await resolveStdioSpawnCommand(
 			{ type: "stdio", command: "npx", args: ["-y", "cloakbrowser-mcp@latest"] },
@@ -427,7 +428,7 @@ describe("resolveStdioSpawnCommand", () => {
 		try {
 			await fs.mkdir(dir, { recursive: true });
 			const shim = path.join(dir, "server.cmd");
-			await Bun.write(shim, "@echo off\r\n");
+			await bun.write(shim, "@echo off\r\n");
 
 			const result = await resolveStdioSpawnCommand(
 				{ type: "stdio", command: shim, args: ["serve"] },
@@ -585,7 +586,7 @@ describe("writeFrame", () => {
 			// No synchronous throw, so the frame is "accepted"; the async rejection
 			// must be neutralized rather than escaping as an unhandled rejection.
 			expect(writeFrame(sink, "frame\n")).toBe(true);
-			await Bun.sleep(50);
+			await bun.sleep(50);
 			expect(tracker.capture()).toEqual([]);
 		} finally {
 			tracker.release();
@@ -606,7 +607,7 @@ describe("writeFrame", () => {
 		const tracker = trackUnhandled();
 		try {
 			expect(writeFrame(sink, "frame\n")).toBe(true);
-			await Bun.sleep(50);
+			await bun.sleep(50);
 			expect(tracker.capture()).toEqual([]);
 		} finally {
 			tracker.release();
@@ -666,7 +667,7 @@ describe("StdioTransport.notify", () => {
 		transport = new StdioTransport({
 			type: "stdio",
 			command: "bun",
-			args: ["-e", "await Bun.sleep(60_000)"],
+			args: ["-e", "await bun.sleep(60_000)"],
 		});
 
 		await transport.connect();
@@ -798,7 +799,7 @@ describe("StdioTransport.close", () => {
 
 		// Wait for the read loop to observe EOF and fire #handleClose.
 		for (let i = 0; i < 100 && transport.connected; i++) {
-			await Bun.sleep(10);
+			await bun.sleep(10);
 		}
 		expect(transport.connected).toBe(false);
 		expect(closeCount).toBe(1);
@@ -816,7 +817,7 @@ describe("StdioTransport.close", () => {
 		transport = new StdioTransport({
 			type: "stdio",
 			command: "bun",
-			args: ["-e", "await Bun.sleep(60_000)"],
+			args: ["-e", "await bun.sleep(60_000)"],
 		});
 
 		let closeCount = 0;
@@ -876,7 +877,7 @@ describe("StdioTransport.close", () => {
 						await fs.access(readyPath);
 						break;
 					} catch {
-						await Bun.sleep(20);
+						await bun.sleep(20);
 					}
 				}
 

@@ -13,7 +13,7 @@
  *   7. Model discovery stops at first successful token-plan host
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { loginXiaomi } from "@oh-my-pi/pi-ai/registry/oauth/xiaomi";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { xiaomiModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";

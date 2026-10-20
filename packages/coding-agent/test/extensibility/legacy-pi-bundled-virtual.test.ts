@@ -1,11 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { ptree, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 describe("bundled extension modules", () => {
 	it("observes active host theme changes and native default/named exports", async () => {
 		using dir = TempDir.createSync("@omp-bundled-extension-");
 		const entry = dir.join("extension.ts");
-		await Bun.write(
+		await bun.write(
 			entry,
 			[
 				'import { theme } from "@oh-my-pi/pi-tui/theme";',
@@ -15,18 +19,24 @@ describe("bundled extension modules", () => {
 				"export function describe(value) { return format(double(value)); }",
 			].join("\n"),
 		);
-		const themePath = import.meta.resolve("../../../tui/src/theme/theme.ts");
-		const loaderPath = import.meta.resolve("../../../tui/src/theme/loader.ts");
-		const compatPath = import.meta.resolve("../../src/extensibility/plugins/legacy-pi-compat.ts");
+		const testDir = import.meta.dirname;
+		const themePath = pathToFileURL(path.resolve(testDir, "../../../tui/src/theme/theme.ts")).href;
+		const loaderPath = pathToFileURL(path.resolve(testDir, "../../../tui/src/theme/loader.ts")).href;
+		const compatPath = pathToFileURL(
+			path.resolve(testDir, "../../src/extensibility/plugins/legacy-pi-compat.ts"),
+		).href;
+		const moduleHooksPath = pathToFileURL(path.resolve(testDir, "../../../utils/src/module-hooks.ts")).href;
 		const result = await ptree.exec(
 			[
 				process.execPath,
+				...nodeSourceFlags(),
 				"-e",
 				`
 import * as host from ${JSON.stringify(themePath)};
 import { loadThemeSync } from ${JSON.stringify(loaderPath)};
 import { installLegacyPiSpecifierShim, loadLegacyPiModule } from ${JSON.stringify(compatPath)};
-Bun.plugin({
+import { plugin } from ${JSON.stringify(moduleHooksPath)};
+plugin({
 	name: "bundled-extension-fixture",
 	setup(build) {
 		build.module("omp-legacy-pi-modules", () => ({
@@ -69,7 +79,7 @@ console.log(JSON.stringify({
 `,
 			],
 			{
-				env: { ...Bun.env, PI_BUNDLED: "1", PI_TEST_RUNTIME: "1", PI_CODING_AGENT_DIR: dir.join("agent") },
+				env: { ...bun.env, PI_BUNDLED: "1", PI_TEST_RUNTIME: "1", PI_CODING_AGENT_DIR: dir.join("agent") },
 				timeout: 15_000,
 				allowNonZero: true,
 			},

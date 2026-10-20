@@ -1,4 +1,4 @@
-import { expect } from "bun:test";
+import { expect } from "@oh-my-pi/pi-utils/test-runtime";
 import { type as arkType, type Type } from "@oh-my-pi/omptype";
 
 function formatIssues(error: unknown): string {

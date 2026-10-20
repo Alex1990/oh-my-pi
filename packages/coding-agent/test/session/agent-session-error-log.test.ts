@@ -4,7 +4,7 @@
  * recurring provider stream failures are diagnosable from the main log alone
  * (issue #6177). Non-error stops must not emit it.
  */
-import { afterAll, afterEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { logger } from "@oh-my-pi/pi-utils";
 import { logProviderTurnError } from "../../src/session/messages";

@@ -27,6 +27,7 @@ import {
 import { captureGalleryScreenshots } from "./gallery-screenshot";
 
 import { cfgColorBlindMode, cfgSymbolPreset, cfgThemeDark, cfgThemeLight } from "../modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Lifecycle states the gallery renders, in display order. */
 export const GALLERY_STATES = ["streaming", "progress", "success", "error"] as const;
@@ -375,6 +376,6 @@ export async function runGalleryCommand(args: GalleryCommandArgs): Promise<void>
 
 	const lines = sections.flatMap(section => section.lines);
 	lines.push("");
-	const text = lines.map(line => (args.plain ? Bun.stripANSI(line) : line)).join("\n");
+	const text = lines.map(line => (args.plain ? bun.stripANSI(line) : line)).join("\n");
 	process.stdout.write(`${text}\n`);
 }

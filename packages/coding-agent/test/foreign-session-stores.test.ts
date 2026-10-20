@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import type { ForeignSessionInfo } from "../src/session/foreign-session-store";
 import { buildSessionContext } from "../src/session/session-context";
 import { SessionManager } from "../src/session/session-manager";
 import { FileSessionStorage } from "../src/session/session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempRoot: string;
 let originalClaudeConfigDir: string | undefined;
@@ -32,7 +33,7 @@ afterEach(async () => {
 
 async function writeJsonl(filePath: string, records: Record<string, unknown>[]): Promise<void> {
 	await fs.mkdir(path.dirname(filePath), { recursive: true });
-	await Bun.write(filePath, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
+	await bun.write(filePath, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
 }
 
 // Claude Code's documented project-dir encoding: every non-alphanumeric
@@ -271,7 +272,7 @@ describe("ClaudeSessionStore", () => {
 			const id = "22222222-2222-4222-8222-333333333333";
 			const encoded = encodeProjectDir(cwd);
 			process.env.CLAUDE_CONFIG_DIR = root;
-			await Bun.write(path.join(root, ".claude.json"), JSON.stringify({ projects: { [cwd]: {} } }));
+			await bun.write(path.join(root, ".claude.json"), JSON.stringify({ projects: { [cwd]: {} } }));
 			await writeJsonl(path.join(root, "projects", encoded, `${id}.jsonl`), [
 				{
 					type: "user",

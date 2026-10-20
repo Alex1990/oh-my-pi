@@ -30,6 +30,7 @@ import { clipCollapsed, formatExpandHint } from "../render/render-utils";
 import { formatOutputPaneLines, styleToolOutputLine } from "../render/output-pane";
 import type { StatusLineOptions } from "../render/status-line";
 import { plainToolCard, type ToolCardPhase } from "../render/tool-card";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Expanded Args tree shared by the MCP result cards. */
 function buildMcpArgsSection(args: Record<string, unknown>, theme: Theme): readonly string[] {
@@ -58,7 +59,7 @@ export function renderMCPCall(args: Record<string, unknown>, theme: Theme, label
 			if (args && typeof args === "object" && Object.keys(args).length > 0) {
 				// Inline preview budgeted against the render width, leaving room for
 				// the ` └─ ` connector prefix instead of a fixed cap.
-				const inlineBudget = Math.max(20, contentWidth - Bun.stringWidth(theme.tree.last) - 2);
+				const inlineBudget = Math.max(20, contentWidth - bun.stringWidth(theme.tree.last) - 2);
 				const preview = formatArgsInline(args, inlineBudget);
 				if (preview) {
 					body.push(` ${theme.fg("dim", theme.tree.last)} ${theme.fg("dim", preview)}`);

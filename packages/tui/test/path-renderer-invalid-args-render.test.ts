@@ -1,9 +1,10 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { editToolRenderer } from "@oh-my-pi/pi-tui/tools/edit";
 import { getThemeByName, initTheme, type Theme } from "@oh-my-pi/pi-tui/theme";
 import { readToolRenderer } from "@oh-my-pi/pi-tui/tools/read";
 import { writeToolRenderer } from "@oh-my-pi/pi-tui/tools/write";
 import type { Component } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface InvalidPathCase {
 	readonly name: string;
@@ -27,7 +28,7 @@ beforeAll(async () => {
 function renderPlain(component: Component, width = 120): string {
 	let rendered = "";
 	expect(() => {
-		rendered = Bun.stripANSI(component.render(width).join("\n"));
+		rendered = bun.stripANSI(component.render(width).join("\n"));
 	}).not.toThrow();
 	return rendered;
 }

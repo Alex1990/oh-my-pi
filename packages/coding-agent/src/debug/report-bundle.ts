@@ -12,6 +12,7 @@ import { APP_NAME, getLogPath, getLogsDir, getReportsDir, isEnoent, localDay, lo
 import { writeArchive } from "@oh-my-pi/pi-utils/ar";
 import type { CpuProfile, MemoryStats } from "./profiler";
 import { collectSystemInfo, sanitizeEnv } from "./system-info";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Maximum number of log lines to load into memory at once. */
 const MAX_LOG_LINES = 5000;
@@ -21,7 +22,7 @@ const MAX_LOG_BYTES = 2 * 1024 * 1024;
 /** Read last N lines from a file, reading at most `maxBytes` from the tail. */
 async function readLastLines(filePath: string, n: number, maxBytes = MAX_LOG_BYTES): Promise<string> {
 	try {
-		const file = Bun.file(filePath);
+		const file = bun.file(filePath);
 		const size = file.size;
 		const start = Math.max(0, size - maxBytes);
 		const content = start > 0 ? await file.slice(start, size).text() : await file.text();
@@ -98,7 +99,7 @@ export async function createReportBundle(options: ReportBundleOptions): Promise<
 	files.push("system.json");
 
 	// Sanitized environment
-	data["env.json"] = JSON.stringify(sanitizeEnv(Bun.env as Record<string, string>), null, 2);
+	data["env.json"] = JSON.stringify(sanitizeEnv(bun.env as Record<string, string>), null, 2);
 	files.push("env.json");
 
 	// Settings/config
@@ -125,7 +126,7 @@ export async function createReportBundle(options: ReportBundleOptions): Promise<
 	// Session file
 	if (options.sessionFile) {
 		try {
-			const sessionContent = await Bun.file(options.sessionFile).text();
+			const sessionContent = await bun.file(options.sessionFile).text();
 			data["session.jsonl"] = sessionContent;
 			files.push("session.jsonl");
 		} catch {
@@ -195,7 +196,7 @@ async function addDirectoryToArchive(
 		}
 		if (!entry.isFile()) continue;
 		try {
-			data[archivePath] = await Bun.file(entryPath).text();
+			data[archivePath] = await bun.file(entryPath).text();
 			files.push(archivePath);
 		} catch {
 			// Skip files we can't read

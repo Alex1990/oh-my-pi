@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import { IpcConnection, ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { type Component, Input, Text, TUI, type TuiDebugTreeNode } from "../src";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface DebugReply {
 	ok: boolean;
@@ -58,7 +59,7 @@ async function connectDebugSocket(path: string): Promise<DebugClient> {
 		try {
 			return new DebugClient(await IpcConnection.connect(path, { framing: "lines", timeoutMs: 1000 }));
 		} catch {
-			await Bun.sleep(10);
+			await bun.sleep(10);
 		}
 	}
 	throw new Error(`debug socket did not become available: ${path}`);
@@ -85,7 +86,7 @@ async function paintedText(client: DebugClient): Promise<DebugReply> {
 
 test("OMP_TUI_DEBUG drives and inspects a live TUI", async () => {
 	const previousDebugPath = process.env.OMP_TUI_DEBUG;
-	const socketPath = ipcEndpoint(os.tmpdir(), `pi-tui-${process.pid}-${Bun.randomUUIDv7().slice(0, 8)}`);
+	const socketPath = ipcEndpoint(os.tmpdir(), `pi-tui-${process.pid}-${bun.randomUUIDv7().slice(0, 8)}`);
 	process.env.OMP_TUI_DEBUG = socketPath;
 	const terminal = new VirtualTerminal(50, 12);
 	const tui = new TUI(terminal);

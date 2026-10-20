@@ -3,7 +3,7 @@
  * swallow a search: the picker offers no search field while they own the
  * keys, and once a query is live, typing keeps editing it.
  */
-import { beforeAll, expect, test } from "bun:test";
+import { beforeAll, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { TspPickerProps } from "@oh-my-pi/pi-wire";
 import type { DescribeContext } from "../src/native/node";

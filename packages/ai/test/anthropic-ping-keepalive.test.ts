@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { streamAnthropic } from "../src/providers/anthropic";
 import type { AnthropicMessagesClientLike } from "../src/providers/anthropic-client";

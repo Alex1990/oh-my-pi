@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { closeDb } from "@oh-my-pi/omp-stats";
 import { getAgentDir, getSessionsDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
 import { runStatsCommand } from "../src/cli/stats-cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const XDG_KEYS = ["XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME"] as const;
 
@@ -63,7 +64,7 @@ describe("omp stats --summary", () => {
 				},
 			},
 		};
-		await Bun.write(path.join(dir, "session.jsonl"), `${JSON.stringify(entry)}\n`);
+		await bun.write(path.join(dir, "session.jsonl"), `${JSON.stringify(entry)}\n`);
 
 		const lines: string[] = [];
 		const log = spyOn(console, "log").mockImplementation((...args: unknown[]) => {
@@ -77,7 +78,7 @@ describe("omp stats --summary", () => {
 			stderr.mockRestore();
 		}
 
-		const output = Bun.stripANSI(lines.join("\n"));
+		const output = bun.stripANSI(lines.join("\n"));
 		expect(output).toContain("API-equivalent estimate: N/A");
 		expect(output).toContain("test-supergrok-without-reference-price: 1 reqs, N/A,");
 		expect(output).toContain("/tmp/summary/: 1 reqs, N/A");

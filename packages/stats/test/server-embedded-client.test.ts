@@ -1,8 +1,12 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Subprocess } from "bun";
+import { pathToFileURL } from "node:url";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
+import { plugin } from "@oh-my-pi/pi-utils/module-hooks";
 
 const tempDirs: string[] = [];
 const children: Array<Subprocess<"ignore", "pipe", "pipe">> = [];
@@ -10,7 +14,7 @@ const clientFiles = {
 	"index.html": '<!doctype html><html><body><script type="module" src="/index.js"></script></body></html>',
 	"index.js": 'document.documentElement.dataset.loaded = "true";',
 	"styles.css": "body { color: blue; }",
-	"favicon.ico": await Bun.file(path.resolve(import.meta.dir, "../src/client/favicon.ico")).bytes(),
+	"favicon.ico": await bun.file(path.resolve(import.meta.dirname, "../src/client/favicon.ico")).bytes(),
 };
 
 async function startEmbeddedDashboard(): Promise<{ url: string; tmpDir: string }> {
@@ -18,13 +22,14 @@ async function startEmbeddedDashboard(): Promise<{ url: string; tmpDir: string }
 	tempDirs.push(root);
 	const tmpDir = path.join(root, "tmp");
 	await fs.mkdir(tmpDir);
-	const archive = Buffer.from(Bun.gzipSync(await new Bun.Archive(clientFiles).bytes())).toString("base64");
+	const archive = Buffer.from(bun.gzipSync(await new Archive(clientFiles).bytes())).toString("base64");
 	const preload = path.join(root, "preload.ts");
 	const entrypoint = path.join(root, "server.ts");
 	// Keep the embedded-archive loader and directory overrides in a child process.
-	await Bun.write(
+	await bun.write(
 		preload,
-		`Bun.plugin({
+		`import { plugin } from ${JSON.stringify(pathToFileURL(path.resolve(import.meta.dirname, "../../../packages/utils/src/module-hooks.ts")).href)};
+plugin({
 	name: "embedded-stats-client-fixture",
 	setup(build) {
 		build.onLoad({ filter: /embedded-client\\.generated\\.txt$/ }, () => ({
@@ -33,13 +38,24 @@ async function startEmbeddedDashboard(): Promise<{ url: string; tmpDir: string }
 	},
 });`,
 	);
-	await Bun.write(
+	await bun.write(
 		entrypoint,
-		`import { startServer } from ${JSON.stringify(path.resolve(import.meta.dir, "../src/server.ts"))};
+		`import { startServer } from ${JSON.stringify(pathToFileURL(path.resolve(import.meta.dirname, "../src/server.ts")).href)};
 const server = await startServer(0);
 process.stdout.write(JSON.stringify({ url: "http://" + server.hostname + ":" + server.port }));`,
 	);
-	const child = Bun.spawn([process.execPath, "--preload", preload, entrypoint], {
+	const loader = pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href;
+	const child = bun.spawn(
+		[
+			process.execPath,
+			"--experimental-transform-types",
+			"--import",
+			loader,
+			"--import",
+			pathToFileURL(preload).href,
+			entrypoint,
+		],
+		{
 		cwd: root,
 		env: {
 			...process.env,

@@ -18,6 +18,7 @@ import { throwIfAborted } from "../../tool-errors";
 import { probeCdpResponse } from "../attach";
 import type { RelayUnavailableInfo } from "./server";
 import { DISCARDED_TABS_PROTOCOL_VERSION } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * One extension keepalive alarm period (30s, `background.js`) plus the dial
@@ -60,7 +61,7 @@ export function relayCdpClientsOf(parsed: object): number | null {
 export function isOlderRelayVersion(version: string): boolean {
 	if (version === "") return true;
 	try {
-		return Bun.semver.order(version, VERSION) < 0;
+		return bun.semver.order(version, VERSION) < 0;
 	} catch {
 		// Unparseable: not provably older, so leave it to its owner.
 		return false;
@@ -151,6 +152,6 @@ export async function waitForRelayExtension(cdpUrl: string, signal?: AbortSignal
 			if (Date.now() >= deadline) return staleRelay ? "outdated-relay" : "extension-gone";
 		}
 		if (Date.now() >= deadline) return staleRelay ? "outdated-relay" : "no-extension";
-		await Bun.sleep(POLL_INTERVAL_MS);
+		await bun.sleep(POLL_INTERVAL_MS);
 	}
 }

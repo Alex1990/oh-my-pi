@@ -19,6 +19,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { isEnoent, isRecord } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Public npm registry; used when no user configuration names another one. */
 export const DEFAULT_NPM_REGISTRY = "https://registry.npmjs.org/";
@@ -63,7 +64,7 @@ export interface LoadNpmRegistryOptions {
 
 /** Read the user's npm/bun registry configuration once and return a per-package resolver. */
 export async function loadNpmRegistryResolver(options: LoadNpmRegistryOptions = {}): Promise<NpmRegistryResolver> {
-	const env = options.env ?? Bun.env;
+	const env = options.env ?? bun.env;
 	const homeDir = options.homeDir ?? os.homedir();
 
 	const npmrcPath = envLookup(env, "npm_config_userconfig") ?? path.join(homeDir, ".npmrc");
@@ -200,7 +201,7 @@ async function readGlobalBunfig(env: Env, homeDir: string): Promise<BunfigRegist
 		if (text === undefined) continue;
 		let parsed: unknown;
 		try {
-			parsed = Bun.TOML.parse(text);
+			parsed = bun.TOML.parse(text);
 		} catch (err) {
 			throw new Error(`Failed to parse ${file}: ${err instanceof Error ? err.message : String(err)}`);
 		}
@@ -251,7 +252,7 @@ function envLookup(env: Env, name: string): string | undefined {
 
 /**
  * Read a config file that usually does not exist. Uses `node:fs/promises` rather
- * than `Bun.file().text()`: on Windows, Bun's rejected read of a missing file
+ * than `bun.file().text()`: on Windows, Bun's rejected read of a missing file
  * holds no loop handle, so the loop drains mid-await and `omp update` trips
  * the unsettled-entry guard (exit 1) before the release lookup completes.
  */

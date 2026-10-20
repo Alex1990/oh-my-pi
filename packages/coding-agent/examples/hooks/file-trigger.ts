@@ -9,6 +9,7 @@
  */
 import * as fs from "node:fs";
 import type { HookAPI } from "@oh-my-pi/pi-coding-agent/extensibility/hooks";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export default function (pi: HookAPI) {
 	pi.on("session_start", async (_event, ctx) => {
@@ -16,7 +17,7 @@ export default function (pi: HookAPI) {
 
 		fs.watch(triggerFile, async () => {
 			try {
-				const content = (await Bun.file(triggerFile).text()).trim();
+				const content = (await bun.file(triggerFile).text()).trim();
 				if (content) {
 					pi.sendMessage(
 						{
@@ -26,7 +27,7 @@ export default function (pi: HookAPI) {
 						},
 						{ triggerTurn: true }, // get LLM to respond
 					);
-					await Bun.write(triggerFile, ""); // Clear after reading
+					await bun.write(triggerFile, ""); // Clear after reading
 				}
 			} catch {
 				// File might not exist yet

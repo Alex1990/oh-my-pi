@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { procmgr } from "@oh-my-pi/pi-utils";
 import type { JobWidgetView } from "@oh-my-pi/pi-tui/tools/job-widget";
 import { AsyncJobManager } from "../../src/async/job-manager";
@@ -7,6 +7,7 @@ import { Settings } from "../../src/config/settings";
 import { type JobWidgetAuthorRequest, JobWidgets } from "../../src/job-widgets";
 import type { ToolSession } from "../../src/tools";
 import { BashTool } from "../../src/tools/bash";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SHELL = process.platform === "win32" ? procmgr.resolveWindowsShell() : "/bin/sh";
 
@@ -61,7 +62,7 @@ describe("bash job widgets", () => {
 			// Real-time poll: the pipe fills from a real child's write, relayed by a native thread.
 			let view: JobWidgetView | undefined;
 			for (let waited = 0; view?.headline?.text !== "56 req/s" && waited < 10_000; waited += 20) {
-				await Bun.sleep(20);
+				await bun.sleep(20);
 				view = snapshotJobs(session, [job])[0]?.widget;
 			}
 			expect(job.status).toBe("running");

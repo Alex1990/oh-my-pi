@@ -34,6 +34,7 @@ import systemFramesNote from "../prompts/system/snapcompact-system-frames-note.m
 import systemStub from "../prompts/system/snapcompact-system-stub.md" with { type: "text" };
 import toolResultNote from "../prompts/system/snapcompact-toolresult-note.md" with { type: "text" };
 import { BRACKET_CONTEXT_ELLIPSIS } from "../tools/read-format";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type SnapcompactSystemPromptMode = "none" | "agents-md" | "all";
 
@@ -833,7 +834,7 @@ export class SnapcompactInlineTransformer {
 
 		let systemPrompt = context.systemPrompt;
 		if (plan.systemPrompt && userIndex >= 0 && systemPromptTarget) {
-			const hash = Bun.hash(systemPromptTarget.text);
+			const hash = bun.hash(systemPromptTarget.text);
 			let cached = this.#systemCache;
 			const generation = this.frameSink?.generation;
 			if (!cached || cached.hash !== hash || cached.shapeKey !== shapeKey || cached.generation !== generation) {
@@ -875,7 +876,7 @@ export class SnapcompactInlineTransformer {
 		shape: snapcompact.Shape,
 		shapeKey: string,
 	): Promise<ImageContent[]> {
-		const hash = Bun.hash(text);
+		const hash = bun.hash(text);
 		const generation = this.frameSink?.generation;
 		const cached = cache.get(key);
 		if (cached && cached.hash === hash && cached.shapeKey === shapeKey && cached.generation === generation) {

@@ -126,9 +126,9 @@ export function parseStandaloneStatsArgs(args: string[]): StandaloneStatsArgs {
 }
 
 /**
- * Main CLI entry point.
+ * Standalone `omp-stats` CLI entry point; run by `bin.ts`.
  */
-async function main(): Promise<void> {
+export async function runStatsCli(): Promise<void> {
 	const values = parseStandaloneStatsArgs(process.argv.slice(2));
 
 	if (values.help) {
@@ -205,9 +205,4 @@ Examples:
 		closeDb();
 		process.exit(1);
 	}
-}
-
-// Run if executed directly
-if (import.meta.main) {
-	main();
 }

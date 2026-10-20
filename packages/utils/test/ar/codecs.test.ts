@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { bzip2Decompress, isBzip2 } from "../../src/ar/codecs/bzip2";
 import { isCompressZ, lzwDecompress } from "../../src/ar/codecs/lzw";
 import { ArchiveError } from "../../src/ar/error";
 import { arFixture } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function sha256(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex");
+	return bun.SHA256.hash(bytes, "hex");
 }
 
 async function fixture(name: string): Promise<Uint8Array> {

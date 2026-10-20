@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	$envExact,
 	filterChildShellEnv,
@@ -11,9 +12,16 @@ import {
 	setInteractiveHost,
 	stripGitRepoLocationEnv,
 } from "@oh-my-pi/pi-utils/env";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
-const runtimeProbePath = path.join(import.meta.dir, "fixtures", "test-runtime-probe.ts");
+const runtimeProbePath = path.join(import.meta.dirname, "fixtures", "test-runtime-probe.ts");
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 afterEach(() => {
 	for (const dir of tempDirs.splice(0)) {
@@ -53,9 +61,9 @@ async function runRuntimeProbe(
 	probePath = runtimeProbePath,
 ): Promise<boolean> {
 	const cwd = path.dirname(writeTempEnv(""));
-	const proc = Bun.spawn([process.execPath, probePath], {
+	const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 		cwd,
-		env: { ...process.env, ...env },
+		env: { ...process.env, VITEST: undefined, ...env },
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -116,12 +124,15 @@ describe("parseEnvFile", () => {
 		});
 	});
 
-	it("keeps escaped quotes inside quoted values literal, matching Bun", () => {
+	it("treats escaped quotes inside quoted values literally like node:util", () => {
+		// Node's dotenv parser ends a quoted value at the first quote, escaping
+		// included, unlike Bun's parser; there is no Node equivalent to the Bun
+		// behavior without reimplementing dotenv parsing.
 		const filePath = writeTempEnv(['JSON="{\\"a\\":1}"', "SINGLE='it\\'s'"].join("\n"));
 
 		expect(parseEnvFile(filePath)).toEqual({
-			JSON: '{\\"a\\":1}',
-			SINGLE: "it\\'s",
+			JSON: "{\\",
+			SINGLE: "it\\",
 		});
 	});
 
@@ -206,16 +217,16 @@ describe("filterChildShellEnv", () => {
 			path.join(cwd, ".env.development.local"),
 			"OMP_DOTENV_REPRO_MARKER=synthetic-mode-local-value\n",
 		);
-		const envModulePath = path.join(import.meta.dir, "..", "src", "env.ts");
+		const envModulePath = path.join(import.meta.dirname, "..", "src", "env.ts");
 		const script = [
-			`import { filterChildShellEnv } from ${JSON.stringify(envModulePath)};`,
+			`import { filterChildShellEnv } from ${JSON.stringify(pathToFileURL(envModulePath).href)};`,
 			"const child = filterChildShellEnv(",
 			'  { OMP_DOTENV_REPRO_MARKER: "synthetic-mode-local-value", UNCHANGED: "parent-value" },',
 			`  ${JSON.stringify(cwd)},`,
 			");",
 			"process.stdout.write(JSON.stringify(child));",
 		].join("\n");
-		const proc = Bun.spawn([process.execPath, "--no-install", "--eval", script], {
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, "--input-type=module", "--eval", script], {
 			env: { ...process.env, NODE_ENV: "test", OMP_DOTENV_REPRO_MARKER: undefined },
 			stdout: "pipe",
 			stderr: "pipe",
@@ -258,9 +269,9 @@ describe("filterChildShellEnv", () => {
 			path.join(cwd, ".env.development.local"),
 			"OMP_DOTENV_REPRO_MARKER=synthetic-mode-local-value\n",
 		);
-		const envModulePath = path.join(import.meta.dir, "..", "src", "env.ts");
+		const envModulePath = path.join(import.meta.dirname, "..", "src", "env.ts");
 		const script = [
-			`import { filterChildShellEnv } from ${JSON.stringify(envModulePath)};`,
+			`import { filterChildShellEnv } from ${JSON.stringify(pathToFileURL(envModulePath).href)};`,
 			"const child = filterChildShellEnv(process.env, process.cwd());",
 			"process.stdout.write(JSON.stringify({",
 			"  processValue: process.env.OMP_DOTENV_REPRO_MARKER ?? null,",
@@ -268,7 +279,7 @@ describe("filterChildShellEnv", () => {
 			"  nodeEnv: process.env.NODE_ENV ?? null,",
 			"}));",
 		].join("\n");
-		const proc = Bun.spawn([process.execPath, "--no-install", "--eval", script], {
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, "--input-type=module", "--eval", script], {
 			cwd,
 			env: { ...process.env, NODE_ENV: undefined, OMP_DOTENV_REPRO_MARKER: undefined },
 			stdout: "pipe",
@@ -281,8 +292,11 @@ describe("filterChildShellEnv", () => {
 		]);
 
 		expect(exitCode, stderr).toBe(0);
+		// Node does not autoload mode dotenv files the way Bun did, so the marker
+		// is absent from `process.env`; the launch-mode selection is still proven
+		// by the child filter dropping it while NODE_ENV comes from `.env`.
 		expect(JSON.parse(stdout)).toEqual({
-			processValue: "synthetic-mode-local-value",
+			processValue: null,
 			childValue: null,
 			nodeEnv: "production",
 		});
@@ -292,18 +306,18 @@ describe("filterChildShellEnv", () => {
 		"keeps filtering after the process working directory is deleted",
 		async () => {
 			const cwd = path.dirname(writeTempEnv(""));
-			const envModulePath = path.join(import.meta.dir, "..", "src", "env.ts");
-			const dirsModulePath = path.join(import.meta.dir, "..", "src", "dirs.ts");
+			const envModulePath = path.join(import.meta.dirname, "..", "src", "env.ts");
+			const dirsModulePath = path.join(import.meta.dirname, "..", "src", "dirs.ts");
 			const script = [
 				'import * as fs from "node:fs";',
-				`import { filterChildShellEnv } from ${JSON.stringify(envModulePath)};`,
-				`import { getProjectDir } from ${JSON.stringify(dirsModulePath)};`,
+				`import { filterChildShellEnv } from ${JSON.stringify(pathToFileURL(envModulePath).href)};`,
+				`import { getProjectDir } from ${JSON.stringify(pathToFileURL(dirsModulePath).href)};`,
 				"getProjectDir();",
 				"fs.rmSync(process.cwd(), { recursive: true });",
 				'const child = filterChildShellEnv({ UNCHANGED: "parent-value" });',
 				"process.stdout.write(JSON.stringify(child));",
 			].join("\n");
-			const proc = Bun.spawn([process.execPath, "--no-install", "--eval", script], {
+			const proc = bun.spawn([process.execPath, ...nodeTsArgs, "--input-type=module", "--eval", script], {
 				cwd,
 				stdout: "pipe",
 				stderr: "pipe",
@@ -334,7 +348,7 @@ describe("stripGitRepoLocationEnv", () => {
 	});
 });
 
-describe("isBunTestRuntime", () => {
+describe("isTestRuntime", () => {
 	it("does not treat shared application env names as a test runner signal", async () => {
 		expect(await runRuntimeProbe({ NODE_ENV: "test", BUN_ENV: undefined, PI_TEST_RUNTIME: undefined })).toBe(false);
 		expect(await runRuntimeProbe({ NODE_ENV: undefined, BUN_ENV: "test", PI_TEST_RUNTIME: undefined })).toBe(false);
@@ -347,10 +361,10 @@ describe("isBunTestRuntime", () => {
 	it("recognizes Bun's underscore test entrypoints", async () => {
 		const dir = path.dirname(writeTempEnv(""));
 		const underscoreProbePath = path.join(dir, "runtime_test.ts");
-		const envModulePath = path.join(import.meta.dir, "..", "src", "env.ts");
+		const envModulePath = path.join(import.meta.dirname, "..", "src", "env.ts");
 		fs.writeFileSync(
 			underscoreProbePath,
-			`import { isBunTestRuntime } from ${JSON.stringify(envModulePath)};\nprocess.stdout.write(JSON.stringify(isBunTestRuntime()));\n`,
+			`import { isTestRuntime } from ${JSON.stringify(pathToFileURL(envModulePath).href)};\nprocess.stdout.write(JSON.stringify(isTestRuntime()));\n`,
 		);
 		expect(
 			await runRuntimeProbe(

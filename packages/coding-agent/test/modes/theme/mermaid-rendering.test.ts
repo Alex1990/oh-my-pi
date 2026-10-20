@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Markdown } from "@oh-my-pi/pi-tui";
 import { Settings } from "../../../src/config/settings";
 import { fgAnsi } from "@oh-my-pi/pi-tui/theme/color";

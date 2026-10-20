@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type {
@@ -20,6 +20,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function emptyUsage(): AssistantMessage["usage"] {
 	return {
@@ -47,7 +48,7 @@ function messageText(message: Message): string {
  * has a fresh title + a paragraph naming new code anchors, so the similarity loop
  * guard never fires; only the header-count guard catches it. Mirrors
  * `streaming-edit-abort`: an abort listener pushes the terminal `aborted` event,
- * and deltas are spaced with `Bun.sleep(0)` so the interceptor's `agent.abort()`
+ * and deltas are spaced with `bun.sleep(0)` so the interceptor's `agent.abort()`
  * lands before the turn would otherwise finish `stop`.
  *
  * When `finalText` is provided, a non-interrupted run ends with visible prose so
@@ -95,7 +96,7 @@ function headerRunawayStream(
 			const delta = `**Refining Stage ${i}**\n\nReworking module_${i} so handler_${i} routes Stage${i}Result through render_${i}.\n\n`;
 			thinking.thinking += delta;
 			stream.push({ type: "thinking_delta", contentIndex: 0, delta, partial });
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		if (aborted) return;
 		stream.push({ type: "thinking_end", contentIndex: 0, content: thinking.thinking, partial });

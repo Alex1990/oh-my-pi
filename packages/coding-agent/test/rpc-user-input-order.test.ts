@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	RpcInputDispatcher,
 	type RpcInputFrameDeps,

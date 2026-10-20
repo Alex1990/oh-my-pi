@@ -17,7 +17,7 @@
  * 4. Async schedule failure in a mixed call still returns the inline results
  *    and reports the failed spawn.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentLifecycleManager } from "@oh-my-pi/pi-coding-agent/registry/agent-lifecycle";
@@ -28,6 +28,7 @@ import * as executorModule from "@oh-my-pi/pi-coding-agent/task/executor";
 import type { AgentDefinition } from "@oh-my-pi/pi-coding-agent/task/types";
 import type { SingleResult, TaskParams, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const taskAgent: AgentDefinition = {
 	name: "task",
@@ -139,7 +140,7 @@ describe("task per-item blocking split", () => {
 		const deadline = Date.now() + 2_000;
 		while (started.length < 2) {
 			if (Date.now() > deadline) throw new Error(`spawns never started: ${JSON.stringify(started)}`);
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 		const workerJob = manager.getJob("WorkerOne");
 		expect(workerJob).toBeDefined();
@@ -203,7 +204,7 @@ describe("task per-item blocking split", () => {
 		const deadline = Date.now() + 2_000;
 		while (started.length < 2) {
 			if (Date.now() > deadline) throw new Error(`spawns never started: ${JSON.stringify(started)}`);
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 
 		// The async job settles BEFORE the blocking subset: the returned result

@@ -1,10 +1,11 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { sanitizeText, sanitizeTextDeep } from "@oh-my-pi/pi-utils";
 import { applyHyperlinkSetting } from "../src/render/hyperlink";
 import { astEditToolRenderer, type AstEditToolDetails } from "../src/tools/ast-edit";
 import { getThemeByName, initTheme, type Theme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let uiTheme: Theme;
 
@@ -74,7 +75,7 @@ describe("AST edit file hyperlinks", () => {
 		expect(labels).not.toMatch(/[\x01-\x03\x7f]/);
 		expect(labels).not.toContain("\x1b[31m");
 		expect(labels).not.toContain("\x1b[32m");
-		expect(Bun.stripANSI(output)).toContain("file-name.ts");
+		expect(bun.stripANSI(output)).toContain("file-name.ts");
 	});
 
 	it("keeps sanitized targets when original grouped output no longer aligns", () => {

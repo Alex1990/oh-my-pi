@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,22 @@ import {
 	Snowflake,
 	setAgentDir,
 } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// Windows without developer mode refuses symlink creation; only that arm is skipped.
+const symlinksSupported = (() => {
+	const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	try {
+		const target = path.join(probeDir, "target");
+		fs.writeFileSync(target, "");
+		fs.symlinkSync(target, path.join(probeDir, "link"));
+		return true;
+	} catch {
+		return false;
+	} finally {
+		fs.rmSync(probeDir, { recursive: true, force: true });
+	}
+})();
 
 const OLDER_MTIME = new Date("2000-01-01T00:00:00.000Z");
 const NEWER_MTIME = new Date("2000-01-01T00:00:01.000Z");
@@ -159,7 +175,7 @@ describe("resolveResumableSession", () => {
 		expect(match?.session.path).toBe(path.join(sessionDir, "2025-01-01_moved.jsonl"));
 	});
 
-	it("matches sessions staged into the dir as symlinks", async () => {
+	it.skipIf(!symlinksSupported)("matches sessions staged into the dir as symlinks", async () => {
 		const id = "sym1234";
 		const stagedDir = path.join(tempDir, "staged");
 		fs.mkdirSync(stagedDir);
@@ -250,7 +266,7 @@ describe("SessionManager temp cwd session dirs", () => {
 			.replace(/[^a-zA-Z0-9._-]+/g, "-")
 			.replace(/^-+|-+$/g, "")
 			.slice(-80);
-		const digest = Bun.SHA256.hash(normalized, "hex");
+		const digest = bun.SHA256.hash(normalized, "hex");
 		const hashedDir = path.join(getSessionsDir(), `tmp-${readable || "project"}-${digest}`);
 		fs.mkdirSync(hashedDir, { recursive: true });
 		fs.writeFileSync(path.join(hashedDir, "stranded.jsonl"), "stranded\n");

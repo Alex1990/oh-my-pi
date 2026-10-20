@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import {
 	runPublishJobs,
 	stageLegalPayloads,
 } from "./ci-release-publish";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("npm dist-tags", () => {
 	it("routes canaries while rejecting other prereleases", () => {
@@ -151,15 +152,15 @@ describe("published legal payloads", () => {
 		await fs.mkdir(pkgDir);
 		try {
 			await Promise.all([
-				Bun.write(path.join(root, "LICENSE"), "root MIT\n"),
-				Bun.write(path.join(root, "THIRD-PARTY-NOTICES.txt"), "notices\n"),
-				Bun.write(path.join(pkgDir, "LICENSE"), "package MIT\n"),
+				bun.write(path.join(root, "LICENSE"), "root MIT\n"),
+				bun.write(path.join(root, "THIRD-PARTY-NOTICES.txt"), "notices\n"),
+				bun.write(path.join(pkgDir, "LICENSE"), "package MIT\n"),
 			]);
 
 			const files = await stageLegalPayloads(pkgDir, "MIT", true, root);
 			expect(files).toEqual(["LICENSE", "THIRD-PARTY-NOTICES.txt"]);
-			expect(await Bun.file(path.join(pkgDir, "LICENSE")).text()).toBe("package MIT\n");
-			expect(await Bun.file(path.join(pkgDir, "THIRD-PARTY-NOTICES.txt")).text()).toBe("notices\n");
+			expect(await bun.file(path.join(pkgDir, "LICENSE")).text()).toBe("package MIT\n");
+			expect(await bun.file(path.join(pkgDir, "THIRD-PARTY-NOTICES.txt")).text()).toBe("notices\n");
 		} finally {
 			await fs.rm(root, { recursive: true, force: true });
 		}
@@ -168,7 +169,7 @@ describe("published legal payloads", () => {
 	it("lists every legal file explicitly in the native core package", async () => {
 		const pkgDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-native-core-"));
 		try {
-			await Bun.write(
+			await bun.write(
 				path.join(pkgDir, "package.json"),
 				JSON.stringify({
 					name: "@oh-my-pi/pi-natives",

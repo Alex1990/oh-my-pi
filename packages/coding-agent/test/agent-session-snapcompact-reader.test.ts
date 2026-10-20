@@ -5,7 +5,7 @@
  * archive (a model switch, a resume, a side request) must send the archive's
  * no-reasoning view, while the original stays intact for other readers.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,6 +22,7 @@ import type { CompactionEntry } from "@oh-my-pi/pi-coding-agent/session/session-
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REASONING = "PRIVATE-REASONING";
 const PLAIN_LEGEND = "`¶user:`, `¶ai:`, `¶call:`: user, assistant reply, tool call.";
@@ -232,7 +233,7 @@ describe("snapcompact archive read by a Claude model", () => {
 		// the stored variant without rendering it again.
 		await sessionManager.flush();
 		const sessionFile = sessionManager.getSessionFile()!;
-		const persisted = (await Bun.file(sessionFile).text())
+		const persisted = (await bun.file(sessionFile).text())
 			.split("\n")
 			.filter(Boolean)
 			.map(line => JSON.parse(line))

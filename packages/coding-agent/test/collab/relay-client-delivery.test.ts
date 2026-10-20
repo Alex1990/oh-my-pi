@@ -1,11 +1,12 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { startLocalRelay } from "../../../collab-web/scripts/local-relay";
 import { generateRoomKey, importRoomKey } from "../../src/collab/crypto";
 import { COLLAB_PROTO } from "../../src/collab/protocol";
 import { CollabSocket } from "../../src/collab/relay-client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 it("serves a joining guest, stops serving it on departure, and serves the next one", async () => {
-	const relay = startLocalRelay();
+	const relay = await startLocalRelay();
 	const key = await importRoomKey(generateRoomKey());
 	const wsUrl = `${relay.url}/r/servinglifecycle`;
 	const host = new CollabSocket({ wsUrl, role: "host", key });
@@ -35,7 +36,7 @@ it("serves a joining guest, stops serving it on departure, and serves the next o
 		const deadline = Date.now() + 3_000;
 		while (!predicate()) {
 			if (Date.now() > deadline) throw new Error(message);
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 	};
 
@@ -66,6 +67,6 @@ it("serves a joining guest, stops serving it on departure, and serves the next o
 		second?.close();
 		first?.close();
 		host.close();
-		relay.stop();
+		await relay.stop();
 	}
 }, 10000);

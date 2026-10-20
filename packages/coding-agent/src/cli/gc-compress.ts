@@ -13,15 +13,17 @@
 import * as fsSync from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { $ } from "bun";
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { dlopen, FFIType, ptr } from "@oh-my-pi/pi-utils/ffi";
 import { COMPRESS_SCRATCH_PREFIX } from "@oh-my-pi/omp-stats/parser";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { FileSessionStorage } from "../session/session-storage";
 import { errorMessage } from "../slash-commands/helpers/parse";
 import { sha256File } from "../utils/file-hash";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SCRATCH_GLOB = new Bun.Glob(`**/${COMPRESS_SCRATCH_PREFIX}*`);
+const SCRATCH_GLOB = new Glob(`**/${COMPRESS_SCRATCH_PREFIX}*`);
 /**
  * Written into each scratch directory before anything else, so the sweep
  * recursively removes only directories gc created; a session artifact can
@@ -179,7 +181,7 @@ export async function sweepCompressScratch(roots: string[], apply: boolean, erro
 		for (const dir of dirs) {
 			try {
 				if (!(await fs.lstat(dir)).isDirectory()) continue;
-				const owned = await fs.exists(path.join(dir, SCRATCH_OWNER_MARKER));
+				const owned = await fs.access(path.join(dir, SCRATCH_OWNER_MARKER)).then(() => true, () => false);
 				if (!owned && (await fs.readdir(dir)).length > 0) continue;
 				found += 1;
 				if (!apply) continue;
@@ -310,7 +312,7 @@ async function compressBatch(
 	try {
 		// A fresh directory: a pre-existing one with this name is never gc's to remove.
 		scratch = await fs.mkdtemp(path.join(dir, COMPRESS_SCRATCH_PREFIX));
-		await Bun.write(path.join(scratch, SCRATCH_OWNER_MARKER), "");
+		await bun.write(path.join(scratch, SCRATCH_OWNER_MARKER), "");
 		const digests = await sha256Files(batch.map(candidate => candidate.path));
 		const copy = await $`ditto --hfsCompression ${batch.map(candidate => candidate.path)} ${scratch}`
 			.quiet()

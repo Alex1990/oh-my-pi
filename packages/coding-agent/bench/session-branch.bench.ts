@@ -10,6 +10,7 @@
  * Run: bun packages/coding-agent/bench/session-branch.bench.ts
  */
 import { SessionManager } from "../src/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const N = 5000;
 const manager = SessionManager.inMemory();
@@ -20,9 +21,9 @@ const depth = manager.getBranch().length;
 if (depth < N) throw new Error(`expected branch depth >= ${N}, got ${depth}`);
 
 const ITERS = 1000;
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 for (let i = 0; i < ITERS; i++) manager.getBranch();
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 console.log(
 	`getBranch x${ITERS} (${depth}-entry branch): ${ms.toFixed(1)}ms total (${((ms / ITERS) * 1000).toFixed(1)}us/op)`,
 );

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,7 +11,7 @@ import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
 // Fixture lives at test/marketplace/fixtures/valid-marketplace/
-const FIXTURE_DIR = path.join(import.meta.dir, "fixtures", "valid-marketplace");
+const FIXTURE_DIR = path.join(import.meta.dirname, "fixtures", "valid-marketplace");
 
 // ── classifySource ────────────────────────────────────────────────────
 

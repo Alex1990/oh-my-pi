@@ -67,3 +67,35 @@ declare module "axe-core/axe.min.js" {
 	const content: string;
 	export default content;
 }
+
+declare namespace NodeJS {
+	interface Process {
+		/**
+		 * Low-level process terminator used by the postmortem exit path. Node keeps
+		 * it off the public typings but the primitive exists at runtime.
+		 */
+		reallyExit?(code?: number): never;
+	}
+}
+
+/** Bun's global timer handle type; Node's equivalent. */
+declare type Timer = NodeJS.Timeout;
+
+/** DOM form value type, absent from the Node-only lib set. */
+declare type FormDataEntryValue = string | File;
+
+/** WebCrypto key type; @types/node only declares the value. */
+declare type CryptoKey = import("node:crypto").webcrypto.CryptoKey;
+
+declare module "*.html" {
+	const content: string;
+	export default content;
+}
+
+/** WebCrypto key-pair type; @types/node only declares the value. */
+declare type CryptoKeyPair = import("node:crypto").webcrypto.CryptoKeyPair;
+
+/** Bun's fetch accepted a unix-socket target through an extra init field. */
+interface RequestInit {
+	unix?: string;
+}

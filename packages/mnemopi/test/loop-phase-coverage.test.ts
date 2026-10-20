@@ -1,5 +1,5 @@
-import { Database, type Statement } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { Database, type Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { Mnemopi } from "@oh-my-pi/pi-mnemopi/core/memory";
 import { resetEmbeddingProviderForTests, setEmbeddingProviderForTests } from "@oh-my-pi/pi-mnemopi/core/embeddings";
 import { currentLoopPhase, TempDir } from "@oh-my-pi/pi-utils";

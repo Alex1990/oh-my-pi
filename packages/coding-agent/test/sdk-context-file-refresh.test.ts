@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { AuthStorage } from "@oh-my-pi/pi-ai";
@@ -13,6 +13,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgAdvisorEnabled } from "@oh-my-pi/pi-coding-agent/advisor/settings";
 import { cfgDisabledExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const INITIAL_CONTEXT = "reload-context-initial-marker";
 const UPDATED_CONTEXT = "reload-context-updated-marker";
@@ -55,13 +56,13 @@ describe("context-file prompt refresh", () => {
 	it("replaces edited context-file content in the current system prompt", async () => {
 		using tempDir = TempDir.createSync("@omp-context-refresh-edit-");
 		const contextPath = tempDir.join("AGENTS.md");
-		await Bun.write(contextPath, INITIAL_CONTEXT);
+		await bun.write(contextPath, INITIAL_CONTEXT);
 		const { session, authStorage } = await createContextSession(tempDir.path(), Settings.isolated({}));
 
 		try {
 			expect(session.systemPrompt.join("\n")).toContain(INITIAL_CONTEXT);
 
-			await Bun.write(contextPath, UPDATED_CONTEXT);
+			await bun.write(contextPath, UPDATED_CONTEXT);
 			await session.refreshSkills();
 
 			const refreshedPrompt = session.systemPrompt.join("\n");
@@ -75,7 +76,7 @@ describe("context-file prompt refresh", () => {
 
 	it("removes a disabled context file from the current system prompt", async () => {
 		using tempDir = TempDir.createSync("@omp-context-refresh-disable-");
-		await Bun.write(tempDir.join("AGENTS.md"), INITIAL_CONTEXT);
+		await bun.write(tempDir.join("AGENTS.md"), INITIAL_CONTEXT);
 		const settings = Settings.isolated({});
 		const { session, authStorage } = await createContextSession(tempDir.path(), settings);
 
@@ -94,7 +95,7 @@ describe("context-file prompt refresh", () => {
 
 	it("honors the session's own disabledExtensions, not the process-global settings", async () => {
 		using tempDir = TempDir.createSync("@omp-context-refresh-isolation-");
-		await Bun.write(tempDir.join("AGENTS.md"), INITIAL_CONTEXT);
+		await bun.write(tempDir.join("AGENTS.md"), INITIAL_CONTEXT);
 		const settings = Settings.isolated({});
 		const { session, authStorage } = await createContextSession(tempDir.path(), settings);
 
@@ -119,7 +120,7 @@ describe("context-file prompt refresh", () => {
 	it("refreshes the advisor context prompt when context files change", async () => {
 		using tempDir = TempDir.createSync("@omp-context-refresh-advisor-");
 		const contextPath = tempDir.join("AGENTS.md");
-		await Bun.write(contextPath, INITIAL_CONTEXT);
+		await bun.write(contextPath, INITIAL_CONTEXT);
 		const { session, authStorage } = await createContextSession(tempDir.path(), Settings.isolated({}), {
 			advisor: true,
 		});
@@ -129,7 +130,7 @@ describe("context-file prompt refresh", () => {
 			expect(session.isAdvisorActive()).toBe(true);
 			expect(advisorPrompt()).toContain(INITIAL_CONTEXT);
 
-			await Bun.write(contextPath, UPDATED_CONTEXT);
+			await bun.write(contextPath, UPDATED_CONTEXT);
 			await session.refreshSkills();
 
 			const refreshed = advisorPrompt();

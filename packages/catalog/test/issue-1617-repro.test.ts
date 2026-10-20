@@ -13,7 +13,7 @@
  * dynamic-fetch path (which reads the bundled models.json reference) does
  * not regress after a /v1/models cache refresh.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	MODELS_DEV_PROVIDER_DESCRIPTORS,
 	type ModelsDevModel,
@@ -75,7 +75,6 @@ describe("opencode-zen/-go resolver routes MiniMax M3 to openai-completions (iss
 					{ headers: { "content-type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
 		);
 
 		const options = opencodeZenModelManagerOptions({ apiKey: "opencode-test-key", fetch: mockFetch });
@@ -105,7 +104,6 @@ describe("opencode-zen/-go resolver routes MiniMax M3 to openai-completions (iss
 					{ headers: { "content-type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
 		);
 
 		const options = opencodeGoModelManagerOptions({ apiKey: "opencode-test-key", fetch: mockFetch });

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { exportFromFile } from "../src/export/html";
 import type { SessionHeader } from "../src/session/session-entries";
 import { collectSubSessions } from "../src/session/sub-sessions";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Contract: a session at `<dir>/<name>.jsonl` embeds subagent transcripts from
@@ -53,7 +54,7 @@ describe("collectSubSessions", () => {
 	beforeEach(async () => {
 		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-subsessions-"));
 		mainFile = path.join(root, "main.jsonl");
-		await Bun.write(mainFile, sessionJsonl("main", ["m1"]));
+		await bun.write(mainFile, sessionJsonl("main", ["m1"]));
 	});
 
 	afterEach(async () => {
@@ -61,9 +62,9 @@ describe("collectSubSessions", () => {
 	});
 
 	test("collects nested subagent sessions with parent links and leaf ids", async () => {
-		await Bun.write(path.join(root, "main/Alpha.jsonl"), sessionJsonl("alpha", ["a1", "a2"]));
-		await Bun.write(path.join(root, "main/Alpha/Child.jsonl"), sessionJsonl("child", ["c1"]));
-		await Bun.write(path.join(root, "main/Beta.jsonl"), sessionJsonl("beta", ["b1"]));
+		await bun.write(path.join(root, "main/Alpha.jsonl"), sessionJsonl("alpha", ["a1", "a2"]));
+		await bun.write(path.join(root, "main/Alpha/Child.jsonl"), sessionJsonl("child", ["c1"]));
+		await bun.write(path.join(root, "main/Beta.jsonl"), sessionJsonl("beta", ["b1"]));
 
 		const subs = await collectSubSessions(mainFile);
 
@@ -85,7 +86,7 @@ describe("collectSubSessions", () => {
 			purpose: "task-completion-probe",
 			usage: { cost: { total: 0.01 } },
 		});
-		await Bun.write(path.join(root, "main/Alpha.jsonl"), `${sessionJsonl("alpha", ["a1", "a2"])}${lateUsage}\n`);
+		await bun.write(path.join(root, "main/Alpha.jsonl"), `${sessionJsonl("alpha", ["a1", "a2"])}${lateUsage}\n`);
 
 		const subs = await collectSubSessions(mainFile);
 
@@ -100,13 +101,13 @@ describe("collectSubSessions", () => {
 		const mainJsonl = sessionJsonl("main", ["m1"], [mainPreviousPath], mainKeys);
 		const subJsonl = sessionJsonl("alpha", ["a1"], [subPreviousPath], subKeys);
 		const subFile = path.join(root, "main/Alpha.jsonl");
-		await Bun.write(mainFile, mainJsonl);
-		await Bun.write(subFile, subJsonl);
+		await bun.write(mainFile, mainJsonl);
+		await bun.write(subFile, subJsonl);
 		const outputPath = path.join(root, "export.html");
 
 		await exportFromFile(mainFile, { outputPath });
 
-		const html = await Bun.file(outputPath).text();
+		const html = await bun.file(outputPath).text();
 		const encoded = html.match(/<script id="session-data" type="application\/json">([^<]+)<\/script>/)?.[1];
 		expect(encoded).toBeDefined();
 		const data = JSON.parse(Buffer.from(encoded!, "base64").toString("utf8")) as {
@@ -122,8 +123,8 @@ describe("collectSubSessions", () => {
 		expect(JSON.stringify(data)).not.toContain("private-");
 		expect(data.header.id).toBe("main");
 		expect(data.subSessions.Alpha.header.id).toBe("alpha");
-		expect(await Bun.file(mainFile).text()).toBe(mainJsonl);
-		expect(await Bun.file(subFile).text()).toBe(subJsonl);
+		expect(await bun.file(mainFile).text()).toBe(mainJsonl);
+		expect(await bun.file(subFile).text()).toBe(subJsonl);
 		expect((await collectSubSessions(mainFile)).Alpha.header).toMatchObject(subKeys);
 		expect(html).not.toContain(mainPreviousPath);
 		expect(html).not.toContain(subPreviousPath);
@@ -134,16 +135,16 @@ describe("collectSubSessions", () => {
 		const outputPath = path.join(root, "export.html");
 
 		await expect(exportFromFile(missingInput, { outputPath })).rejects.toThrow(`File not found: ${missingInput}`);
-		expect(await Bun.file(missingInput).exists()).toBe(false);
-		expect(await Bun.file(outputPath).exists()).toBe(false);
+		expect(await bun.file(missingInput).exists()).toBe(false);
+		expect(await bun.file(outputPath).exists()).toBe(false);
 	});
 
 	test("skips corrupt, empty, backup, and non-jsonl files", async () => {
-		await Bun.write(path.join(root, "main/Good.jsonl"), sessionJsonl("good", ["g1"]));
-		await Bun.write(path.join(root, "main/corrupt.jsonl"), "{not json\n");
-		await Bun.write(path.join(root, "main/empty.jsonl"), "");
-		await Bun.write(path.join(root, "main/Good.jsonl.123.bak"), sessionJsonl("bak", ["x1"]));
-		await Bun.write(path.join(root, "main/notes.md"), "# notes\n");
+		await bun.write(path.join(root, "main/Good.jsonl"), sessionJsonl("good", ["g1"]));
+		await bun.write(path.join(root, "main/corrupt.jsonl"), "{not json\n");
+		await bun.write(path.join(root, "main/empty.jsonl"), "");
+		await bun.write(path.join(root, "main/Good.jsonl.123.bak"), sessionJsonl("bak", ["x1"]));
+		await bun.write(path.join(root, "main/notes.md"), "# notes\n");
 
 		const subs = await collectSubSessions(mainFile);
 
@@ -151,10 +152,10 @@ describe("collectSubSessions", () => {
 	});
 
 	test("skips advisor transcripts stored alongside subagent sessions", async () => {
-		await Bun.write(path.join(root, "main/Scout.jsonl"), sessionJsonl("scout", ["s1"]));
-		await Bun.write(path.join(root, "main/__advisor.jsonl"), sessionJsonl("adv", ["v1"]));
-		await Bun.write(path.join(root, "main/__advisor.reviewer.jsonl"), sessionJsonl("adv2", ["v2"]));
-		await Bun.write(path.join(root, "main/Scout/__advisor.jsonl"), sessionJsonl("adv3", ["v3"]));
+		await bun.write(path.join(root, "main/Scout.jsonl"), sessionJsonl("scout", ["s1"]));
+		await bun.write(path.join(root, "main/__advisor.jsonl"), sessionJsonl("adv", ["v1"]));
+		await bun.write(path.join(root, "main/__advisor.reviewer.jsonl"), sessionJsonl("adv2", ["v2"]));
+		await bun.write(path.join(root, "main/Scout/__advisor.jsonl"), sessionJsonl("adv3", ["v3"]));
 
 		const subs = await collectSubSessions(mainFile);
 
@@ -163,8 +164,8 @@ describe("collectSubSessions", () => {
 
 	test("terminates when a transcript stem names the directory itself", async () => {
 		// "..jsonl" has the stem "."; descending into `<dir>/.` used to rescan the same directory forever.
-		await Bun.write(path.join(root, "main/..jsonl"), sessionJsonl("dot", ["d1"]));
-		await Bun.write(path.join(root, "main/Scout.jsonl"), sessionJsonl("scout", ["s1"]));
+		await bun.write(path.join(root, "main/..jsonl"), sessionJsonl("dot", ["d1"]));
+		await bun.write(path.join(root, "main/Scout.jsonl"), sessionJsonl("scout", ["s1"]));
 
 		const subs = await collectSubSessions(mainFile);
 
@@ -172,9 +173,9 @@ describe("collectSubSessions", () => {
 	});
 
 	test("flags subagents killed with a tombstone sidecar as aborted", async () => {
-		await Bun.write(path.join(root, "main/Killed.jsonl"), sessionJsonl("killed", ["k1"]));
-		await Bun.write(path.join(root, "main/Killed.jsonl.tombstone"), "");
-		await Bun.write(path.join(root, "main/Live.jsonl"), sessionJsonl("live", ["l1"]));
+		await bun.write(path.join(root, "main/Killed.jsonl"), sessionJsonl("killed", ["k1"]));
+		await bun.write(path.join(root, "main/Killed.jsonl.tombstone"), "");
+		await bun.write(path.join(root, "main/Live.jsonl"), sessionJsonl("live", ["l1"]));
 
 		const subs = await collectSubSessions(mainFile);
 

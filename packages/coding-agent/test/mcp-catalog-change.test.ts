@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,8 +11,9 @@ import { createExtensionDashboardRuntime } from "@oh-my-pi/pi-coding-agent/modes
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { PROMPT_NAME, RESOURCE_NAME, RESOURCE_URI, TOOL_NAME } from "./fixtures/delayed-catalog-mcp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "delayed-catalog-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "delayed-catalog-mcp.ts");
 const SERVER = "catalog";
 
 beforeAll(async () => {
@@ -164,7 +165,7 @@ describe("MCP catalog-change after connect", () => {
 		dashboard.dispose();
 		const paintsAtDispose = paints;
 		await manager.refreshServerResources(SERVER);
-		await Bun.sleep(50);
+		await bun.sleep(50);
 		expect(paints).toBe(paintsAtDispose);
 	}, 20_000);
 });

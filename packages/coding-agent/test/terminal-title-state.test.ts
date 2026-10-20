@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import {
 	buildTerminalTitleWithState,
@@ -12,6 +12,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/utils/title-generator";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
 import { mockWindowsConsoleTitle, type WindowsConsoleTitleMock } from "./terminal-title-test-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LABEL = "my-project";
 // The brand the title runtime prefixes every composed title with. Plain π —
@@ -137,8 +138,8 @@ describe("disposeTerminalTitleState", () => {
 
 	beforeEach(() => {
 		vi.useFakeTimers();
-		savedWslEnv = Object.fromEntries(wslEnvKeys.map(key => [key, Bun.env[key]]));
-		for (const key of wslEnvKeys) delete Bun.env[key];
+		savedWslEnv = Object.fromEntries(wslEnvKeys.map(key => [key, bun.env[key]]));
+		for (const key of wslEnvKeys) delete bun.env[key];
 
 		prevHeadless = setTerminalHeadless(false);
 		ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
@@ -175,8 +176,8 @@ describe("disposeTerminalTitleState", () => {
 		vi.useRealTimers();
 		for (const key of wslEnvKeys) {
 			const value = savedWslEnv[key];
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 	});
 
@@ -373,8 +374,8 @@ describe("reporting the session to Tern", () => {
 		prevHeadless = setTerminalHeadless(false);
 		ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 		Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
-		prevTermProgram = Bun.env.TERM_PROGRAM;
-		Bun.env.TERM_PROGRAM = "tern";
+		prevTermProgram = bun.env.TERM_PROGRAM;
+		bun.env.TERM_PROGRAM = "tern";
 		writes = "";
 		stdoutSpy = spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
 			writes += typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk as Uint8Array);
@@ -388,8 +389,8 @@ describe("reporting the session to Tern", () => {
 		stdoutSpy?.mockRestore();
 		if (ttyDescriptor) Object.defineProperty(process.stdout, "isTTY", ttyDescriptor);
 		else Reflect.deleteProperty(process.stdout, "isTTY");
-		if (prevTermProgram === undefined) delete Bun.env.TERM_PROGRAM;
-		else Bun.env.TERM_PROGRAM = prevTermProgram;
+		if (prevTermProgram === undefined) delete bun.env.TERM_PROGRAM;
+		else bun.env.TERM_PROGRAM = prevTermProgram;
 		setTerminalHeadless(prevHeadless);
 	});
 
@@ -407,7 +408,7 @@ describe("reporting the session to Tern", () => {
 	});
 
 	it("reports nothing to other terminals", () => {
-		Bun.env.TERM_PROGRAM = "ghostty";
+		bun.env.TERM_PROGRAM = "ghostty";
 		setTerminalSessionSource({ file: () => undefined, cwd: () => "/work/other" });
 		setSessionTerminalTitle("my-project");
 		expect(writes).not.toContain("\x1b]7;");

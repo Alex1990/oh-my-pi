@@ -6,7 +6,7 @@
  * (Kitty image conversion, todo strike frames) must not keep serving the rows
  * it had before.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { OutlineRowCache } from "@oh-my-pi/pi-tui/chat/transcript-outline";
 import type { Component } from "@oh-my-pi/pi-tui";
 

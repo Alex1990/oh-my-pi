@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { Mnemopi } from "@oh-my-pi/pi-mnemopi/core/memory";
 import type { MnemopiLlmCompletion } from "@oh-my-pi/pi-mnemopi/core/runtime-options";
 
@@ -100,7 +100,7 @@ describe("remember(extract) wires the LLM fact extractor", () => {
 		let requestedUrl = "";
 		let requestedBody = "";
 		const fetchMock: typeof fetch = Object.assign(
-			(input: string | Request | URL, init?: BunFetchRequestInit | RequestInit) => {
+			(input: string | Request | URL, init?: RequestInit) => {
 				requestedUrl = String(input);
 				requestedBody = typeof init?.body === "string" ? init.body : "";
 				return Promise.resolve(

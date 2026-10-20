@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { DEFAULT_RELAY_URL, resolveRelayKind } from "@oh-my-pi/pi-coding-agent/tools/browser";
 
 describe("resolveRelayKind", () => {

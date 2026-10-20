@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,10 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { vi } from "vitest";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+vi.mock("node:os", { spy: true });
 
 // Contract for B1 (interactive MCP deferral): when `hasUI` is true, MCP
 // discovery is deferred off the first-paint path, so an explicitly requested
@@ -125,7 +129,7 @@ describe("createAgentSession MCP catalog handoff", () => {
 	};
 	let tempDir: string;
 	let originalAgentDir: string;
-	let server: Bun.Server<undefined> | undefined;
+	let server: Server<undefined> | undefined;
 
 	beforeEach(() => {
 		tempDir = path.join(os.tmpdir(), `pi-sdk-mcp-handoff-${Snowflake.next()}`);
@@ -159,7 +163,7 @@ describe("createAgentSession MCP catalog handoff", () => {
 		"exposes the tool list after the server $change a tool while extensions loaded",
 		async ({ next, expected }) => {
 			let tools: MCPToolDefinition[] = [INITIAL_TOOL];
-			server = Bun.serve({
+			server = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				async fetch(request) {

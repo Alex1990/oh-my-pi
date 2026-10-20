@@ -11,7 +11,7 @@
  * train is heavyweight. The host-idle close logic is therefore extracted
  * as {@link reconcileGuestIdleHostState}; this test drives it directly.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, type Mock, mock, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, type Mock, mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	clearGuestTransientStatus,
 	type GuestIdleReconcilerCtx,
@@ -47,8 +47,8 @@ interface Fixture {
 }
 
 function makeCtx(hasLoader: boolean): Fixture {
-	const markActivityEnd: Mock<() => void> = mock(() => {});
-	const loaderStop: Mock<() => void> = mock(() => {});
+	const markActivityEnd = mock(() => {});
+	const loaderStop = mock(() => {});
 	const loader = { stop: loaderStop };
 	const visibleChildren: object[] = hasLoader ? [loader] : [];
 	const ctx: GuestIdleReconcilerCtx = {

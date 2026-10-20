@@ -19,6 +19,7 @@ import {
 import { renderStatusLine, type StatusLineOptions } from "./status-line";
 import type { State } from "./types";
 import { getStateBgColor } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Lifecycle distinctions shared by tool call and result cards. */
 export type ToolCardPhase = "pending" | "running" | "partial" | "success" | "warning" | "error" | "info";
@@ -252,7 +253,7 @@ export class ToolCard implements Component {
 			lines.push(...section.lines);
 		}
 		const text = lines.join("\n");
-		const key = `${width}:${text.length}:${Bun.hash(text).toString(36)}:${state ?? "info"}:${snapshot.applyBg ?? true}`;
+		const key = `${width}:${text.length}:${bun.hash(text).toString(36)}:${state ?? "info"}:${snapshot.applyBg ?? true}`;
 		if (key !== this.#plainKey) {
 			this.#plainKey = key;
 			this.#plainText.setText(text);

@@ -41,6 +41,7 @@ import { resolveModelPolicy } from "./resolve";
 import { parseRevision, parseRevisionConstraint, type RevisionTerm, revisionSatisfies } from "./revision";
 import { collapseVariantId, collapseVocabulary, stripThinkingVariantSuffix } from "./taxonomy";
 import { type CompiledVariantFamily, REVISION_PLACEHOLDER } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const VARIANT_ROUTING_KEYS: readonly (Effort | "off")[] = ["off", ...THINKING_EFFORTS];
 const DEFAULT_PAIR_EFFORTS: readonly Effort[] = [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High];
@@ -452,8 +453,8 @@ function deriveCursorEffortFamilies<TSpec extends VariantSpecLike>(specs: readon
 					member.spec.contextWindow !== first.spec.contextWindow ||
 					member.spec.maxTokens !== first.spec.maxTokens ||
 					member.spec.cursorMaxMode !== first.spec.cursorMaxMode ||
-					!Bun.deepEquals(member.spec.cost, first.spec.cost) ||
-					!Bun.deepEquals(member.spec.compat, first.spec.compat),
+					!bun.deepEquals(member.spec.cost, first.spec.cost) ||
+					!bun.deepEquals(member.spec.compat, first.spec.compat),
 			)
 		) {
 			continue;
@@ -708,7 +709,7 @@ function refreshCollapsedThinking<TSpec extends VariantSpecLike>(
 	const offTarget = family.routing.off;
 	const requestModelId =
 		offTarget !== undefined && !retired?.has(offTarget) && offTarget !== spec.id ? offTarget : spec.requestModelId;
-	if (Bun.deepEquals(thinking, spec.thinking) && requestModelId === spec.requestModelId) {
+	if (bun.deepEquals(thinking, spec.thinking) && requestModelId === spec.requestModelId) {
 		return spec;
 	}
 	return { ...spec, thinking, ...(requestModelId !== undefined ? { requestModelId } : {}) };

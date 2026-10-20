@@ -9,7 +9,7 @@
  * 3. A persisted `"granted"` short-circuits the handler.
  * 4. A persisted `"denied"` short-circuits the handler AND no-ops the tool.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
 	__resetAutoQaConsentForTests,

@@ -20,7 +20,7 @@ import {
 	setProjectDir,
 	VERSION,
 } from "@oh-my-pi/pi-utils/dirs";
-import { $env, isBunTestRuntime, isCompiledBinary, setInteractiveHost } from "@oh-my-pi/pi-utils/env";
+import { $env, isTestRuntime, isCompiledBinary, setInteractiveHost } from "@oh-my-pi/pi-utils/env";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
 import { fuzzyFilter } from "@oh-my-pi/pi-tui/fuzzy";
@@ -184,6 +184,7 @@ import { cfgDisabledProviders, cfgEnabledModels } from "./config/model-settings"
 import { cfgTaskAgentIdleTtlMs } from "./task/settings";
 import { cfgSkillsIncludeSkills } from "./extensibility/settings";
 import { cfgWorkspaceAdditionalDirectories } from "./session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type RunAcpMode = (createSession: AcpSessionFactory) => Promise<never>;
 type RunPrintMode = (session: AgentSession, options: PrintModeOptions) => Promise<number>;
@@ -252,7 +253,7 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 		const { version } = isCompiledBinary()
 			? await fetchBuild({ channel }, { timeoutMs: 5_000, fromVersion: currentVersion })
 			: await getLatestRelease({ timeoutMs: 5_000, channel });
-		return Bun.semver.order(version, currentVersion) > 0 ? version : undefined;
+		return bun.semver.order(version, currentVersion) > 0 ? version : undefined;
 	} catch {
 		return undefined;
 	}
@@ -290,7 +291,7 @@ export async function readPipedInput(): Promise<string | undefined> {
 	if (process.stdin.isTTY === true) return undefined;
 	// stdin is a pipe: a producer that never writes nor closes would block
 	// startup forever with zero output. Say what we're blocked on after 1s.
-	const notice = isBunTestRuntime()
+	const notice = isTestRuntime()
 		? undefined
 		: setTimeout(() => {
 				process.stderr.write(
@@ -299,7 +300,7 @@ export async function readPipedInput(): Promise<string | undefined> {
 			}, 1000);
 	notice?.unref?.();
 	try {
-		const text = await Bun.stdin.text();
+		const text = await bun.stdin.text();
 		if (text.trim().length === 0) return undefined;
 		return text;
 	} catch {
@@ -324,7 +325,7 @@ let startupWatchdogActive = false;
 let startupWatchdogStartedAt = 0;
 
 function armStartupWatchdog(): void {
-	if (isBunTestRuntime()) return;
+	if (isTestRuntime()) return;
 	if (startupWatchdogTimer) return;
 	startupWatchdogTimer = setInterval(() => {
 		const elapsed = Math.round((Date.now() - startupWatchdogStartedAt) / 1000);
@@ -345,7 +346,7 @@ function disarmStartupWatchdog(): void {
 
 /** Begin watching startup (idempotent). */
 function startStartupWatchdog(): void {
-	if (isBunTestRuntime()) return;
+	if (isTestRuntime()) return;
 	startupWatchdogActive = true;
 	startupWatchdogStartedAt = Date.now();
 	armStartupWatchdog();
@@ -364,7 +365,7 @@ function pauseStartupWatchdog(): void {
 
 /** Resume after an interactive prompt, if startup is still being watched. */
 function resumeStartupWatchdog(): void {
-	if (isBunTestRuntime()) return;
+	if (isTestRuntime()) return;
 	if (startupWatchdogActive) armStartupWatchdog();
 }
 
@@ -1148,7 +1149,7 @@ export function watchScopedModelSettings(
 	activeSettings: Settings,
 ): void {
 	const stop = cfgScopedModelInputs.listen(activeSettings, async (next, previous) => {
-		const providersChanged = !Bun.deepEquals(next.disabledProviders, previous.disabledProviders);
+		const providersChanged = !bun.deepEquals(next.disabledProviders, previous.disabledProviders);
 		if (parsed.models && !providersChanged) return;
 		if (providersChanged) await modelRegistry.reapplyModelPolicies();
 		if (session.isDisposed) return;
@@ -1957,7 +1958,7 @@ export async function runRootCommand(
 		// awaited before any session entry is written.
 		const runtimeIdentityLoad = logger.time("loadRuntimeIdentity", loadRuntimeIdentity);
 		if (parsedArgs.noPty || parsedArgs.mode === "rpc-ui") {
-			Bun.env.PI_NO_PTY = "1";
+			bun.env.PI_NO_PTY = "1";
 		}
 		if (
 			parsedArgs.noTitle ||
@@ -1965,7 +1966,7 @@ export async function runRootCommand(
 			parsedArgs.mode === "rpc-ui" ||
 			parsedArgs.mode === "acp"
 		) {
-			Bun.env.PI_NO_TITLE = "1";
+			bun.env.PI_NO_TITLE = "1";
 		}
 
 		// Initialize discovery system with settings for provider persistence

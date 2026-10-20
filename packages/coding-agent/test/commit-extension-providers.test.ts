@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { closeModelCache } from "@oh-my-pi/pi-catalog/model-cache";
 import { runCommitCommand } from "@oh-my-pi/pi-coding-agent/commit";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { getProjectAgentDir, setAgentDir, setProjectDir, TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER = "commit-extension-fixture";
 const MODEL = "deepseek-v4-flash";
@@ -23,7 +24,7 @@ beforeEach(async () => {
 	setAgentDir(agentTmp.path());
 
 	const extensionPath = tmp.join("provider.ts");
-	await Bun.write(
+	await bun.write(
 		extensionPath,
 		`export default function (pi) {
 	pi.registerProvider("${PROVIDER}", {
@@ -43,7 +44,7 @@ beforeEach(async () => {
 }
 `,
 	);
-	await Bun.write(
+	await bun.write(
 		path.join(getProjectAgentDir(tmp.path()), "settings.json"),
 		JSON.stringify({
 			extensions: [extensionPath],
@@ -70,7 +71,7 @@ afterEach(async () => {
 	await agentTmp.remove();
 });
 
-describe.serial("commit extension provider resolution", () => {
+describe.sequential("commit extension provider resolution", () => {
 	test("agentic pipeline resolves an explicit extension-provided model", async () => {
 		await expect(
 			runCommitCommand({

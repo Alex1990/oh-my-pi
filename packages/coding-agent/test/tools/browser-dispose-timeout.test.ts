@@ -11,7 +11,7 @@
  * on timeout so cleanup always completes.
  */
 
-import { describe, expect, it, spyOn, vi } from "bun:test";
+import { describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as attach from "@oh-my-pi/pi-coding-agent/tools/browser/attach";
 import { type BrowserHandle, releaseBrowser } from "@oh-my-pi/pi-coding-agent/tools/browser/registry";
 

@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { PYTHON_PRELUDE } from "@oh-my-pi/pi-coding-agent/eval/py/prelude";
 import {
@@ -10,6 +10,7 @@ import type { EvalShadowCellSession } from "@oh-my-pi/pi-coding-agent/eval/specu
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { $which, isRecord } from "@oh-my-pi/pi-utils";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface FakeCall {
 	id: string;
@@ -143,8 +144,8 @@ async def check_intent():
 asyncio.run(check_intent())
 `;
 			// Feed the script over stdin: the inlined prelude exceeds Windows spawn limits via `-c`.
-			const child = Bun.spawn([Bun.env.PYTHON ?? ($which("python3") ? "python3" : "python"), "-"], {
-				stdin: new Response(script),
+			const child = bun.spawn([bun.env.PYTHON ?? ($which("python3") ? "python3" : "python"), "-"], {
+				stdin: new Uint8Array(Buffer.from(script)),
 				stdout: "pipe",
 				stderr: "pipe",
 				signal: AbortSignal.timeout(10_000),
@@ -335,8 +336,8 @@ async def check_identity():
     print(await __omp_with_call_site__("py:0", tool.read, {"path": "foo.txt"}))
 asyncio.run(check_identity())
 `;
-			const child = Bun.spawn([Bun.env.PYTHON ?? ($which("python3") ? "python3" : "python"), "-"], {
-				stdin: new Response(script),
+			const child = bun.spawn([bun.env.PYTHON ?? ($which("python3") ? "python3" : "python"), "-"], {
+				stdin: new Uint8Array(Buffer.from(script)),
 				stdout: "pipe",
 				stderr: "pipe",
 				signal: AbortSignal.timeout(10_000),

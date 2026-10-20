@@ -8,6 +8,7 @@ import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { EditSession, EditStore, editDescription, type EditPolicy } from "@oh-my-pi/pi-natives";
 import { type } from "@oh-my-pi/omptype";
 import { editDescriptionCompact } from "../src/edit/index";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WARMUP = 10;
 const SAMPLES = 41;
@@ -111,7 +112,7 @@ function buildRequest(): string {
 }
 
 async function applyHashlineEdit(): Promise<void> {
-	await Bun.write(target, fixture);
+	await bun.write(target, fixture);
 	const store = new EditStore();
 	const tag = store.recordSnapshot(target, fixture, [600]);
 	const input = `*** Begin Patch\n[fixture.ts#${tag}]\nPUT 600.=600:\n+${replacement}\n*** End Patch\n`;
@@ -123,14 +124,14 @@ async function applyHashlineEdit(): Promise<void> {
 			if (request.op !== "update" || request.content === undefined) {
 				throw new Error(`unexpected edit operation: ${request.op}`);
 			}
-			await Bun.write(request.path, request.content);
+			await bun.write(request.path, request.content);
 			return { written: request.content };
 		});
 		if (outcome.isError) throw new Error(outcome.text);
 	} finally {
 		session.close();
 	}
-	const edited = await Bun.file(target).text();
+	const edited = await bun.file(target).text();
 	if (!edited.includes(`${replacement}\n`)) throw new Error("hashline edit did not apply the expected replacement");
 }
 
@@ -146,13 +147,13 @@ try {
 	const editSamples: number[] = [];
 	let payload = "";
 	for (let sample = 0; sample < SAMPLES; sample++) {
-		let started = Bun.nanoseconds();
+		let started = bun.nanoseconds();
 		for (let repetition = 0; repetition < REQUEST_REPETITIONS; repetition++) payload = buildRequest();
-		requestSamples.push((Bun.nanoseconds() - started) / REQUEST_REPETITIONS / 1_000);
+		requestSamples.push((bun.nanoseconds() - started) / REQUEST_REPETITIONS / 1_000);
 
-		started = Bun.nanoseconds();
+		started = bun.nanoseconds();
 		await applyHashlineEdit();
-		editSamples.push((Bun.nanoseconds() - started) / 1_000);
+		editSamples.push((bun.nanoseconds() - started) / 1_000);
 	}
 
 	const hashlineEditUs = median(editSamples);

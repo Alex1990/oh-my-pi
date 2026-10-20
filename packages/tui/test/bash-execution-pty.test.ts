@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { BashExecutionComponent } from "@oh-my-pi/pi-tui/chat/bash-execution";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ui = { requestRender: () => {}, requestComponentRender: () => {} } as unknown as TUI;
 
@@ -13,7 +14,7 @@ async function renderUntil(component: BashExecutionComponent, predicate: (text: 
 	const deadline = Date.now() + 2_000;
 	let text = component.render(100).join("\n");
 	while (!predicate(text) && Date.now() < deadline) {
-		await Bun.sleep(10);
+		await bun.sleep(10);
 		text = component.render(100).join("\n");
 	}
 	return text;
@@ -64,8 +65,8 @@ describe("BashExecutionComponent PTY rendering", () => {
 			expect(transcript.peekFlushBatch(100)).toBeUndefined();
 
 			const finalText = await renderUntil(component, () => component.isTranscriptBlockFinalized());
-			expect(Bun.stripANSI(finalText)).toContain("OUT-MARKER");
-			expect(Bun.stripANSI(finalText)).toContain("ERR-MARKER");
+			expect(bun.stripANSI(finalText)).toContain("OUT-MARKER");
+			expect(bun.stripANSI(finalText)).toContain("ERR-MARKER");
 			expect(transcript.peekFlushBatch(100)).toBeDefined();
 		});
 	}

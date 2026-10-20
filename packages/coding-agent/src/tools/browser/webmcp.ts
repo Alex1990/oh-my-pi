@@ -1,5 +1,6 @@
 import { truncateHeadBytes } from "@oh-my-pi/pi-tui/tools/streaming-output";
 import type { CDPSession, Frame, NewDocumentScriptEvaluation, Page, Realm, WebMCPTool } from "puppeteer-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 declare module "puppeteer-core" {
 	interface Frame {
@@ -882,7 +883,7 @@ export async function installWebMcp(page: Page): Promise<WebMcpController> {
 		session = await page.createCDPSession();
 		await Promise.race([
 			session.send("WebMCP.enable"),
-			Bun.sleep(1_000).then(() => {
+			bun.sleep(1_000).then(() => {
 				throw new Error("WebMCP CDP probe timed out");
 			}),
 		]);

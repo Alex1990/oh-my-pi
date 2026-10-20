@@ -1,11 +1,12 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { GrepOutputMode, grep } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const ITERATIONS = Number(Bun.env.GREP_BENCH_ITERATIONS ?? "50");
+const ITERATIONS = Number(bun.env.GREP_BENCH_ITERATIONS ?? "50");
 const CONCURRENCY = 2;
 
-const packages = path.resolve(import.meta.dir, "../..");
+const packages = path.resolve(import.meta.dirname, "../..");
 
 interface BenchCase {
 	name: string;
@@ -48,7 +49,7 @@ const cases: BenchCase[] = [
 	},
 ];
 
-const cargoRegistry = path.join(Bun.env.HOME ?? "", ".cargo/registry/src");
+const cargoRegistry = path.join(bun.env.HOME ?? "", ".cargo/registry/src");
 try {
 	if ((await fs.stat(cargoRegistry)).isDirectory()) {
 		cases.push({
@@ -85,7 +86,7 @@ for (const c of cases) {
 	const runNative = () => grep(grepArgs);
 
 	const runRg = async (): Promise<string> => {
-		const proc = Bun.spawn(["rg", ...modeArg, ...rgDefaultArgs, ...globArg, c.pattern, c.path], {
+		const proc = bun.spawn(["rg", ...modeArg, ...rgDefaultArgs, ...globArg, c.pattern, c.path], {
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "ignore",
@@ -125,25 +126,25 @@ for (const c of cases) {
 
 	const rgMatches = countMatches(await runRg());
 
-	let start = Bun.nanoseconds();
+	let start = bun.nanoseconds();
 	for (let i = 0; i < caseIterations; i++) await runNative();
-	const nativeMs = (Bun.nanoseconds() - start) / 1e6 / caseIterations;
+	const nativeMs = (bun.nanoseconds() - start) / 1e6 / caseIterations;
 
-	start = Bun.nanoseconds();
+	start = bun.nanoseconds();
 	for (let i = 0; i < caseIterations; i++) {
 		await Promise.all(Array.from({ length: concurrency }, () => runNative()));
 	}
-	const nativeConcurrentMs = (Bun.nanoseconds() - start) / 1e6 / caseIterations;
+	const nativeConcurrentMs = (bun.nanoseconds() - start) / 1e6 / caseIterations;
 
-	start = Bun.nanoseconds();
+	start = bun.nanoseconds();
 	for (let i = 0; i < caseIterations; i++) await runRg();
-	const rgMs = (Bun.nanoseconds() - start) / 1e6 / caseIterations;
+	const rgMs = (bun.nanoseconds() - start) / 1e6 / caseIterations;
 
-	start = Bun.nanoseconds();
+	start = bun.nanoseconds();
 	for (let i = 0; i < caseIterations; i++) {
 		await Promise.all(Array.from({ length: concurrency }, () => runRg()));
 	}
-	const rgConcurrentMs = (Bun.nanoseconds() - start) / 1e6 / caseIterations;
+	const rgConcurrentMs = (bun.nanoseconds() - start) / 1e6 / caseIterations;
 
 	console.log(`${c.name}:`);
 	console.log(

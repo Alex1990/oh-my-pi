@@ -40,8 +40,8 @@ const assetClasses: AssetClass[] = [
 	},
 ];
 
-Bun.gc(true);
-const heap = JSON.parse(Bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
+bun.gc(true);
+const heap = JSON.parse(bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
 const { node_fields: nodeFields, node_types: nodeTypes } = heap.snapshot.meta;
 const typeOffset = nodeFields.indexOf("type");
 const nameOffset = nodeFields.indexOf("name");
@@ -67,3 +67,4 @@ for (let nodeOffset = 0; nodeOffset < heap.nodes.length; nodeOffset += nodeField
 retainedAssets.sort((left, right) => left.name.localeCompare(right.name));
 
 process.stdout.write(JSON.stringify({ retainedAssetStrings: retainedAssets.length, retainedAssets }));
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

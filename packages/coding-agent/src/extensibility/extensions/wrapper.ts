@@ -29,6 +29,7 @@ import { normalizeToolEventInput, resolveToolEventInput } from "../tool-event-in
 import { applyToolProxy } from "../tool-proxy";
 import type { ExtensionRunner } from "./runner";
 import type { ExtensionAgentIdentity, RegisteredTool, ToolCallEventResult } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Second `renderCall` argument that satisfies both the omp and the upstream-pi
@@ -361,7 +362,7 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 		const acpBypass =
 			context !== undefined &&
 			Object.hasOwn(context, "acpApprovedArgs") &&
-			Bun.deepEquals(effectiveParams, context.acpApprovedArgs);
+			bun.deepEquals(effectiveParams, context.acpApprovedArgs);
 		// Only a prompt `always-ask-cached` itself raised can be remembered by target; provider safety
 		// checks are per-call, so they never offer a grant of any kind.
 		const grantable =

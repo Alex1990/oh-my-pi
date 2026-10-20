@@ -1,17 +1,18 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createDaemonBrokerClient, type DaemonBrokerClient } from "../../src/launch/client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_TIMEOUT_MS = 30_000;
 
 async function waitForFileGone(filePath: string, timeoutMs: number): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	for (;;) {
-		if (!(await Bun.file(filePath).exists())) return true;
+		if (!(await bun.file(filePath).exists())) return true;
 		if (Date.now() >= deadline) return false;
-		await Bun.sleep(50);
+		await bun.sleep(50);
 	}
 }
 
@@ -47,14 +48,14 @@ describe("daemon broker lease recovery", () => {
 				// A broker killed before it could clean up leaves its lease behind,
 				// and the OS can later hand that PID to an unrelated live process.
 				// Liveness of the recorded PID therefore says nothing about the broker.
-				await Bun.write(pidPath, JSON.stringify({ pid: process.pid, instanceId: "crashed-broker" }));
+				await bun.write(pidPath, JSON.stringify({ pid: process.pid, instanceId: "crashed-broker" }));
 
 				await withScope(path.join(root, "project"), path.join(root, "run"), async client => {
 					const ping = await client.request({ op: "ping" });
 					if (ping.op !== "ping") throw new Error(`unexpected daemon result ${ping.op}`);
 					expect(ping.projectDir).toBe(client.projectDir);
 
-					const lease = (await Bun.file(pidPath).json()) as { pid?: number };
+					const lease = (await bun.file(pidPath).json()) as { pid?: number };
 					expect(lease.pid).toBeDefined();
 					expect(lease.pid).not.toBe(process.pid);
 				});

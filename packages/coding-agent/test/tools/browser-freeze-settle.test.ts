@@ -16,7 +16,7 @@
  * sessions' tabs belong to their owners.
  */
 
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { CmuxKind } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/rpc";
 import { CmuxSocketClient } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/socket-client";
@@ -43,6 +43,7 @@ import { ToolAbortError } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 import type { PendingRun, TabSession } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 function makeKind(socketSuffix: string): CmuxKind {
@@ -857,7 +858,7 @@ describe("browser settle — lifecycle freeze via CDP", () => {
 			// Real clock required: the deadline, worker teardown, and CDP
 			// roundtrips all run on platform time; fake timers cannot advance
 			// real subprocess IPC, so poll the exercised condition instead.
-			for (let i = 0; i < 100 && getTabsMapForTest().has(name); i++) await Bun.sleep(50);
+			for (let i = 0; i < 100 && getTabsMapForTest().has(name); i++) await bun.sleep(50);
 			expect(getTabsMapForTest().has(name)).toBe(false);
 		}, 120_000);
 
@@ -870,7 +871,7 @@ describe("browser settle — lifecycle freeze via CDP", () => {
 			armIdleCloseForOwner("session-retimer", 3_600_000);
 			// Real clock required (see above): past the first deadline with
 			// the replacement armed, the tab must still be tracked.
-			await Bun.sleep(600);
+			await bun.sleep(600);
 			expect(getTabsMapForTest().has(name)).toBe(true);
 		}, 120_000);
 
@@ -885,12 +886,12 @@ describe("browser settle — lifecycle freeze via CDP", () => {
 			armIdleCloseForOwner("session-retry", 300, 150);
 			// The 300ms deadline fires mid-run: skipped, not closed.
 			// Real clock required (see above).
-			await Bun.sleep(1000);
+			await bun.sleep(1000);
 			expect(getTabsMapForTest().has(name)).toBe(true);
 			expect((await run).returnValue).toBe(1);
 			// After completion the chain re-arms from the fresh timestamp
 			// and the tab closes without any further settle or open.
-			for (let i = 0; i < 120 && getTabsMapForTest().has(name); i++) await Bun.sleep(50);
+			for (let i = 0; i < 120 && getTabsMapForTest().has(name); i++) await bun.sleep(50);
 			expect(getTabsMapForTest().has(name)).toBe(false);
 		}, 120_000);
 
@@ -903,7 +904,7 @@ describe("browser settle — lifecycle freeze via CDP", () => {
 			cancelIdleCloseForOwner("session-cancel");
 			// Real clock required (see above): past the deadline with the
 			// timer cancelled, the tab must still be tracked.
-			await Bun.sleep(600);
+			await bun.sleep(600);
 			expect(getTabsMapForTest().has(name)).toBe(true);
 		}, 120_000);
 

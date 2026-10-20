@@ -1,4 +1,5 @@
-import { afterEach, beforeEach } from "bun:test";
+import { afterEach, beforeEach } from "@oh-my-pi/pi-utils/test-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Neutralize `ANTHROPIC_BASE_URL` for the calling test file.
@@ -14,14 +15,14 @@ import { afterEach, beforeEach } from "bun:test";
 export function withOfficialAnthropicEndpoint(): void {
 	let previous: string | undefined;
 	beforeEach(() => {
-		previous = Bun.env.ANTHROPIC_BASE_URL;
-		delete Bun.env.ANTHROPIC_BASE_URL;
+		previous = bun.env.ANTHROPIC_BASE_URL;
+		delete bun.env.ANTHROPIC_BASE_URL;
 	});
 	afterEach(() => {
 		if (previous === undefined) {
-			delete Bun.env.ANTHROPIC_BASE_URL;
+			delete bun.env.ANTHROPIC_BASE_URL;
 		} else {
-			Bun.env.ANTHROPIC_BASE_URL = previous;
+			bun.env.ANTHROPIC_BASE_URL = previous;
 		}
 	});
 }

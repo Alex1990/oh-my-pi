@@ -21,6 +21,7 @@ import splitConfirmPrompt from "./prompts/split-confirm.md" with { type: "text" 
 import type { CommitAgentState, CommitProposal, FileChange, SplitCommitPlan } from "./state";
 import { computeDependencyOrder } from "./topo-sort";
 import { detectTrivialChange } from "./trivial";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface CommitExecutionContext {
 	cwd: string;
@@ -397,7 +398,7 @@ async function loadExistingChangelogEntries(paths: string[]): Promise<ExistingCh
 		paths.map(async path => {
 			let content: string;
 			try {
-				content = await Bun.file(path).text();
+				content = await bun.file(path).text();
 			} catch (err) {
 				if (isEnoent(err)) return null;
 				throw err;

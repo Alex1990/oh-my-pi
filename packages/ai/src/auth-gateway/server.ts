@@ -78,6 +78,7 @@ import type {
 	AuthGatewayParsedRequest as ParsedFormatRequest,
 } from "./types";
 import { DEFAULT_AUTH_GATEWAY_BIND } from "./types";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // `parseBind` lives in ../utils/parse-bind so the gateway and broker can't
 // drift on accepted inputs (e.g. empty hostname, IPv6 brackets).
@@ -984,7 +985,7 @@ export function createAuthGatewayRouter(hostOpts: AuthGatewayRouteOptions): Auth
 	return { route, close: () => sessionStates.close() };
 }
 
-export function startAuthGateway(opts: AuthGatewayBootOptions): AuthGatewayServerHandle {
+export async function startAuthGateway(opts: AuthGatewayBootOptions): Promise<AuthGatewayServerHandle> {
 	const bind = parseBind(opts.bind ?? DEFAULT_AUTH_GATEWAY_BIND);
 	const tokens = new Set<string>(opts.bearerTokens);
 	const clients = new AuthGatewayClientTable(opts.storage.sessions, tokens);
@@ -994,7 +995,7 @@ export function startAuthGateway(opts: AuthGatewayBootOptions): AuthGatewayServe
 	const version = opts.version;
 	const router = createAuthGatewayRouter(opts);
 
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: bind.hostname,
 		port: bind.port,
 		fetch: async (req, server): Promise<Response> => {

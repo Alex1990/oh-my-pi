@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,9 @@ import { CURRENT_SESSION_VERSION } from "@oh-my-pi/pi-coding-agent/session/sessi
 import { sessionDirForCwd } from "@oh-my-pi/pi-coding-agent/session/session-paths";
 import { resolveSeanceSource, restoreSeanceSession } from "@oh-my-pi/pi-coding-agent/task/seance";
 import { getAgentDir, getSessionsDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function sessionHeader(id: string, cwd: string) {
 	return {
@@ -56,7 +59,7 @@ function modelUsage(id: string, parentId: string, activeLeafId: string | null) {
 
 async function writeSession(file: string, id: string, cwd: string, entries: unknown[] = []): Promise<void> {
 	await fs.mkdir(path.dirname(file), { recursive: true });
-	await Bun.write(file, `${[sessionHeader(id, cwd), ...entries].map(entry => JSON.stringify(entry)).join("\n")}\n`);
+	await bun.write(file, `${[sessionHeader(id, cwd), ...entries].map(entry => JSON.stringify(entry)).join("\n")}\n`);
 }
 
 /** Point the agent dir (and so every project's session bucket) at a temp root for one test. */
@@ -142,7 +145,7 @@ describe("seance source resolution", () => {
 		await writeSession(path.join(sessionDir, "first.jsonl"), "ambiguous-first", cwd);
 		await writeSession(path.join(sessionDir, "second.jsonl"), "ambiguous-second", cwd);
 		const malformedFile = path.join(sessionDir, "malformed.jsonl");
-		await Bun.write(malformedFile, `${JSON.stringify({ type: "session", version: CURRENT_SESSION_VERSION })}\n`);
+		await bun.write(malformedFile, `${JSON.stringify({ type: "session", version: CURRENT_SESSION_VERSION })}\n`);
 
 		await expect(resolveSeanceSource(path.join(sessionDir, "missing.jsonl"), options)).rejects.toThrow(
 			"The selected session file was not found or could not be accessed.",

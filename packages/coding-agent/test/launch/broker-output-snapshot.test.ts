@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { setProcessName, TempDir } from "@oh-my-pi/pi-utils";
@@ -11,6 +11,7 @@ import {
 	type DaemonOperation,
 } from "../../src/launch/protocol";
 import * as terminalOutput from "../../src/launch/terminal-output";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function restoreEnv(name: string, value: string | undefined): void {
 	if (value === undefined) delete process.env[name];
@@ -39,7 +40,7 @@ describe("daemon broker log snapshots", () => {
 		const runtimeDir = path.join(tempDir.path(), "runtime");
 		await fs.mkdir(projectDir);
 		const scriptPath = path.join(projectDir, "service.ts");
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`process.stdin.setEncoding("utf8");
 process.stdin.resume();
@@ -140,7 +141,7 @@ process.stdin.on("data", () => process.stdout.write("AFTER-SNAPSHOT\\n"));
 		const runtimeDir = path.join(tempDir.path(), "runtime");
 		await fs.mkdir(projectDir);
 		const scriptPath = path.join(projectDir, "terminal-query.ts");
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`process.stdin.setRawMode(true);
 process.stdin.setEncoding("utf8");
@@ -219,7 +220,7 @@ process.stdout.write("READY\\x1b[6n");
 		const runtimeDir = path.join(tempDir.path(), "runtime");
 		await fs.mkdir(projectDir);
 		const echoScript = path.join(projectDir, "echo.ts");
-		await Bun.write(
+		await bun.write(
 			echoScript,
 			`process.stdout.write("first ready\\n");
 process.stdin.setEncoding("utf8");
@@ -227,9 +228,9 @@ process.stdin.on("data", chunk => process.stdout.write("got: " + chunk));
 `,
 		);
 		const secondScript = path.join(projectDir, "second.ts");
-		await Bun.write(secondScript, `process.stdout.write("second ready\\n");\nprocess.stdin.resume();\n`);
+		await bun.write(secondScript, `process.stdout.write("second ready\\n");\nprocess.stdin.resume();\n`);
 		const silentScript = path.join(projectDir, "silent.ts");
-		await Bun.write(silentScript, `process.stdin.resume();\n`);
+		await bun.write(silentScript, `process.stdin.resume();\n`);
 		const start = (scriptPath: string, readyLog?: string) =>
 			client.request({
 				op: "start",

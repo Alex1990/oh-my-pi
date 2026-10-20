@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Theme } from "@oh-my-pi/pi-tui/theme";
 import { setShimmerMode, shimmerSegments, shimmerText } from "@oh-my-pi/pi-tui/theme/shimmer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testTheme = {
 	bold(text: string): string {
@@ -38,7 +39,7 @@ describe("shimmerText", () => {
 		});
 
 		expect(rendered).toContain("\x1b[38;2;12;34;56m");
-		expect(Bun.stripANSI(rendered)).toBe("x");
+		expect(bun.stripANSI(rendered)).toBe("x");
 	});
 
 	it("shimmers a mixed BMP + surrogate-pair message correctly (issue #4353 refactor)", () => {
@@ -54,7 +55,7 @@ describe("shimmerText", () => {
 		const rendered = shimmerText("a😀b", testTheme);
 		// Strip ANSI: the visible payload must be the exact input, preserving the
 		// surrogate pair intact.
-		expect(Bun.stripANSI(rendered)).toBe("a😀b");
+		expect(bun.stripANSI(rendered)).toBe("a😀b");
 	});
 
 	it("shimmers an all-emoji message without dropping any code point", () => {
@@ -62,7 +63,7 @@ describe("shimmerText", () => {
 		vi.spyOn(Date, "now").mockReturnValue(0);
 
 		const rendered = shimmerText("🎉🌟✨🚀", testTheme);
-		expect(Bun.stripANSI(rendered)).toBe("🎉🌟✨🚀");
+		expect(bun.stripANSI(rendered)).toBe("🎉🌟✨🚀");
 	});
 });
 
@@ -126,7 +127,7 @@ describe("shimmerText band fast-path", () => {
 		// never reaches them.
 		expect(rendered.split("Z")[0]).toContain("\x1b[2m");
 		// Visible payload is preserved verbatim.
-		expect(Bun.stripANSI(rendered)).toBe(text);
+		expect(bun.stripANSI(rendered)).toBe(text);
 	});
 
 	it("keeps the crest color when the band sweeps across the string", () => {
@@ -144,7 +145,7 @@ describe("shimmerText band fast-path", () => {
 
 		// The crest color must appear somewhere: the band overlaps [9, 21].
 		expect(rendered).toContain("\x1b[38;2;12;34;56m");
-		expect(Bun.stripANSI(rendered)).toBe(text);
+		expect(bun.stripANSI(rendered)).toBe(text);
 	});
 
 	it("handles a surrogate pair straddling the band boundary atomically", () => {
@@ -155,6 +156,6 @@ describe("shimmerText band fast-path", () => {
 		vi.spyOn(Date, "now").mockReturnValue(333);
 
 		const rendered = shimmerText("......😀......", testTheme);
-		expect(Bun.stripANSI(rendered)).toBe("......😀......");
+		expect(bun.stripANSI(rendered)).toBe("......😀......");
 	});
 });

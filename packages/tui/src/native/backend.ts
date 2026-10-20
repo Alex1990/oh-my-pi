@@ -56,6 +56,7 @@ import { encodeTspJson, encodeTspMessage, type TspHello, TspReader, splitTspMess
 import type { DescribeContext, NativeChild, NativeNode, NativeSurface, NativeUiEvent } from "./node";
 import { nativeComponentId, Reconciler } from "./reconcile";
 import { setNativeRendering } from "./state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A visible TUI overlay, bottom to top. */
 export interface NativeOverlay {
@@ -145,8 +146,8 @@ async function cacheBlob(dir: string, blob: NativeBlob): Promise<void> {
 	const target = path.join(dir, blob.id);
 	const temp = `${target}.tmp${process.pid}`;
 	try {
-		if (await Bun.file(target).exists()) return;
-		// Not `Bun.write`: it would create a missing folder, which only Tern may.
+		if (await bun.file(target).exists()) return;
+		// Not `bun.write`: it would create a missing folder, which only Tern may.
 		await fs.promises.writeFile(temp, blob.bytes);
 		await fs.promises.rename(temp, target);
 	} catch (error) {
@@ -330,8 +331,8 @@ export class NativeBackend {
 		this.#credits = TSP_DEFAULT_CREDITS;
 		this.#applyHello(hello);
 		this.#mirror = options.mirror === true;
-		this.#recordPath = options.recordPath ?? (Bun.env.PI_TUI_TSP_RECORD || undefined);
-		this.#stats = options.stats ?? Bun.env.PI_TUI_NATIVE_STATS === "1";
+		this.#recordPath = options.recordPath ?? (bun.env.PI_TUI_TSP_RECORD || undefined);
+		this.#stats = options.stats ?? bun.env.PI_TUI_NATIVE_STATS === "1";
 		this.#scheduler = options.scheduler ?? DEFAULT_SCHEDULER;
 		this.#inline = this.#newSurface("inline");
 	}
@@ -669,7 +670,7 @@ export class NativeBackend {
 			for (const blob of fresh) this.#sendBlob(blob);
 			return;
 		}
-		const dir = Bun.env.TERN_BLOB_DIR;
+		const dir = bun.env.TERN_BLOB_DIR;
 		if (dir) {
 			for (const blob of fresh) this.#blobs.set(blob.id, blob);
 			void this.#cacheBlobs(dir, fresh);

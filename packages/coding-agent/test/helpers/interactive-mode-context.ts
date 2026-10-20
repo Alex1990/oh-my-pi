@@ -30,7 +30,7 @@
  * `Settings.init({ inMemory: true })`, else an isolated instance — controllers
  * that also import the module-level `settings` need the global initialized.
  */
-import { vi } from "bun:test";
+import { vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { isSettingsInitialized, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import type { MCPServerConnection } from "@oh-my-pi/pi-coding-agent/mcp/types";

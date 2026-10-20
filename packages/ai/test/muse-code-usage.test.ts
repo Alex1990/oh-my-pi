@@ -1,8 +1,9 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { museCodeUsageProvider } from "@oh-my-pi/pi-ai/usage/muse-code";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const credential = {
 	type: "oauth" as const,
@@ -121,7 +122,7 @@ describe("Muse Code subscription usage", () => {
 								}),
 					);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		});
 		try {
@@ -176,7 +177,7 @@ describe("Muse Code subscription usage", () => {
 						),
 					);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		});
 		try {
@@ -280,7 +281,7 @@ describe("Muse Code subscription usage", () => {
 	test("reports inactive subscriptions through credential validation", async () => {
 		const storage = new AuthStorage(new SqliteAuthCredentialStore(new Database(":memory:")), {
 			usageFetch: Object.assign(() => Promise.resolve(Response.json({ is_subs_active: false }, { status: 200 })), {
-				preconnect: fetch.preconnect,
+				preconnect: preconnectOf(fetch),
 			}),
 		});
 		try {

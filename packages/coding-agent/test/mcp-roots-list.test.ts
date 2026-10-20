@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { toJsonRpcError } from "@oh-my-pi/pi-coding-agent/mcp/types";
 
 describe("toJsonRpcError", () => {

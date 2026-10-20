@@ -1,8 +1,10 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 type Mode =
 	| "all"
@@ -29,7 +31,7 @@ interface TestCommand {
 
 type CodingAgentTestPartition = Record<CodingAgentBucket, string[]>;
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const isDryRun = args.includes("--dry-run");
 const requestedMode = args.find(arg => !arg.startsWith("--")) ?? "all";
@@ -40,7 +42,7 @@ const requestedMode = args.find(arg => !arg.startsWith("--")) ?? "all";
 // `test` script passes `--full` for verbose output (every test line); an explicit
 // `--only-failures` still wins.
 const onlyFailures = args.includes("--only-failures") || !args.includes("--full");
-const onlyFailuresArgs = onlyFailures ? ["--only-failures"] : [];
+const onlyFailuresArgs = onlyFailures ? ["--reporter=dot"] : ["--reporter=verbose"];
 // Quiet mode (the default) collapses each parallel chunk to a one-line pass/fail
 // progress entry and replays full stdout/stderr only for chunks that failed, so
 // the failure is never buried under thousands of passing-chunk lines. `--full`
@@ -62,14 +64,14 @@ const validModes: Record<Mode, true> = {
 };
 
 // `chunkSize` splits a bucket's file list into that-many-file groups, each run as a
-// separate `bun test` child process. A fresh process per chunk resets Bun's
+// separate `vitest` child process. A fresh process per chunk resets Bun's
 // heap and reaps any dangling spawned children between groups, keeping peak RSS
 // under the CI runner's OOM ceiling (a single 170–370-file invocation gets
 // SIGKILLed at 137). The singleton/global-state bucket is left whole: its suites
 // co-locate in one process to exercise process-wide state, so they must not split.
 //
 // The UI/TUI bucket uses a smaller chunk (5) than the others: its suites build up
-// native ghostty-vt cells, and bun 1.3.14's GC aborts (SIGTRAP/SIGABRT, exit
+// native ghostty-vt cells, and Vitest's worker GC aborts (SIGTRAP/SIGABRT, exit
 // 133/134 inside DOMGCOutputConstraint marking) once ~10 such files share a heap,
 // even with the GC-marker knobs below. Bisection showed no single file is at
 // fault — the crash is cumulative heap volume. Under a 256MB-forced heap, a
@@ -108,7 +110,7 @@ const nativeAndIntegrationPackages = [
 const projectToolTestCommand: TestCommand = {
 	label: ".omp/tests (project-local TUI debug tool)",
 	cwd: ".",
-	command: ["bun", "test", ...onlyFailuresArgs, "./.omp/tests/tui.test.ts"],
+	command: ["pnpm", "exec", "vitest", "run", ...onlyFailuresArgs, "./.omp/tests/tui.test.ts"],
 	parallel: 1,
 };
 
@@ -155,10 +157,10 @@ const codingAgentNativeContentMarkers = [
 	"pi-natives",
 	"native",
 	"readImageMetadata",
-	"Bun.spawn",
-	"Bun.spawnSync",
+	"bun.spawn",
+	"bun.spawnSync",
 	"child_process",
-	"Bun.serve",
+	"serve",
 	"new Worker",
 	"Worker(",
 	"puppeteer",
@@ -196,7 +198,7 @@ const codingAgentUiContentMarkers = [
 	"renderToString",
 ];
 
-const codingAgentRuntimeContentMarkers = ["AgentSession", "SessionManager", "AuthStorage", "Bun.sleep", "setTimeout("];
+const codingAgentRuntimeContentMarkers = ["AgentSession", "SessionManager", "AuthStorage", "bun.sleep", "setTimeout("];
 
 let codingAgentTestPartitionPromise: Promise<CodingAgentTestPartition> | null = null;
 
@@ -212,7 +214,7 @@ function workspaceTestCommand(pkg: string, parallel: number, options: { extraArg
 	return {
 		label: pkg,
 		cwd: pkg,
-		command: ["bun", "test", ...extraArgs],
+		command: ["pnpm", "exec", "vitest", "run", ...extraArgs],
 		parallel,
 	};
 }
@@ -225,7 +227,7 @@ function rustTestCommand(): TestCommand {
 	return {
 		label: "rust (cargo nextest; skipped if no Rust changes)",
 		cwd: ".",
-		command: ["bun", "scripts/run-rs-task.ts", "test:rs"],
+		command: ["node", "scripts/run-rs-task.ts", "test:rs"],
 	};
 }
 
@@ -297,7 +299,7 @@ async function getCodingAgentTestPartition(): Promise<CodingAgentTestPartition> 
 		};
 
 		for (const testFile of testFiles) {
-			const content = await Bun.file(path.join(codingAgentDir, testFile)).text();
+			const content = await bun.file(path.join(codingAgentDir, testFile)).text();
 			partition[classifyCodingAgentTest(testFile, content)].push(testFile);
 		}
 
@@ -322,7 +324,7 @@ async function codingAgentTestCommands(bucket: CodingAgentBucket): Promise<TestC
 		commands.push({
 			label: `packages/coding-agent (${plan.label}; ${testFiles.length} files; parallel=${plan.parallel}${chunkLabel}; ${chunk.length} files)`,
 			cwd: "packages/coding-agent",
-			command: ["bun", "test", ...onlyFailuresArgs, ...chunk],
+			command: ["pnpm", "exec", "vitest", "run", ...onlyFailuresArgs, ...chunk],
 			parallel: plan.parallel,
 		});
 	}
@@ -417,7 +419,7 @@ async function runTestCommand(testCommand: TestCommand): Promise<void> {
 
 	const env = buildChildEnv();
 	for (let attempt = 1; ; attempt++) {
-		const proc = Bun.spawn(testCommand.command, {
+		const proc = bun.spawn(testCommand.command, {
 			cwd,
 			env,
 			stdout: "inherit",
@@ -473,7 +475,7 @@ async function runTestCommand(testCommand: TestCommand): Promise<void> {
 // handled by retrying crashed chunks in a fresh process (MAX_CHUNK_ATTEMPTS).
 function buildChildEnv(): Record<string, string | undefined> {
 	const env: Record<string, string | undefined> = {
-		...Bun.env,
+		...bun.env,
 		GITHUB_ACTIONS: "",
 		PI_TEST_RUNTIME: "1",
 		BUN_JSC_useConcurrentGC: "0",
@@ -494,7 +496,7 @@ function buildChildEnv(): Record<string, string | undefined> {
 // After this many seconds the child is SIGKILLed and reported as a failure.
 // Override with OMP_TEST_CHUNK_TIMEOUT (seconds).
 function chunkTimeoutMs(): number {
-	const raw = Number(Bun.env.OMP_TEST_CHUNK_TIMEOUT?.trim());
+	const raw = Number(bun.env.OMP_TEST_CHUNK_TIMEOUT?.trim());
 	if (Number.isFinite(raw) && raw >= 1) return raw * 1000;
 	return 600_000;
 }
@@ -509,7 +511,7 @@ function chunkTimeoutMs(): number {
 // names, /proc); "" elsewhere or without `ps`. Never throws: callers kill the
 // chunk right after, and a snapshot failure must not stop that.
 async function describeStuckProcessTree(rootPid: number): Promise<string> {
-	if (process.platform !== "linux" || !Bun.which("ps")) return "";
+	if (process.platform !== "linux" || !bun.which("ps")) return "";
 	try {
 		return await snapshotProcessTree(rootPid);
 	} catch (err) {
@@ -518,7 +520,7 @@ async function describeStuckProcessTree(rootPid: number): Promise<string> {
 }
 
 async function snapshotProcessTree(rootPid: number): Promise<string> {
-	const ps = Bun.spawnSync(["ps", "-eo", "pid=,ppid=,stat=,etimes=,pcpu=,rss=,wchan:24=,args="]);
+	const ps = bun.spawnSync(["ps", "-eo", "pid=,ppid=,stat=,etimes=,pcpu=,rss=,wchan:24=,args="]);
 	if (!ps.success) return "";
 	const rows = ps.stdout
 		.toString()
@@ -539,7 +541,7 @@ async function snapshotProcessTree(rootPid: number): Promise<string> {
 	for (const cols of rows) {
 		if (tree.has(cols[0])) lines.push(`  ${cols.slice(0, 7).join(" ")} ${cols.slice(7).join(" ").slice(0, 200)}`);
 	}
-	const ss = Bun.which("ss") ? Bun.spawnSync(["ss", "-tuanpH"]) : null;
+	const ss = bun.which("ss") ? bun.spawnSync(["ss", "-tuanpH"]) : null;
 	if (ss?.success) {
 		const owned = ss.stdout
 			.toString()
@@ -605,7 +607,7 @@ function describeChunkFailure(exitCode: number, timedOut: boolean): string {
 // chunks run sequentially within a job and parallelism happens across jobs.
 // Locally we trade memory for wall-clock and fan the chunks out across cores.
 function isCI(): boolean {
-	const value = Bun.env.CI;
+	const value = bun.env.CI;
 	if (!value) return false;
 	const normalized = value.trim().toLowerCase();
 	return normalized !== "" && normalized !== "0" && normalized !== "false";
@@ -657,7 +659,7 @@ function budgetedParallel(requested: number, poolWidth: number): number {
 // per-chunk watchdog (chunkTimeoutMs) remains the backstop for a wedged process.
 // Override with OMP_TEST_TIMEOUT (seconds); per-test `it(name, fn, ms)` still wins.
 function testTimeoutMs(): number {
-	const raw = Number(Bun.env.OMP_TEST_TIMEOUT?.trim());
+	const raw = Number(bun.env.OMP_TEST_TIMEOUT?.trim());
 	if (Number.isFinite(raw) && raw >= 1) return raw * 1000;
 	return 30_000;
 }
@@ -887,7 +889,7 @@ async function runTestCommandsInParallel(commands: TestCommand[], concurrency: n
 	async function runAttempt(
 		testCommand: TestCommand,
 	): Promise<{ exitCode: number; output: string; timedOut: boolean }> {
-		const proc = Bun.spawn(testCommand.command, {
+		const proc = bun.spawn(testCommand.command, {
 			cwd: path.join(repoRoot, testCommand.cwd),
 			env,
 			stdout: "pipe",
@@ -1011,8 +1013,8 @@ if (!(requestedMode in validModes)) {
 	throw new Error(`Unknown mode ${shellQuote(requestedMode)}. Expected one of: ${Object.keys(validModes).join(", ")}`);
 }
 
-const requestedCommands = selectShard(await commandsForMode(requestedMode as Mode), Bun.env.OMP_TEST_SHARD);
-const explicitConcurrency = Boolean(Bun.env.OMP_TEST_CONCURRENCY?.trim());
+const requestedCommands = selectShard(await commandsForMode(requestedMode as Mode), bun.env.OMP_TEST_SHARD);
+const explicitConcurrency = Boolean(bun.env.OMP_TEST_CONCURRENCY?.trim());
 // CI defaults to one process at a time, but memory-sized workflow buckets
 // explicitly opt into bounded process concurrency. Local runs fan out by
 // default and may use the same override. Resolved before the dry-run check so
@@ -1020,7 +1022,7 @@ const explicitConcurrency = Boolean(Bun.env.OMP_TEST_CONCURRENCY?.trim());
 const pooled = requestedCommands.length > 1 && (!isCI() || explicitConcurrency);
 // The sequential path is a pool of one, so a lone chunk keeps the whole budget.
 const poolWidth = pooled
-	? testConcurrency(requestedCommands.length, Bun.env.OMP_TEST_CONCURRENCY, os.availableParallelism())
+	? testConcurrency(requestedCommands.length, bun.env.OMP_TEST_CONCURRENCY, os.availableParallelism())
 	: 1;
 const testCommands = applyChunkBudget(requestedCommands, poolWidth);
 if (pooled && !isDryRun) {

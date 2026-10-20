@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,8 +17,10 @@ import {
 import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
 import { runCli } from "../src/cli";
 import * as profileAliasCli from "../src/cli/profile-alias";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const repoRoot = path.resolve(import.meta.dir, "..", "..", "..");
+const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
 const cliEntry = path.join(repoRoot, "packages", "coding-agent", "src", "cli.ts");
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -166,16 +168,16 @@ describe("global --profile flag", () => {
 			const profileAgentDir = path.join(home, configDir, "profiles", "work", "agent");
 			await fs.mkdir(defaultAgentDir, { recursive: true });
 			await fs.mkdir(profileAgentDir, { recursive: true });
-			await Bun.write(path.join(defaultAgentDir, ".env"), "OMP_PROFILE_BOOTSTRAP_SENTINEL=default\n");
-			await Bun.write(path.join(profileAgentDir, ".env"), "OMP_PROFILE_BOOTSTRAP_SENTINEL=work\n");
+			await bun.write(path.join(defaultAgentDir, ".env"), "OMP_PROFILE_BOOTSTRAP_SENTINEL=default\n");
+			await bun.write(path.join(profileAgentDir, ".env"), "OMP_PROFILE_BOOTSTRAP_SENTINEL=work\n");
 
 			const probePath = path.join(root, "probe.ts");
-			await Bun.write(
+			await bun.write(
 				probePath,
 				[
 					`import { runCli } from ${JSON.stringify(url.pathToFileURL(cliEntry).href)};`,
 					'await runCli(["--profile", "work", "--help"]);',
-					'process.stdout.write("\\nSENTINEL=" + (Bun.env.OMP_PROFILE_BOOTSTRAP_SENTINEL ?? ""));',
+					'process.stdout.write("\\nSENTINEL=" + (bun.env.OMP_PROFILE_BOOTSTRAP_SENTINEL ?? ""));',
 				].join("\n"),
 			);
 
@@ -193,7 +195,7 @@ describe("global --profile flag", () => {
 			delete childEnv.PI_CODING_AGENT_DIR;
 			delete childEnv.OMP_PROFILE_BOOTSTRAP_SENTINEL;
 
-			const proc = Bun.spawn([process.execPath, probePath], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 				cwd: repoRoot,
 				stdout: "pipe",
 				stderr: "pipe",
@@ -222,7 +224,7 @@ describe("global --profile flag", () => {
 			await fs.mkdir(home, { recursive: true });
 
 			const probePath = path.join(root, "probe.ts");
-			await Bun.write(
+			await bun.write(
 				probePath,
 				[
 					`import { runCli } from ${JSON.stringify(url.pathToFileURL(cliEntry).href)};`,
@@ -245,7 +247,7 @@ describe("global --profile flag", () => {
 			delete childEnv.PI_PROFILE;
 			delete childEnv.PI_CODING_AGENT_DIR;
 
-			const proc = Bun.spawn([process.execPath, probePath], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 				cwd: repoRoot,
 				stdout: "pipe",
 				stderr: "pipe",

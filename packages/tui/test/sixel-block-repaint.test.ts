@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as natives from "@oh-my-pi/pi-natives";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { Image } from "@oh-my-pi/pi-tui/components/image";
@@ -11,7 +12,15 @@ import {
 	setTerminalImageProtocol,
 	TERMINAL,
 } from "@oh-my-pi/pi-tui/terminal-capabilities";
+import type * as NativesModule from "@oh-my-pi/pi-natives";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
+
+// The addon module's exports are non-configurable, so `spyOn(natives, ...)`
+// cannot replace them. Re-publish the same bindings through Vitest's mock
+// registry, whose exports the spy API can patch.
+vi.mock("@oh-my-pi/pi-natives", async importOriginal => ({
+	...(await importOriginal<typeof NativesModule>()),
+}));
 
 withoutTerminalMultiplexer();
 
@@ -72,7 +81,9 @@ describe("SIXEL block repaint", () => {
 		originalCellDims = { ...getCellDimensions() };
 		setCellDimensions(CELL);
 		setTerminalImageProtocol(ImageProtocol.Sixel);
-		vi.useFakeTimers();
+		// The render hop schedules with `setImmediate`; faking it would strand the
+		// `settle()` loop because `advanceTimersByTime` never runs immediates.
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
 		// One full 30fps frame per read: the render throttle never defers a frame.
 		let now = 0;
 		vi.spyOn(performance, "now").mockImplementation(() => (now += 40));

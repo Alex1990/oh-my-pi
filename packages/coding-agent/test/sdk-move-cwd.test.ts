@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,8 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { executeAcpBuiltinSlashCommand } from "@oh-my-pi/pi-coding-agent/slash-commands/acp-builtins";
 import { getProjectAgentDir, getProjectDir, setProjectDir, removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function textContent(result: { content?: Array<{ type: string; text?: string }> }): string {
 	return (
@@ -47,7 +49,7 @@ describe("createAgentSession cwd after /move", () => {
 			const agentDir = path.join(tempDir, "agent");
 			let moved = false;
 			const recalledBanks: string[] = [];
-			const server = Bun.serve({
+			const server = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				fetch(request) {
@@ -73,9 +75,9 @@ describe("createAgentSession cwd after /move", () => {
 				const destinationBank = destinationRecall === "failed" ? "source" : "destination";
 				await Promise.all(
 					[cwdA, cwdB].map(cwd =>
-						Bun.write(
+						bun.write(
 							path.join(getProjectAgentDir(cwd), "config.yml"),
-							Bun.YAML.stringify({
+							bun.YAML.stringify({
 								memory: { backend: "hindsight" },
 								hindsight: {
 									apiUrl: server.url.href,
@@ -152,7 +154,7 @@ describe("createAgentSession cwd after /move", () => {
 		const cwdB = path.join(tempDir, "cwd-b");
 		fs.mkdirSync(cwdA, { recursive: true });
 		fs.mkdirSync(cwdB, { recursive: true });
-		await Bun.write(path.join(cwdB, "moved.txt"), "moved cwd");
+		await bun.write(path.join(cwdB, "moved.txt"), "moved cwd");
 		const agentDir = path.join(tempDir, "agent");
 
 		const sessionManager = SessionManager.create(cwdA, SessionManager.getDefaultSessionDir(cwdA, agentDir));
@@ -205,9 +207,9 @@ describe("createAgentSession cwd after /move", () => {
 		const agentDir = path.join(tempDir, "agent");
 		await Promise.all(
 			[cwdA, cwdB].map(cwd =>
-				Bun.write(
+				bun.write(
 					path.join(getProjectAgentDir(cwd), "config.yml"),
-					Bun.YAML.stringify({
+					bun.YAML.stringify({
 						memory: { backend },
 						hindsight: { apiUrl: "http://127.0.0.1:1", mentalModelsEnabled: false },
 						mnemopi: { noEmbeddings: true, llmMode: "none" },

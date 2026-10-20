@@ -10,7 +10,7 @@
  *  - EventController: a follow-up `wait` call removes the tracked waiting
  *    poll from the transcript; any other tool seals it in place.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { ToolExecutionComponent, type ToolExecutionHandle } from "@oh-my-pi/pi-tui/chat/tool-execution";
@@ -23,6 +23,7 @@ import { UiHelpers } from "@oh-my-pi/pi-coding-agent/modes/utils/ui-helpers";
 import type { SessionContext } from "@oh-my-pi/pi-coding-agent/session/session-context";
 import type { Component, TUI } from "@oh-my-pi/pi-tui";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const uiStub = { requestRender() {}, requestComponentRender() {} } as unknown as TUI;
 
@@ -100,7 +101,7 @@ describe("wait block lifecycle", () => {
 		component.seal();
 		expect(component.isDisplaceableBlock()).toBe(false);
 		expect(component.isTranscriptBlockFinalized()).toBe(true);
-		expect(Bun.stripANSI(component.render(100).join("\n"))).toContain("job 0");
+		expect(bun.stripANSI(component.render(100).join("\n"))).toContain("job 0");
 	});
 
 	it("finalizes a poll that observed a settled job", () => {
@@ -237,8 +238,8 @@ describe("EventController displaces consecutive waiting polls", () => {
 		await runPoll(controller, children, "t2");
 		expect(children).toContain(first);
 		expect(children.indexOf(first)).toBe(children.indexOf(metrics) - 1);
-		expect(Bun.stripANSI(first.render(100).join("\n"))).toContain("job 0");
-		expect(Bun.stripANSI(metrics.render(100).join("\n"))).toContain("4.2K");
+		expect(bun.stripANSI(first.render(100).join("\n"))).toContain("job 0");
+		expect(bun.stripANSI(metrics.render(100).join("\n"))).toContain("4.2K");
 	});
 
 	it("seals the waiting poll in place when a different tool runs next", async () => {
@@ -469,7 +470,7 @@ describe("#12248 completed wait turn replay", () => {
 		);
 		for (const poll of polls) poll.seal();
 		expect(polls).toHaveLength(2);
-		const output = children.map(child => Bun.stripANSI(child.render(120).join("\n")));
+		const output = children.map(child => bun.stripANSI(child.render(120).join("\n")));
 		for (const [i, label] of ["4.2K", "2.1K"].entries()) {
 			const pollIndex = children.indexOf(polls[i]);
 			expect(output[pollIndex]).toContain("job 0");

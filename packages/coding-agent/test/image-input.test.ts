@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { readImageMetadata, removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { loadImageAttachmentInput, loadImageInput } from "../src/utils/image-loading";
 import { InvalidImageDataError } from "@oh-my-pi/pi-tui/chat/image-loading";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("readImageMetadata", () => {
 	let testDir: string;
@@ -73,7 +74,7 @@ describe("readImageMetadata", () => {
 
 	it("labels the file as PNG when its display image is re-encoded as WebP", async () => {
 		const imagePath = path.join(testDir, "known.png");
-		await Bun.write(
+		await bun.write(
 			imagePath,
 			Buffer.from(
 				"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X2Z0AAAAASUVORK5CYII=",

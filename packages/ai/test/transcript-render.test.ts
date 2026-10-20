@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Message, Usage } from "@oh-my-pi/pi-ai";
 import { getDialectDefinition } from "@oh-my-pi/pi-ai/dialect";
 

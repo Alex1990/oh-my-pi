@@ -5,7 +5,7 @@
  * the JSON closes the final parsed arguments render as-is (snap), mirroring
  * how assistant text snaps at message_end.
  */
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { kStreamingPartialJson } from "@oh-my-pi/pi-ai/utils/block-symbols";
@@ -19,6 +19,7 @@ import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
 
 import { cfgDisplaySmoothStreaming } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -121,7 +122,7 @@ describe("EventController paces streamed tool args", () => {
 		// updateArgs has been invoked yet, but the seeded prefix is already on
 		// the pending preview.
 		const componentRender = pendingTools.get("tc-1")!.render(80).join("\n");
-		expect(Bun.stripANSI(componentRender)).toContain("/tmp/a.ts");
+		expect(bun.stripANSI(componentRender)).toContain("/tmp/a.ts");
 
 		// Second message_update: the rest of the payload arrives. The controller
 		// paces the new backlog through reveal ticks.
@@ -202,7 +203,7 @@ describe("EventController paces streamed tool args", () => {
 		await dispatch(controller, streaming);
 		const component = pendingTools.get("tc-1");
 		if (!component) throw new Error("expected a pending write component");
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
 
 		// The closing full-args message_update never arrives (throttled `arguments`
 		// with smoothing off, an owned-dialect projector, or a superseded turn that
@@ -213,12 +214,12 @@ describe("EventController paces streamed tool args", () => {
 			toolName: "write",
 			args: { path: "/tmp/exec.ts", content },
 		});
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
 
 		// The reveal entry was cancelled: a late tick cannot re-truncate the body
 		// back to a streaming prefix.
 		vi.advanceTimersByTime(STREAMING_REVEAL_FRAME_MS * 5);
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("/tmp/exec.ts");
 	});
 	it("holds approval until the native final edit preview is ready", async () => {
 		await Settings.init({ inMemory: true, cwd: process.cwd() });
@@ -281,6 +282,6 @@ describe("EventController paces streamed tool args", () => {
 		});
 		await waiting;
 		const rendered = pendingTools.get("tc-approval")?.render(100).join("\n") ?? "";
-		expect(Bun.stripANSI(rendered)).toContain("ISSUE_7957_PROPOSED_EDIT");
+		expect(bun.stripANSI(rendered)).toContain("ISSUE_7957_PROPOSED_EDIT");
 	});
 });

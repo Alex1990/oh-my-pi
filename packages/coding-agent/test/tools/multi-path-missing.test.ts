@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { GlobTool } from "../../src/tools/glob";
 import { GrepTool } from "../../src/tools/grep";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testSettings = Settings.isolated();
 
@@ -39,8 +40,8 @@ describe("multi-path tools tolerate missing entries", () => {
 	beforeEach(async () => {
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-multi-path-missing-"));
 		await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
-		await Bun.write(path.join(tempDir, "src", "alpha.ts"), "shared-needle alpha\n");
-		await Bun.write(path.join(tempDir, "src", "beta.ts"), "shared-needle beta\n");
+		await bun.write(path.join(tempDir, "src", "alpha.ts"), "shared-needle alpha\n");
+		await bun.write(path.join(tempDir, "src", "beta.ts"), "shared-needle beta\n");
 	});
 
 	afterEach(async () => {

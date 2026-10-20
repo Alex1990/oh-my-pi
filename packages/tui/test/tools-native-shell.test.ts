@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, ImageContent } from "@oh-my-pi/pi-ai";
 import type { TspKind, TspSpan } from "@oh-my-pi/pi-wire";
 import { AssistantMessageComponent } from "../src/chat/assistant-message";

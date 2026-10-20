@@ -20,7 +20,7 @@ const readSnippet = [
 ].join("\n");
 
 const writtenContent = [
-	'import { describe, expect, it } from "bun:test";',
+	'import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";',
 	'import { parseSel } from "../src/tools/read";',
 	"",
 	'describe("parseSel", () => {',
@@ -180,7 +180,7 @@ export const fsFixtures: Record<string, GalleryFixture> = {
 		// Streaming: path known, content still arriving (only the imports so far).
 		streamingArgs: {
 			path: "packages/coding-agent/test/parse-sel.test.ts",
-			content: 'import { describe, expect, it } from "bun:test";\nimport { parseSel } from "../src/tools/read";\n',
+			content: 'import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";\nimport { parseSel } from "../src/tools/read";\n',
 		},
 		args: {
 			path: "packages/coding-agent/test/parse-sel.test.ts",

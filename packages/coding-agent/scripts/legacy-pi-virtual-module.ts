@@ -1,11 +1,14 @@
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils/fs-error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { BunPluginSpec } from "@oh-my-pi/pi-utils/module-hooks";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Build-time specifier resolved to bundled legacy Pi module namespaces. */
 export const LEGACY_PI_MODULES_SPECIFIER = "omp-legacy-pi-modules";
 
 const VIRTUAL_NAMESPACE = "omp-legacy-pi-modules-build";
-const packageDir = path.resolve(import.meta.dir, "..");
+const packageDir = path.resolve(import.meta.dirname, "..");
 const repoRoot = path.resolve(packageDir, "..", "..");
 
 /**
@@ -127,7 +130,7 @@ export async function collectBundledPiEntries(): Promise<BundledPiEntry[]> {
 	for (const pkg of BUNDLED_PACKAGES) {
 		const packageRoot = path.join(repoRoot, "packages", pkg.dir);
 		const manifestPath = path.join(packageRoot, "package.json");
-		const manifest: unknown = await Bun.file(manifestPath).json();
+		const manifest: unknown = await bun.file(manifestPath).json();
 		if (!isRecord(manifest) || typeof manifest.name !== "string") {
 			throw new Error(`Bundled Pi package manifest has no name: ${manifestPath}`);
 		}
@@ -157,12 +160,12 @@ export async function collectBundledPiEntries(): Promise<BundledPiEntry[]> {
 				// `/`, so `./slash-commands/*` genuinely serves
 				// `slash-commands/helpers/active-oauth-account`. Enumerating only the
 				// top level left every nested key out of the compiled registry, where
-				// it fell through to `Bun.resolveSync` and died under bunfs — so such
+				// it fell through to `bun.resolveSync` and died under bunfs — so such
 				// an import worked from source and failed inside a binary.
-				const glob = new Bun.Glob(`**/*${pattern.sourceSuffix}`);
+				const glob = new Glob(`**/*${pattern.sourceSuffix}`);
 				const matches: string[] = [];
 				for await (const match of glob.scan({ cwd: sourceDir, onlyFiles: true })) {
-					// Bun.Glob yields host separators; the export keys and generated
+					// Glob yields host separators; the export keys and generated
 					// identifiers below are `/`-shaped. Same normalization as
 					// `generate-docs-index.ts`.
 					matches.push(match.split(path.sep).join("/"));
@@ -205,7 +208,7 @@ export function __renderLegacyPiVirtualModule(entries: readonly BundledPiEntry[]
  * memory. Literal dynamic imports retain every compile-time edge without
  * evaluating unrelated host modules during extension bootstrap.
  */
-export async function createLegacyPiVirtualModulePlugin(): Promise<Bun.BunPlugin> {
+export async function createLegacyPiVirtualModulePlugin(): Promise<BunPluginSpec> {
 	const source = __renderLegacyPiVirtualModule(await collectBundledPiEntries());
 	return {
 		name: "omp:legacy-pi-modules",
@@ -214,7 +217,13 @@ export async function createLegacyPiVirtualModulePlugin(): Promise<Bun.BunPlugin
 				path: LEGACY_PI_MODULES_SPECIFIER,
 				namespace: VIRTUAL_NAMESPACE,
 			}));
-			build.onLoad({ filter: /.*/, namespace: VIRTUAL_NAMESPACE }, () => ({ contents: source, loader: "ts" }));
+			build.onLoad({ filter: /.*/, namespace: VIRTUAL_NAMESPACE }, () => ({
+				contents: source,
+				loader: "ts",
+				// Package specifiers in the generated module resolve from this package,
+				// which owns the workspace links.
+				resolveDir: path.join(import.meta.dirname, ".."),
+			}));
 		},
 	};
 }

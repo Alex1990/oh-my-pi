@@ -1,7 +1,8 @@
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Garbage-collection probes for release tests.
  *
- * JSC scans the machine stack conservatively. A `Bun.gc(true)` issued from a resumed async function also
+ * JSC scans the machine stack conservatively. A `bun.gc(true)` issued from a resumed async function also
  * scans stale promise-job frames whose slots can still hold pointers to released objects, so whether a
  * target survives depends on stack layout. A timer callback runs on the event loop's shallow stack, out of
  * reach of those frames.
@@ -11,7 +12,7 @@
 export function collectGarbage(): Promise<void> {
 	const { promise, resolve } = Promise.withResolvers<void>();
 	setTimeout(() => {
-		Bun.gc(true);
+		bun.gc(true);
 		resolve();
 	}, 0);
 	return promise;

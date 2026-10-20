@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { type EditRenderContext, editToolRenderer, type PerFileDiffPreview } from "@oh-my-pi/pi-tui/tools/edit";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let uiTheme: themeModule.Theme;
 
@@ -13,7 +14,7 @@ beforeAll(async () => {
 
 function render(previews: PerFileDiffPreview[]): string {
 	const renderContext: EditRenderContext = { editMode: "apply_patch", perFileDiffPreview: previews };
-	return Bun.stripANSI(
+	return bun.stripANSI(
 		editToolRenderer
 			.renderCall({}, { expanded: false, isPartial: true, spinnerFrame: 0, renderContext }, uiTheme)
 			.render(160)

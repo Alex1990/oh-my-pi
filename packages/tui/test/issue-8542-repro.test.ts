@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // #8542: a terminal Device-Attributes reply to omp's startup capability probe
 // leaks into the composer as literal text (`1;22;...;52c`) when it arrives
@@ -93,7 +94,7 @@ describe("issue #8542: late DA response must not leak into the composer", () => 
 		// deterministic fake timers cannot drive the StdinBuffer's internal flush
 		// here, so a genuine delay past the hold bound is required.
 		process.stdin.emit("data", "\x1b[?1;22;23");
-		await Bun.sleep(200);
+		await bun.sleep(200);
 		// Tail bytes arrive as ordinary input after the flush.
 		process.stdin.emit("data", ";24;28;32;42;52c");
 

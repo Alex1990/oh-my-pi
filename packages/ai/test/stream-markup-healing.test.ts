@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type Dialect,
 	getDialectDefinition,
@@ -15,6 +15,7 @@ import { validateToolArguments } from "@oh-my-pi/pi-ai/utils/validation";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 interface SseToolCallDelta {
 	index: number;
@@ -53,7 +54,7 @@ function sseResponse(events: ReadonlyArray<unknown | "[DONE]">): Response {
 
 function mockFetch(events: ReadonlyArray<unknown | "[DONE]">): FetchImpl {
 	const fn = async (_input: string | URL | Request, _init?: RequestInit): Promise<Response> => sseResponse(events);
-	return Object.assign(fn, { preconnect: fetch.preconnect });
+	return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 }
 
 function baseContext(): Context {
@@ -179,7 +180,7 @@ function ndjsonResponse(lines: ReadonlyArray<unknown>): Response {
 
 function mockNdjsonFetch(lines: ReadonlyArray<unknown>): FetchImpl {
 	const fn = async (_input: string | URL | Request, _init?: RequestInit): Promise<Response> => ndjsonResponse(lines);
-	return Object.assign(fn, { preconnect: fetch.preconnect });
+	return Object.assign(fn, { preconnect: preconnectOf(fetch) });
 }
 function healingModel(provider: string, id: string): Model<"ollama-chat"> {
 	return buildModel({

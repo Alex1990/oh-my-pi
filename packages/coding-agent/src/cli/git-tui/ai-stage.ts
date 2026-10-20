@@ -20,6 +20,7 @@ import questionFile from "../../prompts/judge/git-stage.json" with { type: "json
 import { mapWithConcurrencyLimitAllSettled } from "../../task/parallel";
 import type { ChangedFile } from "@oh-my-pi/pi-tui/apps/git/state";
 import type { AiStageOutcome } from "@oh-my-pi/pi-tui/apps/git/git-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Judgments in flight at once; System One requests are stateless, so the tree is classified as one wave. */
 const CONCURRENCY = 64;
@@ -277,7 +278,7 @@ function verdicts(results: readonly (PromiseSettledResult<number> | undefined)[]
 async function readHead(filePath: string, signal: AbortSignal | undefined): Promise<string | null> {
 	signal?.throwIfAborted();
 	try {
-		const file = Bun.file(filePath);
+		const file = bun.file(filePath);
 		const text = await file.slice(0, UNIT_CHARS).text();
 		if (text.includes("\0")) return null;
 		return file.size > UNIT_CHARS ? `${text}\n…` : text;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SpeakableStream } from "@oh-my-pi/pi-coding-agent/tts/speakable";
 
 /** Push each delta in order, then flush; returns per-push segments plus the flush tail. */

@@ -5,7 +5,7 @@
  * Each test isolates `OMP_GITHUB_CACHE_DB` to a temp file and clears
  * `github.json` / `github.text` mocks between cases.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -21,6 +21,7 @@ import {
 import { ToolAbortError, throwIfAborted } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 import { github } from "@oh-my-pi/pi-coding-agent/utils/github";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_REPO = "owner/example";
 const TEST_AUTH_KEY = "test-auth";
@@ -406,7 +407,7 @@ describe("getOrFetchView (TTL semantics)", () => {
 		for (let i = 0; i < 100; i++) {
 			const refreshed = getCached<{ refreshed: boolean }>(TEST_REPO, "pr-diff", 52, false);
 			if (refreshed?.payload.refreshed) break;
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 
 		expect(fetchFresh).toHaveBeenCalledTimes(1);

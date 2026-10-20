@@ -14,6 +14,7 @@ import * as path from "node:path";
 import { getMemoriesDir } from "@oh-my-pi/pi-utils";
 import { projectBankSegment } from "../mnemopi/config";
 import type { SharpshooterState } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Root for every sharpshooter bank. */
 export function sharpshooterRoot(agentDir: string): string {
@@ -49,7 +50,7 @@ export function sharpshooterLockPath(agentDir: string, cwd: string): string {
 /** Read a bank's consolidation state; a missing or corrupt file yields the epoch state. */
 export async function readSharpshooterState(agentDir: string, cwd: string): Promise<SharpshooterState> {
 	try {
-		const parsed = (await Bun.file(
+		const parsed = (await bun.file(
 			path.join(sharpshooterBankDir(agentDir, cwd), "state.json"),
 		).json()) as SharpshooterState;
 		if (parsed && typeof parsed === "object" && parsed.v === 1) return parsed;
@@ -61,7 +62,7 @@ export async function readSharpshooterState(agentDir: string, cwd: string): Prom
 
 /** Persist a bank's consolidation state (parent directories auto-created). */
 export async function writeSharpshooterState(agentDir: string, cwd: string, state: SharpshooterState): Promise<void> {
-	await Bun.write(
+	await bun.write(
 		path.join(sharpshooterBankDir(agentDir, cwd), "state.json"),
 		`${JSON.stringify(state, null, "\t")}\n`,
 	);

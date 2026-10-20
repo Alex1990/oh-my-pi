@@ -9,6 +9,7 @@ import {
 	type SliceResult,
 } from "@oh-my-pi/pi-natives";
 import { DEFAULT_TAB_WIDTH } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { Ellipsis } from "@oh-my-pi/pi-natives";
 
@@ -249,14 +250,14 @@ export function getSegmenter(): Intl.Segmenter {
 }
 
 // Kitty OSC 66 text-sizing spans: `\x1b]66;<meta>;<payload>` terminated by BEL
-// or ST. `Bun.stringWidth` strips the whole span (payload included) to zero
+// or ST. `bun.stringWidth` strips the whole span (payload included) to zero
 // cells, but the payload is visible and scales by the `s=` factor, so each is
 // added back so width matches the native truncate/slice/wrap helpers.
 const OSC66_SPAN_REGEX = /\x1b\]66;([^;]*);([\s\S]*?)(?:\x07|\x1b\\)/g;
 const OSC66_PREFIX = "\x1b]66;";
 // APC sequences (`ESC _ ... ST|BEL`) — Kitty graphics commands such as the
 // virtual-placement prefix on Unicode-placeholder image lines, or the TUI's
-// BEL-terminated cursor marker. `Bun.stringWidth` strips CSI/OSC but counts APC
+// BEL-terminated cursor marker. `bun.stringWidth` strips CSI/OSC but counts APC
 // payloads as printable text, so they are removed before measuring (they occupy
 // zero cells — matching the native width engine in pi-natives/text.rs).
 const APC_SPAN_REGEX = /\x1b_[\s\S]*?(?:\x07|\x1b\\)/g;
@@ -266,13 +267,13 @@ const PRINTABLE_ASCII_REGEX = /^[\u0020-\u007e]*$/;
 // Test Jamo separately from the ASCII correction markers to keep scans cheap.
 const HANGUL_COMPAT_JAMO_REGEX = /[\u3131-\u318e]/;
 
-// Pin Bun.stringWidth semantics to the native width engine and guard against Bun
+// Pin bun.stringWidth semantics to the native width engine and guard against Bun
 // default drift: strip ANSI/OSC (don't count escape bytes) and treat
 // ambiguous-width East Asian chars as narrow (1 cell), matching `unicode-width`'s
 // non-CJK tables that back truncate/slice/wrap. Hoisted so no per-call alloc.
 const STRING_WIDTH_OPTS = { countAnsiEscapeCodes: false, ambiguousIsNarrow: true } as const;
 
-// Hangul Compatibility Jamo (U+3131..=U+318E). `Bun.stringWidth` follows UAX#11
+// Hangul Compatibility Jamo (U+3131..=U+318E). `bun.stringWidth` follows UAX#11
 // and reports these at 2 cells (the U+3164 HANGUL FILLER at 0), but the actual
 // rendered width is decided by the *client* terminal (1 cell on Terminal.app /
 // iTerm2, 2 on Ghostty and most Linux terminals). The width is resolved from
@@ -281,9 +282,14 @@ const STRING_WIDTH_OPTS = { countAnsiEscapeCodes: false, ambiguousIsNarrow: true
 // width stays in parity with the native truncate/slice/wrap model — and so the
 // hardware cursor column lands on the actual glyph during Korean IME input.
 const HANGUL_FILLER_CODE_POINT = 0x3164;
-// `Bun.stringWidth` counts every code point in the Compatibility Jamo block as
-// 2 cells (even the U+3164 filler that `unicode-width` treats as zero-width).
-const HANGUL_COMPAT_JAMO_BUN_WIDTH = 2;
+// The width the runtime's scanner assigns the U+3164 filler: Bun counts every
+// code point in the Compatibility Jamo block as 2 cells; the Node `string-width`
+// fallback reports the filler's Unicode width of 0. Measured, not assumed, so
+// the correction subtracts exactly what the scanner added on this runtime.
+const HANGUL_COMPAT_JAMO_FILLER_WIDTH = bun.stringWidth("\u3164", STRING_WIDTH_OPTS);
+// Same measurement for a visible jamo, so the correction subtracts exactly the
+// cells the scanner added rather than assuming a fixed per-jamo width.
+const HANGUL_COMPAT_JAMO_SCANNER_WIDTH = bun.stringWidth("\u3141", STRING_WIDTH_OPTS);
 
 // Effective target cell width for Compatibility Jamo, or `null` to follow the
 // Unicode width (no correction). Mirrors `hangul_compat_jamo_target_width` in
@@ -302,7 +308,7 @@ function hangulCompatibilityJamoTargetWidth(): 1 | 2 | null {
 	}
 }
 
-// Reconcile the `Bun.stringWidth` count for Compatibility Jamo to the native
+// Reconcile the `bun.stringWidth` count for Compatibility Jamo to the native
 // width engine: subtract Bun's per-jamo cell count and add back the effective
 // width — the runtime target when one is active, otherwise the `unicode-width`
 // value. Mirrors `char_width_corrected` / `apply_hangul_compat_jamo_delta` in
@@ -316,7 +322,11 @@ function correctHangulCompatibilityJamoWidth(
 ): number {
 	if (compatibilityJamoCount === 0) return width;
 	const target = hangulCompatibilityJamoTargetWidth();
-	return target === 1 ? width - compatibilityJamoCount : width - fillerCount * HANGUL_COMPAT_JAMO_BUN_WIDTH;
+	const wideCount = compatibilityJamoCount - fillerCount;
+	const scanned = wideCount * HANGUL_COMPAT_JAMO_SCANNER_WIDTH + fillerCount * HANGUL_COMPAT_JAMO_FILLER_WIDTH;
+	if (target === null) return width - scanned + wideCount * HANGUL_COMPAT_JAMO_SCANNER_WIDTH;
+	const effective = target === 1 ? compatibilityJamoCount : wideCount * 2;
+	return width - scanned + effective;
 }
 
 // Terminal redraws re-measure the same visible lines every frame, usually as
@@ -334,7 +344,7 @@ let visibleWidthCacheEpoch = widthConfigEpoch;
 /**
  * Visible width of a string in terminal columns, excluding ANSI/OSC escapes.
  *
- * `Bun.stringWidth` does the heavy lifting (UAX#11 width tables + ANSI/OSC
+ * `bun.stringWidth` does the heavy lifting (UAX#11 width tables + ANSI/OSC
  * stripping); this adds the corrections it omits — tabs (expanded to
  * `tabWidth` cells), OSC 66 text-sizing payloads (scaled by `s=`), and APC
  * sequences (counted as printable by Bun, actually zero cells).
@@ -370,7 +380,7 @@ export function visibleWidth(str: string): number {
 		!str.includes(APC_PREFIX) &&
 		!str.includes(OSC66_PREFIX)
 	) {
-		return Bun.stringWidth(str, STRING_WIDTH_OPTS);
+		return bun.stringWidth(str, STRING_WIDTH_OPTS);
 	}
 
 	let tabCount = 0;
@@ -390,7 +400,7 @@ export function visibleWidth(str: string): number {
 	}
 
 	const measurable = hasEsc && str.includes(APC_PREFIX) ? str.replace(APC_SPAN_REGEX, "") : str;
-	let width = Bun.stringWidth(measurable, STRING_WIDTH_OPTS);
+	let width = bun.stringWidth(measurable, STRING_WIDTH_OPTS);
 	if (tabCount > 0) width += tabCount * DEFAULT_TAB_WIDTH;
 
 	if (hasEsc && str.includes(OSC66_PREFIX)) {
@@ -408,7 +418,7 @@ export function visibleWidth(str: string): number {
 					explicit = value;
 				}
 			}
-			width += scale * (explicit ?? Bun.stringWidth(m[2], STRING_WIDTH_OPTS));
+			width += scale * (explicit ?? bun.stringWidth(m[2], STRING_WIDTH_OPTS));
 		}
 	}
 

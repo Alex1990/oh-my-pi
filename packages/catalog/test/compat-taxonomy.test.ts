@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { billingVariantPlain, classifyModel, collapseVariantId, routingVariantPlain } from "../src/compat/taxonomy";
 import { Effort } from "../src/effort";
 

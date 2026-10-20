@@ -1,12 +1,14 @@
-import { Database } from "bun:sqlite";
-import { afterEach, expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const probePath = path.resolve(import.meta.dir, "fixtures", "legacy-pi-extension-cache-probe.ts");
-const healthProbePath = path.resolve(import.meta.dir, "fixtures", "legacy-pi-extension-cache-health-probe.ts");
-const cjsProbePath = path.resolve(import.meta.dir, "fixtures", "legacy-pi-extension-cjs-cache-probe.ts");
+const probePath = path.resolve(import.meta.dirname, "fixtures", "legacy-pi-extension-cache-probe.ts");
+const healthProbePath = path.resolve(import.meta.dirname, "fixtures", "legacy-pi-extension-cache-health-probe.ts");
+const cjsProbePath = path.resolve(import.meta.dirname, "fixtures", "legacy-pi-extension-cjs-cache-probe.ts");
 const tempDirs: TempDir[] = [];
 
 async function runProbe(cacheRoot: string, script: string = probePath, args: string[] = []): Promise<string> {
@@ -21,8 +23,8 @@ async function runProbe(cacheRoot: string, script: string = probePath, args: str
 		env.USERPROFILE = cacheRoot;
 		env.PI_CONFIG_DIR = "omp";
 	}
-	const proc = Bun.spawn([process.execPath, script, ...args], {
-		cwd: path.resolve(import.meta.dir, "../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), script, ...args], {
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		env,
 		stderr: "pipe",
 		stdout: "pipe",
@@ -63,9 +65,9 @@ test("warm CommonJS classification of type-less script dependencies does not rep
 	// on `dep.js`, the path every type-less npm dependency takes.
 	const extensionDir = path.join(tempDir.path(), "extension");
 	await fs.mkdir(extensionDir, { recursive: true });
-	await Bun.write(path.join(extensionDir, "package.json"), '{"name":"cjs-cache-probe"}\n');
-	await Bun.write(path.join(extensionDir, "dep.js"), "module.exports = { value: 42 };\n");
-	await Bun.write(
+	await bun.write(path.join(extensionDir, "package.json"), '{"name":"cjs-cache-probe"}\n');
+	await bun.write(path.join(extensionDir, "dep.js"), "module.exports = { value: 42 };\n");
+	await bun.write(
 		path.join(extensionDir, "index.mjs"),
 		'import dep from "./dep.js";\nexport const result = dep.value;\n',
 	);

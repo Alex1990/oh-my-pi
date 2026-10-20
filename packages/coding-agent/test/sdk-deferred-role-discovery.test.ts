@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-sessi
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression for #8863: a deferred `--model @<role>` whose role maps to a model
 // on a discovery-backed provider (ollama/oMLX/llama-swap) must trigger the
@@ -25,8 +26,8 @@ describe("createAgentSession deferred role alias on discoverable provider (#8863
 
 	beforeEach(async () => {
 		for (const key of ["OLLAMA_BASE_URL", "OLLAMA_HOST", "OLLAMA_CONTEXT_LENGTH"] as const) {
-			savedOllamaEnv[key] = Bun.env[key];
-			delete Bun.env[key];
+			savedOllamaEnv[key] = bun.env[key];
+			delete bun.env[key];
 		}
 		tempDir = path.join(os.tmpdir(), `pi-test-sdk-deferred-role-${Snowflake.next()}`);
 		fs.mkdirSync(tempDir, { recursive: true });
@@ -37,8 +38,8 @@ describe("createAgentSession deferred role alias on discoverable provider (#8863
 	afterEach(() => {
 		for (const key of ["OLLAMA_BASE_URL", "OLLAMA_HOST", "OLLAMA_CONTEXT_LENGTH"] as const) {
 			const original = savedOllamaEnv[key];
-			if (original === undefined) delete Bun.env[key];
-			else Bun.env[key] = original;
+			if (original === undefined) delete bun.env[key];
+			else bun.env[key] = original;
 		}
 		authStorage.close();
 		if (tempDir && fs.existsSync(tempDir)) removeSyncWithRetries(tempDir);

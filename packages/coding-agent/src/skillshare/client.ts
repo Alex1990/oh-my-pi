@@ -19,6 +19,7 @@ import { Settings } from "../config/settings";
 import { StencilCredential } from "../stencil/credential";
 
 import { cfgSkillsRegistryUrl } from "../extensibility/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A registry failure: HTTP status plus the server's `{error}` message (or a local auth failure as 401). */
 export class SkillshareError extends Error {
@@ -160,7 +161,7 @@ export class SkillshareClient {
 		options: PublishOptions = {},
 	): Promise<SkillPublishResponse> {
 		const headers: Record<string, string> = {
-			[SKILL_HEADERS.integrity]: `sha512-${new Bun.CryptoHasher("sha512").update(tgz).digest("base64")}`,
+			[SKILL_HEADERS.integrity]: `sha512-${new bun.CryptoHasher("sha512").update(tgz).digest("base64")}`,
 		};
 		if (options.tag) headers[SKILL_HEADERS.tag] = options.tag;
 		if (options.provenance) {

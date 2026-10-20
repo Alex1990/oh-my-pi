@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,8 @@ import { clearClaudePluginRootsCache } from "@oh-my-pi/pi-coding-agent/discovery
 import { loadAllMCPConfigs } from "@oh-my-pi/pi-coding-agent/mcp/config";
 import { __resetDirsFromEnvForTests, logger, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import "@oh-my-pi/pi-coding-agent/discovery/claude-plugins";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 describe("Claude plugin MCP timeout compatibility", () => {
 	let tempDir: string;
 	let testAgentDir: string;

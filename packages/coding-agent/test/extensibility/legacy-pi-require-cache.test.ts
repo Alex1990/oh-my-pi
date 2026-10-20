@@ -1,8 +1,10 @@
-import { afterEach, expect, it } from "bun:test";
+import { afterEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
-const probePath = path.resolve(import.meta.dir, "../fixtures/legacy-pi-require-cache-clear-probe.ts");
+const probePath = path.resolve(import.meta.dirname, "../fixtures/legacy-pi-require-cache-clear-probe.ts");
 const tempDirs: TempDir[] = [];
 
 afterEach(async () => {
@@ -15,8 +17,8 @@ afterEach(async () => {
 it("keeps host modules loaded when extension CommonJS clears and restores require.cache", async () => {
 	const dir = TempDir.createSync("@omp-require-cache-clear-");
 	tempDirs.push(dir);
-	await Bun.write(dir.join("package.json"), JSON.stringify({ name: "cache-clearing-extension", version: "1.0.0" }));
-	await Bun.write(
+	await bun.write(dir.join("package.json"), JSON.stringify({ name: "cache-clearing-extension", version: "1.0.0" }));
+	await bun.write(
 		dir.join("dep.cjs"),
 		[
 			"const saved = Object.assign({}, require.cache);",
@@ -25,11 +27,11 @@ it("keeps host modules loaded when extension CommonJS clears and restores requir
 			"module.exports = { cleared: Object.keys(require.cache).length === Object.keys(saved).length };",
 		].join("\n"),
 	);
-	await Bun.write(dir.join("index.mjs"), "import dep from './dep.cjs';\nexport const cleared = dep.cleared;\n");
+	await bun.write(dir.join("index.mjs"), "import dep from './dep.cjs';\nexport const cleared = dep.cleared;\n");
 
 	// Subprocess: without the guard the probe's whole module graph is unloaded.
-	const proc = Bun.spawn([process.execPath, probePath, dir.join("index.mjs")], {
-		cwd: path.resolve(import.meta.dir, "../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath, dir.join("index.mjs")], {
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		env: { ...process.env, PI_CODING_AGENT_DIR: dir.join("agent") },
 		stdout: "pipe",
 		stderr: "pipe",

@@ -12,6 +12,7 @@ import { CodingAgentSpeculativeExecutionHost } from "../src/speculation/host";
 import type { ToolSession } from "../src/tools";
 import { EvalTool } from "../src/tools/eval";
 import { ReadTool } from "../src/tools/read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REPEATS = 10;
 const PROVIDER_TAIL_MS = 40;
@@ -59,14 +60,14 @@ async function episode(directory: string, speculative: boolean, index: number): 
 	const read = new ReadTool(session);
 	const executeRead = read.execute.bind(read);
 	read.execute = async (...args) => {
-		await Bun.sleep(READ_MS);
+		await bun.sleep(READ_MS);
 		return await executeRead(...args);
 	};
 	const finalized = read.speculation.finalized;
 	if (!finalized) throw new Error("Read tool has no finalized speculation policy");
 	const executeSpeculativeRead = finalized.execute;
 	finalized.execute = async (context, signal) => {
-		await Bun.sleep(READ_MS);
+		await bun.sleep(READ_MS);
 		return await executeSpeculativeRead(context, signal);
 	};
 	const evalTool = new EvalTool(session);
@@ -86,7 +87,7 @@ async function episode(directory: string, speculative: boolean, index: number): 
 				response.push({ type: "start", partial });
 				response.push({ type: "toolcall_start", contentIndex: 0, partial });
 				response.push({ type: "toolcall_delta", contentIndex: 0, delta: JSON.stringify(args), partial });
-				await Bun.sleep(PROVIDER_TAIL_MS);
+				await bun.sleep(PROVIDER_TAIL_MS);
 				response.push({ type: "toolcall_end", contentIndex: 0, toolCall, partial: final });
 				response.push({ type: "done", reason: "toolUse", message: final });
 				return;
@@ -119,7 +120,7 @@ function percentile(values: readonly number[], fraction: number): number {
 
 const directory = await fs.mkdtemp(path.join(os.tmpdir(), "speculative-eval-bench-"));
 try {
-	await Bun.write(path.join(directory, "note.txt"), "benchmark payload");
+	await bun.write(path.join(directory, "note.txt"), "benchmark payload");
 	const baseline: number[] = [];
 	const speculative: number[] = [];
 	for (let index = 0; index < REPEATS; index++) {

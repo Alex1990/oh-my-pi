@@ -9,6 +9,7 @@ import {
 } from "../../tools/todo";
 import type { ParsedSlashCommand, SlashCommandResult, SlashCommandRuntime } from "../types";
 import { commandConsumed, errorMessage, parseSubcommand, usage } from "./parse";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type TodoMutationVerb = "done" | "drop" | "rm";
 
@@ -132,7 +133,7 @@ async function handleTodoExportCommand(restArgs: string, runtime: SlashCommandRu
 	let target: string;
 	try {
 		target = resolveTodoMarkdownPath(restArgs, runtime.sessionManager.getCwd());
-		await Bun.write(target, phasesToMarkdown(phases));
+		await bun.write(target, phasesToMarkdown(phases));
 	} catch (err) {
 		return usage(`Failed to write todos: ${errorMessage(err)}`, runtime);
 	}
@@ -145,7 +146,7 @@ async function handleTodoImportCommand(restArgs: string, runtime: SlashCommandRu
 	let content: string;
 	try {
 		target = resolveTodoMarkdownPath(restArgs, runtime.sessionManager.getCwd());
-		content = await Bun.file(target).text();
+		content = await bun.file(target).text();
 	} catch (err) {
 		return usage(`Failed to read todos: ${errorMessage(err)}`, runtime);
 	}

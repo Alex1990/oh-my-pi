@@ -13,7 +13,7 @@
  * even when `node_modules/@oh-my-pi/pi-coding-agent` resolves elsewhere.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -33,6 +33,9 @@ import { AuthStorage } from "../src/session/auth-storage";
 import { SessionManager } from "../src/session/session-manager";
 
 import { cfgStartupQuiet } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function makeTool(name: string): AgentTool {
 	return {
@@ -120,7 +123,7 @@ describe("extension autocomplete provider API (#4919)", () => {
 	});
 
 	function createHarness(): { mode: InteractiveMode; session: AgentSession } {
-		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${Bun.nanoseconds()}`));
+		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${bun.nanoseconds()}`));
 		const created = new AgentSession({
 			agent: new Agent({
 				initialState: {

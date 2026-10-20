@@ -1,9 +1,10 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { acquireBrowser, releaseBrowser } from "@oh-my-pi/pi-coding-agent/tools/browser/registry";
 import { acquireTab, releaseTab, runInTab } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 
@@ -23,7 +24,7 @@ const PAGE = `data:text/html,${encodeURIComponent(buttons(BUTTONS, "clicked"))}`
  * to a new renderer that numbers its nodes from scratch. The page navigated to has at least as many
  * nodes as the one observed, so every id the observed page handed out names a node there too.
  */
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	fetch(request) {
 		const { pathname, port } = new URL(request.url);

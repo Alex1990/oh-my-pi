@@ -5,6 +5,7 @@ import { memberContentToBytes } from "./open";
 import { encodeTar } from "./tar";
 import type { ArchiveFormat, ArchiveMemberContent, WritableArchiveFormat } from "./types";
 import { encodeZip } from "./zip";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WRITABLE_FORMATS: Record<WritableArchiveFormat, true> = {
 	zip: true,
@@ -51,5 +52,5 @@ export async function writeArchive(
 	format: WritableArchiveFormat,
 	entries: Iterable<readonly [string, ArchiveMemberContent]>,
 ): Promise<void> {
-	await Bun.write(destPath, await encodeArchive(format, entries));
+	await bun.write(destPath, await encodeArchive(format, entries));
 }

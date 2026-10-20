@@ -1,5 +1,5 @@
-import type { Mock } from "bun:test";
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import type { Mock } from "@oh-my-pi/pi-utils/test-runtime";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as apiKeyValidation from "../src/registry/api-key-validation";
 import { getOAuthApiKey } from "../src/registry/oauth/index";
 import type { OAuthController } from "../src/registry/oauth/types";

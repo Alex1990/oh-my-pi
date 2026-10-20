@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { disposeAllKernelSessions, executePython } from "@oh-my-pi/pi-coding-agent/eval/py/executor";
 import type {
 	KernelExecuteOptions,
@@ -7,6 +7,7 @@ import type {
 } from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
 import { PythonKernel } from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class FakeKernel {
 	executeCalls = 0;
@@ -45,7 +46,7 @@ describe("executePython kernel reuse", () => {
 	let kernels: FakeKernel[] = [];
 
 	beforeEach(() => {
-		Bun.env.PI_PYTHON_SKIP_CHECK = "1";
+		bun.env.PI_PYTHON_SKIP_CHECK = "1";
 		startCalls = 0;
 		kernels = [];
 		PythonKernel.start = (async () => {

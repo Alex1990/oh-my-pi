@@ -19,7 +19,7 @@
  * Both behaviors are off in workspace dev (`bun --cwd=packages/natives run
  * build`) and on non-Windows so the regular path is unchanged.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -184,7 +184,7 @@ describe("windows native addon staging", () => {
 			await fs.mkdir(path.join(nativesDir, packageJson.version));
 			await fs.mkdir(path.join(nativesDir, futureVersion));
 			await fs.mkdir(path.join(nativesDir, "not-a-version"));
-			await Bun.write(path.join(nativesDir, "README.txt"), "not a version directory");
+			await bun.write(path.join(nativesDir, "README.txt"), "not a version directory");
 			await fs.utimes(path.join(nativesDir, staleVersion), new Date(0), new Date(0));
 			await fs.utimes(path.join(nativesDir, freshVersion), new Date(0), new Date(0));
 			prepareNativeVersionDir(path.join(nativesDir, freshVersion));
@@ -200,3 +200,4 @@ describe("windows native addon staging", () => {
 		}
 	});
 });
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

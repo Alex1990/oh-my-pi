@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamBedrock } from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import { streamAppleFoundationModels } from "@oh-my-pi/pi-ai/providers/apple-foundation-models";
 import { validateToolArguments } from "@oh-my-pi/pi-ai/utils/validation";

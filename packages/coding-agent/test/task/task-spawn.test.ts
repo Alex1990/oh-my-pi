@@ -11,7 +11,7 @@
  * Param validation (missing agent / missing task) is covered by
  * test/task/task-schema.test.ts.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { type AsyncJob, AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
@@ -30,6 +30,9 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { snapshotJobs } from "@oh-my-pi/pi-coding-agent/async/job-control";
 import { cfgTaskAgentModelOverrides, cfgTaskMaxConcurrency } from "@oh-my-pi/pi-coding-agent/task/settings";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
 
 const taskAgent: AgentDefinition = {
 	name: "task",
@@ -92,7 +95,7 @@ async function pollUntil(predicate: () => boolean, timeoutMs = 2000): Promise<vo
 	const start = Date.now();
 	while (!predicate()) {
 		if (Date.now() - start > timeoutMs) throw new Error("pollUntil timed out");
-		await Bun.sleep(5);
+		await bun.sleep(5);
 	}
 }
 
@@ -786,7 +789,7 @@ describe("task spawn routing", () => {
 		expect(manager.cancel(secondJob.id)).toBe(true);
 		const queuedResult = await Promise.race([
 			secondJob.promise.then(() => "settled" as const),
-			Bun.sleep(75).then(() => "timeout" as const),
+			bun.sleep(75).then(() => "timeout" as const),
 		]);
 
 		gates.get("First")!.resolve();
@@ -835,7 +838,7 @@ describe("task spawn routing", () => {
 		// from B's cancellation would admit C here, running 2 bodies at cap 1.
 		const third = await tool.execute("tc-3", { agent: "task", name: "Third", task: "Work C." } as TaskParams);
 		const thirdJob = manager.getJob(third.details!.async!.jobId)!;
-		await Bun.sleep(50);
+		await bun.sleep(50);
 		expect(started).toEqual(["First"]);
 		expect(thirdJob.queued).toBe(true);
 
@@ -849,7 +852,7 @@ describe("task spawn routing", () => {
 		// double-released, two permits would be free and D would start now.
 		const fourth = await tool.execute("tc-4", { agent: "task", name: "Fourth", task: "Work D." } as TaskParams);
 		const fourthJob = manager.getJob(fourth.details!.async!.jobId)!;
-		await Bun.sleep(50);
+		await bun.sleep(50);
 		expect(started).toEqual(["First", "Third"]);
 		expect(fourthJob.queued).toBe(true);
 

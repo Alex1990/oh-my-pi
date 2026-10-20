@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { EventController } from "@oh-my-pi/pi-coding-agent/modes/controllers/event-controller";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -7,6 +7,7 @@ import { Loader } from "@oh-my-pi/pi-tui";
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
 
 import { cfgTerminalShowProgress } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Faithful model of the shared `statusContainer` + working-loader invariant that
@@ -109,7 +110,9 @@ describe("EventController loader recovery after overflow maintenance", () => {
 	beforeEach(async () => {
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true });
-		vi.useFakeTimers();
+		// Keep `setImmediate` real: several tests use it as a one-macrotask hop
+		// (`nextMacrotask`), and a faked immediate would never fire here.
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance"] });
 	});
 
 	afterEach(() => {
@@ -321,22 +324,22 @@ describe("EventController loader recovery after overflow maintenance", () => {
 	});
 
 	it("reports OSC 9;4 activity to Tern even when the setting is off", async () => {
-		const program = Bun.env.TERM_PROGRAM;
+		const program = bun.env.TERM_PROGRAM;
 		try {
-			Bun.env.TERM_PROGRAM = "vscode";
+			bun.env.TERM_PROGRAM = "vscode";
 			const outside = createContext();
 			await new EventController(outside.ctx).handleEvent(AGENT_START);
 			expect(outside.setProgress).not.toHaveBeenCalled();
 
-			Bun.env.TERM_PROGRAM = "tern";
+			bun.env.TERM_PROGRAM = "tern";
 			const { ctx, setProgress } = createContext();
 			const controller = new EventController(ctx);
 			await controller.handleEvent(AGENT_START);
 			await controller.handleEvent(AGENT_END);
 			expect(setProgress.mock.calls.map(call => call[0])).toEqual([true, false]);
 		} finally {
-			if (program === undefined) delete Bun.env.TERM_PROGRAM;
-			else Bun.env.TERM_PROGRAM = program;
+			if (program === undefined) delete bun.env.TERM_PROGRAM;
+			else bun.env.TERM_PROGRAM = program;
 		}
 	});
 });

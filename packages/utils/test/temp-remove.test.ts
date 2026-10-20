@@ -1,10 +1,30 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it, spyOn } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
-import * as fsPromises from "node:fs/promises";
+import type * as NodeFsPromises from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { removeSyncWithRetries, removeWithRetries } from "@oh-my-pi/pi-utils/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const rmMock = vi.hoisted(() => ({ attempts: 0 }));
+
+// Node's ESM namespace objects are frozen, so replace the `rm` binding through
+// a module mock instead of `spyOn(fsPromises, "rm")`.
+vi.mock("node:fs/promises", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFsPromises>();
+	const rm = (async (...args: Parameters<typeof actual.rm>) => {
+		rmMock.attempts++;
+		if (rmMock.attempts === 1) {
+			const err = new Error("resource busy or locked") as NodeJS.ErrnoException;
+			err.code = "EBUSY";
+			throw err;
+		}
+		return actual.rm(...args);
+	}) as typeof actual.rm;
+	return { ...actual, rm };
+});
 
 // Retries are Windows-only by design (`shouldRetryRemove` gates on
 // `process.platform === "win32"`), so the locked-removal path only exists there.
@@ -21,7 +41,7 @@ describe.skipIf(process.platform !== "win32")("locked temp directory removal", (
 			removeSyncWithRetries(dir);
 			expect(fs.existsSync(dir)).toBe(false);
 		} finally {
-			Bun.gc(true);
+			bun.gc(true);
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});
@@ -31,23 +51,14 @@ describe.skipIf(process.platform !== "win32")("locked temp directory removal", (
 	// failure. Assert the forced collection directly.
 	it("removeWithRetries forces a major GC before the first retry", async () => {
 		const target = fs.mkdtempSync(path.join(os.tmpdir(), "pi-temp-remove-"));
-		let attempts = 0;
-		const rm = spyOn(fsPromises, "rm").mockImplementation(async () => {
-			attempts++;
-			if (attempts === 1) {
-				const err = new Error("resource busy or locked") as NodeJS.ErrnoException;
-				err.code = "EBUSY";
-				throw err;
-			}
-		});
-		const gc = spyOn(Bun, "gc");
+		rmMock.attempts = 0;
+		const gc = spyOn(bun, "gc");
 
 		try {
 			await removeWithRetries(target);
-			expect(attempts).toBe(2);
+			expect(rmMock.attempts).toBe(2);
 			expect(gc).toHaveBeenCalledTimes(1);
 		} finally {
-			rm.mockRestore();
 			gc.mockRestore();
 			fs.rmSync(target, { recursive: true, force: true });
 		}

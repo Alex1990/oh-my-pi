@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { exportSecurityBundleToSarif, importSarif, importSarifFile, SecurityStore } from "../../src/security";
 
-const FIXTURE = path.join(import.meta.dir, "..", "fixtures", "security", "generic-results.sarif");
+const FIXTURE = path.join(import.meta.dirname, "..", "fixtures", "security", "generic-results.sarif");
 let temporaryRoot = "";
 let repositoryRoot = "";
 let store: SecurityStore;

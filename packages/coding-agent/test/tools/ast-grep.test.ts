@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createTools, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createTestSession(cwd = "/tmp/test", overrides: Partial<ToolSession> = {}): ToolSession {
 	return {
@@ -22,7 +23,7 @@ describe("ast_grep parse errors", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-grep-parse-"));
 		try {
 			const filePath = path.join(tempDir, "broken.ts");
-			await Bun.write(filePath, "export function broken( { return 1; }");
+			await bun.write(filePath, "export function broken( { return 1; }");
 
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
 			const tool = tools.find(entry => entry.name === "ast_grep");
@@ -52,7 +53,7 @@ describe("ast_grep parse errors", () => {
 		try {
 			const fileCount = 21;
 			for (let i = 0; i < fileCount; i++) {
-				await Bun.write(path.join(tempDir, `broken-${i}.ts`), "export function broken( { return 1; }");
+				await bun.write(path.join(tempDir, `broken-${i}.ts`), "export function broken( { return 1; }");
 			}
 
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
@@ -84,10 +85,10 @@ describe("ast_grep parse errors", () => {
 			const sourceDir = path.join(packagesDir, "pkg-123", "src");
 			const nestedDir = path.join(sourceDir, "nested");
 			await fs.mkdir(nestedDir, { recursive: true });
-			await Bun.write(path.join(sourceDir, "root.ts"), "const providerOptions = {};\n");
-			await Bun.write(path.join(nestedDir, "child.ts"), "const providerOptions = { nested: true };\n");
-			await Bun.write(path.join(sourceDir, "ignore.js"), "const providerOptions = {};\n");
-			await Bun.write(path.join(tempDir, "outside.ts"), "const providerOptions = {};\n");
+			await bun.write(path.join(sourceDir, "root.ts"), "const providerOptions = {};\n");
+			await bun.write(path.join(nestedDir, "child.ts"), "const providerOptions = { nested: true };\n");
+			await bun.write(path.join(sourceDir, "ignore.js"), "const providerOptions = {};\n");
+			await bun.write(path.join(tempDir, "outside.ts"), "const providerOptions = {};\n");
 
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
 			const tool = tools.find(entry => entry.name === "ast_grep");
@@ -121,11 +122,11 @@ describe("ast_grep parse errors", () => {
 			const lateDir = path.join(tempDir, "z");
 			await fs.mkdir(earlyDir, { recursive: true });
 			await fs.mkdir(lateDir, { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(earlyDir, "a.ts"),
 				Array.from({ length: 8 }, () => "const sharedSymbol = 1;").join("\n"),
 			);
-			await Bun.write(
+			await bun.write(
 				path.join(lateDir, "z.ts"),
 				Array.from({ length: 8 }, () => "const sharedSymbol = 1;").join("\n"),
 			);
@@ -158,7 +159,7 @@ describe("ast_grep parse errors", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-grep-pluscal-"));
 		try {
 			const filePath = path.join(tempDir, "algo.tla");
-			await Bun.write(
+			await bun.write(
 				filePath,
 				"---- MODULE Algo ----\n(*--algorithm Demo\nvariables x = 0;\nbegin\n  x := x + 1;\nend algorithm;*)\n====\n",
 			);
@@ -182,7 +183,7 @@ describe("ast_grep parse errors", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-grep-file-filter-"));
 		try {
 			for (const name of ["source.ts", "notes.unsupported", "extensionless"]) {
-				await Bun.write(path.join(tempDir, name), "console.log(1);\n");
+				await bun.write(path.join(tempDir, name), "console.log(1);\n");
 			}
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
 			const tool = tools.find(entry => entry.name === "ast_grep")!;
@@ -210,7 +211,7 @@ describe("ast_grep parse errors", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-grep-cpp-header-"));
 		try {
 			const filePath = path.join(tempDir, "buffer.h");
-			await Bun.write(filePath, "class Buffer { public: int size() const { return 1; } };\n");
+			await bun.write(filePath, "class Buffer { public: int size() const { return 1; } };\n");
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
 			const tool = tools.find(entry => entry.name === "ast_grep");
 			expect(tool).toBeDefined();
@@ -238,7 +239,7 @@ describe("ast_grep parse errors", () => {
 			await fs.mkdir(firstDir, { recursive: true });
 			await fs.mkdir(secondDir, { recursive: true });
 			for (const dir of [firstDir, secondDir]) {
-				await Bun.write(path.join(dir, "buffer.h"), "class Buffer { public: int size() const { return 1; } };\n");
+				await bun.write(path.join(dir, "buffer.h"), "class Buffer { public: int size() const { return 1; } };\n");
 			}
 			const tools = await createTools(createTestSession(tempDir), ["ast_grep"]);
 			const tool = tools.find(entry => entry.name === "ast_grep");

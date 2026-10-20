@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { quotaTierFor } from "@oh-my-pi/pi-catalog/compat/behavior";
 import { factoryDroidRegistry } from "@oh-my-pi/pi-catalog/compat/factory-droid";
 import type { UsageFetchContext } from "../src/usage";

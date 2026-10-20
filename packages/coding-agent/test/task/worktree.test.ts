@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,11 +20,12 @@ import {
 import * as natives from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { removeWithRetries, setWorktreesDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 
 async function runGit(repo: string, args: string[]): Promise<string> {
-	const proc = Bun.spawn(["git", ...args], {
+	const proc = bun.spawn(["git", ...args], {
 		cwd: repo,
 		stderr: "pipe",
 		stdout: "pipe",
@@ -688,7 +689,7 @@ describe("detachGitDir", () => {
 
 		expect(await vcs.detachGitDir(iso, srcCommon)).toBe("independent");
 		// Its objects are self-contained: no alternates file was written.
-		expect(await Bun.file(path.join(iso, ".git", "objects", "info", "alternates")).exists()).toBe(false);
+		expect(await bun.file(path.join(iso, ".git", "objects", "info", "alternates")).exists()).toBe(false);
 	});
 
 	it("severs a copied linked-worktree whose HEAD is unborn (no commits on the branch)", async () => {
@@ -740,7 +741,7 @@ describe("detachGitDir", () => {
 		await runGit(wt, ["sparse-checkout", "set", "keep"]);
 		// Sparse working tree is clean and `drop/` is not materialised.
 		expect(await runGit(wt, ["status", "--porcelain=v1"])).toBe("");
-		expect(await Bun.file(path.join(wt, "drop", "d.txt")).exists()).toBe(false);
+		expect(await bun.file(path.join(wt, "drop", "d.txt")).exists()).toBe(false);
 
 		const iso = await copyTree(wt);
 		expect(await vcs.detachGitDir(iso, commonDir)).toBe("detached");
@@ -797,7 +798,7 @@ describe("detachGitDir", () => {
 		expect(await runGit(iso, ["status", "--porcelain=v1"])).toBe("");
 		// Shallow boundary: history traversal stops cleanly instead of failing
 		// on the truncated parent, and the boundary file itself was carried.
-		expect(await Bun.file(path.join(iso, ".git", "shallow")).exists()).toBe(true);
+		expect(await bun.file(path.join(iso, ".git", "shallow")).exists()).toBe(true);
 		expect((await runGit(iso, ["rev-list", "HEAD"])).split("\n")).toHaveLength(1);
 	});
 

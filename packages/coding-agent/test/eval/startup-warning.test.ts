@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -7,6 +7,7 @@ import {
 	resolveFirstLaunchPythonEvalWarning,
 	resolvePythonEvalWarning,
 } from "@oh-my-pi/pi-coding-agent/eval/startup-warning";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const FIX_HINT = "Install Python 3.8+ or set python.interpreter, then verify with `omp setup python --check`.";
 const CWD = "/tmp/eval-startup-warning";
@@ -15,8 +16,8 @@ let savedPiPy: string | undefined;
 let savedPiJs: string | undefined;
 
 function restoreEnv(name: "PI_PY" | "PI_JS", value: string | undefined): void {
-	if (value === undefined) delete Bun.env[name];
-	else Bun.env[name] = value;
+	if (value === undefined) delete bun.env[name];
+	else bun.env[name] = value;
 }
 
 function mockProbe(reason = "Python executable not found on PATH") {
@@ -24,10 +25,10 @@ function mockProbe(reason = "Python executable not found on PATH") {
 }
 
 beforeEach(() => {
-	savedPiPy = Bun.env.PI_PY;
-	savedPiJs = Bun.env.PI_JS;
-	delete Bun.env.PI_PY;
-	delete Bun.env.PI_JS;
+	savedPiPy = bun.env.PI_PY;
+	savedPiJs = bun.env.PI_JS;
+	delete bun.env.PI_PY;
+	delete bun.env.PI_JS;
 });
 
 afterEach(() => {
@@ -70,7 +71,7 @@ describe("resolvePythonEvalWarning", () => {
 		expect(reason).toStartWith("Tried: ~/py");
 		expect(reason).not.toContain(os.homedir());
 		expect(reason).not.toMatch(/[\t\x1b]/);
-		expect(Bun.stringWidth(reason ?? "")).toBeLessThanOrEqual(100);
+		expect(bun.stringWidth(reason ?? "")).toBeLessThanOrEqual(100);
 		expect(warning).toEndWith(FIX_HINT);
 	});
 });

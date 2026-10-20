@@ -3,7 +3,7 @@
  * process restart: MCP reconnect/rebinding (#7189) and task-agent descriptions
  * published to existing tools (#7940).
  */
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import type { TuiSlashCommandRuntime } from "@oh-my-pi/pi-coding-agent/slash-com
 import { TaskTool } from "@oh-my-pi/pi-coding-agent/task";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { getProjectDir, removeWithRetries, setProjectDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalProjectDir = getProjectDir();
 const TEST_EXTENSION_ROOTS: EffectiveExtensionRoots = {
@@ -109,11 +110,11 @@ describe("/reload-plugins runtime refresh", () => {
 		const agentDir = path.join(projectDir, ".omp", "agents");
 		const agentFile = path.join(agentDir, "reload-agent.md");
 		await fs.mkdir(agentDir, { recursive: true });
-		await Bun.write(agentFile, agentDefinition("VERSION_ONE"));
+		await bun.write(agentFile, agentDefinition("VERSION_ONE"));
 		const taskTool = await TaskTool.create(createTaskSession(projectDir));
 		expect(taskTool.description).toContain("VERSION_ONE");
 
-		await Bun.write(agentFile, agentDefinition("VERSION_TWO"));
+		await bun.write(agentFile, agentDefinition("VERSION_TWO"));
 		const { ctx } = createFakeCtx(projectDir);
 		const runtime: TuiSlashCommandRuntime = { ctx };
 		await executeBuiltinSlashCommand("/reload-plugins", runtime);

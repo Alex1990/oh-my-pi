@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Buffer } from "node:buffer";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { __resetVertexTokenCache, getVertexAccessToken, userAdcPath } from "../../src/providers/google-auth";
 import type { FetchImpl } from "../../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const JWT_BEARER_GRANT = "urn:ietf:params:oauth:grant-type:jwt-bearer";
@@ -37,20 +38,20 @@ describe("getVertexAccessToken impersonated_service_account ADC", () => {
 
 	beforeEach(async () => {
 		__resetVertexTokenCache();
-		originalGac = Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+		originalGac = bun.env.GOOGLE_APPLICATION_CREDENTIALS;
 		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vertex-adc-"));
 	});
 
 	afterEach(async () => {
 		__resetVertexTokenCache();
-		if (originalGac === undefined) delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-		else Bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
+		if (originalGac === undefined) delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+		else bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
 		await fs.rm(tmpDir, { recursive: true, force: true });
 	});
 
 	it("rejects a malformed service_account_impersonation_url before any network call", async () => {
 		const adcPath = path.join(tmpDir, "impersonated-bad-url.json");
-		await Bun.write(
+		await bun.write(
 			adcPath,
 			JSON.stringify({
 				type: "impersonated_service_account",
@@ -65,7 +66,7 @@ describe("getVertexAccessToken impersonated_service_account ADC", () => {
 				},
 			}),
 		);
-		Bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
+		bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
 
 		const calls: string[] = [];
 		const fetchImpl: FetchImpl = async input => {
@@ -82,7 +83,7 @@ describe("getVertexAccessToken impersonated_service_account ADC", () => {
 	it("signs an RS256 JWT for a service_account source and reconstructs the IAM URL", async () => {
 		const pem = await generateServiceAccountPem();
 		const adcPath = path.join(tmpDir, "impersonated-sa.json");
-		await Bun.write(
+		await bun.write(
 			adcPath,
 			JSON.stringify({
 				type: "impersonated_service_account",
@@ -98,7 +99,7 @@ describe("getVertexAccessToken impersonated_service_account ADC", () => {
 				// delegates intentionally omitted — the IAM body must default to [].
 			}),
 		);
-		Bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
+		bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
 
 		const calls: { url: string; init?: RequestInit }[] = [];
 		const fetchImpl: FetchImpl = async (input, init) => {
@@ -155,7 +156,7 @@ describe("gcloud user ADC location", () => {
 
 	beforeEach(async () => {
 		__resetVertexTokenCache();
-		originalEnv = Object.fromEntries(ENV_KEYS.map(key => [key, Bun.env[key]]));
+		originalEnv = Object.fromEntries(ENV_KEYS.map(key => [key, bun.env[key]]));
 		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vertex-user-adc-"));
 	});
 
@@ -163,8 +164,8 @@ describe("gcloud user ADC location", () => {
 		__resetVertexTokenCache();
 		for (const key of ENV_KEYS) {
 			const original = originalEnv[key];
-			if (original === undefined) delete Bun.env[key];
-			else Bun.env[key] = original;
+			if (original === undefined) delete bun.env[key];
+			else bun.env[key] = original;
 		}
 		await fs.rm(tmpDir, { recursive: true, force: true });
 	});
@@ -184,11 +185,11 @@ describe("gcloud user ADC location", () => {
 	it.skipIf(process.platform !== "win32")(
 		"exchanges the refresh token from %APPDATA% gcloud ADC on Windows",
 		async () => {
-			Bun.env.APPDATA = tmpDir;
-			delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-			delete Bun.env.GOOGLE_CLOUD_ACCESS_TOKEN;
-			delete Bun.env.CLOUDSDK_AUTH_ACCESS_TOKEN;
-			await Bun.write(
+			bun.env.APPDATA = tmpDir;
+			delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+			delete bun.env.GOOGLE_CLOUD_ACCESS_TOKEN;
+			delete bun.env.CLOUDSDK_AUTH_ACCESS_TOKEN;
+			await bun.write(
 				path.join(tmpDir, "gcloud", "application_default_credentials.json"),
 				JSON.stringify({
 					type: "authorized_user",

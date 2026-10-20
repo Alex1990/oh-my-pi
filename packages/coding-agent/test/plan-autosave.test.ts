@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -14,6 +14,7 @@ import type { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-m
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgPlanAutosave, cfgPlanEnabled } from "@oh-my-pi/pi-coding-agent/plan-mode/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: TempDir | undefined;
 
@@ -83,7 +84,7 @@ describe("autosaveApprovedPlan", () => {
 			planContent: "# Plan\n",
 		});
 		expect(result).toBeNull();
-		expect(await Bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).exists()).toBe(false);
 	});
 
 	it("saves the approved plan under the default dir", async () => {
@@ -96,7 +97,7 @@ describe("autosaveApprovedPlan", () => {
 			planContent: "# Plan\n\nShip it.\n",
 		});
 		expect(result).toBe(path.join(cwd, ".omp", "plans", "AUTH_STORAGE_PLAN.md"));
-		expect(await Bun.file(result!).text()).toBe("# Plan\n\nShip it.\n");
+		expect(await bun.file(result!).text()).toBe("# Plan\n\nShip it.\n");
 	});
 
 	it("suffices colliding filenames instead of overwriting", async () => {
@@ -106,8 +107,8 @@ describe("autosaveApprovedPlan", () => {
 		const second = await autosaveApprovedPlan({ settings, cwd, title: "Auth", planContent: "# v2\n" });
 		expect(first).toBe(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md"));
 		expect(second).toBe(path.join(cwd, ".omp", "plans", "AUTH_PLAN-1.md"));
-		expect(await Bun.file(first!).text()).toBe("# v1\n");
-		expect(await Bun.file(second!).text()).toBe("# v2\n");
+		expect(await bun.file(first!).text()).toBe("# v1\n");
+		expect(await bun.file(second!).text()).toBe("# v2\n");
 	});
 	it("keeps both plans when same-titled approvals race", async () => {
 		const cwd = makeCwd();
@@ -117,7 +118,7 @@ describe("autosaveApprovedPlan", () => {
 			autosaveApprovedPlan({ settings, cwd, title: "Auth", planContent: "# v2\n" }),
 		]);
 		expect(new Set([first, second]).size).toBe(2);
-		expect(new Set([await Bun.file(first!).text(), await Bun.file(second!).text()])).toEqual(
+		expect(new Set([await bun.file(first!).text(), await bun.file(second!).text()])).toEqual(
 			new Set(["# v1\n", "# v2\n"]),
 		);
 	});
@@ -194,7 +195,7 @@ describe("plan-yolo approval autosave", () => {
 		const coordinator = new PrewalkCoordinator(t.host, { planYolo: { target } satisfies PlanYolo });
 		await coordinator.armPlanYoloIfNeeded();
 		const planPath = resolveLocalUrlToPath("local://auth-plan.md", t.localOptions);
-		await Bun.write(planPath, "# Plan\n\nYolo.\n");
+		await bun.write(planPath, "# Plan\n\nYolo.\n");
 		const handler = t.getHandler();
 		if (!handler) throw new Error("expected a plan proposal handler");
 		const result = (await handler("auth")) as {
@@ -204,7 +205,7 @@ describe("plan-yolo approval autosave", () => {
 		expect(result.details).toMatchObject({ planFilePath: "local://auth-plan.md", title: "auth", planExists: true });
 		expect(result.content[0]?.text).toBe(`Plan approved. Implementing now with ${target.id}.`);
 		expect(result.content[0]?.text).not.toContain(cwd);
-		expect(await Bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).text()).toBe("# Plan\n\nYolo.\n");
+		expect(await bun.file(path.join(cwd, ".omp", "plans", "AUTH_PLAN.md")).text()).toBe("# Plan\n\nYolo.\n");
 		expect(t.notices).toContainEqual({
 			level: "info",
 			message: expect.stringContaining("Plan autosaved to"),
@@ -217,13 +218,13 @@ describe("plan-yolo approval autosave", () => {
 		const cwd = makeCwd();
 		const artifactsDir = path.join(cwd, "artifacts");
 		const blocker = path.join(cwd, "blocker");
-		await Bun.write(blocker, "x");
+		await bun.write(blocker, "x");
 		const settings = Settings.isolated({ "plan.autosave": true, "plan.autosaveDir": path.join(blocker, "sub") });
 		const t = setupPlanYolo(cwd, artifactsDir, settings);
 		const coordinator = new PrewalkCoordinator(t.host, { planYolo: { target } satisfies PlanYolo });
 		await coordinator.armPlanYoloIfNeeded();
 		const planPath = resolveLocalUrlToPath("local://auth-plan.md", t.localOptions);
-		await Bun.write(planPath, "# Plan\n\nYolo.\n");
+		await bun.write(planPath, "# Plan\n\nYolo.\n");
 		const handler = t.getHandler();
 		if (!handler) throw new Error("expected a plan proposal handler");
 		const result = (await handler("auth")) as { content: Array<{ type: string; text: string }> };

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { getSupportedEfforts } from "@oh-my-pi/pi-catalog/model-thinking";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const testContext: Context = {
 	messages: [{ role: "user", content: "hello", timestamp: 0 }],
@@ -61,7 +62,7 @@ describe("issue #969 — custom thinking metadata must preserve explicit xhigh",
 					"[DONE]",
 				]);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		expect(getSupportedEfforts(model)).toContain(Effort.XHigh);

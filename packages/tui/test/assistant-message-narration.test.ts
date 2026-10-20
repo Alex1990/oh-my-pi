@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REASONING = "Weighing whether the gradle run already finished.";
 const NARRATION = "The build is running; it should finish in about fifteen minutes.";
@@ -32,7 +33,7 @@ function turn(narration: boolean): AssistantMessage {
 
 function rendered(message: AssistantMessage): string {
 	// Thinking hidden: only answer text may reach the transcript.
-	return Bun.stripANSI(new AssistantMessageComponent(message, true).render(100).join("\n"));
+	return bun.stripANSI(new AssistantMessageComponent(message, true).render(100).join("\n"));
 }
 
 beforeAll(async () => {

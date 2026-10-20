@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,6 +22,10 @@ import { withRepoLock } from "@oh-my-pi/pi-coding-agent/utils/repo-lock";
 import type { VcsGitRepo } from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { getAgentDir, hashPath, normalizePathForComparison, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
+vi.mock("node:os", { spy: true });
 
 const TINY_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
@@ -74,7 +78,7 @@ function createSession(
 }
 
 function runGit(cwd: string, args: string[]): string {
-	const result = Bun.spawnSync(["git", ...args], {
+	const result = bun.spawnSync(["git", ...args], {
 		cwd,
 		stdout: "pipe",
 		stderr: "pipe",
@@ -1245,13 +1249,13 @@ echo ok
 			};
 			delete env.LANG;
 			delete env.LC_MESSAGES;
-			const gitModulePath = path.join(import.meta.dir, "..", "..", "src", "utils", "github.ts");
+			const gitModulePath = path.join(import.meta.dirname, "..", "..", "src", "utils", "github.ts");
 			const script =
 				`import { github } from ${JSON.stringify(gitModulePath)};` +
 				'const result = await github.run(process.cwd(), ["--version"]);' +
 				"process.stdout.write(JSON.stringify(result));";
-			const child = Bun.spawn([process.execPath, "--eval", script], {
-				cwd: path.join(import.meta.dir, ".."),
+			const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
+				cwd: path.join(import.meta.dirname, ".."),
 				env,
 				stdout: "pipe",
 				stderr: "pipe",
@@ -1370,7 +1374,7 @@ echo ok
 					"refs/heads/main",
 				]);
 				runGit(fixture.repoRoot, ["checkout", "-b", "manual-branch", "origin/main"]);
-				await Bun.write(path.join(fixture.repoRoot, "README.md"), "base\nmanual\n");
+				await bun.write(path.join(fixture.repoRoot, "README.md"), "base\nmanual\n");
 				runGit(fixture.repoRoot, ["add", "README.md"]);
 				runGit(fixture.repoRoot, ["commit", "-m", "manual branch commit"]);
 			});
@@ -1458,7 +1462,7 @@ echo ok
 			expect(result.details?.watch?.failedLogs?.[0]?.jobName).toBe("test");
 			expect(result.details?.watch?.failedLogs?.[0]?.tail).toContain("zeta");
 
-			const artifactText = await Bun.file(path.join(artifactsDir, "0-github.md")).text();
+			const artifactText = await bun.file(path.join(artifactsDir, "0-github.md")).text();
 			expect(artifactText).toContain("# GitHub Actions Run #77");
 			expect(artifactText).toContain("Full log:");
 			expect(artifactText).toContain("alpha");

@@ -15,11 +15,11 @@
  * Payload formats are versioned by `PRAGMA user_version`; a mismatch clears the
  * store, which only ever holds speculation.
  */
-import type { Database, Statement } from "bun:sqlite";
+import type { Database, Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getComposerCacheDbPath } from "@oh-my-pi/pi-utils/dirs";
-import { isBunTestRuntime } from "@oh-my-pi/pi-utils/env";
+import { isTestRuntime } from "@oh-my-pi/pi-utils/env";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
 import { openSqliteDatabaseSync } from "@oh-my-pi/pi-utils/sqlite";
@@ -158,7 +158,7 @@ let shared: ComposerCache | null | undefined;
  * or clobber the user's cache; tests open {@link ComposerCache.open} explicitly.
  */
 export function sharedComposerCache(): ComposerCache | undefined {
-	if (isBunTestRuntime()) return undefined;
+	if (isTestRuntime()) return undefined;
 	if (shared === undefined) {
 		try {
 			const cache = ComposerCache.open();

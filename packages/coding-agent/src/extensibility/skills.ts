@@ -22,6 +22,8 @@ import userInvocationTemplate from "../prompts/skills/user-invocation.md" with {
 import { SKILLSHARE_PROVIDER_ID } from "../discovery/skillshare";
 import type { SkillPromptDetails } from "../session/messages";
 import { expandTilde } from "../tools/path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { allowsSkillTokens, SKILL_TOKEN_RE };
 
@@ -156,7 +158,7 @@ function resolveCollision(
 	const candidateCustom = candidate._source?.provider === CUSTOM_DIR_PROVIDER_ID;
 	const bareCustom = bareSkill?._source?.provider === CUSTOM_DIR_PROVIDER_ID;
 	const identical = existingEntries
-		.filter(([_, e]) => e.body === candidateBody && Bun.deepEquals(e.frontmatter, candidateFrontmatter))
+		.filter(([_, e]) => e.body === candidateBody && bun.deepEquals(e.frontmatter, candidateFrontmatter))
 		.map(([name]) => name);
 
 	if (bareSkill && ((bareInstalled && !candidateInstalled) || (candidateCustom && !bareCustom))) {
@@ -348,13 +350,13 @@ export async function loadSkills(options: LoadSkillsOptions = {}): Promise<LoadS
 	// Check if skill name matches any of the include patterns
 	function matchesIncludePatterns(name: string): boolean {
 		if (includeSkills.length === 0) return true;
-		return includeSkills.some(pattern => new Bun.Glob(pattern).match(name));
+		return includeSkills.some(pattern => new Glob(pattern).match(name));
 	}
 
 	// Check if skill name matches any of the ignore patterns
 	function matchesIgnorePatterns(name: string): boolean {
 		if (ignoredSkills.length === 0) return false;
-		return ignoredSkills.some(pattern => new Bun.Glob(pattern).match(name));
+		return ignoredSkills.some(pattern => new Glob(pattern).match(name));
 	}
 
 	const disabledSkillNames = new Set(
@@ -673,7 +675,7 @@ export async function buildSkillPromptMessage(
 	input: SkillPromptInput,
 	invocation: SkillInvocationKind = "user",
 ): Promise<BuiltSkillPromptMessage> {
-	const content = await Bun.file(skill.filePath).text();
+	const content = await bun.file(skill.filePath).text();
 	// Only the body is used: keep HTML comments (`repair: false`) and leave YAML
 	// diagnostics to the loader, which already parsed this frontmatter.
 	const body = parseFrontmatter(content, { source: skill.filePath, repair: false, level: "off" }).body.trim();

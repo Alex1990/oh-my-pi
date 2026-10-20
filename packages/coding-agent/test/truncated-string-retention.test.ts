@@ -1,5 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 interface ProbeResult {
 	retainedBytes: number;
@@ -7,11 +9,11 @@ interface ProbeResult {
 }
 
 const MAX_RETAINED_BYTES = 32 * 1024 * 1024;
-const probePath = path.resolve(import.meta.dir, "fixtures", "truncated-string-retention-probe.ts");
+const probePath = path.resolve(import.meta.dirname, "fixtures", "truncated-string-retention-probe.ts");
 
 async function runProbe(mode: "raw-sse" | "tool-output"): Promise<ProbeResult> {
-	const proc = Bun.spawn([process.execPath, "--smol", probePath, mode], {
-		cwd: path.resolve(import.meta.dir, "../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "--smol", probePath, mode], {
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		stderr: "pipe",
 		stdout: "pipe",
 	});

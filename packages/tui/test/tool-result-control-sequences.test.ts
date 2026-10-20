@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { applyHyperlinkSetting } from "@oh-my-pi/pi-tui/render/hyperlink";
 import type { ReadToolDetails } from "@oh-my-pi/pi-tui/tools/read";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Tool `details` carry raw file text (grep/read `displayContent`) straight to
@@ -82,7 +83,7 @@ describe("tool result details with raw control sequences", () => {
 			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-link-"));
 			const filename = path.join(dir, `fixture${FILE_ESCAPES}.txt`);
 			try {
-				await Bun.write(filename, "needle");
+				await bun.write(filename, "needle");
 				const cases: Array<[string, ReadToolDetails]> = [
 					[
 						"target",
@@ -119,7 +120,7 @@ describe("tool result details with raw control sequences", () => {
 					expect(view.p?.target).not.toContain("\x1b");
 					expect(group.render(120).join("\n")).not.toContain(FILE_ESCAPES);
 					if (!href) throw new Error("Missing file link");
-					expect(await Bun.file(new URL(href)).text()).toBe("needle");
+					expect(await bun.file(new URL(href)).text()).toBe("needle");
 				}
 			} finally {
 				await fs.rm(dir, { recursive: true, force: true });
@@ -134,7 +135,7 @@ describe("tool result details with raw control sequences", () => {
 			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-single-link-"));
 			const filename = path.join(dir, `fixture${FILE_ESCAPES}.txt`);
 			try {
-				await Bun.write(filename, "needle");
+				await bun.write(filename, "needle");
 				const component = new ToolExecutionComponent(
 					"read",
 					{ path: filename },

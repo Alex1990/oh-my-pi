@@ -34,6 +34,7 @@ import type {
 } from "./types";
 
 import { cfgLaunchEnabled } from "../tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type ProcTarget =
 	| { id: string; action: "stdin" | "mode" | "kill" }
@@ -146,7 +147,7 @@ export class ProcProtocolHandler implements ProtocolHandler {
 		if (ownerJobs(session).some(job => job.id === id)) return null;
 		if (runningAgentsOutsideJobs(session).some(agent => agent.id === id)) return null;
 		const logPath = await serviceLogPath(session, id);
-		return options?.create || (await Bun.file(logPath).exists()) ? logPath : null;
+		return options?.create || (await bun.file(logPath).exists()) ? logPath : null;
 	}
 
 	async resolve(url: InternalUrl, context?: ResolveContext): Promise<InternalResource> {
@@ -194,7 +195,7 @@ export class ProcProtocolHandler implements ProtocolHandler {
 			return textResource(
 				url,
 				`${header}${logs.text ? `\n${logs.text}` : ""}`,
-				(await Bun.file(sourcePath).exists()) ? sourcePath : undefined,
+				(await bun.file(sourcePath).exists()) ? sourcePath : undefined,
 				undefined,
 				{ daemon: service, log: logs.text, ...("terminalRows" in logs ? { terminalRows: logs.terminalRows } : {}) },
 			);

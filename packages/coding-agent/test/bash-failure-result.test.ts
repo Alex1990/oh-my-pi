@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,10 @@ import { BashTool } from "@oh-my-pi/pi-coding-agent/tools/bash";
 import { Shell } from "@oh-my-pi/pi-natives";
 import { getThemeByName } from "@oh-my-pi/pi-tui/theme";
 import { bashToolRenderer } from "@oh-my-pi/pi-tui/tools/bash";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { canCreateSymlink } from "./helpers/symlink-support";
+
+const symlinkSupported = await canCreateSymlink();
 
 afterEach(() => {
 	mock.restore();
@@ -60,7 +64,7 @@ describe("BashTool execution results", () => {
 		for (const expanded of [false, true]) {
 			const options = { expanded, isPartial: false };
 			const component = bashToolRenderer.renderResult(result, options, theme, args);
-			const rendered = Bun.stripANSI(component.render(120).join("\n"));
+			const rendered = bun.stripANSI(component.render(120).join("\n"));
 			expect(rendered.match(/Wall time: \d+\.\d{2} seconds/gu)).toEqual([timingOutput]);
 			const view = bashToolRenderer.describeResult(result, options, args);
 			const output = (view.body ?? [])
@@ -256,7 +260,7 @@ describe("BashTool skill:// containment failures", () => {
 		};
 	}
 
-	it("refuses a read through a symlink past the plugin boundary", async () => {
+	it.skipIf(!symlinkSupported)("refuses a read through a symlink past the plugin boundary", async () => {
 		const { dir, outsideFile, skill } = await containedFixture();
 		await fs.symlink(outsideFile, path.join(skill.baseDir, "leak.md"));
 		try {

@@ -4,7 +4,7 @@
  * @mentions, and composer paste all share — a bare `:90` must stay a frame,
  * never silently become 90 seconds.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	formatVideoTimestamp,
 	parseVideoSelector,

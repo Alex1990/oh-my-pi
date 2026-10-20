@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { AuthStorage, REMOTE_REFRESH_SENTINEL, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import {
@@ -15,6 +15,7 @@ import { snapshotResponseSchema } from "@oh-my-pi/pi-ai/auth-broker/wire-schemas
 import * as oauthUtils from "@oh-my-pi/pi-ai/registry/oauth";
 import type { UsageLimit, UsageProvider, UsageReport } from "@oh-my-pi/pi-ai/usage";
 import * as claudeUsage from "@oh-my-pi/pi-ai/usage/claude";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 function requireLimit(report: UsageReport, id: string): UsageLimit {
 	const limit = report.limits.find(candidate => candidate.id === id);
@@ -55,7 +56,7 @@ describe("RemoteAuthCredentialStore + AuthStorage integration", () => {
 						: undefined,
 		});
 		await serverStorage.credentials.reload();
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage: serverStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -1767,6 +1768,17 @@ describe("RemoteAuthCredentialStore + AuthStorage integration", () => {
 
 	test("sizes broker usage timeout from the unfiltered account-pool snapshot", async () => {
 		vi.useFakeTimers();
+		// `AbortSignal.timeout` runs on an internal Node timer that fake timers do
+		// not drive. Bind it to `setTimeout` so the one-account budget and the
+		// client's extended budget share the test's clock.
+		const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockImplementation(ms => {
+			const controller = new AbortController();
+			setTimeout(
+				() => controller.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+				ms,
+			);
+			return controller.signal;
+		});
 		const now = Date.now();
 		const credentials: SnapshotResponse["credentials"] = [];
 		for (let index = 0; index < 6; index += 1) {
@@ -1807,7 +1819,7 @@ describe("RemoteAuthCredentialStore + AuthStorage integration", () => {
 				if (signal) usageSignal = signal;
 				return response.promise;
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const brokerClient = new AuthBrokerClient({
 			url: "http://broker.invalid",
@@ -1848,6 +1860,7 @@ describe("RemoteAuthCredentialStore + AuthStorage integration", () => {
 		} finally {
 			remoteStore.close();
 			snapshotResponse.resolve(new Response(null, { status: 304, headers: { ETag: '"1"' } }));
+			timeoutSpy.mockRestore();
 			vi.useRealTimers();
 		}
 	});

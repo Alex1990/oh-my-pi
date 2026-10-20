@@ -1,9 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { runUsageCommand } from "@oh-my-pi/pi-coding-agent/cli/usage-cli";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as sdkModule from "@oh-my-pi/pi-coding-agent/sdk";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let db: Database;
 let authStorage: AuthStorage;
@@ -35,7 +36,7 @@ afterEach(() => {
 });
 
 function expectNoCredentialsError(provider: string): void {
-	const message = Bun.stripANSI(stderr);
+	const message = bun.stripANSI(stderr);
 	expect(message).toContain(`"${provider}"`);
 	expect(message).toContain("groq");
 	expect(message).not.toContain("usage endpoint");

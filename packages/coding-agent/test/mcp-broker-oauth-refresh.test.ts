@@ -15,7 +15,7 @@
  * token has expired can rotate through the broker repeatedly while the client
  * receives freshly minted Bearer tokens.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -31,7 +31,8 @@ import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import { mcpOAuthCredentialId } from "@oh-my-pi/pi-coding-agent/mcp/oauth-flow";
 import type { MCPServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
-import type { Server } from "bun";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const SERVER_URL = "https://mcp.granola.ai/mcp";
 const MCP_PROVIDER = mcpOAuthCredentialId(SERVER_URL, "default");
@@ -58,7 +59,7 @@ describe("broker-backed MCP OAuth refresh", () => {
 	beforeEach(async () => {
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-broker-mcp-refresh-"));
 		tokenRequests = [];
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			async fetch(req) {
 				tokenRequests.push(new URLSearchParams(await req.text()));
@@ -91,7 +92,7 @@ describe("broker-backed MCP OAuth refresh", () => {
 		if (!stored) throw new Error("broker credential was not persisted");
 		brokerCredentialId = stored.id;
 
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage: serverStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [BEARER],

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const SIZE_HARD_CAP = 1_000_000;
 export const SIZE_BASE64_CHECK = 100_000;
@@ -24,7 +25,7 @@ export function blobRoot(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export function computeSha256(data: Uint8Array | string): string {
-	return Bun.SHA256.hash(data, "hex");
+	return bun.SHA256.hash(data, "hex");
 }
 
 export function isDataUri(content: string): boolean {

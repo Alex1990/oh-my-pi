@@ -1,5 +1,5 @@
 /** Anthropic on-demand compaction: prefix-only requests, signed replay and failure fallback. */
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	findAnthropicCompactionCut,
 	type CompactionPreparation,
@@ -33,6 +33,7 @@ import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";
 import * as snapcompact from "@oh-my-pi/snapcompact";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ZERO_USAGE: Usage = {
 	input: 0,
@@ -161,16 +162,16 @@ describe("shouldUseAnthropicNativeCompaction", () => {
 	});
 
 	test("resolves the endpoint the way the transport does, so an ANTHROPIC_BASE_URL reroute is excluded", async () => {
-		const previous = Bun.env.ANTHROPIC_BASE_URL;
-		Bun.env.ANTHROPIC_BASE_URL = "https://gateway.example.com";
+		const previous = bun.env.ANTHROPIC_BASE_URL;
+		bun.env.ANTHROPIC_BASE_URL = "https://gateway.example.com";
 		try {
 			expect(shouldUseAnthropicNativeCompaction(makeAnthropicModel())).toBe(false);
 			expect(shouldUseAnthropicNativeCompaction(makeAnthropicModel({ remoteCompaction: { enabled: true } }))).toBe(
 				false,
 			);
 		} finally {
-			if (previous === undefined) delete Bun.env.ANTHROPIC_BASE_URL;
-			else Bun.env.ANTHROPIC_BASE_URL = previous;
+			if (previous === undefined) delete bun.env.ANTHROPIC_BASE_URL;
+			else bun.env.ANTHROPIC_BASE_URL = previous;
 		}
 	});
 

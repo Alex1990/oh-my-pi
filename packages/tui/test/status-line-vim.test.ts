@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { SegmentContext } from "../src/status-line/segments";
 import { renderSegment } from "../src/status-line/segments";
 import { initTheme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -89,7 +90,7 @@ describe("status line vim segment", () => {
 					);
 					const glyph = plain(rendered.content);
 					expect(rendered.visible).toBe(true);
-					expect(Bun.stringWidth(glyph)).toBe(1);
+					expect(bun.stringWidth(glyph)).toBe(1);
 					glyphs.push(glyph);
 				}
 				// A shared glyph would make two modes indistinguishable.
@@ -107,7 +108,7 @@ describe("status line vim segment", () => {
 		);
 		const text = plain(rendered.content);
 		expect(text).toEndWith(" 3L 2");
-		expect(Bun.stringWidth(text)).toBe(6);
+		expect(bun.stringWidth(text)).toBe(6);
 	});
 
 	it("hides the segment entirely when display is none", () => {

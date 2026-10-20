@@ -1,3 +1,4 @@
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 // Shared checksum primitives for archive containers. CRC-32 (IEEE, reflected)
 // delegates to Bun's native implementation; CRC-64/XZ and CRC-16/ARC are
 // table-driven so format modules never hand-roll per-bit loops. Format-owned
@@ -6,7 +7,7 @@
 
 /** CRC-32 (IEEE 802.3, reflected). Chainable: pass the previous value as `seed`. */
 export function crc32(bytes: Uint8Array, seed = 0): number {
-	return Bun.hash.crc32(bytes, seed) >>> 0;
+	return bun.hash.crc32(bytes, seed) >>> 0;
 }
 
 const CRC64_LO = new Uint32Array(256);

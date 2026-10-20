@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { ArchiveError } from "../../src/ar/error";
 import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
 import { readRar, sniffRar } from "../../src/ar/rar";
 import { memoryByteSource } from "../../src/ar/source";
 import type { ArchiveIndexEntry } from "../../src/ar/types";
 import { arFixture as fixture } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXPECTED_HASHES: Record<string, string> = {
 	"input/hello.txt": "7f1620bec2523375e14494eade9ebdc362926b11904813809c503f2eb691aeff",
@@ -30,7 +31,7 @@ async function extract(entry: ArchiveIndexEntry): Promise<Uint8Array> {
 }
 
 function sha256(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex");
+	return bun.SHA256.hash(bytes, "hex");
 }
 
 describe("RAR5", () => {

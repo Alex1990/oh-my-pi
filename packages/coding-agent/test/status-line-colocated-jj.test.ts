@@ -11,7 +11,7 @@
  * lookup keeps resolving the operational git branch — a jj bookmark/change
  * id must never become a GitHub head.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { StatusLineSettings } from "@oh-my-pi/pi-tui/status-line";
 import { StatusLineComponent } from "@oh-my-pi/pi-tui/status-line";

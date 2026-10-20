@@ -1,4 +1,5 @@
 import { isRecord, readLines } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** One readable object record from a foreign JSONL transcript. */
 export interface ForeignJsonRecord {
@@ -10,7 +11,7 @@ export interface ForeignJsonRecord {
 export async function* readForeignJsonRecords(filePath: string): AsyncGenerator<ForeignJsonRecord> {
 	const decoder = new TextDecoder();
 	let line = 0;
-	for await (const bytes of readLines(Bun.file(filePath).stream())) {
+	for await (const bytes of readLines(bun.file(filePath).stream())) {
 		line += 1;
 		try {
 			const value: unknown = JSON.parse(decoder.decode(bytes));

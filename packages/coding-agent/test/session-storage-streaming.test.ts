@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun, type NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -17,15 +18,10 @@ describe("FileSessionStorage streamed rewrite durability", () => {
 		const diskFull = Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
 		const writeStarted = Promise.withResolvers<void>();
 		const completeWrite = Promise.withResolvers<number>();
-		const createFile = Bun.file;
+		const createFile = bun.file;
 
-		vi.spyOn(Bun, "file").mockImplementation((input, options) => {
-			const file =
-				typeof input === "number"
-					? createFile(input, options)
-					: typeof input === "string" || input instanceof URL
-						? createFile(input, options)
-						: createFile(input, options);
+		vi.spyOn(bun, "file").mockImplementation((input: string | URL | NodeFile) => {
+			const file = createFile(input);
 			if (typeof input !== "string" || path.dirname(input) !== tempDir.path() || !input.endsWith(".tmp")) {
 				return file;
 			}
@@ -33,14 +29,14 @@ describe("FileSessionStorage streamed rewrite durability", () => {
 			vi.spyOn(file, "writer").mockImplementation(writerOptions => {
 				const sink = createWriter(writerOptions);
 				const write = sink.write.bind(sink);
-				vi.spyOn(sink, "write").mockImplementationOnce(chunk => {
+				vi.spyOn(sink, "write").mockImplementationOnce(((chunk: string | ArrayBufferView | ArrayBuffer) => {
 					const pending = Promise.resolve(write(chunk)).then(() => completeWrite.promise);
 					// Keep the deliberately ignored pre-fix promise from poisoning other tests.
 					// The public rewrite must still reject and preserve the saved transcript.
 					void pending.catch(() => {});
 					writeStarted.resolve();
 					return pending;
-				});
+				}) as unknown as typeof sink.write);
 				return sink;
 			});
 			return file;
@@ -58,7 +54,7 @@ describe("FileSessionStorage streamed rewrite durability", () => {
 		completeWrite.reject(diskFull);
 		const error = await outcome;
 
-		expect(await Bun.file(sessionPath).text()).toBe(saved);
+		expect(await bun.file(sessionPath).text()).toBe(saved);
 		expect(error).toMatchObject({ code: "ENOSPC" });
 	});
 });

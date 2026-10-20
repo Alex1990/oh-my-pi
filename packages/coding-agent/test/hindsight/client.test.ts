@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { HindsightApi } from "../../src/hindsight/client";
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 describe("HindsightApi fetch cancellation", () => {
 	afterEach(() => {
@@ -16,7 +17,7 @@ describe("HindsightApi fetch cancellation", () => {
 				requestSignal = init?.signal ?? undefined;
 				return Response.json({ results: [] });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 
@@ -43,7 +44,7 @@ describe("HindsightApi per-op timeouts", () => {
 				async (): Promise<Response> => {
 					throw new DOMException("The operation timed out.", "TimeoutError");
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -62,7 +63,7 @@ describe("HindsightApi per-op timeouts", () => {
 				async (): Promise<Response> => {
 					throw new DOMException("The operation timed out.", "TimeoutError");
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 		const client = new HindsightApi({

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderDemotedThinking } from "@oh-my-pi/pi-ai/dialect";
 import { streamGoogle } from "@oh-my-pi/pi-ai/providers/google";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";

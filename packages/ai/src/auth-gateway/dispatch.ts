@@ -18,6 +18,7 @@ import type { ClientUsageIdentity } from "../usage";
 import { extractProviderRetryHint } from "../utils/retry-after";
 import type { AuthGatewayClientScope } from "./clients";
 import type { AuthGatewayServerOptions } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type ModelResolver = (modelId: string) => Model<Api> | undefined;
 
@@ -76,7 +77,7 @@ export function normalizeClientSessionKey(clientKey: string | undefined): string
  */
 export function resolveGatewayAccount(resolved: ResolvedApiKey): string {
 	if (resolved.credentialId !== undefined) return `credential:${resolved.credentialId}`;
-	return `key:${Bun.hash(resolved.apiKey).toString(36)}`;
+	return `key:${bun.hash(resolved.apiKey).toString(36)}`;
 }
 
 /** Who sent a request and which stored credential it started on, for the `auth-gateway request` log line. */

@@ -3,7 +3,7 @@
  * being rewritten to `launch join <link>` and forwarded to the LLM as an
  * initial prompt (same failure mode as #1496).
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { isSubcommand, resolveCliArgv } from "@oh-my-pi/pi-coding-agent/cli-commands";
 
 describe("join command is registered as a top-level subcommand", () => {

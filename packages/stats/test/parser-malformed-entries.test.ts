@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { syncAllSessions } from "@oh-my-pi/omp-stats/aggregator";
@@ -15,6 +15,7 @@ import { getOverallStats } from "@oh-my-pi/omp-stats/rollup";
 import { parseSessionFile } from "@oh-my-pi/omp-stats/parser";
 import { getSessionsDir, getStatsDbPath } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-malformed-");
 
@@ -46,7 +47,7 @@ async function writeSession(lines: string[]): Promise<string> {
 	const dir = path.join(getSessionsDir(), "--tmp--malformed");
 	await fs.mkdir(dir, { recursive: true });
 	const file = path.join(dir, "session.jsonl");
-	await Bun.write(file, `${lines.join("\n")}\n`);
+	await bun.write(file, `${lines.join("\n")}\n`);
 	return file;
 }
 

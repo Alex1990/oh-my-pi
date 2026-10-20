@@ -167,7 +167,7 @@ const keywordFactories: Record<string, () => IR> = {
 		k: "morph",
 		input: instance(FormData, "FormData"),
 		fn: value => {
-			const out: Record<string, Bun.FormDataEntryValue | Bun.FormDataEntryValue[]> = {};
+			const out: Record<string, FormDataEntryValue | FormDataEntryValue[]> = {};
 			for (const [key, entry] of (value as FormData).entries()) {
 				const current = out[key];
 				out[key] = current === undefined ? entry : Array.isArray(current) ? [...current, entry] : [current, entry];

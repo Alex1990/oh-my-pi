@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, type StreamFn } from "@oh-my-pi/pi-agent-core";
 import { type FetchImpl, streamSimple } from "@oh-my-pi/pi-ai";

@@ -10,7 +10,7 @@
  * vision, and routes reasoning through OpenAI-style `reasoning_effort: "max"`
  * (K3 does NOT accept the K2.x binary `thinking: { type }` block).
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";

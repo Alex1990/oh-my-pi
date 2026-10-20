@@ -1,10 +1,13 @@
-import { Database } from "bun:sqlite";
-import { expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { refreshStoredManagedMcpOAuthCredential } from "@oh-my-pi/pi-coding-agent/mcp/oauth-credentials";
 import type { MCPStoredOAuthCredential } from "@oh-my-pi/pi-coding-agent/mcp/oauth-flow";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 /** Capture the `resource` form field of the single refresh_token grant a helper call makes. */
 async function captureRefreshResource(
@@ -14,7 +17,7 @@ async function captureRefreshResource(
 	// recovered fallback resource survives same-origin filtering and is observable.
 	const provider = "mcp_oauth:profile:default:https://remote.example.test/mcp";
 	const resources: (string | null)[] = [];
-	const tokenServer = Bun.serve({
+	const tokenServer = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		async fetch(request) {
@@ -57,14 +60,14 @@ test("refresh without server-url recovery advertises no resource", async () => {
 	expect(resources).toEqual([null]);
 });
 
-const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
+const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 test("token refreshes and persists a rotating local MCP OAuth grant", async () => {
 	using tempDir = TempDir.createSync("@omp-token-mcp-oauth-");
 	const provider = "mcp_oauth:profile:default:https://mcp.example.test/MCP";
 	const dbPath = tempDir.join("agent.db");
 	const refreshTokens: string[] = [];
-	const tokenServer = Bun.serve({
+	const tokenServer = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		async fetch(request) {
@@ -92,8 +95,8 @@ test("token refreshes and persists a rotating local MCP OAuth grant", async () =
 		await authStorage.credentials.set(provider, credential);
 		authStorage.close();
 
-		const proc = Bun.spawn([process.execPath, cliEntry, "token", provider, "--force-refresh"], {
-			cwd: path.resolve(import.meta.dir, "../../.."),
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "token", provider, "--force-refresh"], {
+			cwd: path.resolve(import.meta.dirname, "../../.."),
 			env: {
 				...process.env,
 				NO_COLOR: "1",
@@ -150,8 +153,8 @@ test("token refuses a managed MCP id scoped to another profile", async () => {
 	});
 	authStorage.close();
 
-	const proc = Bun.spawn([process.execPath, cliEntry, "token", foreignProvider], {
-		cwd: path.resolve(import.meta.dir, "../../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "token", foreignProvider], {
+		cwd: path.resolve(import.meta.dirname, "../../.."),
 		env: {
 			...process.env,
 			NO_COLOR: "1",

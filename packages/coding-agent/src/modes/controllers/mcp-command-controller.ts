@@ -76,6 +76,7 @@ import type { InteractiveModeContext } from "../types";
 import { groupBySource, parseRemoveArgs, readScopeFlag, showCommandMessage } from "./command-controller-shared";
 
 import { cfgMcpEnableProjectConfig } from "../../mcp/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MCP_MANUAL_INPUT_PROVIDER_ID = "mcp";
 const MCP_MANUAL_LOGIN_TIP = "Headless? Paste the redirect URL or code with /login <value>.";
@@ -2486,7 +2487,7 @@ export class MCPCommandController {
 			if (response.status === "error") {
 				throw new Error(response.message ?? "Smithery authorization failed.");
 			}
-			await Bun.sleep(pollIntervalMs);
+			await bun.sleep(pollIntervalMs);
 		}
 
 		throw new Error("Smithery authorization cancelled.");

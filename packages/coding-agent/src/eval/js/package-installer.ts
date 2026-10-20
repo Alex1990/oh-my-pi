@@ -3,8 +3,9 @@ import * as path from "node:path";
 import { getAgentDir, isEnoent, ptree, withFileLock, writeRuntimeManifest } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { trackDownload } from "../../downloads/activity";
-import { resolveExecutablePath } from "../../subprocess/worker-client";
 import { normalizePackageRequirements } from "../package-requirements";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { addArgs, resolvePackageManager } from "@oh-my-pi/pi-utils/package-manager";
 
 /** Filesystem target used for explicit JavaScript eval dependencies. */
 export type JsPackageEnvironmentMode = "managed" | "project";
@@ -12,7 +13,7 @@ export type JsPackageEnvironmentMode = "managed" | "project";
 /** Resolved package-manager target and runtime module fallback. */
 export interface JsPackageEnvironment {
 	mode: JsPackageEnvironmentMode;
-	/** Directory owning package.json, bun.lock, and node_modules. */
+	/** Directory owning package.json, the lockfile, and node_modules. */
 	root: string;
 	/** Fallback module-resolution root consulted after the importing file's own project. */
 	packageRoot?: string;
@@ -47,7 +48,7 @@ function projectRoot(cwd: string): string {
 }
 
 function projectLockPath(cwd: string): string {
-	const projectKey = Bun.hash(path.resolve(cwd)).toString(16).padStart(16, "0");
+	const projectKey = bun.hash(path.resolve(cwd)).toString(16).padStart(16, "0");
 	return path.join(getAgentDir(), "cache", "eval-js", "project-locks", projectKey);
 }
 
@@ -60,7 +61,7 @@ export function resolveJsPackageEnvironment(
 	if (mode === "project") {
 		return { mode, root: project, packageRoot: project, description: `project environment at ${project}` };
 	}
-	const key = Bun.hash(project).toString(16).padStart(16, "0");
+	const key = bun.hash(project).toString(16).padStart(16, "0");
 	const root = path.join(getAgentDir(), "cache", "eval-js", "environments", key);
 	return { mode, root, packageRoot: root, description: `OMP-managed environment at ${root}` };
 }
@@ -90,7 +91,7 @@ async function ensureManagedManifest(
 
 async function currentDependencies(root: string): Promise<string> {
 	try {
-		const manifest: unknown = await Bun.file(path.join(root, "package.json")).json();
+		const manifest: unknown = await bun.file(path.join(root, "package.json")).json();
 		if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return "none recorded";
 		const dependencies = Reflect.get(manifest, "dependencies");
 		if (!dependencies || typeof dependencies !== "object" || Array.isArray(dependencies)) return "none recorded";
@@ -144,12 +145,11 @@ export async function installJsPackages(options: InstallJsPackagesOptions): Prom
 			options.signal?.throwIfAborted();
 			if (mode === "managed") await ensureManagedManifest(environment, options.autoProvision, options.signal);
 			const tracker = trackDownload("npm packages", { detail: packages.join(" ") });
+			const manager = resolvePackageManager();
 			const result = await ptree
-				.exec([resolveExecutablePath(), "add", "--cwd", environment.root, "--ignore-scripts", ...packages], {
-					// In a compiled distribution the resolved executable is omp.
-					// BUN_BE_BUN re-enters Bun's real package-manager
-					// CLI instead of recursively dispatching omp's command parser.
-					env: { ...Bun.env, BUN_BE_BUN: "1" },
+				.exec([manager.command, ...addArgs(manager.kind, packages)], {
+					cwd: environment.root,
+					env: { ...bun.env },
 					signal: options.signal,
 					allowNonZero: true,
 					stderr: "full",
@@ -159,10 +159,14 @@ export async function installJsPackages(options: InstallJsPackagesOptions): Prom
 					throw error;
 				});
 			if (!result.ok) {
-				// Bun's own `error: …` line names the failing package; the thrown error carries the full log.
-				const bunError = result.stderr.split("\n").findLast(line => line.startsWith("error:"));
+				// The manager's own `ERR!`/`error:` line names the failing package; the
+				// thrown error carries the full log.
+				const managerError = result.stderr
+					.split("\n")
+					.findLast(line => line.startsWith("ERR!") || line.startsWith("error:"));
 				tracker.fail(
-					bunError?.slice("error:".length).trim() || `bun add exited ${result.exitCode ?? "abnormally"}`,
+					managerError?.replace(/^(?:ERR!|error:)\s*/, "").trim() ||
+						`${manager.command} add exited ${result.exitCode ?? "abnormally"}`,
 				);
 				throw installFailure(environment, result.stdout, result.stderr, result.exitCode);
 			}

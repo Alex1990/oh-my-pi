@@ -4,7 +4,7 @@
  * cached model absent from the bundled catalog fuzzy-matched its nearest
  * bundled sibling and the session silently ran a different model.
  */
-import { afterEach, beforeEach, expect, it } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

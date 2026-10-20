@@ -1,6 +1,7 @@
-import { afterEach, expect, it, spyOn } from "bun:test";
+import { afterEach, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { createMockModel, type MockResponseSource } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -68,7 +69,7 @@ function setup(options: { responses?: MockResponseSource; beforeVisionReply?: ()
 					headers: { "content-type": "text/event-stream" },
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		),
 	);
 	cleanup.push(async () => {

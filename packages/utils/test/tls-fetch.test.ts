@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as tls from "node:tls";
 import { __resetExtraCaCache, ExtraCaError, type FetchImpl, wrapFetchForExtraCa } from "@oh-my-pi/pi-utils/tls-fetch";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SAMPLE_PEM =
 	"-----BEGIN CERTIFICATE-----\nMIIBkTCCATegAwIBAgIUF/sample/extra/ca/for/tests/1234567=\n-----END CERTIFICATE-----\n";
@@ -27,19 +28,19 @@ describe("wrapFetchForExtraCa", () => {
 
 	beforeEach(async () => {
 		__resetExtraCaCache();
-		originalEnv = Bun.env.NODE_EXTRA_CA_CERTS;
+		originalEnv = bun.env.NODE_EXTRA_CA_CERTS;
 		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-extra-ca-"));
 	});
 
 	afterEach(async () => {
 		__resetExtraCaCache();
-		if (originalEnv === undefined) delete Bun.env.NODE_EXTRA_CA_CERTS;
-		else Bun.env.NODE_EXTRA_CA_CERTS = originalEnv;
+		if (originalEnv === undefined) delete bun.env.NODE_EXTRA_CA_CERTS;
+		else bun.env.NODE_EXTRA_CA_CERTS = originalEnv;
 		await fs.rm(tmpDir, { recursive: true, force: true });
 	});
 
 	it("returns the original fetch when NODE_EXTRA_CA_CERTS is unset", async () => {
-		delete Bun.env.NODE_EXTRA_CA_CERTS;
+		delete bun.env.NODE_EXTRA_CA_CERTS;
 		const { fetchImpl, calls } = makeRecordingFetch();
 
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -52,8 +53,8 @@ describe("wrapFetchForExtraCa", () => {
 
 	it("loads the CA bundle from a path and seeds the system root store", async () => {
 		const caPath = path.join(tmpDir, "corp.pem");
-		await Bun.write(caPath, SAMPLE_PEM);
-		Bun.env.NODE_EXTRA_CA_CERTS = caPath;
+		await bun.write(caPath, SAMPLE_PEM);
+		bun.env.NODE_EXTRA_CA_CERTS = caPath;
 
 		const { fetchImpl, calls } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -69,8 +70,8 @@ describe("wrapFetchForExtraCa", () => {
 
 	it("accepts an extensionless path per Node's NODE_EXTRA_CA_CERTS contract", async () => {
 		const caPath = path.join(tmpDir, "corp-ca");
-		await Bun.write(caPath, SAMPLE_PEM);
-		Bun.env.NODE_EXTRA_CA_CERTS = caPath;
+		await bun.write(caPath, SAMPLE_PEM);
+		bun.env.NODE_EXTRA_CA_CERTS = caPath;
 
 		const { fetchImpl, calls } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -80,7 +81,7 @@ describe("wrapFetchForExtraCa", () => {
 	});
 
 	it("accepts an inline PEM and expands escaped \\n", async () => {
-		Bun.env.NODE_EXTRA_CA_CERTS = SAMPLE_PEM.replace(/\n/g, "\\n");
+		bun.env.NODE_EXTRA_CA_CERTS = SAMPLE_PEM.replace(/\n/g, "\\n");
 
 		const { fetchImpl, calls } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -91,8 +92,8 @@ describe("wrapFetchForExtraCa", () => {
 
 	it("appends to existing tls.ca without re-seeding system roots", async () => {
 		const caPath = path.join(tmpDir, "corp.pem");
-		await Bun.write(caPath, SAMPLE_PEM);
-		Bun.env.NODE_EXTRA_CA_CERTS = caPath;
+		await bun.write(caPath, SAMPLE_PEM);
+		bun.env.NODE_EXTRA_CA_CERTS = caPath;
 
 		const { fetchImpl, calls } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -106,8 +107,8 @@ describe("wrapFetchForExtraCa", () => {
 
 	it("invalidates the cache when the bundle file is rewritten", async () => {
 		const caPath = path.join(tmpDir, "rotating.pem");
-		await Bun.write(caPath, SAMPLE_PEM);
-		Bun.env.NODE_EXTRA_CA_CERTS = caPath;
+		await bun.write(caPath, SAMPLE_PEM);
+		bun.env.NODE_EXTRA_CA_CERTS = caPath;
 
 		const { fetchImpl, calls } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -117,7 +118,7 @@ describe("wrapFetchForExtraCa", () => {
 		// Bump mtime so the path@mtime cache key changes.
 		const future = new Date(Date.now() + 5_000);
 		await fs.utimes(caPath, future, future);
-		await Bun.write(caPath, SECONDARY_PEM);
+		await bun.write(caPath, SECONDARY_PEM);
 		await fs.utimes(caPath, future, future);
 
 		await wrapped("https://corp.example/v1");
@@ -127,7 +128,7 @@ describe("wrapFetchForExtraCa", () => {
 	});
 
 	it("throws ExtraCaError when the configured path does not exist", async () => {
-		Bun.env.NODE_EXTRA_CA_CERTS = path.join(tmpDir, "missing.pem");
+		bun.env.NODE_EXTRA_CA_CERTS = path.join(tmpDir, "missing.pem");
 
 		const { fetchImpl } = makeRecordingFetch();
 		const wrapped = wrapFetchForExtraCa(fetchImpl);
@@ -136,8 +137,8 @@ describe("wrapFetchForExtraCa", () => {
 
 	it("is idempotent — wrapping a wrapped fetch returns the same reference", async () => {
 		const caPath = path.join(tmpDir, "corp.pem");
-		await Bun.write(caPath, SAMPLE_PEM);
-		Bun.env.NODE_EXTRA_CA_CERTS = caPath;
+		await bun.write(caPath, SAMPLE_PEM);
+		bun.env.NODE_EXTRA_CA_CERTS = caPath;
 
 		const { fetchImpl } = makeRecordingFetch();
 		const once = wrapFetchForExtraCa(fetchImpl);

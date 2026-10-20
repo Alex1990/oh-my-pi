@@ -8,6 +8,8 @@ import { BeamMemory } from "./core/beam";
 import type { ImportStats, RecallResult } from "./core/beam/types";
 import { runDiagnostics } from "./diagnose";
 import { main as runMcpMain } from "./mcp-server";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface CliIo {
 	write(data: string): void;
@@ -35,11 +37,11 @@ export class CliError extends Error {
 type CommandHandler = (args: readonly string[], context?: CliContext) => number | Promise<number>;
 
 function out(context: CliContext | undefined, text = ""): void {
-	(context?.stdout ?? Bun.stdout).write(`${text}\n`);
+	(context?.stdout ?? bun.stdout).write(`${text}\n`);
 }
 
 function err(context: CliContext | undefined, text = ""): void {
-	(context?.stderr ?? Bun.stderr).write(`${text}\n`);
+	(context?.stderr ?? bun.stderr).write(`${text}\n`);
 }
 
 function fail(message: string, exitCode = 2): never {
@@ -374,7 +376,7 @@ export function printHelp(context?: CliContext): void {
 	out(context, "  mcp [args]                             Run MCP server");
 }
 
-export async function runCli(args: readonly string[] = Bun.argv.slice(2), context?: CliContext): Promise<number> {
+export async function runCli(args: readonly string[] = bun.argv.slice(2), context?: CliContext): Promise<number> {
 	if (args.length === 0 || args[0] === "--help" || args[0] === "-h" || args[0] === "help") {
 		printHelp(context);
 		return 0;
@@ -397,7 +399,7 @@ export async function runCli(args: readonly string[] = Bun.argv.slice(2), contex
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const code = await runCli();
 	process.exit(code);
 }

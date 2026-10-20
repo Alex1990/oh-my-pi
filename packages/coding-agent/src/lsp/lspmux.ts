@@ -1,7 +1,8 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { $flag, $which, logger } from "@oh-my-pi/pi-utils";
-import { TOML } from "bun";
+import { TOML } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * lspmux integration for LSP server multiplexing.
@@ -66,11 +67,11 @@ function getConfigPath(): string {
 	const home = os.homedir();
 	switch (os.platform()) {
 		case "win32":
-			return path.join(Bun.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "lspmux", "config.toml");
+			return path.join(bun.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "lspmux", "config.toml");
 		case "darwin":
 			return path.join(home, "Library", "Application Support", "lspmux", "config.toml");
 		default:
-			return path.join(Bun.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "lspmux", "config.toml");
+			return path.join(bun.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "lspmux", "config.toml");
 	}
 }
 
@@ -86,7 +87,7 @@ let cacheTimestamp = 0;
  */
 async function parseConfig(): Promise<LspmuxConfig | null> {
 	try {
-		const file = Bun.file(getConfigPath());
+		const file = bun.file(getConfigPath());
 		if (!(await file.exists())) {
 			return null;
 		}
@@ -101,7 +102,7 @@ async function parseConfig(): Promise<LspmuxConfig | null> {
  */
 async function checkServerRunning(binaryPath: string): Promise<boolean> {
 	try {
-		const proc = Bun.spawn([binaryPath, "status"], {
+		const proc = bun.spawn([binaryPath, "status"], {
 			stdout: "pipe",
 			stderr: "pipe",
 			windowsHide: true,
@@ -168,7 +169,7 @@ export async function detectLspmux(): Promise<LspmuxState> {
  * Check if a server command is supported by lspmux.
  */
 export function isLspmuxSupported(command: string): boolean {
-	// `command` is often an absolute `Bun.which` path; `path.win32` splits on both `/` and `\`.
+	// `command` is often an absolute `bun.which` path; `path.win32` splits on both `/` and `\`.
 	return DEFAULT_SUPPORTED_SERVERS.has(path.win32.basename(command).replace(/\.exe$/i, ""));
 }
 

@@ -7,6 +7,7 @@ import { providersSetupScene } from "./scenes/sign-in";
 import { themeSetupScene } from "./scenes/theme";
 import type { SetupScene } from "./scenes/types";
 import { SetupWizardComponent } from "./wizard-overlay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type { SetupScene, SetupSceneController, SetupSceneHost, SetupSceneResult } from "./scenes/types";
 
@@ -48,7 +49,7 @@ export async function selectSetupScenes(
 	if (!isTTY) return [];
 	if (!options.force) {
 		if (options.resuming) return [];
-		if (setupSkipEnvEnabled(options.skipEnv ?? Bun.env.OMP_SKIP_SETUP)) return [];
+		if (setupSkipEnvEnabled(options.skipEnv ?? bun.env.OMP_SKIP_SETUP)) return [];
 		if (options.setupWizardEnabled === false) return [];
 	}
 

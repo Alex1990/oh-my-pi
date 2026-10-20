@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { vcsDiscover, vcsGitClone, vcsGitDiscover, vcsGitRepoInfo } from "../native/index.js";
 import * as vcs from "../native/vcs.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -16,7 +17,7 @@ async function git(cwd: string, ...args: string[]): Promise<string> {
 	// host's global git config. `--no-ext-diff` is the reliable switch here; setting
 	// `diff.external=` to empty makes git execute "" as the driver and fail.
 	if (args[0] === "diff") args = ["diff", "--no-ext-diff", "--no-textconv", ...args.slice(1)];
-	const process = Bun.spawn(["git", ...args], { cwd, stderr: "pipe", stdout: "pipe" });
+	const process = bun.spawn(["git", ...args], { cwd, stderr: "pipe", stdout: "pipe" });
 	const [stdout, stderr, exitCode] = await Promise.all([
 		new Response(process.stdout).text(),
 		new Response(process.stderr).text(),
@@ -85,7 +86,7 @@ describe("in-process VCS bindings", () => {
 		await git(root, "restore", "tracked.txt");
 		expect(await repo!.canApplyPatch(nativePatch, {})).toBe(true);
 		await repo!.applyPatch(nativePatch, {});
-		expect(await Bun.file(join(root, "tracked.txt")).text()).toBe("one\nchanged\n");
+		expect(await bun.file(join(root, "tracked.txt")).text()).toBe("one\nchanged\n");
 
 		await repo!.stageFiles(["tracked.txt"]);
 		const sha = await repo!.commitCreate("native commit", {});

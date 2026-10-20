@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { relativeLuminance } from "@oh-my-pi/pi-utils";
 import { resolveVarRefs } from "@oh-my-pi/pi-tui/theme/color";
 import { loadTheme, loadThemeJson } from "@oh-my-pi/pi-tui/theme/loader";

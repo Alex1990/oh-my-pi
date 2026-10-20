@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,7 +11,7 @@ test("model listing exposes one provider-qualified route per upstream model", as
 	const storage = await AuthStorage.create(path.join(dir, "auth.db"));
 	const anthropic = createMockModel({ provider: "anthropic", id: "shared-model" });
 	const devin = createMockModel({ provider: "devin", id: "shared-model" });
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: [],
 		storage,

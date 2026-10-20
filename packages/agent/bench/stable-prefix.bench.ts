@@ -12,6 +12,7 @@
 import { type } from "@oh-my-pi/omptype";
 import { StablePrefix } from "../src/append-only-context";
 import type { AgentTool } from "../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const toolSchema = type({
 	path: type("string").describe("where to read"),
@@ -41,12 +42,12 @@ const prefix = new StablePrefix();
 if (!prefix.build(context, options)) throw new Error("first build must report changed");
 
 const N = 1000;
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 let changed = 0;
 for (let i = 0; i < N; i++) {
 	if (prefix.build(context, options)) changed++;
 }
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 console.log(
 	`StablePrefix.build x${N} steady-state (50 tools): ${ms.toFixed(1)}ms (${((ms / N) * 1000).toFixed(1)}us/op, changed=${changed})`,
 );

@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Buffer } from "node:buffer";
 import { copyToClipboard } from "@oh-my-pi/pi-coding-agent/utils/clipboard";
 import * as natives from "@oh-my-pi/pi-natives/clipboard";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
 
@@ -10,7 +12,7 @@ function setPlatform(value: string): void {
 }
 
 /** Minimal stand-in for the `pbcopy` child: empty stdout, given exit code. */
-function fakeProcess(exitCode: number): Bun.Subprocess {
+function fakeProcess(exitCode: number): Subprocess {
 	return {
 		stdout: new ReadableStream<Uint8Array>({
 			start(controller) {
@@ -20,7 +22,7 @@ function fakeProcess(exitCode: number): Bun.Subprocess {
 		exited: Promise.resolve(exitCode),
 		exitCode,
 		kill: () => {},
-	} as unknown as Bun.Subprocess;
+	} as unknown as Subprocess;
 }
 
 type SpawnCall = { cmd: string[]; stdin: string; env: Record<string, string | undefined> | undefined };
@@ -43,8 +45,8 @@ describe("copyToClipboard local backend order", () => {
 		if (platformDescriptor) Object.defineProperty(process, "platform", platformDescriptor);
 	});
 
-	function captureSpawns(calls: SpawnCall[], onPbcopy: () => Bun.Subprocess) {
-		return vi.spyOn(Bun, "spawn").mockImplementation((...args: unknown[]) => {
+	function captureSpawns(calls: SpawnCall[], onPbcopy: () => Subprocess) {
+		return vi.spyOn(bun, "spawn").mockImplementation((...args: unknown[]) => {
 			const first = args[0];
 			const cmd = Array.isArray(first) ? (first as string[]) : ((first as { cmd?: string[] }).cmd ?? []);
 			const options = (Array.isArray(first) ? args[1] : first) as
@@ -96,12 +98,12 @@ describe("copyToClipboard local backend order", () => {
 					if (exitCode === 0) clipboard = text;
 					return exitCode;
 				}),
-			};
+			} as unknown as Subprocess;
 		});
 
 		const writes = [copyToClipboard("older"), copyToClipboard(latest)];
 		// Let an unqueued second write finish before releasing the older child.
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		firstFinished.resolve();
 		await Promise.all(writes);
 

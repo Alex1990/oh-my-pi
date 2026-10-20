@@ -19,9 +19,12 @@ import { loadTasksFromDir, validateFixturesFromDir } from "@oh-my-pi/typescript-
 import { LiveProgress } from "./live-progress";
 import { generateJsonReport, generateReport } from "./report";
 import { type BenchmarkConfig, type BenchmarkResult, buildBenchmarkResult, runBenchmark } from "./runner";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const EDIT_PACKAGE = path.resolve(import.meta.dir, "..", "..", "..", "typescript-edit-benchmark");
-const RUNS_DIR = path.resolve(import.meta.dir, "..", "..", "..", "..", "runs");
+const EDIT_PACKAGE = path.resolve(import.meta.dirname, "..", "..", "..", "typescript-edit-benchmark");
+const RUNS_DIR = path.resolve(import.meta.dirname, "..", "..", "..", "..", "runs");
 
 type ReportFormat = "markdown" | "json";
 
@@ -106,9 +109,9 @@ async function resolveFixtures(fixturesArg: string | undefined): Promise<Resolve
 		return { dir: source };
 	}
 	const temp = await TempDir.create("@metaharness-edit-fixtures-");
-	const archive = new Bun.Archive(await Bun.file(source).arrayBuffer());
+	const archive = new Archive(await bun.file(source).arrayBuffer());
 	for (const [filePath, file] of await archive.files()) {
-		await Bun.write(path.join(temp.path(), filePath), file);
+		await bun.write(path.join(temp.path(), filePath), file);
 	}
 	const entries = await fs.readdir(temp.path(), { withFileTypes: true });
 	const directories = entries.filter(entry => entry.isDirectory());
@@ -304,7 +307,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
 		let writes = Promise.resolve();
 		const queueReportWrite = (result: BenchmarkResult) => {
 			writes = writes.then(async () => {
-				await Bun.write(outputPath, renderReport(result));
+				await bun.write(outputPath, renderReport(result));
 			});
 		};
 		// A killed/interrupted run still leaves a usable partial report behind.
@@ -312,7 +315,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
 			if (reason === postmortem.Reason.EXIT) return;
 			progress?.finish();
 			log("Benchmark interrupted; writing partial report...");
-			await Bun.write(outputPath, renderReport(latestResult));
+			await bun.write(outputPath, renderReport(latestResult));
 			await fixtures.cleanup?.();
 		});
 
@@ -348,7 +351,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	main()
 		.then(async () => {
 			// In-process benchmark runs can leave provider keep-alive sockets and

@@ -21,8 +21,9 @@ import { countTokens, Encoding } from "@oh-my-pi/pi-natives";
 import { prompt } from "@oh-my-pi/pi-utils";
 import { loadBundledAgents } from "../packages/coding-agent/src/task/agents";
 import { isReadOnlyAgent } from "../packages/coding-agent/src/task/read-only-policy";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const TOOL_PROMPT_DIR = path.join(REPO_ROOT, "packages/coding-agent/src/prompts/tools");
 const DEFAULT_READ_LIMIT = "300";
 const DEFAULT_MAX_LINES = "3000";
@@ -67,7 +68,7 @@ function parseEncoding(value: string | undefined): Encoding {
 
 function parseCli(): CliOptions | null {
 	const parsed = parseArgs({
-		args: Bun.argv.slice(2),
+		args: bun.argv.slice(2),
 		allowPositionals: true,
 		options: {
 			encoding: { type: "string" },
@@ -93,7 +94,7 @@ function relativePath(filePath: string): string {
 async function collectPromptPaths(positionals: readonly string[]): Promise<string[]> {
 	if (positionals.length === 0) {
 		const files = await Array.fromAsync(
-			new Bun.Glob("*.md").scan({ cwd: TOOL_PROMPT_DIR, absolute: true, onlyFiles: true }),
+			new bun.Glob("*.md").scan({ cwd: TOOL_PROMPT_DIR, absolute: true, onlyFiles: true }),
 		);
 		return files.sort((a, b) => relativePath(a).localeCompare(relativePath(b)));
 	}
@@ -103,7 +104,7 @@ async function collectPromptPaths(positionals: readonly string[]): Promise<strin
 		const resolved = path.resolve(REPO_ROOT, positional);
 		const stat = await fs.stat(resolved);
 		if (stat.isDirectory()) {
-			for await (const entry of new Bun.Glob("*.md").scan({ cwd: resolved, absolute: true, onlyFiles: true })) {
+			for await (const entry of new bun.Glob("*.md").scan({ cwd: resolved, absolute: true, onlyFiles: true })) {
 				files.push(entry);
 			}
 		} else if (stat.isFile()) {
@@ -178,7 +179,7 @@ function renderContext(): Record<string, unknown> {
 }
 
 async function estimatePrompt(filePath: string, encoding: Encoding): Promise<PromptEstimate> {
-	const template = await Bun.file(filePath).text();
+	const template = await bun.file(filePath).text();
 	const rendered = prompt.render(template, renderContext());
 	return {
 		path: relativePath(filePath),

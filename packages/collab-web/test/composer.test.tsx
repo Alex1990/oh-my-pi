@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { parseHTML } from "@oh-my-pi/pi-utils/dom";
 import type { KeyboardEvent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GuestClient } from "../src/lib/client";
@@ -47,15 +48,8 @@ describe("Composer host UI requests", () => {
 			<Composer {...props({ reqId: 3, kind: "editor", title: "Other", prefill: "   " })} />,
 		);
 
-		const submit = { found: false, disabled: false };
-		new HTMLRewriter()
-			.on('button[title="submit response"]', {
-				element(el) {
-					submit.found = true;
-					submit.disabled = el.hasAttribute("disabled");
-				},
-			})
-			.transform(html);
+		const submitEl = parseHTML(html).document.querySelector('button[title="submit response"]');
+		const submit = { found: submitEl !== null, disabled: submitEl?.hasAttribute("disabled") ?? false };
 
 		expect(submit.found).toBe(true);
 		expect(submit.disabled).toBe(false);

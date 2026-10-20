@@ -11,11 +11,12 @@
  * field as `provider/model.field: baked=X engine=Y`; fix the KDL rules (or a
  * host-detection seam in `resolve.ts`), never the baked values.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { isCollapsedVariantSpec } from "../src/compat/collapse";
 import { resolveModelPolicy } from "../src/compat/resolve";
 import models from "../src/models.json";
 import type { Api, Model, ModelSpec } from "../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Fields introduced by the compat engine — absent from pre-engine baked rows. */
 const NEW_COMPAT_FIELDS = new Set([
@@ -45,7 +46,7 @@ function jsonClone<T>(value: T): unknown {
 }
 
 function diffValues(prefix: string, baked: unknown, engine: unknown, out: string[]): void {
-	if (Bun.deepEquals(baked, engine, true)) return;
+	if (bun.deepEquals(baked, engine, true)) return;
 	if (
 		typeof baked === "object" &&
 		baked !== null &&

@@ -5,7 +5,7 @@
  * `web_fetch_exa`, `web_search_advanced_exa`) must stay mounted as an MCP
  * server instead of being dropped.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { SourceMeta } from "@oh-my-pi/pi-coding-agent/capability/types";
 import { filterExaMCPServers, shouldFilterBrowserMCPForPrelude } from "@oh-my-pi/pi-coding-agent/mcp/config";
 import type { MCPServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";

@@ -6,15 +6,18 @@
  * on explicit request through the real CLI, and observes crash pruning.
  * All writes stay under temp dirs, including a fake HOME for the CLI path.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { CollabListJsonOutput } from "@oh-my-pi/pi-coding-agent/cli/collab-cli";
 import { COLLAB_REGISTRY_VERSION, listCollabHosts } from "@oh-my-pi/pi-coding-agent/collab/registry";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
-const HELPER_PATH = path.resolve(import.meta.dir, "helpers/registry-host-process.ts");
-const CLI_PATH = path.resolve(import.meta.dir, "../../src/cli.ts");
+const HELPER_PATH = path.resolve(import.meta.dirname, "helpers/registry-host-process.ts");
+const CLI_PATH = path.resolve(import.meta.dirname, "../../src/cli.ts");
 const READY_TIMEOUT_MS = 15_000;
 const CLEANUP_TIMEOUT_MS = 15_000;
 const CLI_TIMEOUT_MS = 60_000;
@@ -33,7 +36,7 @@ async function waitUntil(condition: () => boolean | Promise<boolean>, timeoutMs:
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		if (await condition()) return true;
-		await Bun.sleep(50);
+		await bun.sleep(50);
 	}
 	return condition();
 }
@@ -49,18 +52,18 @@ async function readUntil(stream: ReadableStream<Uint8Array>, needle: string, tim
 		}
 		return false;
 	})();
-	return Promise.race([scan, Bun.sleep(timeoutMs).then(() => false)]);
+	return Promise.race([scan, bun.sleep(timeoutMs).then(() => false)]);
 }
 
 interface Helper {
-	child: Bun.Subprocess<"ignore", "pipe", "pipe">;
+	child: Subprocess;
 	/** Snapshot of everything the helper has written to stderr so far. */
 	stderr(): string;
 }
 
 function spawnHelper(args: string[], env?: Record<string, string | undefined>): Helper {
-	const child = Bun.spawn([process.execPath, HELPER_PATH, ...args], {
-		cwd: path.resolve(import.meta.dir, "../.."),
+	const child = bun.spawn([process.execPath, ...nodeSourceFlags(), HELPER_PATH, ...args], {
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		env: env ?? process.env,
 		stdin: "ignore",
 		stdout: "pipe",
@@ -146,8 +149,8 @@ describe("collab host registry (two-process smoke)", () => {
 		expect({ ready, helperStderr: stderr() }).toEqual({ ready: true, helperStderr: "" });
 
 		const runCli = async (args: string[]): Promise<{ code: number; stdout: string; stderr: string }> => {
-			const cli = Bun.spawn([process.execPath, CLI_PATH, "collab", ...args], {
-				cwd: path.resolve(import.meta.dir, "../.."),
+			const cli = bun.spawn([process.execPath, ...nodeSourceFlags(), CLI_PATH, "collab", ...args], {
+				cwd: path.resolve(import.meta.dirname, "../.."),
 				env,
 				stdin: "ignore",
 				stdout: "pipe",

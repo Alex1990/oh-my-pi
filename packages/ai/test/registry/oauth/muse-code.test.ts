@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "../../../src/registry/registry";
 import { attachMuseCodeApiKey, parseMuseCodeCredential } from "../../../src/registry/oauth/muse-code";
 import type { FetchImpl } from "../../../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { preconnectOf } from "../../../src/utils/fetch-preconnect";
 
 const DEVICE_URL = "https://auth.meta.com/oidc/device/authorization/";
 const TOKEN_URL = "https://auth.meta.com/oidc/device/token/";
@@ -70,7 +72,7 @@ function createMuseLoginFetch(options: MuseLoginFetchOptions = {}): {
 			}
 			throw new Error(`unexpected URL: ${url}`);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	return { fetch: fetchImpl, requests };
 }
@@ -167,7 +169,7 @@ describe("Muse Code OAuth", () => {
 	});
 
 	test("continues through pending and slow-down responses", async () => {
-		vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 		const { fetch: fetchImpl, requests } = createMuseLoginFetch({
 			tokens: [
 				{ body: { error: "authorization_pending" }, status: 400 },
@@ -207,7 +209,7 @@ describe("Muse Code OAuth", () => {
 									require_payment_action_url: "https://www.meta.ai/subscribe",
 								}),
 							),
-						{ preconnect: fetch.preconnect },
+						{ preconnect: preconnectOf(fetch) },
 					),
 				},
 			),
@@ -239,7 +241,7 @@ describe("Muse Code OAuth", () => {
 								subs_tier_name: null,
 							}),
 						),
-					{ preconnect: fetch.preconnect },
+					{ preconnect: preconnectOf(fetch) },
 				),
 			},
 		);
@@ -259,7 +261,7 @@ describe("Muse Code OAuth", () => {
 					phase: "login",
 					raw: {},
 					fetch: Object.assign(() => Promise.resolve(Response.json({ is_subs_active: false }, { status: 200 })), {
-						preconnect: fetch.preconnect,
+						preconnect: preconnectOf(fetch),
 					}),
 				},
 			),
@@ -281,7 +283,7 @@ describe("Muse Code OAuth", () => {
 						requests += 1;
 						return Promise.resolve(Response.json({ is_subs_active: true, api_key: "LLM|other" }));
 					},
-					{ preconnect: fetch.preconnect },
+					{ preconnect: preconnectOf(fetch) },
 				),
 			},
 		);
@@ -305,7 +307,7 @@ describe("Muse Code OAuth", () => {
 									headers: { "Content-Type": "text/html" },
 								}),
 							),
-						{ preconnect: fetch.preconnect },
+						{ preconnect: preconnectOf(fetch) },
 					),
 				},
 			),
@@ -333,7 +335,7 @@ describe("Muse Code OAuth", () => {
 									headers: { "Content-Type": "application/json" },
 								}),
 							),
-						{ preconnect: fetch.preconnect },
+						{ preconnect: preconnectOf(fetch) },
 					),
 				},
 			),

@@ -8,6 +8,8 @@
  *   SIGKILLs itself so the child is orphaned mid-loop.
  */
 import { startParentWatchdog } from "../../src/subprocess/parent-watchdog";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 const BLOCK_MS = 20_000;
 
@@ -18,7 +20,7 @@ if (process.argv[2] === "child") {
 	while (Date.now() < end) {}
 	process.stdout.write("survived\n");
 } else {
-	const child = Bun.spawn([process.execPath, import.meta.path, "child"], {
+	const child = bun.spawn([process.execPath, ...nodeSourceFlags(), import.meta.filename, "child"], {
 		stdin: "ignore",
 		stdout: "pipe",
 		stderr: "inherit",

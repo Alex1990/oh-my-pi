@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { importCodexSecurityBundle, importSarif, importSarifFile, SecurityStore } from "../../src/security";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const FIXTURE_ROOT = path.join(import.meta.dir, "..", "fixtures", "security");
+const FIXTURE_ROOT = path.join(import.meta.dirname, "..", "fixtures", "security");
 let temporaryRoot = "";
 let repositoryRoot = "";
 
@@ -46,7 +47,7 @@ describe("security importers and store", () => {
 		const bundleRoot = path.join(temporaryRoot, "codex-outside");
 		await fs.mkdir(bundleRoot);
 		await Promise.all([
-			Bun.write(
+			bun.write(
 				path.join(bundleRoot, "scan-manifest.json"),
 				JSON.stringify({
 					documentType: "codex-security.scan-manifest",
@@ -54,7 +55,7 @@ describe("security importers and store", () => {
 					scan: { id: "scan-outside", producer: { name: "fixture" }, status: "completed" },
 				}),
 			),
-			Bun.write(
+			bun.write(
 				path.join(bundleRoot, "findings.json"),
 				JSON.stringify({
 					documentType: "codex-security.findings",
@@ -69,7 +70,7 @@ describe("security importers and store", () => {
 					],
 				}),
 			),
-			Bun.write(
+			bun.write(
 				path.join(bundleRoot, "coverage.json"),
 				JSON.stringify({
 					documentType: "codex-security.coverage",

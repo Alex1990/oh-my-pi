@@ -7,7 +7,7 @@
  * `vi.spyOn(HindsightApi.prototype, ...)` per AGENTS.md.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
@@ -27,6 +27,7 @@ import {
 	cfgHindsightRetainMission,
 	cfgHindsightScoping,
 } from "@oh-my-pi/pi-coding-agent/hindsight/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface FakeSessionDeps {
 	sessionId: string | null;
@@ -146,14 +147,14 @@ describe("hindsightBackend.start", () => {
 		entries.push({ role: "user", text: "first user message that is long enough" });
 		entries.push({ role: "assistant", text: "first assistant reply that is long enough" });
 		session.emit({ type: "agent_end", messages: [] });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(retainSpy).toHaveBeenCalledTimes(0);
 
 		// Turn 2: hits the threshold
 		entries.push({ role: "user", text: "second user message that is long enough" });
 		entries.push({ role: "assistant", text: "second reply that is long enough" });
 		session.emit({ type: "agent_end", messages: [] });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(retainSpy).toHaveBeenCalledTimes(1);
 		expect(retainSpy.mock.calls[0]?.[2]?.timestamp).toBeInstanceOf(Date);
 	});
@@ -852,7 +853,7 @@ describe("hindsightBackend live bank routing", () => {
 		expect(session.listenerCount()).toBe(1);
 
 		session.emit({ type: "agent_end", messages: [] });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		expect(retainSpy).toHaveBeenCalledTimes(1);
 		expect(retainSpy.mock.calls[0][0]).toBe("live-Minigames-proj");

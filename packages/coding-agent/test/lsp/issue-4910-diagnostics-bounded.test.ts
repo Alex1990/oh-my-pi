@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { getDiagnosticsForFile } from "@oh-my-pi/pi-coding-agent/lsp/diagnostics";
 import type { Diagnostic, LinterClient, ServerConfig } from "@oh-my-pi/pi-coding-agent/lsp/types";
 

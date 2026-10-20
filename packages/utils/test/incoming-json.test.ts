@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { IncomingDoc, IncomingJsonError, rescannedMembers } from "@oh-my-pi/pi-utils/incoming-json";
 import { parseJsonWithRepair } from "@oh-my-pi/pi-utils/json-parse";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Whether `promise` is still unsettled after the microtask queue and one macrotask drain. */
 async function pending(promise: Promise<unknown>): Promise<boolean> {
@@ -15,7 +16,7 @@ async function pending(promise: Promise<unknown>): Promise<boolean> {
 	);
 	// One event-loop turn, not a guessed delay: pulls settle through bounded
 	// microtask chains, and an unsettled pull only wakes on a later push.
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	return !settled;
 }
 

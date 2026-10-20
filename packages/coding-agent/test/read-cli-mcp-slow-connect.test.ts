@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const CLI_ENTRY = path.join(import.meta.dir, "..", "src", "cli.ts");
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "resources-no-templates-mcp.ts");
+const CLI_ENTRY = path.join(import.meta.dirname, "..", "src", "cli.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "resources-no-templates-mcp.ts");
 
 // The fixture stalls its `initialize` reply for this long — comfortably past
 // `MCPManager`'s `STARTUP_TIMEOUT_MS` (250 ms) so the server is guaranteed to be
@@ -24,7 +26,7 @@ describe("omp read MCP resource with a slow-connecting server", () => {
 		projectDir = path.join(root, "project");
 		agentDir = path.join(root, "agent");
 		await Promise.all([fs.mkdir(projectDir), fs.mkdir(agentDir)]);
-		await Bun.write(
+		await bun.write(
 			path.join(projectDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {
@@ -38,7 +40,7 @@ describe("omp read MCP resource with a slow-connecting server", () => {
 			}),
 		);
 		probePath = path.join(root, "probe.ts");
-		await Bun.write(
+		await bun.write(
 			probePath,
 			[
 				`import { runCli } from ${JSON.stringify(url.pathToFileURL(CLI_ENTRY).href)};`,
@@ -52,7 +54,7 @@ describe("omp read MCP resource with a slow-connecting server", () => {
 	});
 
 	async function runReadProbe(): Promise<{ exitCode: number; output: string; error: string }> {
-		const proc = Bun.spawn([process.execPath, probePath], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 			cwd: projectDir,
 			stdout: "pipe",
 			stderr: "pipe",

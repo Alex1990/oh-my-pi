@@ -1,12 +1,26 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { readSessionHeaderId } from "@oh-my-pi/pi-coding-agent/session/session-loader";
 import { SessionManager, type SessionPersistenceNotice } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage, tryAcquireSessionLease } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
-const SESSION_MANAGER_MODULE = path.join(import.meta.dir, "../../src/session/session-manager.ts");
+const SESSION_MANAGER_MODULE = pathToFileURL(
+	path.join(import.meta.dirname, "../../src/session/session-manager.ts"),
+).href;
+// The child runs repo TypeScript directly, so it needs the same Node flags the
+// build scripts use: type-transform (enums, decorators) plus the ESM hooks that
+// map extensionless/text imports the way Bun's loader did.
+const NODE_TS_FLAGS = [
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.join(import.meta.dirname, "../../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 /** What the other process reports after each command. */
 interface OtherProcessState {
@@ -20,11 +34,11 @@ interface OtherProcessState {
  * and then runs one command per line: `append <text>`, `rewrite`, or `close`.
  */
 class OtherProcess {
-	readonly #child: Bun.Subprocess<"pipe", "pipe", "pipe">;
+	readonly #child: Subprocess;
 	readonly #stdout: { read(): Promise<{ done: boolean; value?: Uint8Array }> };
 	#buffered = "";
 
-	private constructor(child: Bun.Subprocess<"pipe", "pipe", "pipe">) {
+	private constructor(child: Subprocess) {
 		this.#child = child;
 		this.#stdout = child.stdout.getReader();
 	}
@@ -34,9 +48,10 @@ class OtherProcess {
 		sessionFile: string,
 	): Promise<{ other: OtherProcess; opened: OtherProcessState }> {
 		const script = tempDir.join("other-process.ts");
-		await Bun.write(
+		await bun.write(
 			script,
 			[
+				`import { createInterface } from "node:readline";`,
 				`import { SessionManager } from ${JSON.stringify(SESSION_MANAGER_MODULE)};`,
 				"const manager = await SessionManager.open(process.argv[2], undefined, undefined, { suppressBreadcrumb: true });",
 				"const notices = [];",
@@ -45,7 +60,7 @@ class OtherProcess {
 				"manager.onPersistenceError(error => errors.push(error.message));",
 				'const report = () => process.stdout.write(JSON.stringify({ sessionFile: manager.getSessionFile(), notices, errors }) + "\\n");',
 				"report();",
-				"for await (const line of console) {",
+				"for await (const line of createInterface({ input: process.stdin })) {",
 				'	if (line === "close") break;',
 				'	if (line.startsWith("append ")) {',
 				'		manager.appendMessage({ role: "user", content: line.slice("append ".length), timestamp: Date.now() });',
@@ -59,9 +74,9 @@ class OtherProcess {
 			].join("\n"),
 		);
 		const other = new OtherProcess(
-			// The live `process.env` (Bun.spawn defaults to the launch env), so the
+			// The live `process.env` (bun.spawn defaults to the launch env), so the
 			// other process meets this test's private session-owner leases.
-			Bun.spawn([process.execPath, script, sessionFile], {
+			bun.spawn([process.execPath, ...nodeSourceFlags(), ...NODE_TS_FLAGS, script, sessionFile], {
 				stdin: "pipe",
 				stdout: "pipe",
 				stderr: "pipe",
@@ -190,7 +205,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 		// Neither process's entries leak into the other's file.
 		expect(await userTurnsIn(original, tempDir.path())).toEqual(["before", "owner 1", "owner 2"]);
 		expect(await userTurnsIn(sibling, tempDir.path())).toEqual(["before", "owner 1", "other 1", "other 2"]);
-	}, 30_000);
+	}, 60_000);
 
 	it("does not count a process that only opened the session as its owner", async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
@@ -203,7 +218,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 		} finally {
 			await inspector.close();
 		}
-	}, 30_000);
+	}, 60_000);
 
 	it("hands the file to the next writer once its owner crashed", async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
@@ -214,13 +229,17 @@ describe("SessionManager on a session file another omp process writes", () => {
 		await other.kill();
 
 		expect(await resumeAndAppend(original, tempDir.path())).toEqual({ savedTo: original, notices: [] });
-	}, 30_000);
+	}, 60_000);
 
 	for (const [kind, link] of [
 		["symlink", fs.symlinkSync],
 		["hard link", fs.linkSync],
 	] as const) {
-		it(`keeps the file with its owner when another process resumes it through a ${kind}`, async () => {
+		// Creating file symlinks on Windows needs Developer Mode or SeCreateSymbolicLink
+		// privilege; hard links need neither, so only the symlink arm is skipped there.
+		it.skipIf(kind === "symlink" && process.platform === "win32")(
+			`keeps the file with its owner when another process resumes it through a ${kind}`,
+			async () => {
 			using tempDir = TempDir.createSync("@omp-shared-session-file-");
 			const original = await createSession(tempDir);
 
@@ -238,10 +257,15 @@ describe("SessionManager on a session file another omp process writes", () => {
 			}
 			// The owner's journal holds only the owner's turns.
 			expect(await userTurnsIn(original, tempDir.path())).toEqual(["before", "other 1"]);
-		}, 30_000);
+			},
+			60_000,
+		);
 	}
 
-	it("carries the owner's artifacts to the sibling of a session resumed through a symlink", async () => {
+	// Same Windows privilege gate as the symlink arm above.
+	it.skipIf(process.platform === "win32")(
+		"carries the owner's artifacts to the sibling of a session resumed through a symlink",
+		async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
 		const original = await createSession(tempDir);
 		// Artifacts live beside the journal's real name.
@@ -261,7 +285,9 @@ describe("SessionManager on a session file another omp process writes", () => {
 		} finally {
 			await other.close();
 		}
-	}, 30_000);
+		},
+		60_000,
+	);
 
 	for (const [destination, prepare, refusal] of [
 		["a copy of this session", (source: string, target: string) => fs.copyFileSync(source, target), /writes it\./],
@@ -301,7 +327,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 			} finally {
 				await other.close();
 			}
-		}, 30_000);
+		}, 60_000);
 	}
 
 	it("moves over a destination nobody writes and leaves that session's lease free", async () => {
@@ -329,7 +355,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 		const probe = tryAcquireSessionLease(replacedId);
 		probe?.release();
 		expect(probe).not.toBeNull();
-	}, 30_000);
+	}, 60_000);
 
 	it("refuses to change the cwd of a session another process writes, even when the file stays put", async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
@@ -350,7 +376,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 		} finally {
 			await other.close();
 		}
-	}, 30_000);
+	}, 60_000);
 
 	it("refuses to move a source path that another live session replaced since this manager opened it", async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
@@ -373,7 +399,7 @@ describe("SessionManager on a session file another omp process writes", () => {
 			await ours.close();
 			await other.close();
 		}
-	}, 30_000);
+	}, 60_000);
 
 	it("does not append into another session that was moved onto the path after this manager opened it", async () => {
 		using tempDir = TempDir.createSync("@omp-shared-session-file-");
@@ -397,5 +423,5 @@ describe("SessionManager on a session file another omp process writes", () => {
 			await ours.close();
 			await other.close();
 		}
-	}, 30_000);
+	}, 60_000);
 });

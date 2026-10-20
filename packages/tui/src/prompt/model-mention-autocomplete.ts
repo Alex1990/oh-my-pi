@@ -9,6 +9,9 @@ import type {
 	SessionModelScopeCache as SessionModelScopeCacheClass,
 } from "../overlays/model-browser";
 import { theme } from "../theme/theme";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 const MODEL_MENTION_CONTEXT_RE = /(?:^|\s)(\^[^\s]*)$/;
 const MAX_MODEL_MENTION_SUGGESTIONS = 20;

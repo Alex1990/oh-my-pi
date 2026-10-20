@@ -8,13 +8,15 @@
  * BUSY family.
  */
 
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { isSqliteBusyError, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { removeWithRetries } from "../../utils/src/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeTsArgs } from "./helpers/node-ts";
 
 interface SqliteBusyShape extends Error {
 	code: string;
@@ -73,21 +75,21 @@ describe("SqliteAuthCredentialStore.open SQLITE_BUSY handling", () => {
 		// exhausted its retries and threw. Readiness is signaled via a sentinel
 		// file written after BEGIN EXCLUSIVE — not stdout — so the handshake
 		// cannot be affected by how the runner wires child stdio.
-		const locker = Bun.spawn(
-			[
-				process.execPath,
+		const locker = bun.spawn(
+			nodeTsArgs(
 				"-e",
-				`import { Database } from "bun:sqlite";
+				`import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { writeFileSync } from "node:fs";
+import { sleep } from "@oh-my-pi/pi-utils/node-runtime";
 const db = new Database(process.argv[1]);
 db.run("BEGIN EXCLUSIVE");
 writeFileSync(process.argv[2], "locked");
-await Bun.sleep(750);
+await sleep(750);
 db.run("COMMIT");
 db.close();`,
 				dbPath,
 				sentinel,
-			],
+			),
 			{ env: { HOME: process.env.HOME ?? "", PATH: process.env.PATH ?? "" }, stdout: "ignore", stderr: "pipe" },
 		);
 		// Real-time waits are unavoidable here: the lock lives in a separate
@@ -101,7 +103,7 @@ db.close();`,
 				() => false,
 			);
 			if (locked || locker.exitCode !== null) break;
-			await Bun.sleep(10);
+			await bun.sleep(10);
 		}
 		if (!locked) {
 			throw new Error(`locker never signaled readiness: ${await new Response(locker.stderr).text()}`);
@@ -178,7 +180,7 @@ db.close();`,
 			throw makeBusyError("SQLITE_BUSY_RECOVERY", 261);
 		});
 		// Skip the sleep so the test doesn't take 700ms+ of real time.
-		const sleepSpy = vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		const sleepSpy = vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 
 		await expect(SqliteAuthCredentialStore.open(dbPath)).rejects.toThrow(dbPath);
 		// open uses `maxAttempts = 4`, so the loop sleeps between attempts 0..2

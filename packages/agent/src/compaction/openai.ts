@@ -63,6 +63,7 @@ import { isOpenAiRemoteCompactionApi } from "./compaction-v2-streaming";
 import contextWindowTruncatedOutputPrompt from "./prompts/context-window-truncated-output.md" with { type: "text" };
 
 export * from "./compaction-v2-streaming";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ============================================================================
 // Public types
@@ -533,7 +534,7 @@ function computerHistoryNote(item: Record<string, unknown>): Record<string, unkn
 	const serialized = stringifyJson(item) ?? "";
 	return {
 		type: "message",
-		id: `msg_${Bun.hash(`computer-history:${serialized}`).toString(36)}`,
+		id: `msg_${bun.hash(`computer-history:${serialized}`).toString(36)}`,
 		role: "assistant",
 		content: [
 			{
@@ -560,7 +561,7 @@ function computerFailureNote(call: Record<string, unknown>, output: string): Rec
 	const serialized = stringifyJson(call) ?? "";
 	return {
 		type: "message",
-		id: `msg_${Bun.hash(`computer-failure:${serialized}:${output}`).toString(36)}`,
+		id: `msg_${bun.hash(`computer-failure:${serialized}:${output}`).toString(36)}`,
 		role: "assistant",
 		content: [
 			{

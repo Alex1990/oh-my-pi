@@ -22,9 +22,9 @@ If your extension/tool can run headless, guard with `ctx.hasUI` / `pi.hasUI`. RP
 ## Project-local TUI debug tool
 
 `.omp/tools/tui.ts` provides the repository's `tui` debug tool. `start` accepts
-either a TypeScript/JavaScript `file` (run with Bun) or an executable `bin` with
+either a TypeScript/JavaScript `file` (run with Node.js) or an executable `bin` with
 separate `args`. Windows uses native ConPTY without requiring a POSIX shell;
-macOS/Linux use Bun's PTY.
+macOS/Linux use the native PTY addon.
 The debug connection uses a Windows named pipe or a POSIX Unix socket.
 On Windows, `start` and `resize` use the native `normalizePtyDimensions(cols, rows)`
 helper, which returns integer dimensions clamped to 20–400 columns and 5–200 rows.
@@ -40,10 +40,10 @@ sequences are rejected before any input is written. Arbitrary non-UTF-8 bytes
 (such as `\x9b` 8-bit CSI) are not supported by the Windows PTY string API.
 Use the UTF-8-compatible `\e[` CSI sequence instead. macOS/Linux preserve raw bytes.
 
-Install the tool's dependencies with `bun install --cwd .omp/tools`.
+Install the tool's dependencies with `pnpm --dir .omp/tools install`.
 Native PTY API changes require rebuilding the addon with
-`bun --cwd=packages/natives run build` before running the tool.
-Run its real-PTY regressions with `bun test ./.omp/tests/tui.test.ts`. CI runs
+`pnpm --dir packages/natives run build` before running the tool.
+Run its real-PTY regressions with `pnpm exec vitest run ./.omp/tests/tui.test.ts`. CI runs
 them on Linux only; the Windows-specific cases run only on a local Windows host.
 
 ## Core component contract (`@oh-my-pi/pi-tui`)

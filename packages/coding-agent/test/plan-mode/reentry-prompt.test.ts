@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { prompt } from "@oh-my-pi/pi-utils";
 import planModeActivePrompt from "../../src/prompts/system/plan-mode-active.md" with { type: "text" };
 

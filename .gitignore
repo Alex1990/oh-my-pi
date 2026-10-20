@@ -2,6 +2,9 @@
 node_modules
 .npm/
 
+# Package manager store (local pnpm store when configured in-repo)
+.pnpm-store/
+
 # Build output
 dist/
 packages/*/dist/
@@ -30,7 +33,7 @@ target/
 
 # OS
 *.tmp
-# Bun compile temp artifacts, left in cwd if a `Bun.build({ compile })` run is killed mid-write
+# Bundler scratch files left in cwd when a build is killed mid-write
 *.bun-build
 .DS_Store
 

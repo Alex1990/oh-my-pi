@@ -23,6 +23,7 @@ import chalk from "@oh-my-pi/pi-utils/chalk";
 import { Args, CliUsageError, Command } from "@oh-my-pi/pi-utils/cli";
 import { authHelp as commandHelp } from "../cli/command-help";
 import { resolveAuthBrokerConfig } from "../session/auth-broker-config";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Format version of the `omp auth export` document. */
 export const AUTH_EXPORT_VERSION = 1;
@@ -229,7 +230,7 @@ export default class Auth extends Command {
 		const file = args.file ?? "";
 		let text: string;
 		try {
-			text = file === "-" ? await Bun.stdin.text() : await Bun.file(file).text();
+			text = file === "-" ? await bun.stdin.text() : await bun.file(file).text();
 		} catch (error) {
 			if (!isEnoent(error)) throw error;
 			process.stderr.write(`${chalk.red(`error: credential file not found: ${file}`)}\n`);

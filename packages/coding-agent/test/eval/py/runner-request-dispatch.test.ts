@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { $which } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface RunnerFrame {
 	type?: string;
@@ -12,9 +13,9 @@ interface RunnerFrame {
 	admissionRejected?: boolean;
 }
 
-const pythonPath = Bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
-const runnerPath = path.resolve(import.meta.dir, "../../../src/eval/py/runner.py");
-const repoRoot = path.resolve(import.meta.dir, "../../../../..");
+const pythonPath = bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
+const runnerPath = path.resolve(import.meta.dirname, "../../../src/eval/py/runner.py");
+const repoRoot = path.resolve(import.meta.dirname, "../../../../..");
 const encoder = new TextEncoder();
 // The Windows native-import regression below needs a real native extension to
 // trigger the loader-lock deadlock (#7985, numpy#24290); a pure-`print` cell
@@ -22,7 +23,7 @@ const encoder = new TextEncoder();
 // machines without numpy instead of failing the suite.
 const numpyAvailable = (() => {
 	try {
-		const probe = Bun.spawnSync([pythonPath, "-c", "import numpy"], { stdio: ["ignore", "ignore", "ignore"] });
+		const probe = bun.spawnSync([pythonPath, "-c", "import numpy"], { stdio: ["ignore", "ignore", "ignore"] });
 		return probe.exitCode === 0;
 	} catch {
 		return false;
@@ -36,7 +37,7 @@ interface Runner {
 }
 
 function spawnRunner(): Runner {
-	const proc = Bun.spawn([pythonPath, "-u", runnerPath], {
+	const proc = bun.spawn([pythonPath, "-u", runnerPath], {
 		cwd: repoRoot,
 		stdin: "pipe",
 		stdout: "pipe",
@@ -305,7 +306,7 @@ describe("Python runner request dispatch", () => {
 				runner.send({ id: "np", code: "import numpy as np\nprint(np.__version__)" });
 				const [done] = await Promise.race([
 					collectDoneOrder(runner, new Set(["np"])),
-					Bun.sleep(25_000).then(() => {
+					bun.sleep(25_000).then(() => {
 						throw new Error("native import hung: runner blocked on a concurrent stdin read");
 					}),
 				]);

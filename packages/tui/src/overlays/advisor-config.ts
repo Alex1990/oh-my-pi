@@ -61,6 +61,7 @@ import {
 	selectListPicker,
 } from "../native/picker";
 import { getThinkingLevelMetadata, parseThinkingLevel } from "../thinking";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const ADVISOR_REVIEW_MODES = ["turn", "agent-end"] as const;
 export const ADVISOR_SYNC_BACKLOG_MODES = ["off", "1", "3", "5", "strict"] as const;
@@ -278,7 +279,7 @@ function describeSyncBacklogMode(mode: AdvisorSyncBacklog): string {
 /** Soft-wrap plain text to `width`, returning at least one (possibly empty) line. */
 function wrap(text: string, width: number): string[] {
 	if (!text) return [""];
-	return Bun.wrapAnsi(text, Math.max(1, width), { trim: false }).split("\n");
+	return bun.wrapAnsi(text, Math.max(1, width), { trim: false }).split("\n");
 }
 
 type Screen =

@@ -6,7 +6,7 @@
  * snapshot tag is hashed from, exact on-disk byte counts, the raw terminal
  * newline sentinel, and the absence of a second whole-file read.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,8 @@ import { formatBytes } from "@oh-my-pi/pi-tui/render/render-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgReadSummarizeEnabled } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 function textOutput(result: AgentToolResult<ReadToolDetails>): string {
 	return result.content
@@ -56,7 +58,7 @@ describe("read tool single-pass file access", () => {
 	});
 
 	it("hashes the snapshot from BOM-stripped text so a whole-file tag validates without recovery", async () => {
-		// `Bun.file().text()` strips a leading BOM and the patcher's live read goes
+		// `bun.file().text()` strips a leading BOM and the patcher's live read goes
 		// through it, so a tag hashed from BOM-bearing text only ever applies via
 		// stale-hash recovery — which tells the model the file changed externally
 		// when nothing changed.
@@ -115,7 +117,7 @@ describe("read tool single-pass file access", () => {
 
 	it("does not re-read a file it already materialized", async () => {
 		// Bracket context and the snapshot hash each used to pull the whole file
-		// through `Bun.file(path).text()`, so a ranged read of one file opened it
+		// through `bun.file(path).text()`, so a ranged read of one file opened it
 		// four times. Any reintroduced whole-file re-read trips this counter.
 		const filePath = path.join(tmpDir, "counted.ts");
 		await fs.writeFile(
@@ -123,12 +125,12 @@ describe("read tool single-pass file access", () => {
 			`${Array.from({ length: 400 }, (_, i) => `export const value${i} = ${i};`).join("\n")}\n`,
 		);
 
-		type FileFactory = typeof Bun.file;
-		const originalFile: FileFactory = Bun.file;
-		const bunNamespace = Bun as unknown as { file: FileFactory };
+		type FileFactory = typeof bun.file;
+		const originalFile: FileFactory = bun.file;
+		const bunNamespace: { file: FileFactory } = bun;
 		let wholeFileReads = 0;
 		bunNamespace.file = ((target: Parameters<FileFactory>[0], ...rest: unknown[]) => {
-			const factory = originalFile as unknown as (t: unknown, ...r: unknown[]) => Bun.BunFile;
+			const factory = originalFile as unknown as (t: unknown, ...r: unknown[]) => NodeFile;
 			const handle = factory(target, ...rest);
 			if (typeof target !== "string" || target !== filePath) return handle;
 			return new Proxy(handle, {

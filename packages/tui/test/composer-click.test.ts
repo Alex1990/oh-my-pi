@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { COMPOSER_DEFAULTS, Composer } from "@oh-my-pi/pi-tui/prompt/composer";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { Container, type Component } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
 import { routeViewportClick, type ViewportClickSpan } from "@oh-my-pi/pi-tui/prompt/composer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function span(start: number, end: number, ids: string[]): ViewportClickSpan {
 	return { start, end, candidates: () => ids };
@@ -80,8 +81,8 @@ describe("composer hover band", () => {
 			const hovered = composer.renderFrame({ columns: 80, rows: 24 });
 			const banded = hovered.viewport.filter(line => line.includes("\x1b[48"));
 			expect(banded).toHaveLength(2);
-			expect(Bun.stripANSI(banded.join("\n"))).toContain("card one");
-			expect(Bun.stripANSI(banded.join("\n"))).toContain("card two");
+			expect(bun.stripANSI(banded.join("\n"))).toContain("card one");
+			expect(bun.stripANSI(banded.join("\n"))).toContain("card two");
 			expect(hovered.viewport.filter(line => line.includes("plain") && line.includes("\x1b[48"))).toHaveLength(0);
 
 			composer.setHoveredClickId("Nobody");

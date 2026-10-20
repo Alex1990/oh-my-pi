@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { isCompleteReadResult } from "@oh-my-pi/pi-coding-agent/tools/read-supersede";
 import type { ReadToolDetails } from "@oh-my-pi/pi-tui/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Real `ReadTool` results through the supersede pass with `isCompleteReadResult`,
 // so each completeness signal it relies on is exercised end to end.
@@ -29,11 +30,11 @@ let reader: ReadTool;
 
 beforeAll(async () => {
 	cwd = await fs.mkdtemp(path.join(os.tmpdir(), "read-supersede-prune-"));
-	await Bun.write(path.join(cwd, "code.ts"), `${codeFile}\n`);
-	await Bun.write(path.join(cwd, "notes.txt"), Array.from({ length: 20 }, (_, i) => `note ${i + 1}`).join("\n"));
-	await Bun.write(path.join(cwd, "long.txt"), Array.from({ length: 1_000 }, (_, i) => `row ${i + 1}`).join("\n"));
-	await Bun.write(path.join(cwd, "wide.txt"), ["short", "x".repeat(5_000), "short"].join("\n"));
-	await Bun.write(
+	await bun.write(path.join(cwd, "code.ts"), `${codeFile}\n`);
+	await bun.write(path.join(cwd, "notes.txt"), Array.from({ length: 20 }, (_, i) => `note ${i + 1}`).join("\n"));
+	await bun.write(path.join(cwd, "long.txt"), Array.from({ length: 1_000 }, (_, i) => `row ${i + 1}`).join("\n"));
+	await bun.write(path.join(cwd, "wide.txt"), ["short", "x".repeat(5_000), "short"].join("\n"));
+	await bun.write(
 		path.join(cwd, "huge.log"),
 		Array.from({ length: 200_000 }, (_, i) => `log line ${i + 1} ${"z".repeat(20)}`).join("\n"),
 	);

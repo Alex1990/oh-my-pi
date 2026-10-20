@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Field-selective identity hash for an advisor-visible message.
@@ -48,7 +49,7 @@ export function fingerprintMessage(message: AgentMessage): bigint | undefined {
 			files: m.files ?? null,
 		});
 		if (payload === undefined) return undefined;
-		return Bun.hash.wyhash(payload);
+		return bun.hash.wyhash(payload);
 	} catch {
 		return undefined;
 	}

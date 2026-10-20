@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsSync from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import { executeJs } from "../../src/eval/js/executor";
 import type { JsExecutorOptions } from "../../src/eval/js/executor";
 import { resolveJsPackageEnvironment } from "../../src/eval/js/package-installer";
 import type { ToolSession } from "../../src/tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(cwd: string, evalSessionId: string, options?: { autoProvision?: boolean }): ToolSession {
 	return {
@@ -38,7 +39,7 @@ function executorOptions(session: ToolSession, sessionId: string): JsExecutorOpt
 
 function canResolve(specifier: string, fromDir: string): boolean {
 	try {
-		Bun.resolveSync(specifier, fromDir);
+		bun.resolveSync(specifier, fromDir);
 		return true;
 	} catch {
 		return false;
@@ -51,7 +52,7 @@ function canResolve(specifier: string, fromDir: string): boolean {
  * it in the workspace's ancestry, so fall back to any other package installed for OMP.
  */
 function ompOnlyPackage(workspaceDir: string): string {
-	const ompDir = path.resolve(import.meta.dir, "../..");
+	const ompDir = path.resolve(import.meta.dirname, "../..");
 	const repoModules = path.resolve(ompDir, "../../node_modules");
 	const candidates = [
 		"@babel/parser",
@@ -104,8 +105,8 @@ describe("persistent JavaScript package environments", () => {
 			"function fileAnswer() { return fileLoadedValue; }",
 			"var fileObservedCwd = process.cwd();",
 		].join("\n");
-		await Bun.write(path.join(scriptDir.path(), "sibling.ts"), "export const amount = 2;\n");
-		await Bun.write(filename, source);
+		await bun.write(path.join(scriptDir.path(), "sibling.ts"), "export const amount = 2;\n");
+		await bun.write(filename, source);
 
 		const sessionId = `js-file:${crypto.randomUUID()}`;
 		const session = makeSession(workspace.path(), sessionId);
@@ -119,7 +120,7 @@ describe("persistent JavaScript package environments", () => {
 		expect(second.output).not.toContain(source);
 
 		const reloadSource = "fileLoadedValue += 1; fileLoadedValue;";
-		await Bun.write(filename, reloadSource);
+		await bun.write(filename, reloadSource);
 		const reloaded = await executeJs(reloadSource, { ...options, filename });
 		expect(reloaded.output.trim()).toBe("13");
 

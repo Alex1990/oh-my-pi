@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildRequest } from "@oh-my-pi/pi-ai/providers/google-gemini-cli";
 import { convertTools } from "@oh-my-pi/pi-ai/providers/google-shared";
 import type { Context, Model, TJsonSchema, Tool } from "@oh-my-pi/pi-ai/types";

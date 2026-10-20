@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type { EvalStatusEvent, EvalToolDetails } from "@oh-my-pi/pi-tui/tools/eval";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
@@ -9,6 +9,7 @@ import {
 	thinkingLevelGlyph,
 } from "@oh-my-pi/pi-tui/render/render-utils";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Defends the contract that `agent()` calls inside an eval cell surface as a
@@ -51,7 +52,7 @@ describe("eval renderer: agent() progress below the cell box", () => {
 			{ expanded: false, isPartial: status === "running", spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(120).join("\n")).split("\n");
+		return bun.stripANSI(component.render(120).join("\n")).split("\n");
 	}
 
 	/** Index of the box's closing border (bottom-right corner glyph). */
@@ -268,9 +269,9 @@ describe("eval renderer: agent() progress below the cell box", () => {
 			expect(bottom).toBeGreaterThanOrEqual(0);
 			const below = lines.slice(bottom + 1);
 			for (const line of below) expect(visibleWidth(line)).toBeLessThanOrEqual(width);
-			const text = Bun.stripANSI(below.join("\n"));
-			expect(Bun.stripANSI(below[0])).toContain("ArchitectureScout");
-			expect(Bun.stripANSI(below[0])).toContain("failed");
+			const text = bun.stripANSI(below.join("\n"));
+			expect(bun.stripANSI(below[0])).toContain("ArchitectureScout");
+			expect(bun.stripANSI(below[0])).toContain("failed");
 			expect(text).toContain("ResearchScout");
 			expect(text).toContain("CancelledScout");
 			expect(text).toContain("aborted");

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName } from "@oh-my-pi/pi-tui/theme";
 
 import { getSessionAccentHex, type SessionAccentTheme } from "@oh-my-pi/pi-tui/theme/session-color";

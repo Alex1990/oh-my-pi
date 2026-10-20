@@ -4,6 +4,7 @@
 
 import * as os from "node:os";
 import { formatBytes, getProjectDir, VERSION } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface SystemInfo {
 	os: string;
@@ -48,8 +49,8 @@ export async function collectSystemInfo(): Promise<SystemInfo> {
 	}
 
 	// Try to get shell from environment
-	const shell = Bun.env.SHELL ?? Bun.env.ComSpec ?? "unknown";
-	const terminal = Bun.env.TERM_PROGRAM ?? Bun.env.TERM ?? undefined;
+	const shell = bun.env.SHELL ?? bun.env.ComSpec ?? "unknown";
+	const terminal = bun.env.TERM_PROGRAM ?? bun.env.TERM ?? undefined;
 
 	let osStr = `${os.type()} ${os.release()} (${os.platform()})`;
 	if (os.platform() === "darwin") {
@@ -67,7 +68,7 @@ export async function collectSystemInfo(): Promise<SystemInfo> {
 		},
 		versions: {
 			app: VERSION,
-			bun: Bun.version,
+			bun: bun.version,
 			node: process.version,
 		},
 		cwd: getProjectDir(),
@@ -85,9 +86,8 @@ export function formatSystemInfo(info: SystemInfo): string {
 		`Arch:    ${info.arch}`,
 		`CPU:     ${info.cpu}`,
 		`Memory:  ${formatBytes(info.memory.total)} (${formatBytes(info.memory.free)} free)`,
-		`Bun:     ${info.versions.bun}`,
+		`Runtime: Node ${info.versions.node}`,
 		`App:     omp ${info.versions.app}`,
-		`Node:    ${info.versions.node} (compat)`,
 		`CWD:     ${info.cwd}`,
 		`Shell:   ${info.shell}`,
 	];

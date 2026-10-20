@@ -1,3 +1,4 @@
+import type { TransferListItem } from "node:worker_threads";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
 import type { CaptureRegion, DesktopCapabilities, DesktopScreenState } from "@oh-my-pi/pi-natives";
 import * as prompt from "@oh-my-pi/pi-utils/prompt";
@@ -131,7 +132,7 @@ export type ComputerWorkerOutbound =
 
 /** Transport used by the worker core in Bun workers and tests. */
 export interface ComputerWorkerTransport {
-	send(message: ComputerWorkerOutbound, transfer?: Bun.Transferable[]): void;
+	send(message: ComputerWorkerOutbound, transfer?: TransferListItem[]): void;
 	onMessage(handler: (message: ComputerWorkerInbound) => void): () => void;
 	close(): void;
 }

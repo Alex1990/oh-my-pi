@@ -41,6 +41,7 @@ import {
 	tokenUsage,
 } from "./types";
 import type { JudgmentImageAssets, JudgmentWire } from "./wire";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export type { JudgmentImageAssets } from "./wire";
 
 export const TYPESAFE_PROVIDER = "typesafe";
@@ -519,7 +520,7 @@ export class NativeJudge implements Judge {
 				});
 			} catch (error) {
 				if (signal?.aborted || attempt + 1 >= MAX_ATTEMPTS) throw error;
-				await Bun.sleep(backoffMs(attempt, undefined));
+				await bun.sleep(backoffMs(attempt, undefined));
 				continue;
 			}
 			if (response.ok) return await response.json();
@@ -529,7 +530,7 @@ export class NativeJudge implements Judge {
 			});
 			const transient = response.status === 408 || response.status === 429 || response.status >= 500;
 			if (!transient || attempt + 1 >= MAX_ATTEMPTS) throw error;
-			await Bun.sleep(backoffMs(attempt, response.headers));
+			await bun.sleep(backoffMs(attempt, response.headers));
 		}
 	}
 }

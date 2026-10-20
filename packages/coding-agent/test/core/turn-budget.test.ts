@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseTurnBudget } from "@oh-my-pi/pi-coding-agent/modes/turn-budget";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 

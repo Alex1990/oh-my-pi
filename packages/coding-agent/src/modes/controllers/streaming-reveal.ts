@@ -4,6 +4,7 @@ import { type Component, getSegmenter } from "@oh-my-pi/pi-tui";
 import { LRUCache } from "@oh-my-pi/pi-utils/lru";
 import { formatThinkingForDisplay, hasDisplayableThinking } from "@oh-my-pi/pi-tui/chat/thinking-display";
 import type { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const STREAMING_REVEAL_FRAME_MS = 1000 / 30;
 export const MIN_STEP = 3;
@@ -347,7 +348,7 @@ export class StreamingRevealController {
 				const blocks = this.#snappedToolBoundaryBlocks;
 				if (blocks !== undefined && unchangedSinceSnap(blocks, message.content)) {
 					alreadySnapped = true;
-				} else if (Bun.deepEquals(this.#snappedToolBoundaryContent, message.content)) {
+				} else if (bun.deepEquals(this.#snappedToolBoundaryContent, message.content)) {
 					alreadySnapped = true;
 					// Equal by value, not by reference (e.g. a block object was
 					// replaced): re-anchor the fast check on the live blocks.

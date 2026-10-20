@@ -18,7 +18,7 @@
  *     makes the message deliverable on the next user turn.
  */
 
-import { beforeAll, describe, expect, mock, test } from "bun:test";
+import { beforeAll, describe, expect, mock, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AgentBusyError } from "@oh-my-pi/pi-agent-core";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { CompactionQueuedMessage, InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";

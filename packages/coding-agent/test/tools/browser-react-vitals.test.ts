@@ -1,5 +1,5 @@
-import type { Server } from "bun";
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
@@ -7,11 +7,13 @@ import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
-const fixtureDir = path.join(import.meta.dir, "../fixtures");
-const reactFixture = Bun.file(path.join(fixtureDir, "react-18.3.1.production.min.js"));
-const reactDomFixture = Bun.file(path.join(fixtureDir, "react-dom-18.3.1.production.min.js"));
+const fixtureDir = path.join(import.meta.dirname, "../fixtures");
+const reactFixture = bun.file(path.join(fixtureDir, "react-18.3.1.production.min.js"));
+const reactDomFixture = bun.file(path.join(fixtureDir, "react-dom-18.3.1.production.min.js"));
 
 const session: ToolSession = {
 	cwd: process.cwd(),
@@ -63,8 +65,8 @@ function findTreeNode(nodes: TreeNode[], name: string): TreeNode | undefined {
 
 let server: Server<undefined>;
 
-beforeAll(() => {
-	server = Bun.serve({
+beforeAll(async () => {
+	server = await serve({
 		port: 0,
 		fetch(request) {
 			const pathname = new URL(request.url).pathname;

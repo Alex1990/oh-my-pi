@@ -3,7 +3,7 @@
  * preview grid plus a metadata text block, while `:frame` / `:timestamp`
  * selectors extract a single frame. Requires ffmpeg + ffprobe on PATH.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { $which, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const hasFfmpeg = Boolean($which("ffmpeg") && $which("ffprobe"));
 
@@ -44,7 +45,7 @@ describe.skipIf(!hasFfmpeg)("read video", () => {
 	beforeEach(async () => {
 		testDir = await fs.mkdtemp(path.join(os.tmpdir(), "read-video-"));
 		clipPath = path.join(testDir, "clip.mp4");
-		const proc = Bun.spawn([
+		const proc = bun.spawn([
 			"ffmpeg",
 			"-hide_banner",
 			"-loglevel",
@@ -102,11 +103,11 @@ describe.skipIf(!hasFfmpeg)("read video", () => {
 		expect(image?.type).toBe("image");
 		if (image?.type !== "image") return;
 		const sheetPath = path.join(testDir, "sheet.png");
-		await Bun.write(sheetPath, Buffer.from(image.data, "base64"));
+		await bun.write(sheetPath, Buffer.from(image.data, "base64"));
 		// The second cell of the top row must hold a real frame, not tile
 		// padding: feeding still inputs straight to `tile` fills only the
 		// first cell and leaves the rest black.
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				"ffmpeg",
 				"-hide_banner",

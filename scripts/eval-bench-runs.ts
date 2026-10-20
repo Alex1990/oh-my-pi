@@ -10,6 +10,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface ReportRow {
 	file: string;
@@ -129,7 +130,7 @@ function parseRatePair(value: string | null): { numerator: number; denominator: 
 }
 
 async function parseReport(file: string): Promise<ReportRow> {
-	const text = await Bun.file(file).text();
+	const text = await bun.file(file).text();
 
 	const base = path.basename(file, ".md");
 	const [sepSlug, ...modelParts] = base.split("__");

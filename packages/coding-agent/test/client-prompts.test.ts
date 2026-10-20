@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getPrompt, listPrompts, serverSupportsPrompts } from "@oh-my-pi/pi-coding-agent/mcp/client";
 import type { MCPGetPromptResult, MCPPrompt, MCPPromptsListResult } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { createMockConnection, createMockTransport } from "./mcp-test-utils";

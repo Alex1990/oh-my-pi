@@ -27,6 +27,7 @@ import { hasLiveIsolationOwner, ISOLATION_OWNER_FILE, readRetainedMountBackend }
 import { formatIsolationBackend, parseIsolationBackend } from "../task/worktree";
 
 import { cfgIsolationBackend, cfgWorktreeClone } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type WorktreeKind = "pr-checkout" | "task-isolation" | "empty" | "stray";
 
@@ -334,7 +335,7 @@ async function classifyDir(dir: string): Promise<WorktreeEntry | null> {
 	// dir itself (legacy dirs and crashed pre-marker runs). Recognizing the
 	// marker alone keeps an in-progress sandbox from being mistaken for a stray
 	// during the window between marker creation and mount materialisation.
-	let isIsolation = await Bun.file(path.join(dir, ISOLATION_OWNER_FILE)).exists();
+	let isIsolation = await bun.file(path.join(dir, ISOLATION_OWNER_FILE)).exists();
 	if (!isIsolation) {
 		for (const mountDir of TASK_ISOLATION_MOUNT_DIRS) {
 			const mountStat = await fs.stat(path.join(dir, mountDir)).catch(() => null);

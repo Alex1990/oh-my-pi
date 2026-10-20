@@ -5,7 +5,7 @@
  * - `AgentRegistry.listVisibleTo` (irc roster / broadcast targets) excludes advisors.
  * - `IrcBus.send` to an advisor ref fails as non-messageable, without reviving it.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { IrcBus } from "@oh-my-pi/pi-coding-agent/irc/bus";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 

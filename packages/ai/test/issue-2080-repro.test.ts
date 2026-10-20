@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { minimaxTokenPlanOpenAIModel } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 function createSseResponse(events: unknown[]): Response {
 	const payload = `${events
@@ -17,7 +18,7 @@ function createMockFetch(events: unknown[]): FetchImpl {
 	async function mockFetch(_input: string | URL | Request, _init?: RequestInit): Promise<Response> {
 		return createSseResponse(events);
 	}
-	return Object.assign(mockFetch, { preconnect: fetch.preconnect });
+	return Object.assign(mockFetch, { preconnect: preconnectOf(fetch) });
 }
 
 function baseContext(): Context {

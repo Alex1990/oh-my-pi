@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type MuxConnectParams, muxServerKey } from "@oh-my-pi/pi-coding-agent/lsp/mux/protocol";
 
 const base: MuxConnectParams = {

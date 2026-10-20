@@ -10,6 +10,7 @@
 import type { HostFrame, SessionEntry } from "@oh-my-pi/pi-wire";
 import { GuestClient } from "../src/lib/client";
 import { COLLAB_PROTO, encodeBase64Url } from "../src/lib/link";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LINK = `roomroomroom1234#${encodeBase64Url(new Uint8Array(32))}`;
 const N = 5000;
@@ -35,9 +36,9 @@ client.applyFrameForTest({
 	entryCount: 0,
 });
 
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 for (let i = 0; i < N; i++) client.applyFrameForTest(entryFrame(i));
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 const count = client.getSnapshot().entries.length;
 if (count !== N) throw new Error(`expected ${N} entries, got ${count}`);
 console.log(`${N} entry frames: ${ms.toFixed(1)}ms total (${((ms / N) * 1000).toFixed(1)}us/frame, entries=${count})`);

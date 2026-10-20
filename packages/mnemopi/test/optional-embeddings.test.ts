@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	available,
 	embed,
@@ -127,7 +127,7 @@ describe("optional embeddings", () => {
 
 	it("calls an OpenAI-compatible custom embeddings endpoint without requiring an API key", async () => {
 		let requests = 0;
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: async request => {
 				requests += 1;
@@ -234,3 +234,4 @@ describe("optional embeddings", () => {
 		);
 	});
 });
+import { serve } from "@oh-my-pi/pi-utils/node-serve";

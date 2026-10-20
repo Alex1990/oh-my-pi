@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as natives from "@oh-my-pi/pi-natives";
 import { Container, TUI } from "@oh-my-pi/pi-tui";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
@@ -24,6 +24,7 @@ import {
 	wrapTmuxPassthrough,
 } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -35,31 +36,31 @@ const terminal = TERMINAL as unknown as MutableTerminalInfo;
 const BASE64_ONE_PIXEL_PNG =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
 
-const ORIGINAL_TMUX = Bun.env.TMUX;
-const ORIGINAL_HERDR_ENV = Bun.env.HERDR_ENV;
-const ORIGINAL_HERDR_PANE_ID = Bun.env.HERDR_PANE_ID;
-const ORIGINAL_HERDR_TAB_ID = Bun.env.HERDR_TAB_ID;
-const ORIGINAL_HERDR_WORKSPACE_ID = Bun.env.HERDR_WORKSPACE_ID;
+const ORIGINAL_TMUX = bun.env.TMUX;
+const ORIGINAL_HERDR_ENV = bun.env.HERDR_ENV;
+const ORIGINAL_HERDR_PANE_ID = bun.env.HERDR_PANE_ID;
+const ORIGINAL_HERDR_TAB_ID = bun.env.HERDR_TAB_ID;
+const ORIGINAL_HERDR_WORKSPACE_ID = bun.env.HERDR_WORKSPACE_ID;
 
 beforeEach(() => {
-	delete Bun.env.TMUX;
-	delete Bun.env.HERDR_ENV;
-	delete Bun.env.HERDR_PANE_ID;
-	delete Bun.env.HERDR_TAB_ID;
-	delete Bun.env.HERDR_WORKSPACE_ID;
+	delete bun.env.TMUX;
+	delete bun.env.HERDR_ENV;
+	delete bun.env.HERDR_PANE_ID;
+	delete bun.env.HERDR_TAB_ID;
+	delete bun.env.HERDR_WORKSPACE_ID;
 });
 
 afterEach(() => {
-	if (ORIGINAL_TMUX === undefined) delete Bun.env.TMUX;
-	else Bun.env.TMUX = ORIGINAL_TMUX;
-	if (ORIGINAL_HERDR_ENV === undefined) delete Bun.env.HERDR_ENV;
-	else Bun.env.HERDR_ENV = ORIGINAL_HERDR_ENV;
-	if (ORIGINAL_HERDR_PANE_ID === undefined) delete Bun.env.HERDR_PANE_ID;
-	else Bun.env.HERDR_PANE_ID = ORIGINAL_HERDR_PANE_ID;
-	if (ORIGINAL_HERDR_TAB_ID === undefined) delete Bun.env.HERDR_TAB_ID;
-	else Bun.env.HERDR_TAB_ID = ORIGINAL_HERDR_TAB_ID;
-	if (ORIGINAL_HERDR_WORKSPACE_ID === undefined) delete Bun.env.HERDR_WORKSPACE_ID;
-	else Bun.env.HERDR_WORKSPACE_ID = ORIGINAL_HERDR_WORKSPACE_ID;
+	if (ORIGINAL_TMUX === undefined) delete bun.env.TMUX;
+	else bun.env.TMUX = ORIGINAL_TMUX;
+	if (ORIGINAL_HERDR_ENV === undefined) delete bun.env.HERDR_ENV;
+	else bun.env.HERDR_ENV = ORIGINAL_HERDR_ENV;
+	if (ORIGINAL_HERDR_PANE_ID === undefined) delete bun.env.HERDR_PANE_ID;
+	else bun.env.HERDR_PANE_ID = ORIGINAL_HERDR_PANE_ID;
+	if (ORIGINAL_HERDR_TAB_ID === undefined) delete bun.env.HERDR_TAB_ID;
+	else bun.env.HERDR_TAB_ID = ORIGINAL_HERDR_TAB_ID;
+	if (ORIGINAL_HERDR_WORKSPACE_ID === undefined) delete bun.env.HERDR_WORKSPACE_ID;
+	else bun.env.HERDR_WORKSPACE_ID = ORIGINAL_HERDR_WORKSPACE_ID;
 });
 
 /** Drive one render pass against the budget with `count` images (ids 1..count, stable across passes). */
@@ -376,7 +377,7 @@ describe("encodeKittyDeleteImage", () => {
 
 describe("tmux Kitty graphics passthrough", () => {
 	beforeEach(() => {
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
 	});
 
 	it("wraps every Kitty graphics command in a tmux DCS envelope", () => {
@@ -402,7 +403,7 @@ describe("tmux Kitty graphics passthrough", () => {
 	});
 
 	it("leaves Kitty graphics commands bare outside tmux", () => {
-		delete Bun.env.TMUX;
+		delete bun.env.TMUX;
 		expect(encodeKittyTransmit("AA==", 9)).toBe("\x1b_Ga=t,f=100,q=2,i=9;AA==\x1b\\");
 		expect(wrapTmuxPassthrough("\x1b_Gpayload\x1b\\")).toBe("\x1bPtmux;\x1b\x1b_Gpayload\x1b\x1b\\\x1b\\");
 	});
@@ -793,7 +794,7 @@ describe("TUI inline-image budget", () => {
 			const tick = Promise.withResolvers<void>();
 			process.nextTick(tick.resolve);
 			await tick.promise;
-			await Bun.sleep(40);
+			await bun.sleep(40);
 			await term.flush();
 		}
 	}
@@ -849,7 +850,7 @@ describe("TUI inline-image budget", () => {
 
 	it("clips a direct Kitty placement during an in-place width repaint", async () => {
 		const originalGraphics = { ...getKittyGraphics() };
-		const originalResizeMode = Bun.env.PI_TUI_RESIZE_IN_PLACE;
+		const originalResizeMode = bun.env.PI_TUI_RESIZE_IN_PLACE;
 		const term = new VirtualTerminal(40, 6);
 		const writes: string[] = [];
 		const realWrite = term.write.bind(term);
@@ -859,7 +860,7 @@ describe("TUI inline-image budget", () => {
 		});
 
 		setKittyGraphics({ unicodePlaceholders: false });
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "1";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "1";
 		const tui = new TUI(term);
 		tui.addChild(
 			new Image(
@@ -885,8 +886,8 @@ describe("TUI inline-image budget", () => {
 		} finally {
 			tui.stop();
 			setKittyGraphics(originalGraphics);
-			if (originalResizeMode === undefined) delete Bun.env.PI_TUI_RESIZE_IN_PLACE;
-			else Bun.env.PI_TUI_RESIZE_IN_PLACE = originalResizeMode;
+			if (originalResizeMode === undefined) delete bun.env.PI_TUI_RESIZE_IN_PLACE;
+			else bun.env.PI_TUI_RESIZE_IN_PLACE = originalResizeMode;
 		}
 	});
 

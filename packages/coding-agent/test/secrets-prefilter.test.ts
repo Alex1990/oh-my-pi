@@ -7,7 +7,7 @@
  * exists because the whole provider context is rescanned on every request,
  * and the regex pass was the dominant synchronous cost in a long session.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { builtinCredentialSecretEntries } from "@oh-my-pi/pi-coding-agent/secrets";
 import { type SecretEntry, SecretObfuscator } from "@oh-my-pi/pi-coding-agent/secrets/obfuscator";
 

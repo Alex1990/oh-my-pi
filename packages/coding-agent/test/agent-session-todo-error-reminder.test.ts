@@ -3,7 +3,7 @@
  * unrelated mutations must not discard it or replay its old list snapshot.
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { TextContent, ToolCall } from "@oh-my-pi/pi-ai";

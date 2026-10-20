@@ -3,7 +3,7 @@
  * call is revived from disk, its cut-off call runs again, the agent answers, and the
  * parent receives the answer as the subagent's job.
  */
-import { afterEach, beforeEach, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,6 +22,9 @@ import { createPersistedSubagentReviverFactory } from "@oh-my-pi/pi-coding-agent
 import { restoreSession } from "@oh-my-pi/pi-coding-agent/task/restore";
 import { __resetDirsFromEnvForTests, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const AGENT_ID = "Restored";
 const MOCK_API_SOURCE = "test/restore-revive";
@@ -34,11 +37,11 @@ let manager: AsyncJobManager;
 function restoreEnvValue(key: string, value: string | undefined): void {
 	if (value === undefined) {
 		delete process.env[key];
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
 	process.env[key] = value;
-	Bun.env[key] = value;
+	bun.env[key] = value;
 }
 
 beforeEach(async () => {
@@ -75,7 +78,7 @@ it("revives a subagent a crash cut off mid tool call, runs the call again, and d
 	const cwd = path.join(root, "home", "work");
 	await fs.mkdir(cwd, { recursive: true });
 	const notes = path.join(cwd, "notes.txt");
-	await Bun.write(notes, "the answer is 42\n");
+	await bun.write(notes, "the answer is 42\n");
 
 	// The main session and its subagent's transcript, as the process left them when it died
 	// inside the subagent's `read` call: no tool result, no exit record.

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamGoogle } from "@oh-my-pi/pi-ai/providers/google";
 import { streamGoogleVertex } from "@oh-my-pi/pi-ai/providers/google-vertex";
 import type { AssistantMessageEvent, Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";

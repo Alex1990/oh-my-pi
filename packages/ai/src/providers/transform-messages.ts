@@ -19,6 +19,7 @@ import {
 	kSyntheticUser,
 	type SyntheticUserCarrier,
 } from "../utils/block-symbols";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const enum ToolCallStatus {
 	/** A tool result has already been emitted for this tool call; later duplicates must be skipped. */
@@ -585,7 +586,7 @@ function targetReplaysPlaintextReasoning(model: Model, compat: Model["compat"]):
 }
 
 function fallbackAnthropicToolCallId(originalId: string): string {
-	return `toolu_${Bun.hash(originalId).toString(36)}`;
+	return `toolu_${bun.hash(originalId).toString(36)}`;
 }
 
 function normalizeAnthropicTargetToolCallId<TApi extends Api>(

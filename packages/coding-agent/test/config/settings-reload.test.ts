@@ -1,15 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { acquireFileLock, getProjectAgentDir, logger, TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../helpers/settings-test-state";
 
 import { cfgEditModelVariants } from "@oh-my-pi/pi-coding-agent/edit/settings";
 import { cfgCompactionEnabled } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgProvidersMaxInFlightRequests, cfgTemperature } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("Settings layer refresh", () => {
 	let state: SettingsTestState | undefined;
@@ -38,7 +39,7 @@ describe("Settings layer refresh", () => {
 	});
 
 	const configPath = () => path.join(agentDir, "config.yml");
-	const writeConfig = (settings: Record<string, unknown>) => Bun.write(configPath(), YAML.stringify(settings));
+	const writeConfig = (settings: Record<string, unknown>) => bun.write(configPath(), YAML.stringify(settings));
 
 	function writeProjectSettings(project: string, settings: Record<string, unknown>): void {
 		fs.mkdirSync(getProjectAgentDir(project), { recursive: true });
@@ -65,7 +66,7 @@ describe("Settings layer refresh", () => {
 		expect(cfgProvidersMaxInFlightRequests.get(settings)).toEqual({ openai: 2 });
 		expect(cfgTemperature.get(settings)).toBe(0.5);
 		// The file keeps the external edit for the user to fix, merged with the save.
-		expect(YAML.parse(await Bun.file(configPath()).text())).toEqual({
+		expect(YAML.parse(await bun.file(configPath()).text())).toEqual({
 			providers: { maxInFlightRequests: { openai: 0 } },
 			temperature: 0.5,
 		});
@@ -96,7 +97,7 @@ describe("Settings layer refresh", () => {
 			["compaction.enabled", true],
 			["providers.maxInFlightRequests", { openai: 3 }],
 		]);
-		expect(YAML.parse(await Bun.file(configPath()).text())).toEqual({
+		expect(YAML.parse(await bun.file(configPath()).text())).toEqual({
 			temperature: 0.5,
 			providers: { maxInFlightRequests: { openai: 3 } },
 		});
@@ -118,7 +119,7 @@ describe("Settings layer refresh", () => {
 			await settings.flush();
 			expect(warn).not.toHaveBeenCalled();
 			expect(cfgTemperature.get(settings)).toBe(0.7);
-			expect(YAML.parse(await Bun.file(configPath()).text())).toEqual({ temperature: 0.7 });
+			expect(YAML.parse(await bun.file(configPath()).text())).toEqual({ temperature: 0.7 });
 		} finally {
 			warn.mockRestore();
 		}
@@ -151,7 +152,7 @@ describe("Settings layer refresh", () => {
 
 				fs.chmodSync(storeDir, 0o755);
 				await settings.reloadFromDisk();
-				expect(YAML.parse(await Bun.file(storeConfig).text())).toEqual({
+				expect(YAML.parse(await bun.file(storeConfig).text())).toEqual({
 					temperature: 0.5,
 					modelRoles: { default: "openai/session" },
 				});
@@ -168,7 +169,7 @@ describe("Settings layer refresh", () => {
 		await writeConfig({ temperature: 0.1, compaction: { enabled: false }, modelRoles: { default: "openai/base" } });
 		const settings = await Settings.init({ cwd: startProject, agentDir });
 		cfgTemperature.set(settings, 0.5);
-		await Bun.write(configPath(), "temperature: [\n");
+		await bun.write(configPath(), "temperature: [\n");
 
 		await settings.reloadFromDisk();
 		expect(cfgTemperature.get(settings)).toBe(0.5);
@@ -176,7 +177,7 @@ describe("Settings layer refresh", () => {
 		expect(settings.getModelRole("default")).toBe("openai/base");
 
 		await settings.flush();
-		expect(YAML.parse(await Bun.file(configPath()).text())).toEqual({
+		expect(YAML.parse(await bun.file(configPath()).text())).toEqual({
 			temperature: 0.5,
 			compaction: { enabled: false },
 			modelRoles: { default: "openai/base" },
@@ -186,17 +187,17 @@ describe("Settings layer refresh", () => {
 	it("keeps the last good project model roles when a reload's save moves a malformed project config aside", async () => {
 		const projectConfig = path.join(getProjectAgentDir(startProject), "config.yml");
 		fs.mkdirSync(path.dirname(projectConfig), { recursive: true });
-		await Bun.write(projectConfig, YAML.stringify({ modelRoles: { plan: "openai/plan" } }));
+		await bun.write(projectConfig, YAML.stringify({ modelRoles: { plan: "openai/plan" } }));
 		const settings = await Settings.init({ cwd: startProject, agentDir });
 		settings.setProjectModelRole("slow", "openai/project");
-		await Bun.write(projectConfig, "modelRoles: [\n");
+		await bun.write(projectConfig, "modelRoles: [\n");
 
 		await settings.reloadFromDisk();
 		expect(settings.getProjectModelRole("plan")).toBe("openai/plan");
 		expect(settings.getProjectModelRole("slow")).toBe("openai/project");
 
 		await settings.flush();
-		expect(YAML.parse(await Bun.file(projectConfig).text())).toEqual({
+		expect(YAML.parse(await bun.file(projectConfig).text())).toEqual({
 			modelRoles: { plan: "openai/plan", slow: "openai/project" },
 		});
 	});

@@ -1,4 +1,6 @@
 import { getToolDefinitions, handleToolCall, type ToolArguments, type ToolDefinition } from "./mcp-tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface JsonRpcRequest {
 	readonly jsonrpc?: string;
@@ -91,8 +93,8 @@ export async function handleJsonRpc(request: JsonRpcRequest): Promise<JsonRpcRes
 }
 
 export async function runStdio(
-	input: ReadableStream<Uint8Array> = Bun.stdin.stream(),
-	output: WritableOutput = Bun.stdout,
+	input: ReadableStream<Uint8Array> = bun.stdin.stream(),
+	output: WritableOutput = bun.stdout,
 ): Promise<void> {
 	const reader = input.getReader();
 	const decoder = new TextDecoder();
@@ -135,7 +137,7 @@ export function runMcpServer(
 	return runStdio();
 }
 
-export function main(argv: readonly string[] = Bun.argv.slice(2)): Promise<void> {
+export function main(argv: readonly string[] = bun.argv.slice(2)): Promise<void> {
 	let transport = "stdio";
 	let port: number | undefined;
 	let bank: string | undefined;
@@ -152,4 +154,4 @@ export function main(argv: readonly string[] = Bun.argv.slice(2)): Promise<void>
 	return runMcpServer(transport, { port, bank, host });
 }
 
-if (import.meta.main) await main();
+if (isMainModule(import.meta.url)) await main();

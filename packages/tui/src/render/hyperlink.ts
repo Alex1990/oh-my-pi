@@ -9,6 +9,7 @@ import * as url from "node:url";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { span } from "../native/describe";
 import { setTerminalHyperlinks, TERMINAL, type TerminalId } from "../terminal-capabilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const OSC = "\x1b]";
 const ST = "\x1b\\";
@@ -92,7 +93,7 @@ function resolveHyperlinkMode(mode: HyperlinkMode): boolean {
 	if (mode === "always") return true;
 	// auto: respect the detected capability (immutable snapshot, not the mutable
 	// runtime flag that applyHyperlinkSetting overwrites) and NO_COLOR.
-	if (Bun.env.NO_COLOR) return false;
+	if (bun.env.NO_COLOR) return false;
 	if (!process.stdout.isTTY) return false;
 	return DETECTED_TERMINAL_HYPERLINKS;
 }

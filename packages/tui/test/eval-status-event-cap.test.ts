@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, type Theme } from "@oh-my-pi/pi-tui/theme";
 import {
 	type EvalStatusEvent,
@@ -8,6 +8,7 @@ import {
 	recordStatusEvent,
 	type StatusEventLog,
 } from "@oh-my-pi/pi-tui/tools/eval";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * A cell that calls a helper in a loop emits one status event per call. The
@@ -79,7 +80,7 @@ describe("eval status event log", () => {
 			{ expanded: false, isPartial: false, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(120).join("\n"));
+		return bun.stripANSI(component.render(120).join("\n"));
 	}
 
 	it("includes dropped events in the rendered earlier-events count", () => {

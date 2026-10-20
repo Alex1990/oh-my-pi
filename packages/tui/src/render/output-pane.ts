@@ -8,6 +8,7 @@ import { getPaddingX } from "../utils";
 import { truncateToVisualLines } from "../chrome/visual-truncate";
 import { getSixelLineMask } from "./sixel";
 import { formatExpandHint, replaceTabs } from "./render-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Which side of an output stream remains visible when the pane is capped. */
 export type OutputPaneEdge = "head" | "tail";
@@ -288,7 +289,7 @@ export class OutputPane implements Component {
 			this.#theme,
 		);
 		const content = `${this.#options.leadingBlank && formatted.lines.length > 0 ? "\n" : ""}${formatted.lines.join("\n")}`;
-		const key = `${width}:${content.length}:${Bun.hash(content).toString(36)}`;
+		const key = `${width}:${content.length}:${bun.hash(content).toString(36)}`;
 		if (key !== this.#renderKey) {
 			this.#renderKey = key;
 			this.#text.setText(content);

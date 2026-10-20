@@ -443,7 +443,7 @@ export function makeOpenRouterRewriter(opts: OpenRouterOptions): RewriteChunk {
 			} catch (err) {
 				lastErr = err;
 			}
-			if (pending.length > 0 && attempt < opts.retries) await Bun.sleep(400 * (attempt + 1));
+			if (pending.length > 0 && attempt < opts.retries) await bun.sleep(400 * (attempt + 1));
 		}
 		if (pending.length > 0) {
 			console.error(
@@ -510,10 +510,10 @@ function parseCli(argv: string[]): CliOptions {
 
 /** Resolve every bundled prompt and rule markdown file, repo-root anchored and sorted. */
 async function collectPromptFiles(): Promise<string[]> {
-	const root = path.resolve(import.meta.dir, "..");
+	const root = path.resolve(import.meta.dirname, "..");
 	const seen = new Set<string>();
 	for (const pattern of PROMPT_GLOBS) {
-		for await (const rel of new Bun.Glob(pattern).scan({ cwd: root, onlyFiles: true })) {
+		for await (const rel of new bun.Glob(pattern).scan({ cwd: root, onlyFiles: true })) {
 			if (rel.endsWith(".rewritten.md")) continue; // skip stale artifacts from older runs
 			seen.add(path.join(root, rel));
 		}
@@ -531,7 +531,7 @@ async function main(): Promise<void> {
 
 	if (opts.dryRun) {
 		for (const file of files) {
-			const content = await Bun.file(file).text();
+			const content = await bun.file(file).text();
 			const plan = planRewrite(content);
 			const groups = chunk(opts.limit > 0 ? plan.prose.slice(0, opts.limit) : plan.prose, opts.chunkSize);
 			console.error(
@@ -559,7 +559,7 @@ async function main(): Promise<void> {
 
 	for (const file of files) {
 		const output = opts.all ? file : opts.output;
-		const content = await Bun.file(file).text();
+		const content = await bun.file(file).text();
 		const { content: rewritten, stats } = await rewriteAll(content, rewriteChunk, {
 			chunkSize: opts.chunkSize,
 			concurrency: opts.concurrency,
@@ -568,13 +568,15 @@ async function main(): Promise<void> {
 				if (done === total || done % 10 === 0) console.error(`  ${file}: ${done}/${total} prose lines`);
 			},
 		});
-		await Bun.write(output, rewritten);
+		await bun.write(output, rewritten);
 		console.error(
 			`Wrote ${output}: ${stats.changed} changed, ${stats.fallback} fallback, ${stats.proseLines} prose / ${stats.totalLines} lines (model ${opts.model}).`,
 		);
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";

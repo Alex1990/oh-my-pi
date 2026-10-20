@@ -1,12 +1,13 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { writeModelCache } from "@oh-my-pi/pi-catalog/model-cache";
 import { resolveModelCacheProviderId } from "@oh-my-pi/pi-catalog/provider-models";
 import { getModelDbPath, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
+const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 test("omp dry-balance resolves credential-scoped models from the model cache", async () => {
 	const tempDir = TempDir.createSync("@omp-dry-balance-runtime-");
@@ -36,7 +37,7 @@ test("omp dry-balance resolves credential-scoped models from the model cache", a
 			"",
 			cacheDbPath,
 		);
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[process.execPath, cliEntry, "dry-balance", `opencode-go/${modelId}`, "--count", "1", "--json"],
 			{
 				cwd: tempDir.path(),

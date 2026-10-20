@@ -7,6 +7,8 @@
 import { defineCapability } from ".";
 import type { SourceMeta } from "./types";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 const CONDITION_GLOB_SCOPE_TOOLS = ["edit", "write"] as const;
 
 /**
@@ -223,7 +225,7 @@ export function ruleAppliesToAgent(rule: Pick<Rule, "agents">, agentName: string
 		if (pattern === name) {
 			return true;
 		}
-		return new Bun.Glob(pattern).match(name);
+		return new Glob(pattern).match(name);
 	});
 }
 /**

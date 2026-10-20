@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import {
 	setAgentDir,
 	setProjectDir,
 } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalProjectDir = getProjectDir();
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
@@ -25,12 +26,12 @@ function restoreAgentDir(): void {
 	if (originalAgentDir) {
 		setAgentDir(originalAgentDir);
 		process.env.PI_CODING_AGENT_DIR = originalAgentDir;
-		Bun.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		bun.env.PI_CODING_AGENT_DIR = originalAgentDir;
 		return;
 	}
 	setAgentDir(fallbackAgentDir);
 	delete process.env.PI_CODING_AGENT_DIR;
-	delete Bun.env.PI_CODING_AGENT_DIR;
+	delete bun.env.PI_CODING_AGENT_DIR;
 }
 
 async function writeConfig(
@@ -38,7 +39,7 @@ async function writeConfig(
 	cwd: string,
 	servers: Record<string, MCPServerConfig>,
 ): Promise<void> {
-	await Bun.write(getMCPConfigPath(scope, cwd), `${JSON.stringify({ mcpServers: servers }, null, 2)}\n`);
+	await bun.write(getMCPConfigPath(scope, cwd), `${JSON.stringify({ mcpServers: servers }, null, 2)}\n`);
 }
 
 /** Fake ctx carrying only the mcpManager surface `collectMcpServerNames` reads. */
@@ -126,7 +127,7 @@ describe("MCP server-name autocomplete", () => {
 		// no longer reported by the manager (loadAllMCPConfigs drops disabled
 		// sources). #resolveServerForAuth/reconnectServer can't resolve it, so
 		// test/reconnect/reauth/unauth must not suggest it.
-		await Bun.write(
+		await bun.write(
 			getMCPConfigPath("user", projectDir),
 			`${JSON.stringify({ mcpServers: {}, disabledServers: ["discovered-disabled"] }, null, 2)}\n`,
 		);
@@ -184,7 +185,7 @@ describe("MCP server-name autocomplete", () => {
 	test("/mcp getArgumentCompletions returns null instead of throwing when a config file is malformed", async () => {
 		// Malformed JSON makes readMCPConfigFile's JSON.parse throw (ENOENT is the only
 		// error it swallows), which must not escape the autocomplete provider.
-		await Bun.write(getMCPConfigPath("user", projectDir), "{ not valid json");
+		await bun.write(getMCPConfigPath("user", projectDir), "{ not valid json");
 		const { ctx } = createFakeCtx([]);
 		const runtime: TuiSlashCommandRuntime = { ctx };
 		const mcp = buildTuiBuiltinSlashCommands(runtime).find(c => c.name === "mcp");

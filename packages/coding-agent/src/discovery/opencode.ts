@@ -18,7 +18,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { isRecord, logger, parseFrontmatter } from "@oh-my-pi/pi-utils";
-import { JSONC } from "bun";
+import { JSONC } from "@oh-my-pi/pi-utils/node-runtime";
 import { registerProvider } from "../capability";
 import { type ContextFile, contextFileCapability } from "../capability/context-file";
 import { type ExtensionModule, extensionModuleCapability } from "../capability/extension-module";
@@ -43,6 +43,7 @@ import {
 } from "./helpers";
 
 import { cfgCommandsEnableOpencodeProject, cfgCommandsEnableOpencodeUser } from "../extensibility/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER_ID = "opencode";
 const DISPLAY_NAME = "OpenCode";
@@ -95,7 +96,7 @@ async function loadJsonConfig(
  * "empty"` mode) rather than aborting discovery.
  */
 async function substituteConfigVars(text: string, configPath: string): Promise<string> {
-	const envExpanded = text.replace(/\{env:([^}]+)\}/g, (_, name: string) => Bun.env[name] ?? "");
+	const envExpanded = text.replace(/\{env:([^}]+)\}/g, (_, name: string) => bun.env[name] ?? "");
 
 	const fileMatches = [...envExpanded.matchAll(/\{file:[^}]+\}/g)];
 	if (fileMatches.length === 0) return envExpanded;

@@ -1,5 +1,6 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +24,7 @@ import {
 	createMcpManagerStub,
 	type McpManagerOverrides,
 } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const RAW_SERVER_URL = `https://\${MCP_HOST}/mcp`;
 const EXPANDED_SERVER_URL = "https://mcp.example.com/mcp";
@@ -40,11 +42,11 @@ const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
 
 function restoreEnvValue(name: string, value: string | undefined): void {
 	if (value === undefined) {
-		delete Bun.env[name];
+		delete bun.env[name];
 		delete process.env[name];
 		return;
 	}
-	Bun.env[name] = value;
+	bun.env[name] = value;
 	process.env[name] = value;
 }
 /**
@@ -112,12 +114,12 @@ describe("/mcp auth commands", () => {
 		projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-reauth-project-"));
 		agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-reauth-agent-"));
 		configPath = path.join(projectDir, ".mcp.json");
-		originalMcpHost = Bun.env.MCP_HOST;
-		Bun.env.MCP_HOST = "mcp.example.com";
+		originalMcpHost = bun.env.MCP_HOST;
+		bun.env.MCP_HOST = "mcp.example.com";
 		process.env.MCP_HOST = "mcp.example.com";
 		setProjectDir(projectDir);
 		setAgentDir(agentDir);
-		await Bun.write(
+		await bun.write(
 			configPath,
 			`${JSON.stringify(
 				{
@@ -150,7 +152,7 @@ describe("/mcp auth commands", () => {
 	});
 
 	test("stores definition-only OAuth credentials under the expanded URL key", async () => {
-		await Bun.write(
+		await bun.write(
 			configPath,
 			`${JSON.stringify(
 				{
@@ -194,7 +196,7 @@ describe("/mcp auth commands", () => {
 		});
 		expect(authStorage.credentials.get(oauthFlow.mcpOAuthCredentialId(RAW_SERVER_URL))).toBeUndefined();
 
-		const saved = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const saved = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		const savedServer = saved.mcpServers?.["MaaS Slack"];
 		const savedUrl = savedServer?.type === "http" || savedServer?.type === "sse" ? savedServer.url : undefined;
 		expect(savedUrl).toBe(RAW_SERVER_URL);
@@ -210,7 +212,7 @@ describe("/mcp auth commands", () => {
 		);
 		const registrationRequests: string[] = [];
 		const fetchMock = Object.assign(
-			async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				const url = String(input);
 				if (url === resourceMetadataUrl) {
 					return new Response(
@@ -241,7 +243,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 		vi.spyOn(oauthFlow.MCPOAuthFlow.prototype, "login").mockImplementation(
@@ -273,7 +275,7 @@ describe("/mcp auth commands", () => {
 	])("reauth does not request realm-wide scopes with configured scope $scope", async ({ scope, expectedScope }) => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		await Bun.write(
+		await bun.write(
 			configPath,
 			JSON.stringify({
 				mcpServers: {
@@ -308,7 +310,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 		let authorizationUrl = "";
@@ -336,7 +338,7 @@ describe("/mcp auth commands", () => {
 	test("uses tool challenge resource metadata and scopes during reauth", async () => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		await Bun.write(
+		await bun.write(
 			configPath,
 			JSON.stringify({
 				mcpServers: {
@@ -375,7 +377,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -433,7 +435,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -476,7 +478,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -507,7 +509,7 @@ describe("/mcp auth commands", () => {
 		const registrationRequests: string[] = [];
 		let tokenRequest: URLSearchParams | undefined;
 		const fetchMock = Object.assign(
-			async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				const url = String(input);
 				if (url === "https://mcp.example.com/.well-known/oauth-authorization-server") {
 					return new Response(
@@ -536,7 +538,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -571,7 +573,7 @@ describe("/mcp auth commands", () => {
 
 		let tokenRequest: URLSearchParams | undefined;
 		const fetchMock = Object.assign(
-			async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				if (String(input) === "https://auth.example.com/token" && init?.method === "POST") {
 					tokenRequest = new URLSearchParams(String(init.body ?? ""));
 					return new Response(
@@ -581,7 +583,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -604,14 +606,14 @@ describe("/mcp auth commands", () => {
 			| undefined;
 		expect(savedCredential).toMatchObject({ type: "oauth", access: "fresh-access" });
 		expect(savedCredential?.clientId).toBeUndefined();
-		const saved = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const saved = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		expect(saved.mcpServers?.envserver?.auth?.clientId).toBeUndefined();
 	});
 
 	test("uses configured OAuth scope when endpoint metadata omits scopes", async () => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		await Bun.write(
+		await bun.write(
 			configPath,
 			JSON.stringify({
 				mcpServers: {
@@ -639,7 +641,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -665,7 +667,7 @@ describe("/mcp auth commands", () => {
 	test("uses configured OAuth client credentials as a pair when discovery advertises another client", async () => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		await Bun.write(
+		await bun.write(
 			configPath,
 			JSON.stringify({
 				mcpServers: {
@@ -683,7 +685,7 @@ describe("/mcp auth commands", () => {
 
 		let tokenRequest: URLSearchParams | undefined;
 		const fetchMock = Object.assign(
-			async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				const url = String(input);
 				if (url === "https://mcp.example.com/.well-known/oauth-authorization-server") {
 					return new Response(
@@ -708,7 +710,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -727,7 +729,7 @@ describe("/mcp auth commands", () => {
 		expect(new URL(authorizationUrl).searchParams.get("client_id")).toBe("configured-client");
 		expect(tokenRequest?.get("client_id")).toBe("configured-client");
 		expect(tokenRequest?.get("client_secret")).toBe("configured-secret");
-		const saved = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const saved = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		expect(saved.mcpServers?.envserver?.auth).toEqual(
 			expect.objectContaining({ clientId: "configured-client", clientSecret: "configured-secret" }),
 		);
@@ -739,7 +741,7 @@ describe("/mcp auth commands", () => {
 	test("does not persist or reuse a configured-only OAuth secret", async () => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		await Bun.write(
+		await bun.write(
 			configPath,
 			JSON.stringify({
 				mcpServers: {
@@ -757,7 +759,7 @@ describe("/mcp auth commands", () => {
 
 		const tokenRequests: URLSearchParams[] = [];
 		const fetchMock = Object.assign(
-			async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				const url = String(input);
 				if (url === "https://mcp.example.com/.well-known/oauth-authorization-server") {
 					return new Response(
@@ -782,7 +784,7 @@ describe("/mcp auth commands", () => {
 				}
 				return new Response("not found", { status: 404 });
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
@@ -801,7 +803,7 @@ describe("/mcp auth commands", () => {
 		expect(authorizationUrls[0]?.searchParams.get("client_id")).toBe("discovered-client");
 		expect(tokenRequests[0]?.get("client_id")).toBe("discovered-client");
 		expect(tokenRequests[0]?.has("client_secret")).toBe(false);
-		const savedAfterFirstReauth = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const savedAfterFirstReauth = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		const savedAuth = savedAfterFirstReauth.mcpServers?.envserver?.auth;
 		expect(savedAuth).toEqual(expect.objectContaining({ clientId: "discovered-client" }));
 		expect(savedAuth?.clientSecret).toBeUndefined();
@@ -813,7 +815,7 @@ describe("/mcp auth commands", () => {
 		expect(authorizationUrls[1]?.searchParams.get("client_id")).toBe("discovered-client");
 		expect(tokenRequests[1]?.get("client_id")).toBe("discovered-client");
 		expect(tokenRequests[1]?.has("client_secret")).toBe(false);
-		const savedAfterSecondReauth = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const savedAfterSecondReauth = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		const savedAuthAfterSecondReauth = savedAfterSecondReauth.mcpServers?.envserver?.auth;
 		expect(savedAuthAfterSecondReauth).toEqual(expect.objectContaining({ clientId: "discovered-client" }));
 		expect(savedAuthAfterSecondReauth?.clientSecret).toBeUndefined();
@@ -841,7 +843,7 @@ describe("/mcp auth commands", () => {
 		} as oauthFlow.MCPStoredOAuthCredential);
 		const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
 			Object.assign(
-				async (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+				async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 					const url = String(input);
 					if (url === "https://mcp.example.com/.well-known/oauth-authorization-server") {
 						return new Response(
@@ -866,7 +868,7 @@ describe("/mcp auth commands", () => {
 					}
 					return new Response("not found", { status: 404 });
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 		vi.spyOn(mcpClient, "connectToServer").mockResolvedValue({} as never);
@@ -1069,7 +1071,7 @@ describe("/mcp auth commands", () => {
 		expect(showError).not.toHaveBeenCalled();
 		expect(authStorage.credentials.get(oauthFlow.mcpOAuthCredentialId(EXPANDED_SERVER_URL))).toBeUndefined();
 		expect(authStorage.credentials.get(oauthFlow.mcpOAuthCredentialId(RAW_SERVER_URL))).toBeUndefined();
-		const saved = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+		const saved = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 		const savedServer = saved.mcpServers?.envserver;
 		const savedUrl = savedServer?.type === "http" || savedServer?.type === "sse" ? savedServer.url : undefined;
 		expect(savedUrl).toBe(RAW_SERVER_URL);
@@ -1101,7 +1103,7 @@ describe("/mcp auth commands", () => {
 		expect(authStorage.credentials.get(oauthFlow.mcpOAuthCredentialId(EXPANDED_SERVER_URL))).toBeUndefined();
 		const userConfigPath = getMCPConfigPath("user", projectDir);
 		const userConfig = JSON.parse(
-			await Bun.file(userConfigPath)
+			await bun.file(userConfigPath)
 				.text()
 				.catch(() => "{}"),
 		) as TestConfigFile;
@@ -1111,11 +1113,11 @@ describe("/mcp auth commands", () => {
 	test("passes env-expanded OAuth client credentials to the reauth flow", async () => {
 		const authStorage = freshAuthStorage();
 		await authStorage.credentials.reload();
-		const originalClientId = Bun.env.MCP_OAUTH_CLIENT_ID;
-		const originalClientSecret = Bun.env.MCP_OAUTH_CLIENT_SECRET;
-		Bun.env.MCP_OAUTH_CLIENT_ID = "expanded-client-id";
-		Bun.env.MCP_OAUTH_CLIENT_SECRET = "expanded-client-secret";
-		await Bun.write(
+		const originalClientId = bun.env.MCP_OAUTH_CLIENT_ID;
+		const originalClientSecret = bun.env.MCP_OAUTH_CLIENT_SECRET;
+		bun.env.MCP_OAUTH_CLIENT_ID = "expanded-client-id";
+		bun.env.MCP_OAUTH_CLIENT_SECRET = "expanded-client-secret";
+		await bun.write(
 			configPath,
 			`${JSON.stringify(
 				{
@@ -1166,7 +1168,7 @@ describe("/mcp auth commands", () => {
 			expect(flowClientSecret).toBe("expanded-client-secret");
 
 			// The config file keeps the placeholder; only the flow sees the value.
-			const saved = JSON.parse(await Bun.file(configPath).text()) as TestConfigFile;
+			const saved = JSON.parse(await bun.file(configPath).text()) as TestConfigFile;
 			const savedServer = saved.mcpServers?.envserver;
 			// oxlint-disable-next-line no-template-curly-in-string -- test placeholder string for env expansion
 			expect(savedServer?.oauth?.clientSecret).toBe("${MCP_OAUTH_CLIENT_SECRET}");

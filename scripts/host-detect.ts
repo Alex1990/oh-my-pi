@@ -1,9 +1,10 @@
-import { dlopen, FFIType } from "bun:ffi";
+import { dlopen, FFIType } from "@oh-my-pi/pi-utils/ffi";
 import * as fs from "node:fs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function runCommand(command: string, args: string[]): string | null {
 	try {
-		const result = Bun.spawnSync([command, ...args], { stdout: "pipe", stderr: "pipe" });
+		const result = bun.spawnSync([command, ...args], { stdout: "pipe", stderr: "pipe" });
 		if (result.exitCode !== 0) return null;
 		return result.stdout.toString("utf-8").trim();
 	} catch {

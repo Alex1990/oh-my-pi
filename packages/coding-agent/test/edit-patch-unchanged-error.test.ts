@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { EditTool } from "@oh-my-pi/pi-coding-agent/edit";
 import * as lsp from "@oh-my-pi/pi-coding-agent/lsp";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(cwd: string): ToolSession {
 	return {
@@ -52,6 +53,6 @@ describe("EditTool patch post-write verification", () => {
 		expect(result.isError).toBe(true);
 		expect(text).toContain(`edit appeared successful but file content did not change on disk: ${relPath}`);
 		expect(text).not.toContain(tempDir);
-		expect(await Bun.file(path.join(tempDir, relPath)).text()).toBe("a\n");
+		expect(await bun.file(path.join(tempDir, relPath)).text()).toBe("a\n");
 	});
 });

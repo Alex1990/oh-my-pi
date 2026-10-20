@@ -4,6 +4,7 @@ import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { playHelp as commandHelp } from "../cli/command-help";
 import { playRecording } from "../stream/player";
 import { latestRecording, parseRecording, type Recording, recordingsDir } from "../stream/recording";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export default class Play extends Command {
 	static description = commandHelp.description;
@@ -29,7 +30,7 @@ export default class Play extends Command {
 		if (!file) throw new CliUsageError(`no recordings in ${recordingsDir()}; start one with /record`);
 		let text: string;
 		try {
-			text = await Bun.file(file).text();
+			text = await bun.file(file).text();
 		} catch (error) {
 			if (isEnoent(error)) throw new CliUsageError(`recording not found: ${file}`);
 			throw error;

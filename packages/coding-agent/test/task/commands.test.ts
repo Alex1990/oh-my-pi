@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { expandCommand, type WorkflowCommand } from "@oh-my-pi/pi-coding-agent/task/commands";
 
 function makeCommand(instructions: string): WorkflowCommand {

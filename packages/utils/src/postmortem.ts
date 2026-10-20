@@ -10,6 +10,7 @@ import * as fs from "node:fs";
 import { APP_NAME } from "./dirs";
 import * as logger from "./logger";
 import { restoreTerminalStderr } from "./stderr-guard";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Cleanup reasons, in order of priority/meaning.
 export enum Reason {
@@ -104,9 +105,13 @@ function nativeHardExit(fn: HardExitFn | undefined): HardExitFn | undefined {
  */
 export function exitProcess(code: number): never {
 	logger.flush();
-	const reallyExit = nativeHardExit(typeof process.reallyExit === "function" ? process.reallyExit : undefined);
+	// Node keeps the low-level primitive off the public type; Bun exposed it.
+	const processWithNativeExit = process as typeof process & { reallyExit?: HardExitFn };
+	const reallyExit = nativeHardExit(
+		typeof processWithNativeExit.reallyExit === "function" ? processWithNativeExit.reallyExit : undefined,
+	);
 	const exit = nativeHardExit(process.exit as HardExitFn);
-	if (reallyExit) process.reallyExit = reallyExit as typeof process.reallyExit;
+	if (reallyExit) processWithNativeExit.reallyExit = reallyExit;
 	if (exit) process.exit = exit as typeof process.exit;
 	try {
 		reallyExit?.call(process, code);
@@ -360,7 +365,7 @@ function onStdoutDisconnect(err: Error): void {
  */
 export function registerStdioDisconnectHandling(): () => void {
 	let registered = true;
-	if (Bun.isMainThread && stdioDisconnectRegistrations === 0) {
+	if (bun.isMainThread && stdioDisconnectRegistrations === 0) {
 		process.stdout.on("error", onStdoutDisconnect);
 	}
 	stdioDisconnectRegistrations++;
@@ -368,7 +373,7 @@ export function registerStdioDisconnectHandling(): () => void {
 		if (!registered) return;
 		registered = false;
 		stdioDisconnectRegistrations--;
-		if (Bun.isMainThread && stdioDisconnectRegistrations === 0) {
+		if (bun.isMainThread && stdioDisconnectRegistrations === 0) {
 			process.stdout.removeListener("error", onStdoutDisconnect);
 		}
 	};
@@ -552,15 +557,15 @@ function handleWorkerSendEpipe(err: Error): boolean {
  */
 export async function fatal(error: unknown): Promise<never> {
 	const err = error instanceof Error ? error : new Error(String(error));
-	const output = `${Bun.inspect(error, { colors: process.stderr.isTTY === true })}\n${formatFatalRecoveryHints()}`;
-	if (!Bun.isMainThread) {
+	const output = `${bun.inspect(error, { colors: process.stderr.isTTY === true })}\n${formatFatalRecoveryHints()}`;
+	if (!bun.isMainThread) {
 		process.stderr.write(output);
 		process.exit(1);
 	}
 	return exitAfterFatal(output, "Fatal error", err, Reason.UNHANDLED_REJECTION);
 }
 
-if (Bun.isMainThread) {
+if (bun.isMainThread) {
 	process
 		.on("SIGINT", async () => {
 			await runCleanup(Reason.SIGINT);
@@ -760,13 +765,13 @@ export async function drainStdout(): Promise<void> {
 	if (process.stdout.writableLength === 0) return;
 	const { promise, resolve } = Promise.withResolvers<void>();
 	process.stdout.once("drain", resolve);
-	await Promise.race([promise, Bun.sleep(5000)]);
+	await Promise.race([promise, bun.sleep(5000)]);
 }
 
 async function runQuit(code: number, exitMode: "guarded" | "native", options: QuitOptions = {}): Promise<void> {
 	await runCleanup(Reason.MANUAL);
 
-	if (!Bun.isMainThread) {
+	if (!bun.isMainThread) {
 		return; // Workers: cleanup done, let worker exit naturally
 	}
 
@@ -774,11 +779,17 @@ async function runQuit(code: number, exitMode: "guarded" | "native", options: Qu
 		await drainStdout();
 	}
 
-	switch (exitMode) {
-		case "guarded":
-			return process.exit(code);
-		case "native":
-			return exitProcess(code);
+	// A hard `process.exit()` while libuv's thread pool or an async handle is
+	// still settling aborts the process on Windows (`!(handle->flags &
+	// UV_HANDLE_CLOSING)` in async.c). Set the exit code and let the loop drain;
+	// only force the exit if live handles keep it open.
+	const hardExit = setTimeout(() => process.exit(code), 250);
+	hardExit.unref();
+	process.exitCode = code;
+	if (exitMode === "native") {
+		// The native path is reserved for callers that must not run exit hooks.
+		clearTimeout(hardExit);
+		return exitProcess(code);
 	}
 }
 

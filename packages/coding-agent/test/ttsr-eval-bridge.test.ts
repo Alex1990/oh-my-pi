@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
@@ -19,6 +19,7 @@ import { EvalTool } from "@oh-my-pi/pi-coding-agent/tools/eval";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStorage: AuthStorage = createInMemoryAuthStorage();
 for (const provider of ["anthropic", "mock"]) authStorage.keys.setRuntime(provider, "test-key");
@@ -141,7 +142,7 @@ describe("TTSR eval bridge enforcement", () => {
 		await session.prompt("Use eval to write the source file.");
 		await session.waitForIdle();
 
-		expect(await Bun.file(target).exists()).toBe(!blocks);
+		expect(await bun.file(target).exists()).toBe(!blocks);
 		const transcript = JSON.stringify(agent.state.messages);
 		expect(transcript).toContain(rule.name);
 		expect(transcript).toContain(rule.content);

@@ -17,17 +17,22 @@ try {
 import type * as WorkerThreads from "node:worker_threads";
 import type { MessagePort } from "node:worker_threads";
 import type { CliConfig, CommandMetadata } from "@oh-my-pi/pi-utils/cli";
-import type * as Postmortem from "@oh-my-pi/pi-utils/postmortem";
+import * as Postmortem from "@oh-my-pi/pi-utils/postmortem";
 import {
 	APP_NAME,
 	getActiveProfile,
-	MIN_BUN_VERSION,
+	MIN_NODE_VERSION,
 	resolveProfileEnv,
 	setProfile,
 	VERSION,
 } from "@oh-my-pi/pi-utils/dirs";
 
-import { declareWorkerHostEntry, installWorkerInbox, isWorkerHostSelector } from "@oh-my-pi/pi-utils/worker-host";
+import {
+	declareWorkerHostEntry,
+	installWorkerInbox,
+	isWorkerHostSelector,
+	workerSelector,
+} from "@oh-my-pi/pi-utils/worker-host";
 import { extractProfileFlags } from "./cli/profile-bootstrap";
 import {
 	BLOB_BROKER_WORKER_ARG,
@@ -44,10 +49,16 @@ import {
 import type * as JsProcessEntry from "./eval/js/process-entry";
 import type { WorkerInbound as JsWorkerInbound, WorkerOutbound as JsWorkerOutbound } from "./eval/js/worker-protocol";
 import { startParentWatchdog } from "./subprocess/parent-watchdog";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-if (Bun.semver.order(Bun.version, MIN_BUN_VERSION) < 0) {
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+if (bun.semver.order(bun.version, MIN_NODE_VERSION) < 0) {
 	process.stderr.write(
-		`error: Bun runtime must be >= ${MIN_BUN_VERSION} (found v${Bun.version}). Please upgrade: bun upgrade\n`,
+		`error: Node.js must be >= ${MIN_NODE_VERSION} (found v${bun.version}). Please upgrade Node.js.\n`,
 	);
 	process.exit(1);
 }
@@ -56,13 +67,13 @@ try {
 	process.title = APP_NAME;
 } catch {}
 
-// `Bun.build`-API compiled Windows executables report `import.meta.main ===
+// `build`-API compiled Windows executables report `isMainModule(import.meta.url) ===
 // false`: the standalone loader keys the entry module with native backslashes
 // (`B:\~BUN\root\cli.js`) but registers the main path with forward slashes
 // (`B:/~BUN/root/cli.js`), so Bun's internal match fails. `bun build --compile`
 // CLI builds are unaffected. A compiled binary's entry module is by definition
 // the process entry, so the define-folded PI_COMPILED marker stands in.
-const isProcessEntry = import.meta.main || process.env.PI_COMPILED === "true";
+const isProcessEntry = isMainModule(import.meta.url) || process.env.PI_COMPILED === "true";
 
 /**
  * Worker inboxes must attach before this entry module reaches its first await,
@@ -106,7 +117,7 @@ async function installNetworkBootstrap(): Promise<void> {
 }
 
 // Worker-host entry declaration (Worker threads and worker subprocesses
-// re-enter `Bun.main` with a hidden argv selector instead of loading separate
+// re-enter `bun.main` with a hidden argv selector instead of loading separate
 // worker entrypoints) happens inside `runCli` after profile bootstrap:
 // `@oh-my-pi/pi-utils/env` eagerly loads `.env` from the agent directory at
 // import time, so it must not be imported before `setProfile` runs.
@@ -245,9 +256,8 @@ async function runWorkerEntrypoint(arg: string | undefined): Promise<boolean> {
 		// This selector is the synchronous bootstrap boundary: keep the evaluator
 		// runtime and postmortem/inspector graph out of ordinary startup without
 		// putting an await ahead of the subprocess message handler.
-		const { startJsEvalProcess }: typeof JsProcessEntry = require("./eval/js/process-entry");
-		// The .js subpath is the package's unconditional export for synchronous loading.
-		const { interceptUnhandledRejections }: typeof Postmortem = require("@oh-my-pi/pi-utils/postmortem.js");
+		const { startJsEvalProcess }: typeof JsProcessEntry = await import("./eval/js/process-entry");
+		const { interceptUnhandledRejections } = Postmortem;
 		// The JS evaluator forwards user-controlled payloads (tool-call args,
 		// display outputs); a non-serializable one must fail that cell, not
 		// SIGKILL the kernel and erase the eval session's state.
@@ -488,8 +498,8 @@ export async function runCli(argv: string[]): Promise<void> {
 	// is resolved. The worker-host module is side-effect-free; importing
 	// `@oh-my-pi/pi-utils/env` here would snapshot the wrong agent `.env`.
 	// Gated on `isProcessEntry`: only the real CLI process entry is a valid
-	// worker host. Worker-thread re-entry has `!Bun.isMainThread` (isProcessEntry === false),
-	// and importers (`runCli` in profile-CLI tests, SDK embedding) have `import.meta.main === false`
+	// worker host. Worker-thread re-entry has `!bun.isMainThread` (isProcessEntry === false),
+	// and importers (`runCli` in profile-CLI tests, SDK embedding) have `isMainModule(import.meta.url) === false`
 	// — declaring there would poison `workerHostEntry()` for the whole test process, forcing eval/stats/
 	// browser workers onto the same-realm inline fallback.
 	// This must run before worker selector dispatch so that worker subprocesses
@@ -501,12 +511,13 @@ export async function runCli(argv: string[]): Promise<void> {
 	// synchronous prefix of `runWorkerEntrypoint`, and Bun flushes the
 	// worker's parked initial messages as soon as the entry module's
 	// top-level evaluation finishes.
-	if (isWorkerHostSelector(resolvedArgv[0])) {
+	const selector = workerSelector() ?? resolvedArgv[0];
+	if (isWorkerHostSelector(selector)) {
 		// Invoke dispatch first so its inbox is installed before asynchronous
 		// process-name setup yields; neither dependency belongs in prepaint.
-		const [dispatched] = await Promise.all([runWorkerEntrypoint(resolvedArgv[0]), setFullProcessName()]);
+		const [dispatched] = await Promise.all([runWorkerEntrypoint(selector), setFullProcessName()]);
 		if (!dispatched) {
-			process.stderr.write(`Error: unknown worker selector: ${resolvedArgv[0]}\n`);
+			process.stderr.write(`Error: unknown worker selector: ${selector}\n`);
 			process.exitCode = 1;
 		}
 		return;
@@ -578,12 +589,10 @@ export async function runCli(argv: string[]): Promise<void> {
 // floating call exits 0 as if the command had succeeded.
 // Guarded so importing `runCli` (profile CLI tests, SDK embedding) does not
 // launch the agent as a side effect. Worker threads re-enter this module as
-// their entry with `import.meta.main === false`, so the worker-host dispatch
-// is admitted via `!Bun.isMainThread`.
-if (isProcessEntry || !Bun.isMainThread) {
-	const postmortem: typeof Postmortem | undefined = isProcessEntry
-		? require("@oh-my-pi/pi-utils/postmortem.js")
-		: undefined;
+// their entry with `isMainModule(import.meta.url) === false`, so the worker-host dispatch
+// is admitted via `!bun.isMainThread`.
+if (isProcessEntry || !bun.isMainThread) {
+	const postmortem: typeof Postmortem | undefined = isProcessEntry ? Postmortem : undefined;
 	// A one-shot CLI run (`omp --help | head`, `omp --version | true`, `omp <sub> | grep -m1`)
 	// whose stdout consumer closes before the write drains gets an EPIPE that Bun surfaces as
 	// an unhandled rejection. Treat a vanished stdout peer as an ordinary Unix disconnect
@@ -595,7 +604,6 @@ if (isProcessEntry || !Bun.isMainThread) {
 	postmortem?.reportUnsettledEntry(entry, () => runningCommand);
 	entry.catch(async error => {
 		// Failure boundary: inspector/postmortem is irrelevant to successful startup.
-		const { fatal } = await import("@oh-my-pi/pi-utils/postmortem");
-		fatal(error);
+		await Postmortem.fatal(error);
 	});
 }

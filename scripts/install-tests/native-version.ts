@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
 const VERSION_SENTINEL_RE = /^__piNativesV(\d+)_(\d+)_(\d+)$/;
 
@@ -19,9 +20,10 @@ export function nativeVersionFromBindings(bindings: Record<string, unknown>): st
 	return versions.length === 1 ? versions[0] : undefined;
 }
 
-if (import.meta.main) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 	const addonPath = process.argv[2];
-	if (!addonPath) throw new Error("Usage: bun scripts/install-tests/native-version.ts <addon-path>");
+	if (!addonPath)
+		throw new Error("Usage: node --experimental-transform-types scripts/install-tests/native-version.ts <addon-path>");
 	const require = createRequire(import.meta.url);
 	const bindings = require(addonPath) as Record<string, unknown>;
 	const version = nativeVersionFromBindings(bindings);

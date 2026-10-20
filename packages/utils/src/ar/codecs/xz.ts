@@ -1,6 +1,7 @@
 import { crc32, crc64 } from "../checksums";
 import { ArchiveError } from "../error";
 import { lzma2Decompress } from "./lzma";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const XZ_MAGIC = Uint8Array.of(0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00);
 
@@ -421,7 +422,7 @@ function verifyCheck(checkId: number, output: Uint8Array, expected: Uint8Array):
 		if (actual !== stored) throw new ArchiveError("Invalid XZ stream: block CRC64 mismatch");
 		return;
 	}
-	const actual = new Uint8Array(new Bun.CryptoHasher("sha256").update(output).digest());
+	const actual = new bun.CryptoHasher("sha256").update(output).digest("buffer");
 	if (!equalBytes(actual, expected)) throw new ArchiveError("Invalid XZ stream: block SHA-256 mismatch");
 }
 

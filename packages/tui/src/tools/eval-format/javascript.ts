@@ -484,6 +484,23 @@ function splitDisplayObjectProperties(text: string): string[] {
 
 function formatDisplayObjectLiterals(formatted: string, source: string): string {
 	const roots = collectDisplayBraceNodes(formatted, classifySourceBraces(source));
+	// Line starts are precomputed once: per-node `lastIndexOf("\n")` scans the
+	// whole prefix, which turns a flat array of objects into quadratic work.
+	const lineStarts: number[] = [0];
+	for (let index = 0; index < formatted.length; index++) {
+		if (formatted.charCodeAt(index) === 10) lineStarts.push(index + 1);
+	}
+	/** Start of the line containing `position`, excluding a newline at `position - 1`. */
+	function lineStartOf(position: number): number {
+		let low = 0;
+		let high = lineStarts.length - 1;
+		while (low < high) {
+			const middle = (low + high + 1) >> 1;
+			if (lineStarts[middle]! <= position) low = middle;
+			else high = middle - 1;
+		}
+		return lineStarts[low]!;
+	}
 
 	function renderRange(
 		start: number,
@@ -504,7 +521,7 @@ function formatDisplayObjectLiterals(formatted: string, source: string): string 
 	}
 
 	function renderNode(node: DisplayBraceNode, parentIndent: string): string {
-		const lineStart = Math.max(0, formatted.lastIndexOf("\n", node.start - 1) + 1);
+		const lineStart = lineStartOf(node.start);
 		const linePrefix = formatted.slice(lineStart, node.start);
 		const ownIndent = /^[ \t]*$/.test(linePrefix) ? linePrefix : parentIndent;
 		const propertyIndent = ownIndent + JS_DISPLAY_INDENT;

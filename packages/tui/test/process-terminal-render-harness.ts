@@ -1,7 +1,8 @@
-import { vi } from "bun:test";
+import { vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, TUI, type TUIStartOptions } from "@oh-my-pi/pi-tui";
 import { ProcessTerminal, type ProcessTerminalOptions } from "@oh-my-pi/pi-tui/terminal";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Pristine descriptors, captured once at module load. Every dispose() restores
 // to these so the harness is full-suite safe across repeated create/dispose
@@ -120,7 +121,7 @@ export function createProcessTerminalRenderHarness(
 		throw err;
 	}
 
-	const settle = () => Bun.sleep(SETTLE_MS);
+	const settle = () => bun.sleep(SETTLE_MS);
 
 	return {
 		terminal,

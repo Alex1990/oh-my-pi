@@ -3,6 +3,7 @@ import { logger } from "@oh-my-pi/pi-utils";
 import type { Api, FetchImpl, Model } from "../types";
 import { lastDispatchOrigin, transportFetch } from "../utils/transport-fetch";
 import { resolveAnthropicPrewarmTarget } from "./anthropic";
+import { preconnectOf } from "../utils/fetch-preconnect";
 
 /**
  * Minimum gap between warm-ups of one origin. Idle pooled sockets outlive it
@@ -42,7 +43,7 @@ function resolvePrewarmTarget(model: Model<Api>): { origin: string; init: Reques
  * is billed; hosts answer 401/404/405) through the same transport — proxy,
  * extra CA, Cowork profile, TLS options — as real requests, because sockets
  * pool per transport configuration and a warm-up made any other way (e.g.
- * `fetch.preconnect`, which also throws on Windows) is never reused.
+ * `preconnectOf(fetch)`, which also throws on Windows) is never reused.
  * Throttled per origin; best effort, never throws.
  */
 export async function prewarmModelConnection(model: Model<Api>, options?: { fetch?: FetchImpl }): Promise<void> {

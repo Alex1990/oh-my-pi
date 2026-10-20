@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as url from "node:url";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
@@ -15,6 +15,7 @@ import { UiHelpers } from "@oh-my-pi/pi-coding-agent/modes/utils/ui-helpers";
 import { Container } from "@oh-my-pi/pi-tui";
 
 import { cfgTuiHyperlinks } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -42,7 +43,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 	it("gradient-paints a magic keyword in the rendered (sent) message bubble", () => {
 		const raw = render("please orchestrate the rollout");
 		// Visible text is preserved.
-		expect(Bun.stripANSI(raw)).toContain("please orchestrate the rollout");
+		expect(bun.stripANSI(raw)).toContain("please orchestrate the rollout");
 		// The keyword is gradient-painted: a per-character foreground sequence is emitted,
 		// and the word no longer survives as a contiguous run in the rendered bytes.
 		expect(raw).toContain("\x1b[38");
@@ -51,14 +52,14 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 
 	it("does not paint a keyword inside an inline code span", () => {
 		const raw = render("ship the `orchestrate` helper");
-		expect(Bun.stripANSI(raw)).toContain("orchestrate");
+		expect(bun.stripANSI(raw)).toContain("orchestrate");
 		// Code spans render through the code style as a single run — the word stays intact.
 		expect(raw).toContain("orchestrate");
 	});
 
 	it("does not paint a keyword inside a fenced code block", () => {
 		const raw = render("intro\n```\norchestrate\n```");
-		expect(Bun.stripANSI(raw)).toContain("orchestrate");
+		expect(bun.stripANSI(raw)).toContain("orchestrate");
 		expect(raw).toContain("orchestrate");
 	});
 
@@ -91,8 +92,8 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 	it("collapses image markers to identity-colored chip tokens in the rendered bubble", () => {
 		// Wire format stays `[Image #1, WxH]`; the bubble shows the composer's compact chip.
 		const raw = render("please inspect [Image #1, 800x600] before continuing");
-		expect(Bun.stripANSI(raw)).toContain(`${chipLabel("image", 1)} before continuing`);
-		expect(Bun.stripANSI(raw)).not.toContain("[Image #1");
+		expect(bun.stripANSI(raw)).toContain(`${chipLabel("image", 1)} before continuing`);
+		expect(bun.stripANSI(raw)).not.toContain("[Image #1");
 		expect(raw).toContain("\x1b[1m");
 	});
 
@@ -100,7 +101,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		const label = modelMentionChipLabel("Claude (Fast)");
 		const bubbleReset = `${theme.getFgOnBgAnsi("userMessageText", "userMessageBg")}${theme.getBgAnsi("userMessageBg")}`;
 		const raw = render('ask <model agent="m1" name="Claude (Fast)"/> then continue');
-		expect(Bun.stripANSI(raw)).toContain(`ask ${label} then continue`);
+		expect(bun.stripANSI(raw)).toContain(`ask ${label} then continue`);
 		expect(raw).not.toContain("<model agent=");
 		expect(raw).toContain(modelChipStyle(label, bubbleReset));
 		expect(raw).toContain(theme.getFgAnsi("statusLineModel"));
@@ -112,7 +113,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		const raw = new UserMessageComponent("please inspect [Image #1]", { imageLinks: [imagePath] })
 			.render(80)
 			.join("\n");
-		expect(Bun.stripANSI(raw)).toContain(chipLabel("image", 1));
+		expect(bun.stripANSI(raw)).toContain(chipLabel("image", 1));
 		expect(raw).toContain("\x1b]8;id=");
 		expect(raw).toContain(imageUri);
 	});
@@ -123,8 +124,8 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		const raw = new UserMessageComponent("please inspect [Video #1, 960x480]", { imageLinks: [videoPath] })
 			.render(80)
 			.join("\n");
-		expect(Bun.stripANSI(raw)).toContain(chipLabel("video", 1));
-		expect(Bun.stripANSI(raw)).not.toContain("[Video #1");
+		expect(bun.stripANSI(raw)).toContain(chipLabel("video", 1));
+		expect(bun.stripANSI(raw)).not.toContain("[Video #1");
 		expect(raw).toContain("\x1b]8;id=");
 		expect(raw).toContain(videoUri);
 	});
@@ -137,7 +138,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		editor.imageLinks = [imagePath];
 		editor.setText("please inspect [Image #1]");
 		const raw = editor.render(80).join("\n");
-		expect(Bun.stripANSI(raw)).toContain("[Image #1]");
+		expect(bun.stripANSI(raw)).toContain("[Image #1]");
 		expect(raw).toContain("\x1b]8;id=");
 		expect(raw).toContain(imageUri);
 	});
@@ -176,7 +177,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		const component = chatContainer.children.at(-1);
 		if (!component) throw new Error("Expected user message component to be appended");
 		const raw = component.render(80).join("\n");
-		expect(Bun.stripANSI(raw)).toContain(chipLabel("image", 1));
+		expect(bun.stripANSI(raw)).toContain(chipLabel("image", 1));
 		expect(raw).toContain("\x1b]8;id=");
 		expect(raw).toContain(displayUri);
 	});
@@ -185,7 +186,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		const editor = new CustomEditor(getEditorTheme());
 		editor.setText("see [Paste #1, +30 lines] now");
 		const raw = editor.render(80).join("\n");
-		expect(Bun.stripANSI(raw)).toContain("[Paste #1, +30 lines]");
+		expect(bun.stripANSI(raw)).toContain("[Paste #1, +30 lines]");
 		// The marker label is bold-wrapped (highlighted), unlike surrounding plain text.
 		expect(raw).toContain("\x1b[1m[Paste #1, +30 lines]");
 		// Paste markers are not clickable, so no OSC-8 hyperlink is emitted (contrast with images).
@@ -200,7 +201,7 @@ describe("UserMessageComponent magic-keyword highlighting", () => {
 		editor.imageLinks = [imagePath];
 		editor.setText("see [Image #1, 800x600] now");
 		const raw = editor.render(80).join("\n");
-		expect(Bun.stripANSI(raw)).toContain("[Image #1, 800x600]");
+		expect(bun.stripANSI(raw)).toContain("[Image #1, 800x600]");
 		expect(raw).toContain("\x1b]8;id=");
 		expect(raw).toContain(imageUri);
 	});

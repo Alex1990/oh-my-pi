@@ -1,11 +1,12 @@
-import * as jsc from "bun:jsc";
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { collectMemoryStats } from "@oh-my-pi/pi-coding-agent/debug/profiler";
 import { createReportBundle } from "@oh-my-pi/pi-coding-agent/debug/report-bundle";
 import { getConfigRootDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalXdgStateHome = process.env.XDG_STATE_HOME;
@@ -32,7 +33,7 @@ afterEach(async () => {
 });
 
 async function archiveMembers(archivePath: string): Promise<string[]> {
-	const archive = new Bun.Archive(await Bun.file(archivePath).bytes());
+	const archive = new Archive(await bun.file(archivePath).bytes());
 	return [...(await archive.files()).keys()].sort();
 }
 
@@ -49,21 +50,20 @@ describe("report bundle privacy", () => {
 	it("exports numeric memory diagnostics without live credentials or runtime type names", async () => {
 		await setupReportDirectory();
 		const credential = `sk-ant-ort01-${crypto.randomUUID()}`;
-		const heap = jsc.heapStats();
-		vi.spyOn(jsc, "heapStats").mockReturnValue({
-			...heap,
-			objectTypeCounts: { [credential]: 1 },
-			protectedObjectTypeCounts: { [credential]: 1 },
-		});
+		// V8 heap statistics expose numeric counters only; Bun's runtime type-name
+		// maps (the leak vector this test guarded) do not exist on Node.
 
 		const result = await createReportBundle({ sessionFile: undefined, memoryStats: collectMemoryStats() });
-		const archive = new Bun.Archive(await Bun.file(result.path).bytes());
+		const archive = new Archive(await bun.file(result.path).bytes());
 		const members = await archive.files();
 
 		expect(members.has("heap.heapsnapshot")).toBe(false);
 		const memory = members.get("memory.json");
 		if (!memory) throw new Error("Memory report missing numeric diagnostics");
-		const stats: { process: Record<string, unknown>; heap: Record<string, unknown> } = await memory.json();
+		const stats = JSON.parse(await memory.text()) as {
+			process: Record<string, unknown>;
+			heap: Record<string, unknown>;
+		};
 		for (const section of [stats.process, stats.heap]) {
 			for (const key in section) {
 				const value = section[key];
@@ -86,18 +86,18 @@ describe("report bundle privacy", () => {
 		// Current session and its artifacts subtree: a genuine subagent transcript
 		// plus a nested sub-subagent transcript one level deeper.
 		const sessionFile = path.join(sessionsDir, "2026-08-15T00-00-00_CURRENT.jsonl");
-		await Bun.write(sessionFile, '{"type":"session","id":"CURRENT"}\n');
+		await bun.write(sessionFile, '{"type":"session","id":"CURRENT"}\n');
 		const artifactsDir = sessionFile.slice(0, -6);
 		await fs.mkdir(path.join(artifactsDir, "SubTask"), { recursive: true });
-		await Bun.write(path.join(artifactsDir, "SubTask.jsonl"), '{"type":"session","id":"SubTask"}\n');
-		await Bun.write(path.join(artifactsDir, "SubTask", "NestedTask.jsonl"), '{"type":"session","id":"NestedTask"}\n');
+		await bun.write(path.join(artifactsDir, "SubTask.jsonl"), '{"type":"session","id":"SubTask"}\n');
+		await bun.write(path.join(artifactsDir, "SubTask", "NestedTask.jsonl"), '{"type":"session","id":"NestedTask"}\n');
 
 		// Unrelated top-level sessions co-located in the sessions root.
-		await Bun.write(
+		await bun.write(
 			path.join(sessionsDir, "2026-08-10T00-00-00_OTHERA.jsonl"),
 			'{"type":"session","secret":"private-a"}\n',
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(sessionsDir, "2026-08-12T00-00-00_OTHERB.jsonl"),
 			'{"type":"session","secret":"private-b"}\n',
 		);

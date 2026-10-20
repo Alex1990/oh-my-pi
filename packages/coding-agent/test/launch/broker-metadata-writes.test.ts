@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { PsScope } from "@oh-my-pi/pi-tui/apps/ps-data";
@@ -7,6 +7,7 @@ import { collectScope } from "../../src/cli/ps-data";
 import { startDaemonBrokerFromEnvironment } from "../../src/launch/broker";
 import { createDaemonBrokerClient } from "../../src/launch/client";
 import { DAEMON_IDLE_GRACE_ENV, DAEMON_PROJECT_DIR_ENV, DAEMON_RUNTIME_DIR_ENV } from "../../src/launch/protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function startBroker(projectDir: string, runtimeDir: string): { listening: Promise<boolean>; finished: Promise<void> } {
 	const previousProjectDir = process.env[DAEMON_PROJECT_DIR_ENV];
@@ -33,7 +34,7 @@ describe("daemon metadata writes", () => {
 		const runtimeDir = path.join(tempDir.path(), "runtime");
 		const metadataPath = path.join(runtimeDir, "daemons", "historical", "meta.json");
 		await fs.mkdir(projectDir);
-		await Bun.write(
+		await bun.write(
 			metadataPath,
 			JSON.stringify({
 				daemon: {
@@ -76,8 +77,8 @@ describe("daemon metadata writes", () => {
 		// meta.json) to spec.json + small metadata. Shutdown flushes all queued
 		// metadata writes before establishing the stable inode baseline.
 		const specPath = path.join(runtimeDir, "daemons", "historical", "spec.json");
-		expect(await Bun.file(metadataPath).json()).not.toHaveProperty("spec");
-		expect(await Bun.file(specPath).json()).toMatchObject({ cwd: projectDir });
+		expect(await bun.file(metadataPath).json()).not.toHaveProperty("spec");
+		expect(await bun.file(specPath).json()).toMatchObject({ cwd: projectDir });
 		const inode = (await fs.stat(metadataPath)).ino;
 		const specInode = (await fs.stat(specPath)).ino;
 		const first = await createDaemonBrokerClient(projectDir, { runtimeDir, idleGraceMs: 5_000 });
@@ -123,7 +124,7 @@ describe("daemon metadata writes", () => {
 			await relaunchBroker.listening;
 			relaunchClient.onCompletion("shared-session", () => undefined);
 			await relaunchClient.request({ op: "restart", name: "historical" });
-			const metadata = (await Bun.file(metadataPath).json()) as { completionEvents: boolean };
+			const metadata = (await bun.file(metadataPath).json()) as { completionEvents: boolean };
 			expect(metadata.completionEvents).toBe(true);
 		} finally {
 			await relaunchClient.request({ op: "shutdown" }).catch(() => undefined);
@@ -173,8 +174,8 @@ describe("daemon metadata writes", () => {
 		}
 		const after = await fs.stat(specPath);
 		expect({ ino: after.ino, mtimeMs: after.mtimeMs }).toEqual({ ino: specStat!.ino, mtimeMs: specStat!.mtimeMs });
-		expect(await Bun.file(specPath).json()).toMatchObject({ env: { OMP_SPEC_TEST_MARKER: marker } });
-		const metadata = await Bun.file(metadataPath).text();
+		expect(await bun.file(specPath).json()).toMatchObject({ env: { OMP_SPEC_TEST_MARKER: marker } });
+		const metadata = await bun.file(metadataPath).text();
 		expect(metadata).not.toContain("SPEC_ONLY_MARKER_");
 		expect(JSON.parse(metadata)).toMatchObject({ daemon: { state: "exited" } });
 	}, 20_000);
@@ -211,11 +212,11 @@ describe("daemon metadata writes", () => {
 			};
 			const dir = path.join(runtimeDir, "daemons", name);
 			if (layout === "legacy") {
-				await Bun.write(path.join(dir, "meta.json"), JSON.stringify({ daemon, spec }));
+				await bun.write(path.join(dir, "meta.json"), JSON.stringify({ daemon, spec }));
 				return;
 			}
-			await Bun.write(path.join(dir, "spec.json"), JSON.stringify(spec));
-			await Bun.write(path.join(dir, "meta.json"), JSON.stringify({ daemon }));
+			await bun.write(path.join(dir, "spec.json"), JSON.stringify(spec));
+			await bun.write(path.join(dir, "meta.json"), JSON.stringify({ daemon }));
 		};
 		await writeRecord("split", "split");
 		await writeRecord("legacy", "legacy");
@@ -248,7 +249,7 @@ describe("daemon metadata writes", () => {
 			client.close();
 			await broker.finished;
 		}
-		expect(await Bun.file(path.join(runtimeDir, "daemons", "legacy", "meta.json")).json()).not.toHaveProperty("spec");
+		expect(await bun.file(path.join(runtimeDir, "daemons", "legacy", "meta.json")).json()).not.toHaveProperty("spec");
 		expect(await rows(undefined)).toEqual(expected(false));
 	}, 20_000);
 });

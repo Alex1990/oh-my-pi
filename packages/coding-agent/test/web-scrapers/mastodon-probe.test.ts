@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleDiscourse } from "@oh-my-pi/pi-coding-agent/web/scrapers/discourse";
 import { handleMastodon } from "@oh-my-pi/pi-coding-agent/web/scrapers/mastodon";
 
@@ -14,7 +15,7 @@ function mockFetch(respond: (url: string, init?: RequestInit) => Promise<Respons
 		return respond(input instanceof Request ? input.url : String(input), init);
 	};
 	vi.spyOn(globalThis, "fetch").mockImplementation(
-		Object.assign(implementation, { preconnect: globalThis.fetch.preconnect }),
+		Object.assign(implementation, { preconnect: preconnectOf(globalThis.fetch) }),
 	);
 	return { calls: () => calls };
 }

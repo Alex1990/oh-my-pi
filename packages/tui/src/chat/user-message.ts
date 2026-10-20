@@ -33,6 +33,7 @@ import {
 	rootToggleExpanded,
 } from "../native/node";
 import { Memo } from "../native/memo";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // OSC 133 shell integration: marks prompt zones for terminal multiplexers.
 //
@@ -243,10 +244,13 @@ export class UserMessageComponent extends Container implements ReactionTarget, T
 				const at = new Date(this.#timestamp);
 				tools.push(
 					node("text", { text: "·" }, undefined, "dot"),
-					text([span(at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12 }), "dim mono")], {
-						role: "omp.user.time",
-						title: at.toLocaleString([], { hour12 }),
-					}),
+					text(
+						[span(at.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12 }), "dim mono")],
+						{
+							role: "omp.user.time",
+							title: at.toLocaleString("en-US", { hour12 }),
+						},
+					),
 				);
 			}
 			children.push(node("row", { gap: "xs", align: "center", role: "omp.user.tools" }, tools, "tools"));
@@ -508,11 +512,11 @@ export class CollapsedSyntheticMessageComponent implements Component {
 
 /** Truncate a plain summary label to `maxWidth` display columns, appending `…`. */
 function truncateSummary(text: string, maxWidth: number): string {
-	if (Bun.stringWidth(text, { countAnsiEscapeCodes: false }) <= maxWidth) return text;
+	if (bun.stringWidth(text, { countAnsiEscapeCodes: false }) <= maxWidth) return text;
 	let out = "";
 	let w = 0;
 	for (const ch of text) {
-		const cw = Bun.stringWidth(ch, { countAnsiEscapeCodes: false });
+		const cw = bun.stringWidth(ch, { countAnsiEscapeCodes: false });
 		if (w + cw > maxWidth - 1) break;
 		out += ch;
 		w += cw;

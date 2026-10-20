@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import type { SnapshotResponse } from "@oh-my-pi/pi-ai/auth-broker/types";
 import * as oauthUtils from "@oh-my-pi/pi-ai/registry/oauth";
 import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SUPPRESS_AUTH_BROKER_ENV = {
 	OMP_AUTH_BROKER_URL: undefined,
@@ -32,7 +33,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 	});
 
 	test("resolves broker URL and token from config.yaml when config.yml is absent", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yaml"),
 			"auth.broker.url: https://yaml-broker.example/v1\nauth.broker.token: yaml-token\n",
 		);
@@ -46,11 +47,11 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 	});
 
 	test("prefers config.yml over config.yaml when both exist", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yaml"),
 			"auth.broker.url: https://yaml-broker.example/v1\nauth.broker.token: yaml-token\n",
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			"auth.broker.url: https://yml-broker.example/v1\nauth.broker.token: yml-token\n",
 		);
@@ -71,7 +72,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 				reservePct: 25,
 			},
 		] satisfies AuthAccountPolicies;
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			["auth:", `  accountPolicies: ${JSON.stringify(accountPolicies)}`, "retry:", "  usageReservePct: 17", ""].join(
 				"\n",
@@ -83,7 +84,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 			defaultReservePct: 17,
 		});
 
-		await Bun.write(path.join(agentDir, "config.yml"), "auth: {}\n");
+		await bun.write(path.join(agentDir, "config.yml"), "auth: {}\n");
 		await expect(loadAuthAccountPolicyConfig({ agentDir })).resolves.toEqual({
 			accountPolicies: [],
 			defaultReservePct: DEFAULT_USAGE_RESERVE_PCT,
@@ -92,7 +93,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 
 	test("treats an empty or comment-only config.yml as no configuration", async () => {
 		for (const content of ["", "# nothing configured yet\n"]) {
-			await Bun.write(path.join(agentDir, "config.yml"), content);
+			await bun.write(path.join(agentDir, "config.yml"), content);
 			await withEnv(SUPPRESS_AUTH_BROKER_ENV, async () => {
 				await expect(resolveAuthBrokerConfig({ agentDir })).resolves.toBeNull();
 				await expect(loadAuthAccountPolicyConfig({ agentDir })).resolves.toEqual({
@@ -104,7 +105,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 	});
 
 	test("strictly validates effective policy overrides without parsing superseded main-config values", async () => {
-		await Bun.write(path.join(agentDir, "config.yml"), ["auth:", "  accountPolicies: null", ""].join("\n"));
+		await bun.write(path.join(agentDir, "config.yml"), ["auth:", "  accountPolicies: null", ""].join("\n"));
 		const invalidPolicies = [
 			{
 				provider: "openai-codex",
@@ -151,7 +152,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 				priority: 10,
 			},
 		] satisfies AuthAccountPolicies;
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			["auth:", `  accountPolicies: ${JSON.stringify(accountPolicies)}`, ""].join("\n"),
 		);
@@ -263,7 +264,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 
 		await withEnv(SUPPRESS_AUTH_BROKER_ENV, async () => {
 			for (const { yaml, error } of invalidConfigs) {
-				await Bun.write(path.join(agentDir, "config.yml"), yaml);
+				await bun.write(path.join(agentDir, "config.yml"), yaml);
 				await expect(loadAuthAccountPolicyConfig({ agentDir })).rejects.toThrow(error);
 			}
 		});
@@ -335,7 +336,7 @@ describe("resolveAuthBrokerConfig config discovery", () => {
 				['{"anthropic":[" email:a@example.com"]}', "identity key with surrounding whitespace"],
 			] as const;
 			for (const [content, expectedError] of invalidFiles) {
-				await Bun.write(poolPath, content);
+				await bun.write(poolPath, content);
 				await expect(discoverAuthStorage({ agentDir })).rejects.toThrow(expectedError);
 			}
 		});

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Usage } from "@oh-my-pi/pi-ai";
@@ -23,6 +23,7 @@ import { FileSessionStorage, MemorySessionStorage } from "@oh-my-pi/pi-coding-ag
 import { getTerminalId } from "@oh-my-pi/pi-tui";
 import { isTaskToolDetails, type TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { getAgentDir, getTerminalSessionsDir, removeWithRetries, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface JsonlMessageEntry {
 	type: "message";
@@ -54,9 +55,9 @@ async function createSessionWithArtifacts(root: string): Promise<{
 		cwd,
 	};
 	await fs.mkdir(path.join(sourceArtifactsDir, "nested"), { recursive: true });
-	await Bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
-	await Bun.write(path.join(sourceArtifactsDir, "1.read.log"), "tool output");
-	await Bun.write(path.join(sourceArtifactsDir, "nested", "result.txt"), "nested output");
+	await bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
+	await bun.write(path.join(sourceArtifactsDir, "1.read.log"), "tool output");
+	await bun.write(path.join(sourceArtifactsDir, "nested", "result.txt"), "nested output");
 	return { cwd, sessionDir, sourceFile, sourceArtifactsDir };
 }
 
@@ -94,7 +95,7 @@ describe("SessionManager.forkFrom", () => {
 				message: { role: "user", content: "hello", timestamp: Date.now() },
 			};
 			const sourceText = `${JSON.stringify(sourceHeader)}\n${JSON.stringify(sourceMessage)}\n`;
-			await Bun.write(sourceFile, sourceText);
+			await bun.write(sourceFile, sourceText);
 
 			const terminalId = getTerminalId();
 			expect(terminalId).toBeString();
@@ -104,13 +105,13 @@ describe("SessionManager.forkFrom", () => {
 			const forked = await SessionManager.forkFrom(sourceFile, cwd, sessionDir, undefined, {
 				suppressBreadcrumb: true,
 			});
-			await Bun.sleep(10);
+			await bun.sleep(10);
 			const cloneFile = forked.getSessionFile();
 			expect(cloneFile).toBeString();
 			if (!cloneFile) throw new Error("expected forked session file");
 
-			expect(await Bun.file(sourceFile).text()).toBe(sourceText);
-			expect(await Bun.file(breadcrumbFile).exists()).toBe(false);
+			expect(await bun.file(sourceFile).text()).toBe(sourceText);
+			expect(await bun.file(breadcrumbFile).exists()).toBe(false);
 			expect(cloneFile).not.toBe(sourceFile);
 
 			const cloneEntries = await loadEntriesFromFile(cloneFile);
@@ -142,9 +143,9 @@ describe("SessionManager.forkFrom", () => {
 		if (!forkFile) throw new Error("expected forked session file");
 		const forkArtifactsDir = forkFile.slice(0, -".jsonl".length);
 
-		expect(await Bun.file(path.join(forkArtifactsDir, "1.read.log")).text()).toBe("tool output");
-		expect(await Bun.file(path.join(forkArtifactsDir, "nested", "result.txt")).text()).toBe("nested output");
-		expect(await Bun.file(path.join(sourceArtifactsDir, "1.read.log")).text()).toBe("tool output");
+		expect(await bun.file(path.join(forkArtifactsDir, "1.read.log")).text()).toBe("tool output");
+		expect(await bun.file(path.join(forkArtifactsDir, "nested", "result.txt")).text()).toBe("nested output");
+		expect(await bun.file(path.join(sourceArtifactsDir, "1.read.log")).text()).toBe("tool output");
 	});
 
 	it("forks a seance in place: source untouched, history kept, startup contracts inert, artifacts not copied", async () => {
@@ -193,7 +194,7 @@ describe("SessionManager.forkFrom", () => {
 		const sourceText = `${[sourceHeader, inheritedInit, request, laterInit, laterMessage]
 			.map(entry => JSON.stringify(entry))
 			.join("\n")}\n`;
-		await Bun.write(sourceFile, sourceText);
+		await bun.write(sourceFile, sourceText);
 
 		const forkFile = path.join(tempDir.path(), "forks", "seance.jsonl");
 		const forked = await SessionManager.forkFrom(sourceFile, cwd, undefined, undefined, {
@@ -237,7 +238,7 @@ describe("SessionManager.forkFrom", () => {
 		if (!forkFile) throw new Error("expected forked session file");
 		const forkArtifactsDir = forkFile.slice(0, -".jsonl".length);
 
-		expect(await Bun.file(path.join(forkArtifactsDir, "1.read.log")).exists()).toBe(false);
+		expect(await bun.file(path.join(forkArtifactsDir, "1.read.log")).exists()).toBe(false);
 	});
 
 	it("does not treat an extensionless source's parent directory as artifacts", async () => {
@@ -255,8 +256,8 @@ describe("SessionManager.forkFrom", () => {
 			cwd,
 		};
 		await fs.mkdir(sessionDir, { recursive: true });
-		await Bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
-		await Bun.write(unrelatedFile, "must not be copied");
+		await bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
+		await bun.write(unrelatedFile, "must not be copied");
 
 		const forked = await SessionManager.forkFrom(sourceFile, cwd, forkDir, undefined, {
 			suppressBreadcrumb: true,
@@ -265,8 +266,8 @@ describe("SessionManager.forkFrom", () => {
 		if (!forkFile) throw new Error("expected forked session file");
 		const forkArtifactsDir = forkFile.slice(0, -".jsonl".length);
 
-		expect(await Bun.file(path.join(forkArtifactsDir, "unrelated.txt")).exists()).toBe(false);
-		expect(await Bun.file(unrelatedFile).text()).toBe("must not be copied");
+		expect(await bun.file(path.join(forkArtifactsDir, "unrelated.txt")).exists()).toBe(false);
+		expect(await bun.file(unrelatedFile).text()).toBe("must not be copied");
 	});
 
 	it("zeroes inherited cost while preserving token counts only when reset is requested", async () => {
@@ -435,11 +436,11 @@ describe("SessionManager.forkFrom", () => {
 				},
 			},
 		};
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${JSON.stringify(sourceHeader)}\n${JSON.stringify(assistantEntry)}\n${JSON.stringify(taskResultEntry)}\n`,
 		);
-		const sourceText = await Bun.file(sourceFile).text();
+		const sourceText = await bun.file(sourceFile).text();
 		const sourceManager = await SessionManager.open(sourceFile, sessionDir, undefined, { suppressBreadcrumb: true });
 
 		const findAssistant = async (file: string) => {
@@ -584,7 +585,7 @@ describe("SessionManager.forkFrom", () => {
 		}
 		expect(sourceMessage.message.usage.cost.total).toBe(6);
 		expect(sourceMessage.message.usage.premiumRequests).toBe(2);
-		expect(await Bun.file(sourceFile).text()).toBe(sourceText);
+		expect(await bun.file(sourceFile).text()).toBe(sourceText);
 		await sourceManager.close();
 	});
 
@@ -687,7 +688,7 @@ describe("SessionManager.forkFrom", () => {
 				},
 			},
 		};
-		await Bun.write(sourceFile, `${JSON.stringify(header)}\n${JSON.stringify(assistant)}\n`);
+		await bun.write(sourceFile, `${JSON.stringify(header)}\n${JSON.stringify(assistant)}\n`);
 
 		const untouched = await SessionManager.forkFrom(
 			sourceFile,
@@ -768,7 +769,7 @@ describe("SessionManager.forkFrom", () => {
 				data: { reason: "uncaughtException", kind: "fatal", recordedAt: timestamp },
 			},
 		];
-		await Bun.write(sourceFile, `${entries.map(entry => JSON.stringify(entry)).join("\n")}\n`);
+		await bun.write(sourceFile, `${entries.map(entry => JSON.stringify(entry)).join("\n")}\n`);
 
 		const forked = await SessionManager.forkFrom(sourceFile, cwd, path.join(tempDir.path(), "fork"), undefined, {
 			suppressBreadcrumb: true,
@@ -829,7 +830,7 @@ describe("SessionManager.forkFrom", () => {
 				},
 			},
 		};
-		await Bun.write(sourceFile, `${JSON.stringify(header)}\n${JSON.stringify(assistant)}\n`);
+		await bun.write(sourceFile, `${JSON.stringify(header)}\n${JSON.stringify(assistant)}\n`);
 
 		const forked = await SessionManager.forkFrom(sourceFile, cwd, path.join(tempDir.path(), "fork"), undefined, {
 			suppressBreadcrumb: true,
@@ -863,7 +864,7 @@ describe("SessionManager.forkFrom", () => {
 			customType: TOOL_EXECUTION_START_CUSTOM_TYPE,
 			data: { toolCallId: "toolu_truncated", toolName: "write", startedAt: timestamp },
 		};
-		await Bun.write(
+		await bun.write(
 			startedSourceFile,
 			`${JSON.stringify(startedHeader)}\n${JSON.stringify(assistant)}\n${JSON.stringify(startMarker)}\n`,
 		);
@@ -972,7 +973,7 @@ describe("SessionManager.forkFrom", () => {
 			timestamp,
 			message: { role: "user", content: "continue on this branch", timestamp: Date.now() },
 		};
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${JSON.stringify(header)}\n${JSON.stringify(activeAssistant)}\n${JSON.stringify(siblingResult)}\n${JSON.stringify(siblingAssistant)}\n${JSON.stringify(activeLeaf)}\n`,
 		);
@@ -1059,7 +1060,7 @@ describe("SessionManager.forkFrom", () => {
 				timestamp: Date.now(),
 			},
 		};
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${JSON.stringify(header)}\n${JSON.stringify(assistant)}\n${JSON.stringify(toolResult)}\n`,
 		);

@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatEvalStateContext, getEvalState, updateEvalState } from "../../src/eval/state";
 import type { ToolSession } from "../../src/tools";
 

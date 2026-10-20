@@ -7,7 +7,7 @@
  * outside the local root is rejected by the handler's realpath guard (locating
  * must not become a containment bypass).
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,6 +18,7 @@ import { InternalUrlRouter, LocalProtocolHandler, parseInternalUrl } from "@oh-m
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { $which, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const hasFfprobe = Boolean($which("ffprobe"));
 
@@ -106,7 +107,7 @@ describe("read local:// images", () => {
 	});
 
 	it("decodes a local:// PNG into an inline image block", async () => {
-		await Bun.write(path.join(localRoot, "clifford.png"), TINY_PNG);
+		await bun.write(path.join(localRoot, "clifford.png"), TINY_PNG);
 		const tool = new ReadTool(makeSession(testDir));
 
 		const result = await tool.execute("call", { path: "local://clifford.png" });
@@ -121,11 +122,11 @@ describe("read local:// images", () => {
 	it("resets the repeat-read hint when an image at the same path changes", async () => {
 		const file = path.join(localRoot, "regenerated.png");
 		const tool = new ReadTool(makeSession(testDir));
-		await Bun.write(file, TINY_PNG);
+		await bun.write(file, TINY_PNG);
 		const first = await tool.execute("first", { path: file });
-		await Bun.write(file, OTHER_TINY_PNG);
+		await bun.write(file, OTHER_TINY_PNG);
 		const changed = await tool.execute("changed", { path: file });
-		await Bun.write(file, TINY_PNG);
+		await bun.write(file, TINY_PNG);
 		const restored = await tool.execute("restored", { path: file });
 
 		expect(first.content[0]).toEqual(changed.content[0]);
@@ -138,7 +139,7 @@ describe("read local:// images", () => {
 	});
 
 	it("rasterizes a local SVG into a PNG attachment when :img is selected", async () => {
-		await Bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
+		await bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
 		const tool = new ReadTool(makeSession(testDir));
 
 		const result = await tool.execute("call", { path: `${path.join(localRoot, "diagram.svg")}:img` });
@@ -150,7 +151,7 @@ describe("read local:// images", () => {
 		expect(joinText(result.content)).toContain("Read SVG file [image/svg+xml] (displayed as image/png)");
 	});
 	it("returns SVG metadata plus a question hint for text-only models", async () => {
-		await Bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
+		await bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
 		const tool = new ReadTool(makeSession(testDir, true));
 
 		const result = await tool.execute("call", { path: "local://diagram.svg:img" });
@@ -160,7 +161,7 @@ describe("read local:// images", () => {
 	});
 
 	it("answers questions about selected local SVGs", async () => {
-		await Bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
+		await bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
 		const complete: typeof completeSimple = async model => ({
 			role: "assistant",
 			api: model.api,
@@ -186,7 +187,7 @@ describe("read local:// images", () => {
 	});
 
 	it("keeps a local SVG as text without :img", async () => {
-		await Bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
+		await bun.write(path.join(localRoot, "diagram.svg"), TINY_SVG);
 		const tool = new ReadTool(makeSession(testDir));
 
 		const result = await tool.execute("call", { path: "local://diagram.svg" });
@@ -196,7 +197,7 @@ describe("read local:// images", () => {
 	});
 
 	it("still reads a local:// text file as text", async () => {
-		await Bun.write(path.join(localRoot, "notes.txt"), "hello world");
+		await bun.write(path.join(localRoot, "notes.txt"), "hello world");
 		const tool = new ReadTool(makeSession(testDir));
 
 		const result = await tool.execute("call", { path: "local://notes.txt" });
@@ -210,7 +211,7 @@ describe("read local:// images", () => {
 		// reader, not in the text pipeline: no byte budget or line scan ever sees
 		// these bytes.
 		const blob = new Uint8Array(256 * 1024);
-		await Bun.write(path.join(localRoot, "video.mp4"), blob);
+		await bun.write(path.join(localRoot, "video.mp4"), blob);
 		const tool = new ReadTool(makeSession(testDir));
 
 		const error = await tool.execute("call", { path: "local://video.mp4" }).catch(e => e);
@@ -218,7 +219,7 @@ describe("read local:// images", () => {
 	});
 
 	it("does not materialize local:// binary resources in the protocol handler", async () => {
-		await Bun.write(path.join(localRoot, "archive.zip"), new Uint8Array([0, 1, 2, 3, 4, 5]));
+		await bun.write(path.join(localRoot, "archive.zip"), new Uint8Array([0, 1, 2, 3, 4, 5]));
 
 		const resource = await new LocalProtocolHandler().resolve(parseInternalUrl("local://archive.zip"));
 
@@ -231,7 +232,7 @@ describe("read local:// images", () => {
 		if (process.platform === "win32") return;
 		const outsideDir = path.join(testDir, "outside");
 		await fs.mkdir(outsideDir, { recursive: true });
-		await Bun.write(path.join(outsideDir, "secret.png"), TINY_PNG);
+		await bun.write(path.join(outsideDir, "secret.png"), TINY_PNG);
 		await fs.symlink(outsideDir, path.join(localRoot, "linked"));
 		const tool = new ReadTool(makeSession(testDir));
 

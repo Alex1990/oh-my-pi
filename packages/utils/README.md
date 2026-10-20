@@ -1,6 +1,6 @@
 # @oh-my-pi/pi-utils
 
-Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero ceremony, Bun-first.
+Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero ceremony, Node-first.
 
 ## Notable modules
 
@@ -26,10 +26,10 @@ Import from the root barrel or per-module subpaths (`@oh-my-pi/pi-utils/<module>
 ## Install
 
 ```sh
-bun add @oh-my-pi/pi-utils
+pnpm add @oh-my-pi/pi-utils
 ```
 
-Ships TypeScript source directly (no build step); requires Bun ≥ 1.3.14.
+Ships TypeScript source directly (no build step); requires Node.js ≥ 22.12.
 
 ## References
 

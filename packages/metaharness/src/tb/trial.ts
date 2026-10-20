@@ -6,6 +6,7 @@ import { RpcClient } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import { installAgent } from "./agent";
 import type { AgentBinaries, AgentConfig, GatewayConfig, TbTask, TrialResult, TrialUsage, VmonConfig } from "./types";
 import { TrialVm } from "./vmon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EMPTY_USAGE: TrialUsage = {
 	input: 0,
@@ -37,7 +38,7 @@ async function ensureHostDir(dir: string): Promise<void> {
 }
 
 async function writeArtifact(dir: string, name: string, content: string): Promise<void> {
-	await Bun.write(path.join(dir, name), content);
+	await bun.write(path.join(dir, name), content);
 }
 
 function modelParts(value: string): { provider: string; model: string } {

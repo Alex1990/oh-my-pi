@@ -33,6 +33,7 @@ import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
 import { cfgIsolationBackend, cfgWorktreeClone } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const GH_REPO_CLONE_FIELDS = ["nameWithOwner", "sshUrl", "url"];
 export const GH_PR_CHECKOUT_FIELDS = [
@@ -635,7 +636,7 @@ export async function executePrCreate(
 				// argv-length limits and shell-quoting hazards on uncommon platforms.
 				bodyDir = await fs.mkdtemp(path.join(os.tmpdir(), "gh-pr-body-"));
 				const bodyFile = path.join(bodyDir, "body.md");
-				await Bun.write(bodyFile, body);
+				await bun.write(bodyFile, body);
 				args.push("--body-file", bodyFile);
 			} else {
 				// Avoid gh dropping into an interactive editor when no body is given.

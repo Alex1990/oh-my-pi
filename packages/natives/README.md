@@ -15,7 +15,7 @@ Native Rust functionality via N-API.
 - **Binary patches**: `applyBinaryPatch(oldPath, patchPath, outPath)` applies an HDiffPatch single-stream patch (HDIFFSF20, zstd or uncompressed), streaming from files; callers verify digests
 
 General-purpose image processing (decode/resize/encode for files and buffers)
-lives in [`Bun.Image`](https://bun.com/docs/runtime/image) on the JS side; this
+lives in the Node-side `Image` helper (`@oh-my-pi/pi-utils/node-image`); this
 crate only ships the SIXEL encoder because no built-in equivalent exists for
 that terminal protocol.
 
@@ -77,10 +77,10 @@ resolving symlinks or junctions.
 
 ```bash
 # Build native addon from workspace root (requires Rust)
-bun run build
+pnpm run build
 
 # Type check
-bun run check
+pnpm run check
 ```
 
 ## Architecture

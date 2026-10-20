@@ -36,6 +36,7 @@ import { getRemoteDebugger, type RemoteDebuggerInfo, startRemoteDebuggerServer }
 import { clearArtifactCache, createDebugLogSource, createReportBundle, getArtifactCacheStats } from "./report-bundle";
 import { collectSystemInfo, formatSystemInfo } from "./system-info";
 import { collectTerminalState, formatTerminalState } from "@oh-my-pi/pi-tui/apps/debug/terminal-info";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Debug menu options */
 const DEBUG_MENU_ITEMS: SelectItem[] = [
@@ -241,7 +242,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 
 			// Write SVG to temp file and open in browser
 			const tmpPath = `/tmp/work-profile-${Date.now()}.svg`;
-			await Bun.write(tmpPath, workProfile.svg);
+			await bun.write(tmpPath, workProfile.svg);
 
 			openPath(tmpPath);
 

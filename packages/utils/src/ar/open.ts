@@ -17,6 +17,7 @@ import type {
 	ArchiveSource,
 	FormatReadOptions,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ENCODER = new TextEncoder();
 
@@ -195,7 +196,7 @@ export async function extractArchive(
 	for (const file of files) {
 		const extracted = await archive.readFile(file.path);
 		const outputPath = path.resolve(extractRoot, file.path);
-		await Bun.write(outputPath, extracted.bytes);
+		await bun.write(outputPath, extracted.bytes);
 		const permissions = (file.mode ?? 0) & 0o777;
 		if (permissions) await fs.chmod(outputPath, permissions);
 		count++;

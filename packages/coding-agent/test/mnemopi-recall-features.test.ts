@@ -3,7 +3,7 @@
  * memory tools return, end to end: Settings -> `loadMnemopiConfig` -> per-bank
  * Mnemopi instances -> `recallEnhanced`.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { loadMnemopiConfig } from "@oh-my-pi/pi-coding-agent/mnemopi/config";
 import {

@@ -1,12 +1,20 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const fixtureDir = path.join(import.meta.dir, "fixtures");
+const fixtureDir = path.join(import.meta.dirname, "fixtures");
 const probePath = path.join(fixtureDir, "logger-contract-probe.ts");
 const fatalProbePath = path.join(fixtureDir, "logger-fatal-flush-probe.ts");
 const preloadPath = path.join(fixtureDir, "logger-fixed-date-preload.ts");
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 const fixedNow = "2026-01-02T03:04:05.006Z";
 const fixedTimestamp = "2026-01-01T22:04:05.006-05:00";
 const roots: string[] = [];
@@ -36,11 +44,12 @@ async function runScenario(
 	const resultPath = path.join(root, "result.json");
 	const stdoutPath = path.join(root, "stdout.log");
 	await Promise.all([fs.mkdir(primaryDir), fs.mkdir(secondaryDir)]);
-	const proc = Bun.spawn(
+	const proc = bun.spawn(
 		[
 			process.execPath,
-			"--preload",
-			preloadPath,
+			...nodeTsArgs,
+			"--import",
+			pathToFileURL(preloadPath).href,
 			options.probe ?? probePath,
 			scenario,
 			primaryDir,
@@ -48,7 +57,7 @@ async function runScenario(
 			resultPath,
 		],
 		{
-			cwd: path.resolve(import.meta.dir, "../../.."),
+			cwd: path.resolve(import.meta.dirname, "../../.."),
 			env: {
 				...process.env,
 				HOME: primaryDir,
@@ -68,7 +77,7 @@ async function runScenario(
 				OMP_LOG_LEVEL: options.logLevel ?? "",
 				TZ: "Etc/GMT+5",
 			},
-			stdout: Bun.file(stdoutPath),
+			stdout: bun.file(stdoutPath),
 			stderr: "pipe",
 		},
 	);

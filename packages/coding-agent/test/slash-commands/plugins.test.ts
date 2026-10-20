@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/typ
 import { executeBuiltinSlashCommand } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-registry";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ROOTS: EffectiveExtensionRoots = { explicit: [], mode: "merge", configured: [], configuredLevel: "user" };
 
@@ -50,8 +51,8 @@ describe("/plugins live enable and disable", () => {
 	test("marketplace toggle changes the discovered skills in the running TUI session", async () => {
 		const id = "example@local";
 		const installPath = path.join(root, "example");
-		await Bun.write(path.join(installPath, "package.json"), JSON.stringify({ name: "example", version: "1.0.0" }));
-		await Bun.write(
+		await bun.write(path.join(installPath, "package.json"), JSON.stringify({ name: "example", version: "1.0.0" }));
+		await bun.write(
 			path.join(installPath, "skills", "market-skill", "SKILL.md"),
 			"---\nname: market-skill\ndescription: Marketplace fixture\n---\nSkill body\n",
 		);
@@ -70,7 +71,7 @@ describe("/plugins live enable and disable", () => {
 				],
 			},
 		});
-		await Bun.write(
+		await bun.write(
 			lockPath,
 			JSON.stringify({
 				version: 1,
@@ -92,18 +93,18 @@ describe("/plugins live enable and disable", () => {
 
 	test("npm toggle changes the discovered skills in the running TUI session", async () => {
 		const name = "example-npm";
-		await Bun.write(
+		await bun.write(
 			lockPath,
 			JSON.stringify({
 				version: 1,
 				plugins: { [name]: { version: "1.0.0", enabled: false, enabledFeatures: null } },
 			}),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "node_modules", name, "package.json"),
 			JSON.stringify({ name, version: "1.0.0", omp: {} }),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "node_modules", name, "skills", "npm-skill", "SKILL.md"),
 			"---\nname: npm-skill\ndescription: Npm fixture\n---\nSkill body\n",
 		);

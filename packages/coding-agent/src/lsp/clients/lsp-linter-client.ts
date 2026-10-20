@@ -8,6 +8,7 @@ import { applyTextEditsToString } from "../../lsp/edits";
 import { resolveFormatOptions } from "../../lsp/format-options";
 import type { Diagnostic, LinterClient, LspClient, ServerConfig, TextEdit } from "../../lsp/types";
 import { fileToUri } from "../../lsp/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * LSP-based linter client implementation.
@@ -74,7 +75,7 @@ export class LspLinterClient implements LinterClient {
 			if (publishedDiagnostics !== undefined) {
 				return publishedDiagnostics.diagnostics;
 			}
-			await untilAborted(signal, () => Bun.sleep(100));
+			await untilAborted(signal, () => bun.sleep(100));
 		}
 
 		return client.diagnostics.get(uri)?.diagnostics ?? [];

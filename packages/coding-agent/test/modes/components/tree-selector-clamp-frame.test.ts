@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let counter = 0;
 function makeNode(role: "user" | "assistant", text: string, parentId: string | null = null): SessionTreeNode {
@@ -52,7 +53,7 @@ function renderStripped(root: SessionTreeNode, leaf: SessionTreeNode): string[] 
 		() => {},
 		() => {},
 	);
-	return selector.renderContent(120).map(line => Bun.stripANSI(line));
+	return selector.renderContent(120).map(line => bun.stripANSI(line));
 }
 
 /** Column of a row's `├─`/`└─`, or `undefined` when it draws no connector. */

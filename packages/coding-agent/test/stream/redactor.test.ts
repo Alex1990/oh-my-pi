@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { StreamRedactor } from "@oh-my-pi/pi-coding-agent/stream/redactor";
 import { logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let redactor: StreamRedactor;
 let cwd: string;
@@ -27,7 +28,7 @@ describe("StreamRedactor", () => {
 		const value = "source-value-987654";
 		const previous = process.env[name];
 		process.env[name] = value;
-		await Bun.write(path.join(cwd, ".env"), `${name}=${value}\n`);
+		await bun.write(path.join(cwd, ".env"), `${name}=${value}\n`);
 		try {
 			const dotenvRedactor = await StreamRedactor.load(cwd, []);
 			expect(dotenvRedactor.redactRow("typing source")).toBe("typing ••••••");

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type JudgmentRequest,
 	type JudgmentResult,
@@ -20,6 +20,7 @@ import {
 } from "@oh-my-pi/omp-stats/frustration";
 import type { UserMessageStats } from "@oh-my-pi/omp-stats/types";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-frustration-");
 
@@ -34,7 +35,7 @@ type Signals = Partial<
 let entrySeq = 0;
 
 function hashOf(prose: string): string {
-	return prose ? Bun.hash(prose).toString(16) : "";
+	return prose ? bun.hash(prose).toString(16) : "";
 }
 
 function userMessage(
@@ -112,7 +113,7 @@ class FakeJudge implements StatsJudge {
 		this.maxInFlight = Math.max(this.maxInFlight, this.inFlight);
 		try {
 			if (this.inFlight > this.capacity) throw new Error("429 rate limited");
-			if (this.delayMs) await Bun.sleep(this.delayMs);
+			if (this.delayMs) await bun.sleep(this.delayMs);
 		} finally {
 			this.inFlight--;
 		}

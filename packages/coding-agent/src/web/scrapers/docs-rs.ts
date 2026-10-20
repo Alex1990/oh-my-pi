@@ -6,6 +6,7 @@ import { getDocsRsCacheDir, isEnoent, logger, ptree, tryParseJson, USER_AGENT } 
 import { ToolAbortError } from "../../tools/tool-errors";
 import type { RenderResult, SpecialHandler } from "./types";
 import { buildResult, MAX_BYTES } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const gunzipAsync = promisify(gunzip);
 
@@ -322,7 +323,7 @@ interface CachedRustdocCrate {
 
 async function readCachedRustdocCrate(cachePath: string): Promise<CachedRustdocCrate | null> {
 	try {
-		const [jsonStr, stat] = await Promise.all([Bun.file(cachePath).text(), fs.stat(cachePath)]);
+		const [jsonStr, stat] = await Promise.all([bun.file(cachePath).text(), fs.stat(cachePath)]);
 		const crate = tryParseJson<RustdocCrate>(jsonStr);
 		if (!crate?.index) return null;
 		return { crate, fetchedAt: stat.mtime.toISOString() };
@@ -335,7 +336,7 @@ async function readCachedRustdocCrate(cachePath: string): Promise<CachedRustdocC
 
 async function writeCachedRustdocCrate(cachePath: string, json: string): Promise<void> {
 	try {
-		await Bun.write(cachePath, json);
+		await bun.write(cachePath, json);
 	} catch (err) {
 		logger.warn("Failed to write docs.rs cache", { path: cachePath, error: String(err) });
 	}

@@ -14,7 +14,7 @@
  *      that points at `./src/*.ts(x)` is repointed to `./dist/types/*.d.ts`,
  *      `dist/types` (plus `dist/client` for `stats`) is added to `files`,
  *      and packages with a `publishBin` override get their `bin` swapped to
- *      the prepack bundle (coding-agent: `src/cli.ts` → `dist/cli.js`).
+ *      the prepack bundle (coding-agent: `dist/cli.js`).
  *      Packages flagged `publishJs` (omptype) additionally emit transpiled
  *      per-module JS into `dist/js/` and get their runtime entries (`main`,
  *      `exports[*]` import paths) repointed there, with a `bun` condition
@@ -42,9 +42,11 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { generateNpmPackages, LEAF_TARGETS } from "../packages/natives/scripts/gen-npm-packages.ts";
 import { fixEmitExtensions } from "./fix-emit-extensions.ts";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface PublishPackage {
 	dir: string;
@@ -63,8 +65,8 @@ export interface PublishPackage {
 	publishJs?: boolean;
 	/**
 	 * `bin` map for the published manifest. The on-repo manifest points `bin`
-	 * at TS source so source installs (`bun link`, `install.sh --source`) work
-	 * without a build; publish swaps in the `prepack` bundle.
+	 * at the prepack bundle, because a Node shebang cannot carry the
+	 * `--experimental-transform-types` flag a raw TS entrypoint needs.
 	 */
 	publishBin?: Readonly<Record<string, string>>;
 	/**
@@ -88,7 +90,7 @@ interface PackageManifest {
 	optionalDependencies?: JsonObject;
 }
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const isDryRun = process.argv.includes("--dry-run");
 const MIT_LICENSE = "LICENSE";
 const THIRD_PARTY_NOTICES = "THIRD-PARTY-NOTICES.txt";
@@ -117,9 +119,9 @@ export async function stageLegalPayloads(
 	const files = legalPayloadFiles(license);
 	for (const file of files) {
 		const destination = path.join(pkgDir, file);
-		if (await Bun.file(destination).exists()) continue;
+		if (await bun.file(destination).exists()) continue;
 		const source = path.join(sourceRoot, file);
-		if (!(await Bun.file(source).exists())) {
+		if (!(await bun.file(source).exists())) {
 			throw new Error(`Missing legal payload ${file} for ${path.relative(repoRoot, pkgDir)}`);
 		}
 		if (write) await fs.copyFile(source, destination);
@@ -174,7 +176,7 @@ export const packages: PublishPackage[] = [
 	{
 		dir: "packages/stats",
 		kind: "typescript",
-		preBuild: [["bun", "run", "build"]],
+		preBuild: [["pnpm", "run", "build"]],
 		extraFiles: ["dist/client"],
 		extraTypeConfigs: ["tsconfig.publish.client.json"],
 		packLock: STATS_CLIENT_LOCK,
@@ -239,7 +241,7 @@ function rewriteExports(exports: JsonValue, publishJs: boolean): JsonValue {
 /** Compute (and optionally write) the published manifest for a package. */
 export async function rewriteManifest(pkg: PublishPackage, write: boolean): Promise<PackageManifest> {
 	const manifestPath = path.join(repoRoot, pkg.dir, "package.json");
-	const manifest = (await Bun.file(manifestPath).json()) as PackageManifest;
+	const manifest = (await bun.file(manifestPath).json()) as PackageManifest;
 	if (pkg.publishBin) manifest.bin = { ...pkg.publishBin };
 	if (typeof manifest.types === "string" && manifest.types.startsWith("./src/")) {
 		manifest.types = rewriteSrcToTypes(manifest.types);
@@ -259,7 +261,7 @@ export async function rewriteManifest(pkg: PublishPackage, write: boolean): Prom
 		if (!hasDist && !files.includes(extra)) files.push(extra);
 	}
 	manifest.files = files;
-	if (write) await Bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
+	if (write) await bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
 	return manifest;
 }
 
@@ -275,7 +277,7 @@ async function preparePackage(pkg: PublishPackage): Promise<PackageManifest> {
 	if (pkg.publishJs) {
 		await $`bun x tsgo -p tsconfig.publish.js.json`.cwd(pkgDir);
 	}
-	const sourceManifest = (await Bun.file(path.join(pkgDir, "package.json")).json()) as PackageManifest;
+	const sourceManifest = (await bun.file(path.join(pkgDir, "package.json")).json()) as PackageManifest;
 	await stageLegalPayloads(pkgDir, sourceManifest.license, !isDryRun);
 	// Both emits run under `moduleResolution: "Bundler"`, so relative
 	// specifiers land extensionless — unresolvable for a `nodenext` consumer
@@ -297,9 +299,9 @@ export async function applyPublishBin(pkgRelDir: string, write: boolean): Promis
 	const pkg = packages.find(entry => entry.dir === pkgRelDir);
 	if (!pkg?.publishBin) throw new Error(`No publishBin override declared for ${pkgRelDir}`);
 	const manifestPath = path.join(repoRoot, pkgRelDir, "package.json");
-	const manifest = (await Bun.file(manifestPath).json()) as PackageManifest;
+	const manifest = (await bun.file(manifestPath).json()) as PackageManifest;
 	manifest.bin = { ...pkg.publishBin };
-	if (write) await Bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
+	if (write) await bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
 	return manifest;
 }
 
@@ -314,7 +316,7 @@ function buildNativeOptionalDependencies(version: string): JsonObject {
 /** Prepares the native core manifest and legal payloads for publication. */
 export async function prepareNativeCorePackage(pkgDir: string, write: boolean): Promise<PackageManifest> {
 	const manifestPath = path.join(pkgDir, "package.json");
-	const manifest = (await Bun.file(manifestPath).json()) as PackageManifest;
+	const manifest = (await bun.file(manifestPath).json()) as PackageManifest;
 	if (typeof manifest.version !== "string") throw new Error(`Missing version in ${manifestPath}`);
 	const legalFiles = await stageLegalPayloads(pkgDir, manifest.license, write);
 	manifest.optionalDependencies = buildNativeOptionalDependencies(manifest.version);
@@ -339,7 +341,7 @@ export async function prepareNativeCorePackage(pkgDir: string, write: boolean): 
 		"README.md",
 		...legalFiles,
 	];
-	if (write) await Bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
+	if (write) await bun.write(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`);
 	return manifest;
 }
 
@@ -596,7 +598,7 @@ async function publishNativeLeafPackage(tag: string): Promise<string[]> {
 	const pkg = packages.find(candidate => candidate.kind === "native");
 	if (!pkg) throw new Error("No native package configured");
 	const pkgDir = path.join(repoRoot, pkg.dir);
-	const coreManifest = (await Bun.file(path.join(pkgDir, "package.json")).json()) as PackageManifest;
+	const coreManifest = (await bun.file(path.join(pkgDir, "package.json")).json()) as PackageManifest;
 	if (typeof coreManifest.version !== "string") throw new Error(`Missing version in ${pkg.dir}/package.json`);
 	await stageLegalPayloads(pkgDir, coreManifest.license ?? "MIT", !isDryRun);
 	const leaves = await generateNpmPackages({
@@ -682,7 +684,7 @@ async function publishWorkspacePackages(): Promise<string[]> {
 	);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const failed = nativeLeafTag ? await publishNativeLeafPackage(nativeLeafTag) : await publishWorkspacePackages();
 	if (failed.length > 0) {
 		console.error(`Failed to publish ${failed.length} package(s): ${failed.join(", ")}`);

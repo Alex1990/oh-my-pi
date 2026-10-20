@@ -1,5 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { BaseKernel, isSignalableProcessGroup, killProcessGroup } from "../../src/eval/kernel-base";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 
 class TestKernel extends BaseKernel {
 	constructor() {
@@ -179,7 +181,7 @@ describe("killProcessGroup", () => {
 	});
 
 	test.skipIf(!POSIX)("kills a live detached process group", async () => {
-		const proc = Bun.spawn(["sleep", "30"], {
+		const proc = bun.spawn(["sleep", "30"], {
 			detached: true,
 			stdin: "ignore",
 			stdout: "ignore",
@@ -198,14 +200,14 @@ describe("killProcessGroup", () => {
 
 describe("BaseKernel shutdown", () => {
 	test.skipIf(!POSIX)("confirms a graceful zero-code exit on shutdown and repeated cleanup", async () => {
-		const proc = Bun.spawn(["sh", "-c", 'read request; [ "$request" = exit ]'], {
+		const proc = bun.spawn(["sh", "-c", 'read request; [ "$request" = exit ]'], {
 			detached: true,
 			stdin: "pipe",
 			stdout: "pipe",
 			stderr: "pipe",
 		});
 		const kernel = new TestKernel();
-		kernel.setProcess(proc);
+		kernel.setProcess(proc as Subprocess<"pipe", "pipe", "pipe">);
 		try {
 			expect(await kernel.shutdown({ timeoutMs: 1_000 })).toEqual({ confirmed: true });
 			expect(await proc.exited).toBe(0);
@@ -227,7 +229,7 @@ describe("BaseKernel shutdown", () => {
 				exitMode === "graceful"
 					? `${child} read request; [ "$request" = exit ]`
 					: `trap 'exit 0' TERM; ${child} wait`;
-			const proc = Bun.spawn(["sh", "-c", command], {
+			const proc = bun.spawn(["sh", "-c", command], {
 				detached: true,
 				stdin: "pipe",
 				stdout: "pipe",
@@ -238,23 +240,23 @@ describe("BaseKernel shutdown", () => {
 				// cannot advance fork, signal delivery, or filesystem visibility.
 				await Promise.race([
 					(async () => {
-						while (!(await Bun.file(pidFile).exists())) await Bun.sleep(10);
+						while (!(await bun.file(pidFile).exists())) await bun.sleep(10);
 					})(),
-					Bun.sleep(1_000).then(() => {
+					bun.sleep(1_000).then(() => {
 						throw new Error("timed out waiting for the kernel descendant");
 					}),
 				]);
 
 				const kernel = new TestKernel();
-				kernel.setProcess(proc);
+				kernel.setProcess(proc as Subprocess<"pipe", "pipe", "pipe">);
 				expect(await kernel.shutdown({ timeoutMs: 1_000 })).toEqual({ confirmed: true });
 				expect(await proc.exited).toBe(0);
 
 				await Promise.race([
 					(async () => {
-						while (processGroupExists(proc.pid)) await Bun.sleep(10);
+						while (processGroupExists(proc.pid)) await bun.sleep(10);
 					})(),
-					Bun.sleep(1_000).then(() => {
+					bun.sleep(1_000).then(() => {
 						throw new Error("kernel process group survived shutdown");
 					}),
 				]);
@@ -262,7 +264,7 @@ describe("BaseKernel shutdown", () => {
 				killProcessGroup(proc.pid, "SIGKILL");
 				proc.kill("SIGKILL");
 				await proc.exited;
-				await Bun.file(pidFile).delete();
+				await bun.file(pidFile).delete();
 			}
 		},
 	);

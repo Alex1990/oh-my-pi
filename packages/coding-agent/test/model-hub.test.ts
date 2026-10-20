@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { afterEach, beforeAll, describe, expect, type Mock, test, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, type Mock, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import type { TUI } from "@oh-my-pi/pi-tui";
 
 import { cfgCycleOrder, cfgModelPresets } from "@oh-my-pi/pi-coding-agent/config/model-settings";
 import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function normalize(lines: readonly string[]): string {
 	return stripVTControlCharacters(lines.join("\n")).replace(/\s+/g, " ").trim();
@@ -938,15 +939,15 @@ describe("ModelHub", () => {
 			const overlayPath = path.join(root, "overlay.yml");
 
 			try {
-				await Bun.write(
+				await bun.write(
 					path.join(agentDir, "config.yml"),
 					`modelRoleStorage: project\nmodelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
-				await Bun.write(
+				await bun.write(
 					path.join(cwd, ".omp", "config.yml"),
 					`modelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
-				await Bun.write(overlayPath, "modelRoles:\n  default: null\n  smol: null\n");
+				await bun.write(overlayPath, "modelRoles:\n  default: null\n  smol: null\n");
 				const settings = await Settings.loadReadOnly({ cwd, agentDir, configFiles: [overlayPath] });
 				expect(settings.getModelRole("default")).toBeUndefined();
 				expect(settings.getGlobalModelRole("default")).toBe(selector);
@@ -1738,19 +1739,19 @@ describe("ModelHub", () => {
 			// 120ms setTimeout (no injection seam), and the fetch completion is
 			// a promise chain — fake timers cannot drive the mixed path.
 			hub.handleInput(DOWN); // All models → prov-a, schedules the refresh
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 			expect(refreshProvider).toHaveBeenCalledWith("prov-a", "online");
 			expect(refreshProvider.mock.calls[0]?.[2]).toBeUndefined();
 
 			hub.handleInput(UP); // back to All models
 			hub.handleInput(DOWN); // revisit prov-a
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			// Lifetime guard: revisiting must not re-fetch.
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 
 			hub.handleInput("\x1b[15~"); // F5
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(refreshProvider).toHaveBeenCalledTimes(2);
 			expect(refreshProvider).toHaveBeenCalledWith("prov-a", "online", { refreshCommandCredentials: true });
 		});
@@ -1766,10 +1767,10 @@ describe("ModelHub", () => {
 
 			hub.handleInput(DOWN); // schedules catalog-only refresh
 			hub.handleInput("\x1b[15~"); // F5 before the 120ms debounce fires
-			await Bun.sleep(40);
+			await bun.sleep(40);
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 			expect(refreshProvider).toHaveBeenCalledWith("prov-a", "online", { refreshCommandCredentials: true });
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 		});
 
@@ -1784,7 +1785,7 @@ describe("ModelHub", () => {
 			installTestTheme();
 
 			hub.handleInput(DOWN);
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 			expect(refreshProvider.mock.calls[0]?.[2]).toBeUndefined();
 
@@ -1792,7 +1793,7 @@ describe("ModelHub", () => {
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 
 			gate.resolve();
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(refreshProvider).toHaveBeenCalledTimes(2);
 			expect(refreshProvider).toHaveBeenLastCalledWith("prov-a", "online", { refreshCommandCredentials: true });
 		});
@@ -1809,7 +1810,7 @@ describe("ModelHub", () => {
 			installTestTheme();
 
 			hub.handleInput(DOWN); // All models → prov-a
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 			expect(refreshProvider.mock.calls[0]?.[2]).toBeUndefined();
 
@@ -1818,7 +1819,7 @@ describe("ModelHub", () => {
 			expect(refreshProvider).toHaveBeenCalledTimes(1);
 
 			gate.resolve();
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(refreshProvider).toHaveBeenCalledTimes(2);
 			expect(refreshProvider).toHaveBeenLastCalledWith("prov-a", "online", { refreshCommandCredentials: true });
 		});
@@ -1833,11 +1834,11 @@ describe("ModelHub", () => {
 			installTestTheme();
 
 			hub.handleInput(DOWN);
-			await Bun.sleep(140);
+			await bun.sleep(140);
 			expect(normalize(hub.render(220))).toContain("refreshing model list");
 
 			gate.resolve();
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(normalize(hub.render(220))).not.toContain("refreshing model list");
 		});
 	});

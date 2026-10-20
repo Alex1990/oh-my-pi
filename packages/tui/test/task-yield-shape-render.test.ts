@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { AgentProgress, SingleResult, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { taskToolRenderer } from "@oh-my-pi/pi-tui/tools/task";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression for #1987: when a subagent stores a non-array value in
 // `extractedToolData.yield`, the renderer cast it to `Array<{ data }>` and
@@ -80,7 +81,7 @@ describe("task renderer: malformed yield slot (#1987)", () => {
 			{ expanded: false, isPartial: false, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(160).join("\n"));
+		return bun.stripANSI(component.render(160).join("\n"));
 	}
 
 	async function renderProgressText(extractedToolData: Record<string, unknown>): Promise<string> {
@@ -96,7 +97,7 @@ describe("task renderer: malformed yield slot (#1987)", () => {
 			{ expanded: false, isPartial: true, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(160).join("\n"));
+		return bun.stripANSI(component.render(160).join("\n"));
 	}
 
 	it("does not throw and still surfaces the verdict when yield is a single object (result branch)", async () => {

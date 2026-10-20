@@ -1,10 +1,11 @@
 import { createAgentHubRuntime } from "@oh-my-pi/pi-coding-agent/modes/agent-hub-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Hub Enter contract: activating a non-remote agent row delegates to the
  * `focusAgent` dep (session focus proxy) and closes the hub on success; a
  * focus failure keeps the hub open and surfaces the error as a notice.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
@@ -124,7 +125,7 @@ const ROSTER_ENTRY_PATTERN = /^(❯| ) (?:(?:(?:│ {3}| {4})*)(?:├── |└
 
 function renderedRosterEntry(hub: AgentHubOverlayComponent, id: string, width: number): string {
 	const cells = hub.render(width).map(raw => {
-		const line = Bun.stripANSI(raw);
+		const line = bun.stripANSI(raw);
 		if (!line.startsWith("│ ")) return undefined;
 		const divider = line.indexOf("│", Math.max(2, Math.floor(line.length / 3)));
 		return divider < 0 ? undefined : line.slice(2, Math.max(2, divider - 1));
@@ -147,7 +148,7 @@ function renderedRosterEntry(hub: AgentHubOverlayComponent, id: string, width: n
 function renderedRosterIds(hub: AgentHubOverlayComponent, width: number): string[] {
 	const ids: string[] = [];
 	for (const raw of hub.render(width)) {
-		const line = Bun.stripANSI(raw);
+		const line = bun.stripANSI(raw);
 		if (!line.startsWith("│ ")) continue;
 		const divider = line.indexOf("│", Math.max(2, Math.floor(line.length / 3)));
 		if (divider < 0) continue;
@@ -194,7 +195,7 @@ describe("Agent hub Enter activation", () => {
 		await renderRequested; // the rejection path requests a render after setting the notice
 
 		expect(doneCalls()).toBe(0);
-		const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+		const rendered = bun.stripANSI(hub.render(120).join("\n"));
 		expect(rendered).toContain(message);
 		hub.dispose();
 	});
@@ -244,8 +245,8 @@ describe("Agent hub Enter activation", () => {
 		using tempDir = TempDir.createSync("@omp-agent-hub-persisted-");
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerSessionFile = path.join(tempDir.path(), "main", "Worker.jsonl");
-		await Bun.write(sessionFile, "");
-		await Bun.write(workerSessionFile, persistedChildJsonl("worker"));
+		await bun.write(sessionFile, "");
+		await bun.write(workerSessionFile, persistedChildJsonl("worker"));
 		const agents = new AgentRegistry();
 		const hub = new AgentHubOverlayComponent({
 			...createAgentHubRuntime({ settings: Settings.isolated(), registry: agents, sessionFile }),
@@ -269,7 +270,7 @@ describe("Agent hub Enter activation", () => {
 	it("ranks restored subagents by recency rather than readdir order", async () => {
 		using tempDir = TempDir.createSync("@omp-agent-hub-persisted-order-");
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
-		await Bun.write(sessionFile, "");
+		await bun.write(sessionFile, "");
 		// Alphabetical readdir order (Aaa, Bbb, Ccc) is the reverse of recency:
 		// Ccc is the most recently active. The roster must apply the status/recency
 		// ranking to every restored agent, not append them in discovery order.
@@ -280,7 +281,7 @@ describe("Agent hub Enter activation", () => {
 		];
 		for (const [id, mtime] of workers) {
 			const file = path.join(tempDir.path(), "main", `${id}.jsonl`);
-			await Bun.write(file, persistedChildJsonl(id));
+			await bun.write(file, persistedChildJsonl(id));
 			await fs.utimes(file, new Date(mtime), new Date(mtime));
 		}
 		const agents = new AgentRegistry();
@@ -304,8 +305,8 @@ describe("Agent hub Enter activation", () => {
 	it("stops persisted discovery when the Hub is disposed", async () => {
 		using tempDir = TempDir.createSync("@omp-agent-hub-disposed-scan-");
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
-		await Bun.write(sessionFile, "");
-		await Bun.write(path.join(tempDir.path(), "main", "Worker.jsonl"), "");
+		await bun.write(sessionFile, "");
+		await bun.write(path.join(tempDir.path(), "main", "Worker.jsonl"), "");
 		const agents = new AgentRegistry();
 		const hub = new AgentHubOverlayComponent({
 			...createAgentHubRuntime({ settings: Settings.isolated(), registry: agents, sessionFile }),
@@ -328,9 +329,9 @@ describe("Agent hub Enter activation", () => {
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
 		const parentSessionFile = path.join(tempDir.path(), "main", "Parent.jsonl");
 		const childSessionFile = path.join(tempDir.path(), "main", "Parent", "Child.jsonl");
-		await Bun.write(sessionFile, "");
-		await Bun.write(parentSessionFile, persistedChildJsonl("parent"));
-		await Bun.write(childSessionFile, persistedChildJsonl("child"));
+		await bun.write(sessionFile, "");
+		await bun.write(parentSessionFile, persistedChildJsonl("parent"));
+		await bun.write(childSessionFile, persistedChildJsonl("child"));
 		const agents = new AgentRegistry();
 		const hub = new AgentHubOverlayComponent({
 			...createAgentHubRuntime({ settings: Settings.isolated(), registry: agents, sessionFile }),
@@ -347,7 +348,7 @@ describe("Agent hub Enter activation", () => {
 		expect(agents.get("Parent")?.parentId).toBe("Main");
 		expect(agents.get("Child")?.parentId).toBe("Parent");
 		hub.handleInput("t");
-		expect(Bun.stripANSI(renderedRosterEntry(hub, "Child", 120))).toContain("└── ○ Child");
+		expect(bun.stripANSI(renderedRosterEntry(hub, "Child", 120))).toContain("└── ○ Child");
 		hub.dispose();
 	});
 
@@ -357,8 +358,8 @@ describe("Agent hub Enter activation", () => {
 		const workerSessionFile = path.join(tempDir.path(), "main", "Worker.jsonl");
 		const createdAt = "2026-07-30T01:13:37.835Z";
 		const lastActivity = new Date("2026-07-30T01:15:00.000Z");
-		await Bun.write(sessionFile, "");
-		await Bun.write(
+		await bun.write(sessionFile, "");
+		await bun.write(
 			workerSessionFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "worker-session", timestamp: createdAt, cwd: TEST_CWD }),
@@ -406,8 +407,8 @@ describe("Agent hub Enter activation", () => {
 		const workerSessionFile = path.join(tempDir.path(), "main", "Worker.jsonl");
 		const createdAt = "2026-07-30T01:13:30.000Z";
 		const lastActivity = new Date("2026-07-30T01:15:00.000Z");
-		await Bun.write(sessionFile, "");
-		await Bun.write(
+		await bun.write(sessionFile, "");
+		await bun.write(
 			workerSessionFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "worker-session", timestamp: createdAt, cwd: TEST_CWD }),
@@ -473,7 +474,7 @@ describe("Agent hub Enter activation", () => {
 		expect(workerEntry).toContain("1 req");
 		expect(workerEntry).toContain("2 tools");
 		expect(workerEntry).toContain("135 tok");
-		expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("Read-only · 0 LoC");
+		expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("Read-only · 0 LoC");
 		hub.dispose();
 	});
 	it("yields to a macrotask at the configured streaming threshold", async () => {
@@ -487,7 +488,7 @@ describe("Agent hub Enter activation", () => {
 			timestamp: "2026-07-30T01:13:30.000Z",
 			message: { role: "user", content: [{ type: "text", text: "small" }] },
 		});
-		await Bun.write(sessionFile, `${entry}\n`.repeat(3));
+		await bun.write(sessionFile, `${entry}\n`.repeat(3));
 		const thresholdVisited = Promise.withResolvers<void>();
 		let complete = false;
 		let yieldedBeforeComplete = false;
@@ -742,8 +743,8 @@ describe("Agent hub double-← gating", () => {
 		using tempDir = TempDir.createSync("@omp-agent-hub-require-content-");
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerSessionFile = path.join(tempDir.path(), "main", "Worker.jsonl");
-		await Bun.write(sessionFile, "");
-		await Bun.write(workerSessionFile, persistedChildJsonl("worker"));
+		await bun.write(sessionFile, "");
+		await bun.write(workerSessionFile, persistedChildJsonl("worker"));
 		const agents = new AgentRegistry();
 		const { controller, shown, shownReady } = setup(agents, sessionFile);
 
@@ -758,8 +759,8 @@ describe("Agent hub double-← gating", () => {
 	it("the explicit hub opens fullscreen before persisted subagents load", async () => {
 		using tempDir = TempDir.createSync("@omp-agent-hub-explicit-");
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
-		await Bun.write(sessionFile, "");
-		await Bun.write(path.join(tempDir.path(), "main", "Worker.jsonl"), persistedChildJsonl("worker"));
+		await bun.write(sessionFile, "");
+		await bun.write(path.join(tempDir.path(), "main", "Worker.jsonl"), persistedChildJsonl("worker"));
 		const agents = new AgentRegistry();
 		const { controller, shown, overlayOptions } = setup(agents, sessionFile);
 
@@ -769,7 +770,7 @@ describe("Agent hub double-← gating", () => {
 		expect(hub).toBeDefined();
 		expect(overlayOptions()).toMatchObject({ width: "100%", maxHeight: "100%", margin: 0, fullscreen: true });
 		expect(agents.get("Worker")).toBeUndefined();
-		expect(Bun.stripANSI(hub!.render(120).join("\n"))).toContain("Loading saved agents");
+		expect(bun.stripANSI(hub!.render(120).join("\n"))).toContain("Loading saved agents");
 		await hub!.persistedSubagentsReady;
 		expect(agents.get("Worker")?.status).toBe("parked");
 		hub!.dispose();
@@ -849,7 +850,7 @@ describe("Agent hub data refresh coalescing", () => {
 			}
 
 			expect(requestRender).not.toHaveBeenCalled();
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).not.toContain("BurstA");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).not.toContain("BurstA");
 
 			vi.advanceTimersByTime(99);
 			expect(requestRender).not.toHaveBeenCalled();
@@ -857,7 +858,7 @@ describe("Agent hub data refresh coalescing", () => {
 			vi.advanceTimersByTime(1);
 			expect(requestRender).toHaveBeenCalledTimes(1);
 
-			const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+			const rendered = bun.stripANSI(hub.render(120).join("\n"));
 			expect(rendered).toContain("BurstA");
 			expect(rendered).toContain("BurstB");
 			expect(rendered).toContain("BurstC");
@@ -917,20 +918,20 @@ describe("Agent hub data refresh coalescing", () => {
 			expect(getSessionStats).toHaveBeenCalledTimes(1);
 			for (let i = 0; i < 4; i++) hub.render(120);
 			expect(getSessionStats).toHaveBeenCalledTimes(1);
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("150 tok");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("150 tok");
 
 			inputTokens = 400;
 			assistantMessages = 2;
 			agents.setActivity("SdkAgent", "heartbeat");
 			vi.advanceTimersByTime(100);
 			expect(getSessionStats).toHaveBeenCalledTimes(1);
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("150 tok");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("150 tok");
 
 			vi.advanceTimersByTime(4_899);
 			expect(getSessionStats).toHaveBeenCalledTimes(1);
 			vi.advanceTimersByTime(1);
 			expect(getSessionStats).toHaveBeenCalledTimes(2);
-			const refreshed = Bun.stripANSI(hub.render(120).join("\n"));
+			const refreshed = bun.stripANSI(hub.render(120).join("\n"));
 			expect(refreshed).toContain("450 tok");
 			expect(refreshed).toContain("2 req");
 			expect(refreshed).toContain("1/1");
@@ -973,7 +974,7 @@ describe("Agent hub data refresh coalescing", () => {
 			focusAgent: async () => {},
 		});
 		try {
-			const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+			const rendered = bun.stripANSI(hub.render(120).join("\n"));
 			expect(rendered).toContain("150 tok");
 			expect(rendered).toContain("1/2");
 			expect(rendered).toContain("measured");

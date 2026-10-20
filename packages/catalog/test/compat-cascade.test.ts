@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { compileCascade } from "../scripts/compat-compiler/compile-cascade";
 import { AmbiguousOverlapError, globMatch, resolveCascade, resolveCascadeRules } from "../src/compat/cascade";
 import type { CompiledCascade, ResolveTarget } from "../src/compat/types";

@@ -44,6 +44,7 @@ import { SecurityStore, writeSecurityBundleToDirectory } from "./store";
 import { cfgRetryFallbackChains, cfgRetryModelFallback, cfgRetryUsageAwareFallback } from "../session/settings";
 import { cfgSecurityEnabled } from "../tools/settings";
 import { cfgTaskAgentModelOverrides, cfgTaskAgentPrewalk } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SECURITY_SESSION_TOOLS = ["read", "grep", "glob", "lsp", "ast_grep", "task", "security_publish"];
 const SECURITY_WORKFLOW_FINGERPRINT = createSecurityWorkflowFingerprint([
@@ -160,7 +161,7 @@ function securityConfigSnapshot(settings: Settings): Record<string, boolean> {
 }
 
 function createOperationId(): string {
-	return `secop_${Bun.randomUUIDv7().replaceAll("-", "")}`;
+	return `secop_${bun.randomUUIDv7().replaceAll("-", "")}`;
 }
 
 function mapCoverageMode(targetKind: SecurityTargetKind): SecurityCoverage["mode"] {
@@ -446,7 +447,7 @@ export class SecurityCoordinator {
 				cwd: this.#host.cwd,
 				target: input.target ?? { kind: "repository" },
 				knowledgeBasePaths: input.knowledgeBasePaths,
-				outputRoot: input.outputRoot ?? path.join(workRoot, Bun.randomUUIDv7()),
+				outputRoot: input.outputRoot ?? path.join(workRoot, bun.randomUUIDv7()),
 				archiveExisting: input.archiveExisting,
 				model: modelRef,
 				account,

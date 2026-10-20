@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -207,7 +207,7 @@ describe("ManagerServer API", () => {
 		const jobsDir = makeJobsDir();
 		writeFixtureJob(jobsDir, "job-api");
 		const manager = new ManagerServer(jobsDir);
-		const server = manager.start(0);
+		const server = await manager.start(0);
 		cleanups.push(() => {
 			void manager.stop();
 		});
@@ -296,7 +296,7 @@ describe("ManagerServer API", () => {
 			}),
 		);
 		manager.store.syncAll();
-		const server = manager.start(0);
+		const server = await manager.start(0);
 		cleanups.push(() => {
 			void manager.stop();
 		});
@@ -353,7 +353,7 @@ describe("ManagerServer API", () => {
 			pid: process.pid,
 		});
 		manager.store.markExit("job-bare", 1);
-		const server = manager.start(0);
+		const server = await manager.start(0);
 		cleanups.push(() => {
 			void manager.stop();
 		});
@@ -393,7 +393,7 @@ describe("ManagerServer API", () => {
 			models: ["m/x"],
 			pid: process.pid,
 		});
-		const server = manager.start(0);
+		const server = await manager.start(0);
 		cleanups.push(() => {
 			void manager.stop();
 		});

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { FetchImpl, Message, ModelSpec, ToolCall } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const model = buildModel({
 	id: "gemini-3.7-flash",
@@ -70,7 +71,7 @@ function createFetch(signature: SignatureShape, payloads: unknown[]): FetchImpl 
 		}
 		return sseResponse({ role: "assistant", content: "done" }, "stop");
 	}
-	return Object.assign(mockFetch, { preconnect: fetch.preconnect });
+	return Object.assign(mockFetch, { preconnect: preconnectOf(fetch) });
 }
 
 function findToolCall(messages: Message[]): ToolCall {
@@ -184,7 +185,7 @@ describe("OpenAI-compatible Gemini thought signatures", () => {
 				}
 				return sseResponse({ role: "assistant", content: "done" }, "stop");
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const assistant = await streamOpenAICompletions(

@@ -47,7 +47,7 @@ User plugin state lives under the plugins data root (`~/.omp/plugins` by default
 
 The plugin root contains:
 
-- `package.json` — dependency manifest used by `bun install`/`bun uninstall` for npm-installed plugins
+- `package.json` — dependency manifest used by `pnpm install`/`pnpm uninstall` for npm-installed plugins
 - `node_modules/` — installed npm packages plus link and marketplace-cache symlinks
 - `omp-plugins.lock.json` — runtime state for npm/link/marketplace plugins:
   - enabled/disabled per plugin
@@ -79,9 +79,9 @@ Marketplace installs add registry and cache state alongside those runtime entrie
 - `pkg[a,b]` -> enable named features
 - `@scope/pkg@1.2.3[feat]` -> scoped + versioned package with explicit feature selection
 
-`PluginManager.install` also accepts git sources (validated by `validateGitSpec` instead of the npm regex): namespaced shorthands `github:user/repo[#ref]`, `gitlab:`, `bitbucket:`, `codeberg:`, `sourcehut:`/`srht:`, and full git URLs (`https://github.com/user/repo`, `git@github.com:user/repo`, `ssh://…`, `git+https://…`). Git specs do not encode the package name, so install diffs `plugins/package.json#dependencies` before/after `bun install` to resolve it.
+`PluginManager.install` also accepts git sources (validated by `validateGitSpec` instead of the npm regex): namespaced shorthands `github:user/repo[#ref]`, `gitlab:`, `bitbucket:`, `codeberg:`, `sourcehut:`/`srht:`, and full git URLs (`https://github.com/user/repo`, `git@github.com:user/repo`, `ssh://…`, `git+https://…`). Git specs do not encode the package name, so install diffs `plugins/package.json#dependencies` before/after `pnpm install` to resolve it.
 
-Non-GitHub `https://`/`ssh://` specs are passed to bun with a `git+` prefix (bun only auto-detects git for GitHub-hosted URLs, so without it the spec is misread as an npm tarball); GitHub specs are forwarded unchanged. Inline userinfo credentials (`https://user:token@host/group/repo.git`) are stripped from those `git+` specs: `bun install` persists the spec verbatim into `plugins/package.json` and `bun.lock`, and a long-lived repository token must not land in those user files. Private repositories authenticate via SSH, a git credential helper, or `.netrc` instead — bun honors all of them natively.
+Non-GitHub `https://`/`ssh://` specs are passed to pnpm with a `git+` prefix (pnpm only auto-detects git for GitHub-hosted URLs, so without it the spec is misread as an npm tarball); GitHub specs are forwarded unchanged. Inline userinfo credentials (`https://user:token@host/group/repo.git`) are stripped from those `git+` specs: `pnpm install` persists the spec verbatim into `plugins/package.json` and `pnpm-lock.yaml`, and a long-lived repository token must not land in those user files. Private repositories authenticate via SSH, a git credential helper, or `.netrc` instead — pnpm honors all of them natively.
 
 `extractPackageName` strips an optional `npm:` prefix and version suffix for on-disk path lookup after install.
 
@@ -104,33 +104,33 @@ Malformed `package.json` JSON is a hard failure at read time; malformed manifest
 
 ## Install/update flow (`PluginManager.install`)
 
-Every Bun package-manager call below (`install`, `update`, `uninstall`, `pm cache`) goes through `runBunCli` (`src/extensibility/plugins/bun-cli.ts`), which re-runs the current executable with `BUN_BE_BUN=1` rather than looking up `bun` on `PATH`. The standalone `omp` binary embeds Bun, so npm/Git plugin installs need no separately installed Bun; Git sources still need `git` on `PATH`.
+Every package-manager call below (`install`, `update`, `uninstall`, and store inspection) shells out to `pnpm` in the plugin directory, so `pnpm` must be on `PATH`; Git sources also need `git` on `PATH`.
 
 1. Parse feature bracket syntax from install spec.
 2. Validate the spec: git specs via `validateGitSpec`; npm specs against the package-name regex + shell-metacharacter denylist.
 3. Ensure plugin `package.json` exists (`omp-plugins`, private dependencies map).
-4. Run `bun install --no-cache <packageSpec>` for npm, or `bun install <gitSpec>` for Git, in the user plugins directory; `--force` is forwarded when requested. Reinstalls prune stale dependency entries first. Reinstalling an existing Git plugin also refreshes Bun's matching Git cache and runs `bun update <resolved-name>` to refresh the lockfile revision.
+4. Run `pnpm install --no-cache <packageSpec>` for npm, or `pnpm install <gitSpec>` for Git, in the user plugins directory; `--force` is forwarded when requested. Reinstalls prune stale dependency entries first. Reinstalling an existing Git plugin also refreshes pnpm's matching Git cache and runs `pnpm update <resolved-name>` to refresh the lockfile revision.
 5. Resolve the installed package name (npm: strip version via `extractPackageName`; git: diff `dependencies` before/after) and read `node_modules/<name>/package.json`.
 6. Resolve manifest and compute `enabledFeatures`:
    - `[*]`: all declared features (or `null` if no feature map)
    - `[a,b]`: validates each feature when a manifest features map exists; without a map the names are retained without validation
    - `[]`: empty feature list
    - bare spec: `null` (use defaults policy later in loader)
-7. Validate declared extension entries (`#validateInstalledExtensions`): each manifest `extensions` entry must resolve on disk, import to a factory function, and initialize successfully against a throwaway registration surface. On failure, roll back the install — restore the previous `plugins/package.json`, remove the freshly installed package, and restore any prior version from a backup taken before `bun install` — then abort.
+7. Validate declared extension entries (`#validateInstalledExtensions`): each manifest `extensions` entry must resolve on disk, import to a factory function, and initialize successfully against a throwaway registration surface. On failure, roll back the install — restore the previous `plugins/package.json`, remove the freshly installed package, and restore any prior version from a backup taken before `pnpm install` — then abort.
 8. Upsert lockfile runtime state: `{ version, enabledFeatures, enabled: true }`.
 
 ### Update semantics
 
 - `omp plugin install pkg@newVersion` updates the dependency and runtime version. A plain reinstall resets enablement to true and feature selection to defaults unless explicitly supplied; settings remain in the separate settings map.
 - `omp plugin upgrade <package-name>` uses the source recorded in `plugins/package.json`: npm moves to the latest published version, while Git re-resolves its recorded ref. It preserves enablement and feature selection, removing selected features absent from a new feature map. Local links and `file:`/`link:`/`workspace:`/`portal:` dependencies have nothing to upgrade and are rejected.
-- Upgrade compares both package version and Bun lockfile resolution, so a moving Git ref can report a changed revision without a version bump.
-- Install snapshots the prior package tree, `package.json`, and `bun.lock`. Failure during installation, feature/extension validation, or runtime-config save attempts to restore all three.
+- Upgrade compares both package version and pnpm lockfile resolution, so a moving Git ref can report a changed revision without a version bump.
+- Install snapshots the prior package tree, `package.json`, and `pnpm-lock.yaml`. Failure during installation, feature/extension validation, or runtime-config save attempts to restore all three.
 - No separate npm-plugin startup update check or migration action exists.
 
 ## Remove flow (`PluginManager.uninstall`)
 
 1. Validate package name.
-2. Run `bun uninstall <name>` in plugin dir.
+2. Run `pnpm uninstall <name>` in plugin dir.
 3. Explicitly remove `node_modules/<name>` after success, including links absent from the dependency manifest.
 4. Remove plugin runtime state from lockfile:
    - `config.plugins[name]`
@@ -240,7 +240,7 @@ Active manager path enforces package-name validation:
 - npm shell-metacharacter denylist: `;`, `&`, `|`, backtick, `$`, `(`, `)`, `{`, `}`, `[`, `]`, `<`, `>`, `\` — applied after `parsePluginSpec` strips the feature brackets, so a normal `pkg[feat]` spec never reaches it.
 - git specs: `validateGitSpec` rejects only the shared `SHELL_METACHARS` set (`;`, `&`, `|`, backtick, `$`, `(`, `)`, `{`, `}`, `<`, `>`, `\`, newline, CR, tab) instead of the npm regex, so `:`, `/`, `#`, `+`, `.`, `-`, `_`, `~`, `@` are permitted.
 
-This limits command-injection risk when invoking `bun install/uninstall`.
+This limits command-injection risk when invoking `pnpm install/uninstall`.
 
 ## Filesystem trust boundary
 
@@ -258,13 +258,13 @@ The plugin manager is not transactional.
 
 | Operation stage                                       | Failure behavior           | Rollback                                                                  |
 | ----------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------- |
-| `bun install` or follow-up git `bun update` fails     | install aborts with stderr | Restores prior `package.json`, `bun.lock`, and package snapshot           |
+| `pnpm install` or follow-up git `pnpm update` fails     | install aborts with stderr | Restores prior `package.json`, `pnpm-lock.yaml`, and package snapshot     |
 | Feature or extension validation fails                 | command fails              | Same install rollback                                                     |
 | Runtime lockfile write fails                          | command fails              | Same install rollback; rollback failure is appended to the reported error |
-| `bun uninstall` succeeds, lockfile write fails        | command fails              | Package removed, stale runtime state may remain                           |
+| `pnpm uninstall` succeeds, lockfile write fails        | command fails              | Package removed, stale runtime state may remain                           |
 | `link` removes old target then symlink creation fails | command fails              | No restoration of previous link/directory                                 |
 
-Operationally, `doctor --fix` can repair some drift (`bun install`, orphaned config cleanup, invalid-feature cleanup), but it is best-effort.
+Operationally, `doctor --fix` can repair some drift (`pnpm install`, orphaned config cleanup, invalid-feature cleanup), but it is best-effort.
 
 ## Malformed/missing manifest behavior summary
 
@@ -277,7 +277,7 @@ Operationally, `doctor --fix` can repair some drift (`bun install`, orphaned con
 
 ## Mode differences and precedence
 
-- `--dry-run` (install): returns a synthetic install result with no `bun install`, no network, and no lockfile/runtime-state writes (it still ensures the plugins `package.json` skeleton exists).
+- `--dry-run` (install): returns a synthetic install result with no `pnpm install`, no network, and no lockfile/runtime-state writes (it still ensures the plugins `package.json` skeleton exists).
 - `--dry-run` for local link/install paths prints a preview without reading the package; marketplace install/uninstall previews perform local validation without mutation. Other actions do not necessarily consume this flag.
 - `--json`: requested output formatting, not a transactional guarantee; marketplace mutation handlers do not all emit JSON.
 - Project overrides always take precedence over global lockfile for feature/settings view.

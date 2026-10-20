@@ -1,5 +1,6 @@
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export function sha256Hex16(value: string | Uint8Array): string {
-	return new Bun.CryptoHasher("sha256").update(value).digest("hex").slice(0, 16);
+	return new bun.CryptoHasher("sha256").update(value).digest("hex").slice(0, 16);
 }
 
 const idSeed = crypto.getRandomValues(new Uint32Array(2));

@@ -60,7 +60,7 @@ export function AgentDrawer(props: {
 		let carry = "";
 		let acc: readonly SessionEntry[] = [];
 		let idlePolls = 0;
-		let timer: Timer | null = null;
+		let timer: NodeJS.Timeout | null = null;
 		const stopPolling = () => {
 			if (timer !== null) {
 				clearInterval(timer);

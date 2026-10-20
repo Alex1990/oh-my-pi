@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/typ
 import { Container, type TUI } from "@oh-my-pi/pi-tui";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { clearCache, readDirEntries } from "@oh-my-pi/pi-coding-agent/capability/fs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROJECT_OPTION = "This project (.omp/rules)";
 
@@ -175,7 +176,7 @@ describe("OmfgController", () => {
 		expect(harness.container.children).toHaveLength(0);
 		expect(signal?.aborted).toBe(true);
 		expect(controller.hasActiveRequest()).toBe(false);
-		expect(await Bun.file(path.join(harness.projectDir, ".omp", "rules", "ts-no-any.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(harness.projectDir, ".omp", "rules", "ts-no-any.md")).exists()).toBe(false);
 	});
 
 	it("invalidates the discovery cache after saving so rediscovery observes the new rule", async () => {
@@ -213,7 +214,7 @@ describe("OmfgController", () => {
 		await registered.promise;
 
 		const savedRuleFile = path.join(rulesDir, "ts-no-any.md");
-		expect(await Bun.file(savedRuleFile).exists()).toBe(true);
+		expect(await bun.file(savedRuleFile).exists()).toBe(true);
 		expect(harness.ttsrAddRule).toHaveBeenCalled();
 		// Without the post-write invalidation the cache would still serve the empty
 		// snapshot, and `replaceTtsrRules` would evict the freshly registered rule.

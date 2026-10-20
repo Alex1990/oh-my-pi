@@ -1,10 +1,11 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { clearClaudePluginRootsCache } from "@oh-my-pi/pi-coding-agent/discovery/helpers";
 import { getEnabledPlugins } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/loader";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempRoots: string[] = [];
 const restore: string[] = [];
@@ -21,7 +22,7 @@ afterEach(async () => {
 });
 
 async function writeJson(filePath: string, value: unknown): Promise<void> {
-	await Bun.write(filePath, `${JSON.stringify(value)}\n`);
+	await bun.write(filePath, `${JSON.stringify(value)}\n`);
 }
 
 /** A plugins root holding one declared, loadable plugin. */

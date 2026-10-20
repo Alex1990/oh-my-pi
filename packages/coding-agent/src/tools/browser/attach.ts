@@ -3,11 +3,12 @@ import * as net from "node:net";
 import * as path from "node:path";
 import { Process, ProcessStatus } from "@oh-my-pi/pi-natives";
 import { getBrowserProfilesDir, isRecord, untilAborted } from "@oh-my-pi/pi-utils";
-import type { Socket } from "bun";
+import { connect, type Socket as NodeSocket } from "@oh-my-pi/pi-utils/net-compat";
 import type { Browser, Page, Target } from "puppeteer-core";
 import { throwIfAborted } from "../tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { isPuppeteerTimeout } from "./launch";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ATTACH_TARGET_SKIP_PATTERN =
 	/request[\s_-]?handler|devtools|background[\s_-]?(?:page|host)|service[\s_-]?worker/i;
@@ -70,7 +71,7 @@ async function rawHttpGet(url: string, opts: RawGetOptions): Promise<CdpProbeRes
 	const port = target.port ? Number(target.port) : 80;
 	const requestPath = `${target.pathname}${target.search}` || "/";
 	const { promise, resolve } = Promise.withResolvers<CdpProbeResponse | null>();
-	let socket: Socket<undefined> | undefined;
+	let socket: NodeSocket | undefined;
 	let settled = false;
 	const finish = (response: CdpProbeResponse | null) => {
 		if (settled) return;
@@ -94,7 +95,7 @@ async function rawHttpGet(url: string, opts: RawGetOptions): Promise<CdpProbeRes
 	let contentLength: number | null = null;
 	const bodySoFar = () => buffered.slice(headerEnd + 4);
 	try {
-		socket = await Bun.connect({
+		socket = await connect({
 			hostname: target.hostname,
 			port,
 			socket: {
@@ -171,7 +172,7 @@ export async function waitForCdp(cdpUrl: string, timeoutMs: number, signal?: Abo
 		const status = await probeCdpStatus(probeUrl, { timeoutMs: 2000, signal });
 		if (status !== null && status >= 200 && status < 300) return;
 		lastStatus = status;
-		await Bun.sleep(150);
+		await bun.sleep(150);
 	}
 	throwIfAborted(signal);
 	throw new ToolError(
@@ -270,7 +271,7 @@ export function resolveSpawnArgs(exe: string, appArgs: string[] | undefined, cwd
 		return launchArgs;
 	}
 	const slug = base.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-	const hash = Bun.hash.wyhash(exe).toString(16).padStart(16, "0");
+	const hash = bun.hash.wyhash(exe).toString(16).padStart(16, "0");
 	const launchArgs = [...args];
 	// A fresh profile otherwise opens the welcome tour and default-browser
 	// prompt as extra page targets, which attach may adopt instead of ours.
@@ -306,7 +307,7 @@ async function resolveWrapperTarget(wrapperPath: string): Promise<string | null>
 	if (process.platform !== "linux") return null;
 	const stat = await fs.stat(wrapperPath).catch(() => null);
 	if (!stat || !stat.isFile() || stat.size > 65_536) return null;
-	const content = await Bun.file(wrapperPath)
+	const content = await bun.file(wrapperPath)
 		.text()
 		.catch(() => null);
 	if (!content || content.charCodeAt(0) === 0x7f) return null;
@@ -515,7 +516,7 @@ export async function waitForMainFrame(
 		}
 		if (Date.now() >= deadline) return false;
 		try {
-			await untilAborted(signal, () => Bun.sleep(FRAME_READY_POLL_MS));
+			await untilAborted(signal, () => bun.sleep(FRAME_READY_POLL_MS));
 		} catch (error) {
 			throwIfAborted(signal);
 			throw error;
@@ -633,7 +634,7 @@ export async function pickElectronTarget(browser: Browser, options: PickTargetOp
 			!entries.some(e => e.type === "page" && relayEntryMatches(e, needle)) &&
 			Date.now() < settleDeadline
 		) {
-			await abortable(options.signal, () => Bun.sleep(Math.min(RELAY_MATCH_POLL_MS, settleDeadline - Date.now())));
+			await abortable(options.signal, () => bun.sleep(Math.min(RELAY_MATCH_POLL_MS, settleDeadline - Date.now())));
 			const polled = await fetchRelayEntries(
 				options.relayJson,
 				options.signal,
@@ -666,7 +667,7 @@ export async function pickElectronTarget(browser: Browser, options: PickTargetOp
 						const visible = await abortable(options.signal, () =>
 							Promise.race([
 								page.evaluate(() => document.visibilityState === "visible").catch(() => false),
-								Bun.sleep(RELAY_VISIBILITY_TIMEOUT_MS).then(() => false),
+								bun.sleep(RELAY_VISIBILITY_TIMEOUT_MS).then(() => false),
 							]),
 						);
 						if (visible) return page;
@@ -781,7 +782,7 @@ async function firstVisiblePage(pages: Page[], signal?: AbortSignal): Promise<Pa
 				await abortable(signal, () =>
 					Promise.race([
 						page.evaluate(() => document.visibilityState === "visible").catch(() => false),
-						Bun.sleep(RELAY_VISIBILITY_TIMEOUT_MS).then(() => false),
+						bun.sleep(RELAY_VISIBILITY_TIMEOUT_MS).then(() => false),
 					]),
 				),
 		),

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { encodeTspMessage } from "@oh-my-pi/pi-tui/native/encode";
 import { nativeComponentId } from "@oh-my-pi/pi-tui/native/reconcile";

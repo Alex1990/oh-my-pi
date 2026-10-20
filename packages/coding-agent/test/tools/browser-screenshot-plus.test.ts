@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
@@ -7,6 +7,7 @@ import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supe
 import type { ScreenshotResult } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-protocol";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 
@@ -83,7 +84,7 @@ button { margin: 80px; width: 180px; height: 60px; }
 			const plainInfo = Array.isArray(plainShots) ? (plainShots as ScreenshotResult[])[0] : undefined;
 			if (!plainInfo) throw new Error("Expected one screenshot result");
 			expect(plainInfo.width).toBeGreaterThan(0);
-			const plainMeta = await new Bun.Image(await fs.readFile(plainInfo.dest)).metadata();
+			const plainMeta = await new Image(await fs.readFile(plainInfo.dest)).metadata();
 			expect(plainMeta.width).toBe(plainInfo.width);
 
 			const annotated = await invoke({

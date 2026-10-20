@@ -121,6 +121,7 @@ import {
 	type TerminalLaunchResult,
 } from "../../subprocess/terminal-launch";
 import { resolveCliEntryCmd } from "../../subprocess/worker-client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** How long `/fork` waits for Tern to open the fork's pane. */
 const TERN_FORK_TIMEOUT_MS = 10_000;
@@ -453,14 +454,14 @@ export class CommandController {
 	async handleDebugTranscriptCommand(): Promise<void> {
 		try {
 			const width = Math.max(1, this.ctx.ui.terminal.columns);
-			const renderedLines = this.ctx.chatContainer.render(width).map(line => replaceTabs(Bun.stripANSI(line)));
+			const renderedLines = this.ctx.chatContainer.render(width).map(line => replaceTabs(bun.stripANSI(line)));
 			const rendered = renderedLines.join("\n").trimEnd();
 			if (!rendered) {
 				this.ctx.showError("No messages to dump yet.");
 				return;
 			}
 			const tmpPath = path.join(os.tmpdir(), `${Snowflake.next()}-tmp.txt`);
-			await Bun.write(tmpPath, `${rendered}\n`);
+			await bun.write(tmpPath, `${rendered}\n`);
 			this.ctx.showStatus(`Debug transcript written to:\n${tmpPath}`);
 		} catch (error: unknown) {
 			this.ctx.showError(
@@ -1190,7 +1191,7 @@ export class CommandController {
 			}
 			// Reload the cache after a brief grace so the new content (if the refresh
 			// completes synchronously on the server) flows into the system prompt.
-			await Bun.sleep(500);
+			await bun.sleep(500);
 			await reloadMentalModelsForSession(state.session);
 		} catch (error) {
 			this.ctx.showError(`mm refresh failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -1306,7 +1307,7 @@ export class CommandController {
 		if (this.ctx.session.isCompacting) {
 			this.ctx.session.abortCompaction();
 			while (this.ctx.session.isCompacting) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 		}
 		if (!(await this.ctx.session.newSession(options))) return;
@@ -1350,7 +1351,7 @@ export class CommandController {
 		if (this.ctx.session.isCompacting) {
 			this.ctx.session.abortCompaction();
 			while (this.ctx.session.isCompacting) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 		}
 		const result = await this.ctx.session.resetSessionContext();

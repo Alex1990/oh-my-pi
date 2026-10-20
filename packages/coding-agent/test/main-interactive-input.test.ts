@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import type { CreateAgentSessionOptions } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanupDirs: string[] = [];
 
@@ -48,7 +49,7 @@ describe("discoverTitleSystemPromptFile", () => {
 describe("readPipedInput", () => {
 	it("reads redirected stdin when Bun reports isTTY as undefined", async () => {
 		const originalIsTTY = process.stdin.isTTY;
-		const readText = vi.spyOn(Bun.stdin, "text").mockResolvedValue("piped prompt\n");
+		const readText = vi.spyOn(bun.stdin, "text").mockResolvedValue("piped prompt\n");
 		Object.defineProperty(process.stdin, "isTTY", { value: undefined, configurable: true });
 
 		try {

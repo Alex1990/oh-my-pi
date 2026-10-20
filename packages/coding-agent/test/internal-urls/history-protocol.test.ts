@@ -8,7 +8,7 @@
  *   the JSONL session file.
  * - An unknown id fails with an error listing the known ids.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -32,6 +32,7 @@ import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries, TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgCompactionExperimentalContextManagement } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "history-protocol-"));
@@ -449,7 +450,7 @@ describe("history:// protocol", () => {
 	it("history://<id> renders a parked ref read-only from its session file", async () => {
 		await withTempDir(async dir => {
 			const sessionFile = path.join(dir, "parked.jsonl");
-			await Bun.write(sessionFile, sessionFixtureJsonl());
+			await bun.write(sessionFile, sessionFixtureJsonl());
 			AgentRegistry.global().register({
 				id: "Sleeper",
 				displayName: "task",
@@ -578,7 +579,7 @@ describe("history:// protocol", () => {
 			const sessionFile = path.join(dir, "session.jsonl");
 			const artifactsDir = sessionFile.slice(0, -6);
 			await fs.mkdir(artifactsDir, { recursive: true });
-			await Bun.write(path.join(artifactsDir, "Sub1.jsonl"), sessionFixtureJsonl());
+			await bun.write(path.join(artifactsDir, "Sub1.jsonl"), sessionFixtureJsonl());
 			// Only Main is registered; Sub1 exists solely on disk.
 			AgentRegistry.global().register({
 				id: "Main",
@@ -605,7 +606,7 @@ describe("history:// protocol", () => {
 			const sessionFile = path.join(dir, "session.jsonl");
 			const artifactsDir = sessionFile.slice(0, -6);
 			await fs.mkdir(artifactsDir, { recursive: true });
-			await Bun.write(path.join(artifactsDir, "AuthLoader.jsonl"), sessionFixtureJsonl());
+			await bun.write(path.join(artifactsDir, "AuthLoader.jsonl"), sessionFixtureJsonl());
 			AgentRegistry.global().register({
 				id: "Main",
 				displayName: "main",
@@ -628,8 +629,8 @@ describe("history:// protocol", () => {
 			const sessionFile = path.join(dir, "session.jsonl");
 			const artifactsDir = sessionFile.slice(0, -6);
 			await fs.mkdir(artifactsDir, { recursive: true });
-			await Bun.write(path.join(artifactsDir, "Sub1.jsonl"), sessionFixtureJsonl());
-			await Bun.write(path.join(artifactsDir, "__advisor.jsonl"), sessionFixtureJsonl());
+			await bun.write(path.join(artifactsDir, "Sub1.jsonl"), sessionFixtureJsonl());
+			await bun.write(path.join(artifactsDir, "__advisor.jsonl"), sessionFixtureJsonl());
 			AgentRegistry.global().register({
 				id: "Main",
 				displayName: "main",
@@ -659,7 +660,7 @@ describe("history:// protocol", () => {
 			const artifactsDir = sessionFile.slice(0, -6);
 			const childDir = path.join(artifactsDir, "Parent");
 			await fs.mkdir(childDir, { recursive: true });
-			await Bun.write(path.join(childDir, "Parent.Child.jsonl"), sessionFixtureJsonl());
+			await bun.write(path.join(childDir, "Parent.Child.jsonl"), sessionFixtureJsonl());
 			AgentRegistry.global().register({
 				id: "Main",
 				displayName: "main",
@@ -684,10 +685,10 @@ describe("history:// protocol", () => {
 		const sourceArtifacts = path.join(dir, "source", "source");
 		const childFile = path.join(sourceArtifacts, "Sub1.jsonl");
 		const grandchildFile = path.join(sourceArtifacts, "Sub1", "Sub1.Grandchild.jsonl");
-		await Bun.write(childFile, sessionFixtureJsonl("source child history"));
-		await Bun.write(grandchildFile, sessionFixtureJsonl("source grandchild history", "grandchild"));
+		await bun.write(childFile, sessionFixtureJsonl("source child history"));
+		await bun.write(grandchildFile, sessionFixtureJsonl("source grandchild history", "grandchild"));
 		const externalArtifacts = path.join(dir, "external-artifacts");
-		await Bun.write(path.join(externalArtifacts, "ExternalOnly.jsonl"), sessionFixtureJsonl("external transcript"));
+		await bun.write(path.join(externalArtifacts, "ExternalOnly.jsonl"), sessionFixtureJsonl("external transcript"));
 		registerArtifactsDir(externalArtifacts);
 		AgentRegistry.global().register({
 			id: "ForeignOnly",
@@ -736,13 +737,13 @@ describe("history:// protocol", () => {
 		const dir = tempDir.path();
 		const cwd = path.join(dir, "project");
 		const foreignSource = path.join(dir, "foreign", "source.jsonl");
-		await Bun.write(foreignSource, sessionFixtureJsonl("foreign root history", "foreign-root"));
-		await Bun.write(
+		await bun.write(foreignSource, sessionFixtureJsonl("foreign root history", "foreign-root"));
+		await bun.write(
 			path.join(dir, "foreign", "source", "ForeignChild.jsonl"),
 			sessionFixtureJsonl("foreign child history"),
 		);
 		const parentFile = path.join(dir, "parent", "main.jsonl");
-		await Bun.write(parentFile, sessionFixtureJsonl("parent history", "parent-root"));
+		await bun.write(parentFile, sessionFixtureJsonl("parent history", "parent-root"));
 		const seance = await SessionManager.forkFrom(foreignSource, cwd, undefined, undefined, {
 			seance: true,
 			suppressBreadcrumb: true,
@@ -763,7 +764,7 @@ describe("history:// protocol", () => {
 			const cwd = path.join(dir, "project");
 			await fs.mkdir(cwd, { recursive: true });
 			const rootFile = path.join(dir, "ordinary-root.jsonl");
-			await Bun.write(rootFile, sessionFixtureJsonl("ordinary root history", "ordinary-root"));
+			await bun.write(rootFile, sessionFixtureJsonl("ordinary root history", "ordinary-root"));
 			AgentRegistry.global().register({
 				id: "ForeignOnly",
 				displayName: "foreign",
@@ -789,7 +790,7 @@ describe("history:// protocol", () => {
 	it("skips a registered artifact candidate that is a file", async () => {
 		await withTempDir(async dir => {
 			const candidate = path.join(dir, "not-a-directory");
-			await Bun.write(candidate, "not a directory");
+			await bun.write(candidate, "not a directory");
 			registerArtifactsDir(candidate);
 
 			await expect(new HistoryProtocolHandler().complete()).resolves.toEqual([]);
@@ -818,10 +819,10 @@ describe("history:// protocol", () => {
 					timestamp: new Date().toISOString(),
 					message: { role: "user", content: `hello from root ${secret}`, timestamp: 1 },
 				})}\n`;
-			await Bun.write(rootA, `${header("a")}\n`);
-			await Bun.write(rootB, `${header("b")}\n`);
-			await Bun.write(childA, transcript("A"));
-			await Bun.write(childB, transcript("B"));
+			await bun.write(rootA, `${header("a")}\n`);
+			await bun.write(rootB, `${header("b")}\n`);
+			await bun.write(childA, transcript("A"));
+			await bun.write(childB, transcript("B"));
 			AgentRegistry.global().register({
 				id: "Main",
 				displayName: "main",
@@ -864,9 +865,9 @@ describe("history:// protocol", () => {
 				timestamp: new Date().toISOString(),
 				cwd: "/tmp",
 			});
-			await Bun.write(rootA, `${header}\n`);
-			await Bun.write(rootB, `${header}\n`);
-			await Bun.write(path.join(dir, "a", "main", "Scanner.jsonl"), sessionFixtureJsonl());
+			await bun.write(rootA, `${header}\n`);
+			await bun.write(rootB, `${header}\n`);
+			await bun.write(path.join(dir, "a", "main", "Scanner.jsonl"), sessionFixtureJsonl());
 			// The process-global Main ref belongs to another root; the caller is root A.
 			AgentRegistry.global().register({
 				id: "Main",

@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, type Mock, spyOn, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
+import type * as NodeFs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as logger from "../src/logger";
@@ -7,25 +9,35 @@ import { type RotatingFileBatchOptions, RotatingFileSink } from "../src/logger/r
 
 const FLUSH_BYTES = 64 * 1024;
 
+const fsMock = vi.hoisted(() => ({ writes: [] as unknown[][] }));
+
+// Node's ESM namespace objects are frozen, so `spyOn(fs, "writeSync")` cannot
+// redefine the export. Wrap the real binding and record its calls.
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFs>();
+	const writeSync = ((...args: Parameters<typeof actual.writeSync>) => {
+		fsMock.writes.push(args);
+		return actual.writeSync(...args);
+	}) as typeof actual.writeSync;
+	return { ...actual, writeSync };
+});
+
 let dir: string;
-let writeSpy: Mock<typeof fs.writeSync>;
 
 beforeEach(() => {
 	dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-logger-batching-"));
-	writeSpy = spyOn(fs, "writeSync");
+	fsMock.writes = [];
 });
 
 afterEach(() => {
 	vi.useRealTimers();
-	writeSpy.mockRestore();
 	logger.setTransports({ console: false, file: false });
 	fs.rmSync(dir, { recursive: true, force: true });
 });
 
 /** Bytes passed to each `fs.writeSync` call so far. */
 function writtenSizes(): number[] {
-	// The spy's type follows writeSync's last (string) overload; the sink passes Buffers.
-	return writeSpy.mock.calls.map(call => {
+	return fsMock.writes.map(call => {
 		const data: unknown = call[1];
 		const offset: unknown = call[2];
 		const size =
@@ -56,11 +68,11 @@ describe("logger file batching", () => {
 		logger.setTransports({ console: false, file: dir });
 		for (let index = 0; index < 200; index++) logger.debug("batched-debug", { index });
 
-		expect(writeSpy).not.toHaveBeenCalled();
+		expect(fsMock.writes).toHaveLength(0);
 		expect(fs.readdirSync(dir)).toEqual([]);
 
 		logger.flush();
-		expect(writeSpy).toHaveBeenCalledTimes(1);
+		expect(fsMock.writes).toHaveLength(1);
 		expect(readLines(dir)).toHaveLength(200);
 	});
 
@@ -70,13 +82,13 @@ describe("logger file batching", () => {
 		for (let index = 0; index < 50; index++) logger.debug("timer-debug", { index });
 
 		vi.advanceTimersByTime(999);
-		expect(writeSpy).not.toHaveBeenCalled();
+		expect(fsMock.writes).toHaveLength(0);
 		vi.advanceTimersByTime(1);
-		expect(writeSpy).toHaveBeenCalledTimes(1);
+		expect(fsMock.writes).toHaveLength(1);
 		expect(readLines(dir)).toHaveLength(50);
 
 		vi.advanceTimersByTime(5_000);
-		expect(writeSpy).toHaveBeenCalledTimes(1);
+		expect(fsMock.writes).toHaveLength(1);
 	});
 
 	test("a burst above the size threshold writes once per 64 KiB, not once per record", () => {
@@ -97,15 +109,15 @@ describe("logger file batching", () => {
 		logger.setTransports({ console: false, file: dir });
 		logger.debug("debug-1");
 		logger.info("info-2");
-		expect(writeSpy).not.toHaveBeenCalled();
+		expect(fsMock.writes).toHaveLength(0);
 
 		logger.warn("warn-3");
-		expect(writeSpy).toHaveBeenCalledTimes(1);
+		expect(fsMock.writes).toHaveLength(1);
 		expect(messages(dir)).toEqual(["debug-1", "info-2", "warn-3"]);
 
 		logger.debug("debug-4");
 		logger.error("error-5");
-		expect(writeSpy).toHaveBeenCalledTimes(2);
+		expect(fsMock.writes).toHaveLength(2);
 		expect(messages(dir)).toEqual(["debug-1", "info-2", "warn-3", "debug-4", "error-5"]);
 	});
 
@@ -143,8 +155,8 @@ describe("RotatingFileSink batching", () => {
 
 		for (const record of records) unbatched.write(record);
 		unbatched.close();
-		const unbatchedWrites = writeSpy.mock.calls.length;
-		writeSpy.mockClear();
+		const unbatchedWrites = fsMock.writes.length;
+		fsMock.writes = [];
 		for (const record of records) batched.write(record);
 		batched.close();
 
@@ -158,6 +170,6 @@ describe("RotatingFileSink batching", () => {
 		}
 		expect(unbatchedWrites).toBe(records.length);
 		// One write per rotated file instead of one per record.
-		expect(writeSpy).toHaveBeenCalledTimes(names.length);
+		expect(fsMock.writes).toHaveLength(names.length);
 	});
 });

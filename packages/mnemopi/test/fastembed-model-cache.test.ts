@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { isFastembedModelCached } from "../src/core/fastembed-model-cache";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The agent shows download activity whenever this reports false, so it must
 // match fastembed@3's `<cacheDir>/<Qdrant repo>/` layout and its
@@ -27,7 +28,7 @@ describe("isFastembedModelCached", () => {
 	});
 
 	async function populate(dir: string, names: readonly string[]): Promise<void> {
-		await Promise.all(names.map(name => Bun.write(path.join(cacheDir, dir, name), "x")));
+		await Promise.all(names.map(name => bun.write(path.join(cacheDir, dir, name), "x")));
 	}
 
 	it("reports a model cached only when every weight and tokenizer file is present", async () => {

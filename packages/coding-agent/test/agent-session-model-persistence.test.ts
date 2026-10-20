@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, type AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { type Api, type AssistantMessage, type Context, Effort, type ImageContent, type Model } from "@oh-my-pi/pi-ai";
@@ -17,6 +17,7 @@ import { AUTO_THINKING } from "@oh-my-pi/pi-tui/thinking";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("AgentSession model persistence", () => {
 	let tempDir: TempDir;
@@ -68,9 +69,9 @@ describe("AgentSession model persistence", () => {
 		smolRoleValue: string,
 		lastRole = "smol",
 	): Promise<string> {
-		const targetSessionFile = path.join(tempDir.path(), `target-${Bun.nanoseconds()}.jsonl`);
+		const targetSessionFile = path.join(tempDir.path(), `target-${bun.nanoseconds()}.jsonl`);
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			targetSessionFile,
 			`${[
 				{ type: "session", version: 3, id: "target-session", timestamp, cwd: tempDir.path() },
@@ -696,7 +697,7 @@ describe("AgentSession model persistence", () => {
 		"switching sessions from %s installs the archive at the resumed model's frame payload budget",
 		async (_, fromProvider, toProvider, frames) => {
 			const modelsPath = path.join(tempDir.path(), "models.yml");
-			await Bun.write(
+			await bun.write(
 				modelsPath,
 				`providers:
   anthropic-proxy:
@@ -768,7 +769,7 @@ describe("AgentSession model persistence", () => {
 		const created = await createSession({ initialModel: defaultModel, persist: true });
 		const targetFile = path.join(tempDir.path(), "switch-interrupted-user.jsonl");
 		const timestamp = "2026-07-11T02:20:08.800Z";
-		await Bun.write(
+		await bun.write(
 			targetFile,
 			`${[
 				{ type: "session", version: 3, id: "switch-target", timestamp, cwd: tempDir.path() },

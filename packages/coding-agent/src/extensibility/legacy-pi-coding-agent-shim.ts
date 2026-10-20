@@ -12,7 +12,7 @@
  * the same module identity as a direct `@oh-my-pi/pi-coding-agent` import.
  */
 
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -89,6 +89,7 @@ import type { Skill } from "./skills";
 import { loadSkillsFromDir } from "./skills";
 
 import { cfgDisabledExtensions, cfgExtensions, cfgSkills } from "./settings";
+import { bun, Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOOL_DEFINITION_MARKER = "__isToolDefinition";
 const LEGACY_BUILTIN_TOOL_MARKER = "__ompLegacyBuiltinTool";
@@ -1262,7 +1263,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 			try {
 				const stat = await fs.promises.stat(resolvedPath);
 				if (stat.isDirectory()) {
-					const glob = new Bun.Glob("**/*.md");
+					const glob = new Glob("**/*.md");
 					for await (const entry of glob.scan({ cwd: resolvedPath, absolute: false, onlyFiles: true })) {
 						files.push(path.join(resolvedPath, entry));
 					}
@@ -1287,7 +1288,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 
 			for (const filePath of files) {
 				try {
-					const raw = await Bun.file(filePath).text();
+					const raw = await bun.file(filePath).text();
 					const { frontmatter, body } = parseFrontmatter(raw);
 					const rawDescription = frontmatter.description;
 					let description = typeof rawDescription === "string" ? rawDescription : "";
@@ -1504,7 +1505,7 @@ export { getProjectDir } from "@oh-my-pi/pi-utils";
  * to auto-allow bundled docs/resources).
  *
  * omp's canonical `getPackageDir()` (`../config`) returns `undefined` inside a
- * `bun --compile` binary — `import.meta.dir` is `/$bunfs/root` and no owning
+ * `bun --compile` binary — `import.meta.dirname` is `/$bunfs/root` and no owning
  * `package.json` exists (issue #1423). Returning `undefined` there would crash
  * every legacy `path.join(getPackageDir(), ...)` at runtime in the shipped
  * binary, the primary distribution. So fall back to the executable's own

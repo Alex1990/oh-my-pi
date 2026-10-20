@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import { sharpshooterBackend } from "@oh-my-pi/pi-coding-agent/sharpshooter/back
 import { sharpshooterBankDir } from "@oh-my-pi/pi-coding-agent/sharpshooter/paths";
 import { executeAcpBuiltinSlashCommand } from "@oh-my-pi/pi-coding-agent/slash-commands/acp-builtins";
 import type { SlashCommandRuntime } from "@oh-my-pi/pi-coding-agent/slash-commands/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 
@@ -45,9 +46,9 @@ describe("sharpshooter memory backend", () => {
 		const bankDir = sharpshooterBankDir(agentDir, cwd);
 		await fs.mkdir(bankDir, { recursive: true });
 		await Promise.all([
-			Bun.write(path.join(bankDir, "architecture.md"), "- Keep storage project-scoped.\n"),
-			Bun.write(path.join(bankDir, "product.md"), "- Prefer explicit user controls.\n"),
-			Bun.write(path.join(bankDir, "style.md"), "- Keep output concise.\n"),
+			bun.write(path.join(bankDir, "architecture.md"), "- Keep storage project-scoped.\n"),
+			bun.write(path.join(bankDir, "product.md"), "- Prefer explicit user controls.\n"),
+			bun.write(path.join(bankDir, "style.md"), "- Keep output concise.\n"),
 		]);
 
 		const instructions = await sharpshooterBackend.buildDeveloperInstructions(agentDir, cwd, settings);
@@ -61,7 +62,9 @@ describe("sharpshooter memory backend", () => {
 		const settings = Settings.isolated({ "memory.backend": "sharpshooter" });
 		const session = { settings } as AgentSession;
 		const output: string[] = [];
-		const queuePreview = spyOn(sharpshooterBackend, "queuePreview").mockResolvedValue("Pending delta");
+		const originalQueuePreview = sharpshooterBackend.queuePreview;
+		const queuePreview = vi.fn(async () => "Pending delta");
+		sharpshooterBackend.queuePreview = queuePreview;
 		const enqueue = spyOn(sharpshooterBackend, "enqueue").mockResolvedValue(undefined);
 		const runtime = {
 			session,
@@ -81,5 +84,6 @@ describe("sharpshooter memory backend", () => {
 		expect(queuePreview).toHaveBeenCalledWith({ agentDir: settings.getAgentDir(), cwd, session });
 		expect(enqueue).toHaveBeenCalledWith(settings.getAgentDir(), cwd, session);
 		expect(output).toEqual(["Pending delta", "Memory consolidation ran."]);
+		sharpshooterBackend.queuePreview = originalQueuePreview;
 	});
 });

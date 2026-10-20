@@ -55,11 +55,11 @@ body:
       required: true
 
   - type: input
-    id: bun-version
+    id: node-version
     attributes:
-      label: Bun version
-      description: Output of `bun --version`
-      placeholder: "e.g. 1.3.8"
+      label: Node.js version
+      description: Output of `node --version`
+      placeholder: "e.g. v24.6.0"
     validations:
       required: true
 

@@ -9,6 +9,7 @@ import { describeShimmer, type ShimmerPalette, shimmerEnabled } from "../theme/s
 import type { TUI } from "../tui";
 import { getPaddingX, padding, sliceByColumn, visibleWidth } from "../utils";
 import { Text } from "./text";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const RENDER_INTERVAL_MS = 1000 / 30;
@@ -172,7 +173,7 @@ export class Loader extends Text {
 				const remainder = spinner ? content.slice(this.#layoutFrame.length) : content;
 				const separator = spinner && remainder.startsWith(" ") ? " " : "";
 				const message = remainder.slice(separator.length);
-				const plainMessage = i === 0 ? Bun.stripANSI(message) : "";
+				const plainMessage = i === 0 ? bun.stripANSI(message) : "";
 				// A visible non-whitespace ending makes trimEnd independent of
 				// colorizer ANSI placement. The separator isolates spinner width
 				// from message graphemes; other cases retain whole-body measuring.

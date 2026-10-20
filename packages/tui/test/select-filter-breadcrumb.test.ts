@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type SelectItem, SelectList, type SelectListTheme } from "@oh-my-pi/pi-tui";
 import { currentLoopPhase, popLoopPhase, resetLoopPhaseWindow } from "@oh-my-pi/pi-utils";
 

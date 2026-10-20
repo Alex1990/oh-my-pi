@@ -310,7 +310,7 @@ interface PendingCall {
 export async function scanFile(filePath: string): Promise<FileScan | undefined> {
 	let text: string;
 	try {
-		text = await Bun.file(filePath).text();
+		text = await bun.file(filePath).text();
 	} catch {
 		return undefined;
 	}
@@ -1044,7 +1044,7 @@ async function completeStructured<T>(
 		);
 		if (response.stopReason === "error" || response.stopReason === "aborted") {
 			lastError = response.errorMessage ?? response.stopReason;
-			await Bun.sleep(1500 * (attempt + 1));
+			await bun.sleep(1500 * (attempt + 1));
 			continue;
 		}
 		const call = response.content.find((c): c is ToolCall => c.type === "toolCall" && c.name === "respond");
@@ -1098,7 +1098,7 @@ interface VerdictCache {
 
 async function loadVerdictCache(): Promise<VerdictCache> {
 	try {
-		const parsed = (await Bun.file(CACHE_PATH).json()) as Partial<VerdictCache> | null;
+		const parsed = (await bun.file(CACHE_PATH).json()) as Partial<VerdictCache> | null;
 		if (parsed && typeof parsed === "object" && parsed.entries && typeof parsed.entries === "object") {
 			return { entries: parsed.entries };
 		}
@@ -1113,13 +1113,13 @@ async function saveVerdictCache(cache: VerdictCache): Promise<void> {
 	const newest = Object.entries(cache.entries)
 		.sort((a, b) => b[1].ts - a[1].ts)
 		.slice(0, 500);
-	await Bun.write(CACHE_PATH, JSON.stringify({ entries: Object.fromEntries(newest) }));
+	await bun.write(CACHE_PATH, JSON.stringify({ entries: Object.fromEntries(newest) }));
 }
 
 /** Digest + system-prompt hashes make staleness automatic: any change to the
  * session transcript, digest format, model, or prompt misses the cache. */
 function verdictCacheKey(groupId: string, digest: string, model: string): string {
-	return `${groupId}:${Bun.hash(digest).toString(16)}:${model}:${Bun.hash(SYSTEM_PROMPT).toString(16)}`;
+	return `${groupId}:${bun.hash(digest).toString(16)}:${model}:${bun.hash(SYSTEM_PROMPT).toString(16)}`;
 }
 
 // --------------------------------------------------------------------------
@@ -1362,7 +1362,7 @@ async function main(): Promise<void> {
 			await mapPool(candidates, opts.concurrency, async g => {
 				const digest = buildDigest(g);
 				if (opts.digestDir) {
-					await Bun.write(path.join(opts.digestDir, `${g.id}.md`), digest);
+					await bun.write(path.join(opts.digestDir, `${g.id}.md`), digest);
 				}
 				const key = verdictCacheKey(g.id, digest, res.classifierModel ?? opts.model);
 				if (!opts.noCache) {
@@ -1454,11 +1454,13 @@ async function main(): Promise<void> {
 	}
 
 	if (opts.json) {
-		await Bun.write(opts.json, JSON.stringify(exportJson(res), null, 1));
+		await bun.write(opts.json, JSON.stringify(exportJson(res), null, 1));
 		console.log(`\nwrote ${opts.json}`);
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";

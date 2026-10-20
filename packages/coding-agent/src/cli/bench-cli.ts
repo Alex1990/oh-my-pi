@@ -43,6 +43,7 @@ import { createLiveBoard, type LiveBoardOutput } from "@oh-my-pi/pi-tui/chrome/l
 import { formatCost } from "@oh-my-pi/pi-tui/overlays/agent-hub-renderer";
 
 import { cfgTierAnthropic, cfgTierGoogle, cfgTierOpenai } from "../session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_PAR = 4;
 const DEFAULT_CACHE_MAX_TOKENS = 64;
@@ -470,7 +471,7 @@ function truncateUtf8ByteLength(bytes: Uint8Array, maxBytes: number): number {
 }
 
 async function readBoundedUtf8File(path: string, maxBytes: number): Promise<string> {
-	const file = Bun.file(path);
+	const file = bun.file(path);
 	const bytes = new Uint8Array(await file.slice(0, maxBytes).arrayBuffer());
 	const end = truncateUtf8ByteLength(bytes, maxBytes);
 	return UTF8_DECODER.decode(bytes.subarray(0, end));
@@ -1101,7 +1102,7 @@ export async function runBenchCommand(command: BenchCommandArgs, deps: BenchDepe
 	const tagKind = kinds.length > 1;
 	const random = deps.random ?? Math.random;
 	const json = command.flags.json === true;
-	const randomSessionId = deps.randomSessionId ?? (() => Bun.randomUUIDv7());
+	const randomSessionId = deps.randomSessionId ?? (() => bun.randomUUIDv7());
 	const readTextFile = deps.readTextFile ?? readBoundedUtf8File;
 	const cachePrefix = cacheMode ? await resolveCachePrefix(command.flags, readTextFile) : undefined;
 	const writeStdout = deps.writeStdout ?? ((text: string) => process.stdout.write(text));

@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { TS_CHILD_FLAGS } from "./node-flags";
 
 describe("loadPuppeteer cwd restoration", () => {
 	afterEach(() => {
@@ -7,9 +9,10 @@ describe("loadPuppeteer cwd restoration", () => {
 	});
 
 	it("surfaces a restore failure after the import succeeds", async () => {
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
+				...TS_CHILD_FLAGS,
 				"-e",
 				`import { loadPuppeteer } from "./src/tools/browser/launch.ts";
 const previousCwd = process.cwd();
@@ -37,16 +40,17 @@ try {
 	process.exit(1);
 }`,
 			],
-			{ cwd: path.resolve(import.meta.dir, "../.."), stdout: "pipe", stderr: "pipe" },
+			{ cwd: path.resolve(import.meta.dirname, "../.."), stdout: "pipe", stderr: "pipe" },
 		);
 		const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
 		expect(exitCode, stderr).toBe(0);
 	});
 
 	it("surfaces both import and restore failures", async () => {
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
+				...TS_CHILD_FLAGS,
 				"-e",
 				`import { loadPuppeteer } from "./src/tools/browser/launch.ts";
 const previousCwd = process.cwd();
@@ -85,7 +89,7 @@ try {
 	process.exit(1);
 }`,
 			],
-			{ cwd: path.resolve(import.meta.dir, "../.."), stdout: "pipe", stderr: "pipe" },
+			{ cwd: path.resolve(import.meta.dirname, "../.."), stdout: "pipe", stderr: "pipe" },
 		);
 		const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
 		expect(exitCode, stderr).toBe(0);

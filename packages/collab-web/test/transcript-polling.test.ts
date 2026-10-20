@@ -5,7 +5,7 @@
  * and the drawer's polling decision must stop on it instead of hot-retrying
  * from the same cursor forever.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { HostFrame, SessionEntry } from "@oh-my-pi/pi-wire";
 import { GuestClient } from "../src/lib/client";
 import { encodeBase64Url } from "../src/lib/link";

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildTabBarTabs } from "../src/overlays/extensions/extension-dashboard";
 import { ExtensionList } from "../src/overlays/extensions/extension-list";
 import type { Extension } from "../src/overlays/extensions/types";

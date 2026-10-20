@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { clearAwsCredentialCache } from "@oh-my-pi/pi-ai/providers/aws-credentials";
 import type { AnthropicOptions } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { stream } from "@oh-my-pi/pi-ai/stream";
 import type { Context, Model, ModelSpec, TJsonSchema } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { withEnv, withOfficialAnthropicEndpoint } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const RUNTIME_URL = "https://bedrock-runtime.us-east-1.amazonaws.com/anthropic";
 const SESSION_ID = "01a0d8ae-cf8c-74ee-b93b-d12f887b3488";
@@ -72,7 +73,7 @@ async function sentPayload(model: Model<"anthropic-messages">, options: Anthropi
 				},
 			);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	await stream(model, context, { apiKey: "bedrock-api-key", ...options, fetch: fetchMock }).result();
 	if (!payload) throw new Error("request was not sent");
@@ -129,7 +130,7 @@ describe("Amazon Bedrock /anthropic requests", () => {
 					{ status: 400, headers: { "Content-Type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		await stream(templateModel, context, {
 			apiKey: "bedrock-api-key",
@@ -243,7 +244,7 @@ describe("Amazon Bedrock /anthropic requests", () => {
 					{ status: 400, headers: { "Content-Type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		await withEnv(
 			{

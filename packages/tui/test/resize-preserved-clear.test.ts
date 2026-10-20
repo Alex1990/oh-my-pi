@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	CURSOR_MARKER,
 	type TerminalFramePlan,
@@ -8,6 +8,7 @@ import {
 } from "@oh-my-pi/pi-tui";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression coverage for the SIGWINCH-side pre-erase archiving the unfinished
 // frame on terminals that preserve a full-screen clear (#9780).
@@ -116,15 +117,15 @@ describe("resize pre-erase on a preserved-clear terminal", () => {
 	beforeEach(() => {
 		saved = {};
 		for (const key of MUX_SIGNALS) {
-			saved[key] = Bun.env[key];
-			delete Bun.env[key];
+			saved[key] = bun.env[key];
+			delete bun.env[key];
 		}
-		Bun.env.TERM = "xterm-256color";
+		bun.env.TERM = "xterm-256color";
 	});
 	afterEach(() => {
 		for (const key of MUX_SIGNALS) {
-			if (saved[key] === undefined) delete Bun.env[key];
-			else Bun.env[key] = saved[key];
+			if (saved[key] === undefined) delete bun.env[key];
+			else bun.env[key] = saved[key];
 		}
 	});
 
@@ -139,7 +140,7 @@ describe("resize pre-erase on a preserved-clear terminal", () => {
 
 		const buffer = terminal.getScrollBuffer();
 		const history = buffer.slice(0, Math.max(0, buffer.length - terminal.rows));
-		expect(history.map(row => Bun.stripANSI(row).trimEnd()).filter(row => row.startsWith("live-"))).toEqual([]);
+		expect(history.map(row => bun.stripANSI(row).trimEnd()).filter(row => row.startsWith("live-"))).toEqual([]);
 		expect(terminal.archivedClears).toBe(0);
 		tui.stop();
 	});

@@ -1,8 +1,30 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as http from "node:http";
 import * as https from "node:https";
 import * as net from "node:net";
 import * as zlib from "node:zlib";
+import { vi } from "vitest";
+
+/**
+ * `node:https` is a frozen ESM namespace, so `request` cannot be spied on. Route
+ * it through hoisted state instead, keeping the real module for everything else
+ * (`Agent` is constructed at import time).
+ */
+const httpsState = vi.hoisted(() => ({
+	request: undefined as
+		| ((options: unknown, callback?: (response: http.IncomingMessage) => void) => http.ClientRequest)
+		| undefined,
+}));
+vi.mock("node:https", async importOriginal => {
+	const actual = await importOriginal<typeof https>();
+	return {
+		...actual,
+		request: (options: unknown, callback?: (response: http.IncomingMessage) => void) => {
+			if (!httpsState.request) throw new Error("node:https request was not stubbed for this test");
+			return httpsState.request(options, callback);
+		},
+	};
+});
 import { coworkFetch } from "@oh-my-pi/pi-ai/providers/cowork-fetch";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 
@@ -17,6 +39,7 @@ class StubClientRequest extends http.ClientRequest {
 }
 
 afterEach(() => {
+	httpsState.request = undefined;
 	vi.restoreAllMocks();
 });
 
@@ -33,10 +56,10 @@ describe("coworkFetch response cancellation", () => {
 		message.push(compressed.subarray(0, -8));
 
 		const request = new StubClientRequest();
-		vi.spyOn(https, "request").mockImplementation((_options, callback) => {
-			if (typeof callback === "function") callback(message);
+		httpsState.request = (_options, callback) => {
+			callback?.(message as http.IncomingMessage);
 			return request;
-		});
+		};
 
 		const response = await coworkFetch("https://api.anthropic.com/v1/messages", {
 			headers: { accept: "text/event-stream" },
@@ -67,10 +90,10 @@ describe("coworkFetch premature response close", () => {
 		message.headers = { "content-type": "text/event-stream" };
 		message.rawHeaders = ["content-type", "text/event-stream"];
 		message.push("event: ping\ndata: {}\n\n");
-		vi.spyOn(https, "request").mockImplementation((_options, callback) => {
-			if (typeof callback === "function") callback(message);
+		httpsState.request = (_options, callback) => {
+			callback?.(message as http.IncomingMessage);
 			return new StubClientRequest();
-		});
+		};
 		const response = await coworkFetch("https://api.anthropic.com/v1/messages", {
 			headers: { accept: "text/event-stream" },
 			signal,
@@ -121,7 +144,7 @@ describe("coworkFetch premature response close", () => {
 describe("coworkFetch abort before response headers", () => {
 	it("rejects with the abort reason when the upstream never answers", async () => {
 		const request = new StubClientRequest();
-		vi.spyOn(https, "request").mockImplementation(() => request);
+		httpsState.request = () => request;
 		const controller = new AbortController();
 		let outcome: unknown = "pending";
 		void coworkFetch("https://api.anthropic.com/v1/messages", {

@@ -33,6 +33,7 @@ import { openAutoresearchStorageIfExists } from "../storage";
 import type { AutoresearchToolFactoryOptions } from "../types";
 import type { ASIData, RunDetails, RunExperimentProgressDetails } from "@oh-my-pi/pi-tui/tools/autoresearch";
 import { DEFAULT_HARNESS_COMMAND, HARNESS_FILENAME } from "@oh-my-pi/pi-tui/tools/autoresearch";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const runExperimentSchema = type({
 	"timeout_seconds?": type("number").describe("timeout in seconds (default 600)"),
@@ -294,7 +295,7 @@ async function executeProcess(opts: {
 			}, 1000)
 		: undefined;
 
-	const logSink = Bun.file(opts.logPath).writer();
+	const logSink = bun.file(opts.logPath).writer();
 	let logSinkClosed = false;
 	const closeLogSink = async (): Promise<void> => {
 		if (logSinkClosed) return;

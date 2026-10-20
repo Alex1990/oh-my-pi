@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { GoalModeState } from "@oh-my-pi/pi-coding-agent/goals/state";
@@ -12,6 +12,7 @@ import { createInteractiveModeContext } from "../../helpers/interactive-mode-con
 
 import { cfgCompactionIdleEnabled } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgRecapEnabled, cfgRecapIdleSeconds } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function flushMicrotasks(): Promise<void> {
 	for (let i = 0; i < 10; i++) {
@@ -295,7 +296,7 @@ describe("EventController idle compaction teardown", () => {
 		const notice = present.mock.calls
 			.map(([content]) => content)
 			.find((content): content is RecapNotice => content instanceof RecapNotice);
-		expect(notice?.render(200).map(line => Bun.stripANSI(line).trim())).toEqual([
+		expect(notice?.render(200).map(line => bun.stripANSI(line).trim())).toEqual([
 			"",
 			"※ recap: Reworking the login flow; auth suite passes. Next: wire the focused token-refresh test.",
 		]);

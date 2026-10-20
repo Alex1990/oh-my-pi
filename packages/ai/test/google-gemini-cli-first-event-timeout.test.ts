@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamGoogleGeminiCli } from "@oh-my-pi/pi-ai/providers/google-gemini-cli";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -91,7 +91,9 @@ test("Antigravity Flash fails over when headers arrive without a first SSE event
 	const resultPromise = stream.result();
 	await dailyBodyReadStarted.promise;
 	expect(vi.getTimerCount()).toBeGreaterThan(0);
-	vi.advanceTimersByTime(FLASH_FIRST_EVENT_TIMEOUT_MS * 2);
+	// Async advance flushes the microtasks of the abort/failover chain between
+	// timer firings; the sync variant leaves the retry suspended mid-chain.
+	await vi.advanceTimersByTimeAsync(FLASH_FIRST_EVENT_TIMEOUT_MS * 2);
 	const result = await resultPromise;
 
 	expect(requestedEndpoints).toEqual([ANTIGRAVITY_DAILY_ENDPOINT, ANTIGRAVITY_SANDBOX_ENDPOINT]);

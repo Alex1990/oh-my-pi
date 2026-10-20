@@ -18,11 +18,12 @@
  *    safe). DeepSeek-family models reject synthetic placeholders (`"."`), so
  *    missing reasoning must fall back to the empty string.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { convertMessages, streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { AssistantMessage, Context, FetchImpl, Model, ThinkingContent, ToolCall } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const DEEPINFRA_BASE_URL = "https://api.deepinfra.com/v1/openai";
 
@@ -91,7 +92,7 @@ async function captureRequestPayload(
 			payload = JSON.parse(typeof init?.body === "string" ? init.body : "{}") as Record<string, unknown>;
 			return createSseResponse([deltaChunk(model, { content: "4" }), finishChunk(model), "[DONE]"]);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	const result = await streamOpenAICompletions(model, capturedUserTurn, {
 		apiKey: "test-key",
@@ -197,7 +198,7 @@ describe("DeepInfra reasoning wire contract (oh-my-pi#9522)", () => {
 					finishChunk(model),
 					"[DONE]",
 				]),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamOpenAICompletions(model, capturedUserTurn, {
 			apiKey: "test-key",

@@ -1,35 +1,33 @@
+import { spawn } from "node:child_process";
 import { parentPort } from "node:worker_threads";
 import { installWorkerInbox, WORKER_HOST_SELECTOR_PREFIX } from "@oh-my-pi/pi-utils/worker-host";
 import { COMPUTER_WORKER_ARG } from "../../src/tools/computer/protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STATS_WORKER_ARG = `${WORKER_HOST_SELECTOR_PREFIX}stats_sync`;
 
-declare const self: Worker & {
-	onmessage: ((event: MessageEvent<{ kind: "ping" }>) => void) | null;
-};
+const selector = process.argv.find(arg => arg.startsWith(WORKER_HOST_SELECTOR_PREFIX));
 
-if (Bun.isMainThread) {
-	const worker = new Worker(Bun.main, { type: "module", argv: [STATS_WORKER_ARG] });
-	const response = Promise.withResolvers<unknown>();
-	worker.addEventListener("message", event => response.resolve(event.data));
-	worker.addEventListener("error", event => response.reject(event.error ?? new Error(event.message)));
-	worker.postMessage({ kind: "ping" });
-	try {
-		process.stdout.write(`${JSON.stringify(await response.promise)}\n`);
-	} finally {
-		worker.terminate();
-	}
-} else {
-	const selector = process.argv.find(arg => arg.startsWith(WORKER_HOST_SELECTOR_PREFIX));
-	if (selector === COMPUTER_WORKER_ARG) {
-		if (!parentPort) throw new Error("compiled worker fixture: missing parentPort");
-		installWorkerInbox(parentPort);
-		await import("../../src/tools/computer/worker-entry");
-	} else if (selector === STATS_WORKER_ARG) {
-		self.onmessage = (_event: MessageEvent<{ kind: "ping" }>) => {
-			self.postMessage({ ok: true, kind: "pong" });
-		};
+if (selector === COMPUTER_WORKER_ARG) {
+	if (!parentPort) throw new Error("compiled worker fixture: missing parentPort");
+	installWorkerInbox(parentPort);
+	// Runtime-selected by the worker selector; the compiled host must keep it lazy.
+	await import("../../src/tools/computer/worker-entry");
+} else if (selector === STATS_WORKER_ARG) {
+	const port = parentPort;
+	if (port) {
+		port.on("message", () => {
+			port.postMessage({ ok: true, kind: "pong" });
+		});
 	} else {
-		throw new Error(`unknown worker selector: ${selector}`);
+		process.stdout.write('{"ok":true,"kind":"pong"}\n');
 	}
+} else if (bun.isMainThread) {
+	// Re-enter the compiled executable with a selector, the way the CLI worker
+	// host dispatches. Bun's `node:worker_threads` cannot use the executable
+	// itself as a worker entry, so a subprocess plays that role here.
+	const child = spawn(process.execPath, [STATS_WORKER_ARG], { stdio: "inherit" });
+	child.on("exit", code => process.exit(code ?? 1));
+} else {
+	throw new Error(`unknown worker selector: ${selector}`);
 }

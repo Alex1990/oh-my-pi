@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,9 +25,10 @@ import { getPuppeteerDir } from "@oh-my-pi/pi-utils";
 import puppeteer, { type Browser, type Target, type WebWorker } from "puppeteer-core";
 import { rejectionOf } from "../helpers/rejection";
 import { chromiumAvailable } from "./chromium-probe";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
-const ASSETS = path.resolve(import.meta.dir, "../../src/tools/browser/relay/extension-assets");
+const ASSETS = path.resolve(import.meta.dirname, "../../src/tools/browser/relay/extension-assets");
 
 interface TestWorker {
 	outcome: Promise<Extract<WorkerOutbound, { type: "ready" | "init-failed" }>>;
@@ -88,9 +89,9 @@ async function launchRelayFixture(
 	log?: (message: string, data?: Record<string, unknown>) => void,
 ): Promise<RelayFixture> {
 	const port = await findFreeCdpPort();
-	const server = startRelayServer({ port, group: false, log });
+	const server = await startRelayServer({ port, group: false, log });
 	const extensionDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-relay-isolation-"));
-	const pages = Bun.serve({
+	const pages = await serve({
 		port: 0,
 		fetch(request) {
 			const route = new URL(request.url).pathname;

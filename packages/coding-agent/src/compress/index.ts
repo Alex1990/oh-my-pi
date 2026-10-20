@@ -23,6 +23,8 @@ import { CompressProtocol } from "./protocol";
 import { createCompressSession } from "./session";
 import type { CompressDraft, CompressFileResult, CompressResult, CompressStatus } from "./types";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 const DEFAULT_MAX_ROUNDS = 3;
 const DEFAULT_CONCURRENCY = 4;
 const LOSS_PREVIEW = 200;
@@ -56,7 +58,7 @@ export async function resolveCompressTargets(patterns: readonly string[], cwd: s
 	for (const pattern of patterns) {
 		if (/[*?[\]{}]/.test(pattern)) {
 			// `dot: true` — prompt corpora live under dot directories such as `.omp/commands`.
-			const matches = new Bun.Glob(pattern).scanSync({ cwd, absolute: true, onlyFiles: true, dot: true });
+			const matches = new Glob(pattern).scanSync({ cwd, absolute: true, onlyFiles: true, dot: true });
 			let matched = 0;
 			for (const match of matches) {
 				found.add(match);

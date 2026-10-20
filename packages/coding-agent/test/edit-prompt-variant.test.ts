@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { editDescription } from "@oh-my-pi/pi-natives";
 import { resolveEditToolDescription } from "@oh-my-pi/pi-coding-agent/edit";
 

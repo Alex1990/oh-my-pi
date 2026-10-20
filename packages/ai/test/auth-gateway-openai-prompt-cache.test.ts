@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,7 +18,7 @@ describe("auth-gateway explicit OpenAI prompt cache controls", () => {
 			id: "gateway-prompt-cache",
 			handler: () => ({ content: ["ok"] }),
 		});
-		const handle = startAuthGateway({
+		const handle = await startAuthGateway({
 			bind: "127.0.0.1:0",
 			bearerTokens: ["gw-test-token"],
 			storage,

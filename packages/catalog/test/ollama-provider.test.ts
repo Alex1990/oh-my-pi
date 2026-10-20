@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOllama } from "@oh-my-pi/pi-ai/providers/ollama";
 import type { Context, Tool } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";

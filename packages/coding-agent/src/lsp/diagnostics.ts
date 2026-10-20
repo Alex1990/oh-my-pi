@@ -29,6 +29,7 @@ import {
 	sortDiagnostics,
 	uriToFile,
 } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DIAGNOSTIC_MESSAGE_LIMIT = 50;
 export const SINGLE_DIAGNOSTICS_WAIT_TIMEOUT_MS = 3000;
@@ -301,10 +302,10 @@ export async function waitForDiagnostics(
 
 		const pollMs = Math.min(DIAGNOSTICS_POLL_MS, Math.max(0, deadline - Date.now()));
 		if (!pullResultPromise) {
-			await Bun.sleep(pollMs);
+			await bun.sleep(pollMs);
 			continue;
 		}
-		const pullResult = await Promise.race([pullResultPromise, Bun.sleep(pollMs).then(() => undefined)]);
+		const pullResult = await Promise.race([pullResultPromise, bun.sleep(pollMs).then(() => undefined)]);
 		if (pullResult) {
 			pullResultPromise = undefined;
 			if (pullResult.diagnostics !== undefined) {

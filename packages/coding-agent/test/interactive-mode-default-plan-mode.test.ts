@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
@@ -16,6 +16,7 @@ import { InteractiveMode, shouldEnterPlanModeOnStartup } from "../src/modes/inte
 import { resolveXdevTool, type XdevState } from "../src/tools/xdev";
 
 import { cfgStartupQuiet } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeTool(name: string): AgentTool {
 	return {
@@ -97,7 +98,7 @@ describe("InteractiveMode plan.defaultOnStartup", () => {
 	 *  modes may force-activate on entry. `builtInToolNames` marks which registry
 	 *  entries still have built-in provenance after extension shadowing. */
 	function createHarness(settings: Settings, options: HarnessOptions = {}): InteractiveMode {
-		const registry = new ModelRegistry(authStorage, path.join(tempDir.path(), `models-${Bun.nanoseconds()}.yml`));
+		const registry = new ModelRegistry(authStorage, path.join(tempDir.path(), `models-${bun.nanoseconds()}.yml`));
 		const initialModel = modelOrThrow(registry, "claude-sonnet-4-5");
 		const readTool = makeTool("read");
 		// AgentSession requires a Map-typed tool registry; `read` is the initial
@@ -109,7 +110,7 @@ describe("InteractiveMode plan.defaultOnStartup", () => {
 		for (const tool of options.extraRegistryTools ?? []) {
 			toolRegistry.set(tool.name, tool);
 		}
-		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${Bun.nanoseconds()}`));
+		const manager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), `active-${bun.nanoseconds()}`));
 		const createdSession = new AgentSession({
 			agent: new Agent({
 				initialState: {
@@ -273,7 +274,7 @@ describe("InteractiveMode plan.defaultOnStartup", () => {
 			getArtifactsDir: () => session!.sessionManager.getArtifactsDir(),
 			getSessionId: () => session!.sessionManager.getSessionId(),
 		});
-		await Bun.write(resolvedPlanPath, "# Plan\n\nUse the MCP tool.");
+		await bun.write(resolvedPlanPath, "# Plan\n\nUse the MCP tool.");
 		vi.spyOn(session!, "getContextUsage").mockReturnValue(undefined);
 		vi.spyOn(created, "showPlanReview").mockResolvedValue("Approve and keep context");
 		vi.spyOn(session!, "prompt").mockResolvedValue(undefined as never);
@@ -469,7 +470,7 @@ describe("InteractiveMode plan.defaultOnStartup", () => {
 		const enabled = Settings.isolated({ "plan.defaultOnStartup": true, "compaction.enabled": false });
 		const manager = SessionManager.create(
 			tempDir.path(),
-			path.join(tempDir.path(), `startup-decision-${Bun.nanoseconds()}`),
+			path.join(tempDir.path(), `startup-decision-${bun.nanoseconds()}`),
 		);
 		try {
 			manager.appendModelChange("anthropic/claude-sonnet-4-5");

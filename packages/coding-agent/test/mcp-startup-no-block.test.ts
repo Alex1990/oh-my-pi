@@ -16,7 +16,7 @@
  * left in flight; its tools surface via the background `#onToolsChanged`
  * path if/when it eventually connects.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -24,7 +24,7 @@ import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { MCPManager } from "../src/mcp/manager";
 import type { MCPStdioServerConfig } from "../src/mcp/types";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "hang-during-init-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "hang-during-init-mcp.ts");
 const BUN_EXEC = process.execPath;
 
 describe("MCP startup (issue #2100)", () => {

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
@@ -8,6 +8,7 @@ import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-
 import { TRUNCATE_LENGTHS } from "@oh-my-pi/pi-tui/render/render-utils";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -36,7 +37,7 @@ function expectRetirableResult(block: Component): void {
 	const transcript = new TranscriptContainer();
 	transcript.addChild(block);
 	const batch = transcript.peekFinalizedBatch(80, 0);
-	const retired = Bun.stripANSI(batch?.rows.join("\n") ?? "");
+	const retired = bun.stripANSI(batch?.rows.join("\n") ?? "");
 	expect(retired).toContain("done");
 	expect(retired).not.toContain("running");
 }
@@ -132,7 +133,7 @@ describe("EventController + Cursor todo bridge", () => {
 		expect(message).not.toContain("\r");
 		// The prefix is ours and fixed; only the untrusted tail is bounded.
 		expect(message.startsWith("Todo update failed: ")).toBe(true);
-		expect(Bun.stringWidth(message.slice("Todo update failed: ".length))).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
+		expect(bun.stringWidth(message.slice("Todo update failed: ".length))).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
 		expect(f.showWarning.mock.calls[0]![1]).toEqual({ hideWithToolActivity: true });
 	});
 
@@ -323,7 +324,7 @@ describe("EventController + Cursor todo bridge", () => {
 
 		expect(blocks).toHaveLength(1);
 		expect(ctx.pendingTools.size).toBe(0);
-		expect(Bun.stripANSI(blocks[0]!.render(120).join("\n"))).toContain("RESTORE_MATCH_LINE");
+		expect(bun.stripANSI(blocks[0]!.render(120).join("\n"))).toContain("RESTORE_MATCH_LINE");
 		expect(showWarning).not.toHaveBeenCalled();
 	});
 
@@ -358,6 +359,6 @@ describe("EventController + Cursor todo bridge", () => {
 
 		expect(blocks).toHaveLength(1);
 		expect(ctx.pendingTools.size).toBe(0);
-		expect(Bun.stripANSI(blocks[0]!.render(120).join("\n"))).toContain("AGENT_START_MATCH");
+		expect(bun.stripANSI(blocks[0]!.render(120).join("\n"))).toContain("AGENT_START_MATCH");
 	});
 });

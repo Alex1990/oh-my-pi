@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type {
 	ResetCreditAccountStatus,
@@ -28,6 +28,7 @@ import { __resetDirsFromEnvForTests, setAgentDir, TempDir } from "@oh-my-pi/pi-u
 import { mockSchedulerWaitWithClock } from "./helpers/mock-scheduler-clock";
 
 import { cfgClaudeResetsAutoRedeem } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ACCOUNT_ID = "claude-account";
 const EMAIL = "claude@example.com";
@@ -370,9 +371,9 @@ describe("Claude saved-reset trigger integration", () => {
 
 	/** Empties the session's pool while the first pending attempt marker is written; returns that lease. */
 	function emptyPoolOnPendingMarker(session: AgentSession): () => SessionRestrictionLease | undefined {
-		const write = Bun.write.bind(Bun);
+		const write = bun.write;
 		let replaced: SessionRestrictionLease | undefined;
-		vi.spyOn(Bun, "write").mockImplementation(async (destination, input) => {
+		vi.spyOn(bun, "write").mockImplementation(async (destination, input) => {
 			// Only the reset lock files are written here, always as text.
 			const written = await write(destination as string, input as string);
 			if (!replaced && typeof input === "string" && input.startsWith("pending:")) {

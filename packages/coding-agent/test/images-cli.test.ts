@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +19,9 @@ import {
 } from "@oh-my-pi/pi-coding-agent/cli/images-cli";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { FetchImpl } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { type Server, serve } from "@oh-my-pi/pi-utils/node-serve";
+import { unixFetch } from "@oh-my-pi/pi-utils/unix-fetch";
 
 interface CapturedRequest {
 	readonly method: string;
@@ -30,7 +33,7 @@ type RouteHandler = (request: CapturedRequest) => unknown | Promise<unknown>;
 
 let root: string;
 let socketPath: string;
-let server: Bun.Server<undefined> | undefined;
+let server: Server<undefined> | undefined;
 let requests: CapturedRequest[];
 let routes: Map<string, RouteHandler>;
 let stdout: string[];
@@ -114,7 +117,7 @@ beforeEach(async () => {
 		stderr.push(String(chunk));
 		return true;
 	});
-	server = Bun.serve({
+	server = await serve({
 		unix: socketPath,
 		async fetch(request) {
 			const pathname = new URL(request.url).pathname;
@@ -145,9 +148,10 @@ afterEach(async () => {
 
 async function unixJson<T>(pathname: string, method: "GET" | "POST", body?: unknown): Promise<T | null> {
 	try {
-		const response = await fetch(`http://images.test${pathname}`, {
+		// Bun's `fetch` accepted a `unix` init field; Node's does not, so use the
+		// socket-aware helper instead of silently hitting DNS.
+		const response = await unixFetch(socketPath, `http://images.test${pathname}`, {
 			method,
-			unix: socketPath,
 			...(body === undefined ? {} : { body: JSON.stringify(body) }),
 		});
 		if (!response.ok) return null;
@@ -200,7 +204,7 @@ function doctorResponse(check: BlobBrokerDoctorResponse["checks"][number]): Blob
 }
 
 async function writeSavings(): Promise<void> {
-	await Bun.write(
+	await bun.write(
 		resolvedConfig().savingsJournalPath,
 		[
 			JSON.stringify({

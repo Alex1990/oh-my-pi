@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent, logger, postmortem } from "@oh-my-pi/pi-utils";
 import { canonicalProjectDir, daemonRuntimeDir } from "./paths";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLIENTS_DIR = "clients";
 const BROKER_PID_FILE = "broker.pid";
@@ -43,7 +44,7 @@ export async function registerDaemonProjectPresence(
 	await fs.mkdir(clientsDir, { recursive: true, mode: 0o700 });
 	const id = `${process.pid}-${crypto.randomUUID()}`;
 	const presencePath = path.join(clientsDir, `${id}.json`);
-	await Bun.write(presencePath, JSON.stringify({ pid: process.pid, id, projectDir: canonical }));
+	await bun.write(presencePath, JSON.stringify({ pid: process.pid, id, projectDir: canonical }));
 	// POSIX modes are meaningless on Windows; chmod there only costs another syscall.
 	if (process.platform !== "win32") await fs.chmod(presencePath, 0o600);
 	let closed = false;
@@ -71,7 +72,7 @@ export async function hasLiveDaemonProjectPresence(runtimeDir: string): Promise<
 	for (const entry of entries) {
 		const presencePath = path.join(clientsDir, entry);
 		try {
-			const decoded: unknown = await Bun.file(presencePath).json();
+			const decoded: unknown = await bun.file(presencePath).json();
 			if (
 				typeof decoded !== "object" ||
 				decoded === null ||
@@ -98,7 +99,7 @@ export async function hasLiveDaemonProjectPresence(runtimeDir: string): Promise<
 export async function readLiveDaemonBrokerPid(runtimeDir: string): Promise<number | undefined> {
 	let raw: unknown;
 	try {
-		raw = await Bun.file(path.join(runtimeDir, BROKER_PID_FILE)).json();
+		raw = await bun.file(path.join(runtimeDir, BROKER_PID_FILE)).json();
 	} catch {
 		return undefined; // Missing or malformed broker.pid => no owning broker.
 	}

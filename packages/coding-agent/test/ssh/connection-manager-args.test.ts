@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getRemoteHostDir } from "@oh-my-pi/pi-utils";
@@ -15,6 +15,7 @@ import {
 	TRANSFER_PROBE_MARKER,
 } from "../../src/ssh/connection-manager";
 import { buildSshTarget, sanitizeHostName } from "../../src/ssh/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TARGET: SSHConnectionTarget = { name: "h", host: "h" };
 
@@ -63,7 +64,7 @@ describe("ssh host shell classification", () => {
 		for (const [shellValue, expected] of cases) {
 			const name = `omp-shellclf-${crypto.randomUUID()}`;
 			const file = path.join(getRemoteHostDir(), `${sanitizeHostName(name)}.json`);
-			await Bun.write(file, JSON.stringify({ version: 3, os: "linux", shell: shellValue, compatEnabled: false }));
+			await bun.write(file, JSON.stringify({ version: 3, os: "linux", shell: shellValue, compatEnabled: false }));
 			try {
 				const info = await getHostInfo(name);
 				expect(info?.shell).toBe(expected);

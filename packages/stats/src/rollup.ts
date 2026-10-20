@@ -25,7 +25,7 @@
  * (an hour of data is small and indexed by timestamp).
  */
 
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { currentDb, unpricedRequestSql } from "./db";
 import type {
 	AgentType,
@@ -45,6 +45,7 @@ import type {
 	ToolTimeSeriesPoint,
 	ToolUsageStats,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -395,7 +396,7 @@ export async function refreshRollups(opts?: RefreshOptions): Promise<void> {
 		if (elapsed < REFRESH_TARGET_MS / 2) batch = Math.min(REFRESH_MAX_BATCH, batch * 2);
 		else if (elapsed > REFRESH_TARGET_MS * 2) batch = Math.max(1, Math.floor(batch / 2));
 		if (opts?.onProgress) opts.onProgress(getRollupStatus().dirtyHours);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	}
 }
 

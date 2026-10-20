@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { TSchema } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -13,6 +13,7 @@ import { formatOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { formatStatusIcon } from "@oh-my-pi/pi-tui/render/render-utils";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -107,14 +108,14 @@ async function renderCompletedMCPTool(isError: boolean): Promise<string> {
 		false,
 	);
 
-	return Bun.stripANSI(component.render(160).join("\n"));
+	return bun.stripANSI(component.render(160).join("\n"));
 }
 
 describe("MCP tool rendering", () => {
 	it("replaces the pending call header with a success header after completion", async () => {
 		const uiTheme = await getRequiredTheme();
-		const pendingIcon = Bun.stripANSI(formatStatusIcon("pending", uiTheme));
-		const doneIcon = Bun.stripANSI(uiTheme.styledSymbol("tool.mcp", "accent"));
+		const pendingIcon = bun.stripANSI(formatStatusIcon("pending", uiTheme));
+		const doneIcon = bun.stripANSI(uiTheme.styledSymbol("tool.mcp", "accent"));
 
 		const rendered = await renderCompletedMCPTool(false);
 
@@ -126,8 +127,8 @@ describe("MCP tool rendering", () => {
 
 	it("replaces the pending call header with an error header for MCP errors", async () => {
 		const uiTheme = await getRequiredTheme();
-		const pendingIcon = Bun.stripANSI(formatStatusIcon("pending", uiTheme));
-		const errorIcon = Bun.stripANSI(formatStatusIcon("error", uiTheme));
+		const pendingIcon = bun.stripANSI(formatStatusIcon("pending", uiTheme));
+		const errorIcon = bun.stripANSI(formatStatusIcon("error", uiTheme));
 
 		const rendered = await renderCompletedMCPTool(true);
 
@@ -157,7 +158,7 @@ describe("MCP tool rendering", () => {
 			details: { serverName: "evk", mcpToolName: "peek", meta },
 		};
 
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			renderMCPResult(result, { expanded: true, isPartial: false }, activeTheme).render(160).join("\n"),
 		);
 

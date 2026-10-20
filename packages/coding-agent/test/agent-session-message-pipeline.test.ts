@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	Agent,
 	type AgentMessage,
@@ -49,6 +49,8 @@ import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { requestBodyText } from "@oh-my-pi/pi-ai/utils/request-body";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 function createAgent(): Agent {
 	return new Agent({
@@ -84,15 +86,15 @@ function getConvertedUserText(message: Message | undefined): string {
 }
 
 async function withNativeDialectEnv<T>(fn: () => Promise<T>): Promise<T> {
-	const previous = Bun.env.PI_DIALECT;
-	delete Bun.env.PI_DIALECT;
+	const previous = bun.env.PI_DIALECT;
+	delete bun.env.PI_DIALECT;
 	try {
 		return await fn();
 	} finally {
 		if (previous === undefined) {
-			delete Bun.env.PI_DIALECT;
+			delete bun.env.PI_DIALECT;
 		} else {
-			Bun.env.PI_DIALECT = previous;
+			bun.env.PI_DIALECT = previous;
 		}
 	}
 }
@@ -262,7 +264,7 @@ describe("AgentSession message pipeline", () => {
 								new Promise<never>((_resolve, reject) =>
 									signal?.addEventListener("abort", () => reject(signal.reason), { once: true }),
 								),
-								Bun.sleep(100).then(() => {
+								bun.sleep(100).then(() => {
 									throw new Error("payload hook was not aborted");
 								}),
 							]);
@@ -276,7 +278,7 @@ describe("AgentSession message pipeline", () => {
 								new Promise<never>((_resolve, reject) =>
 									signal?.addEventListener("abort", () => reject(signal.reason), { once: true }),
 								),
-								Bun.sleep(100).then(() => {
+								bun.sleep(100).then(() => {
 									throw new Error("response hook was not aborted");
 								}),
 							]);
@@ -438,7 +440,7 @@ describe("AgentSession message pipeline", () => {
 					delta: "late",
 					partial: createAssistantMessage("late"),
 				});
-				await Bun.sleep(10);
+				await bun.sleep(10);
 				expect(delivered).toBe(0);
 			} finally {
 				caller.abort();
@@ -519,7 +521,7 @@ describe("AgentSession message pipeline", () => {
 				await emission;
 				expect(providerSignal?.aborted).toBe(true);
 				const atCancellation = delivered;
-				await Bun.sleep(30);
+				await bun.sleep(30);
 				expect(delivered).toBe(atCancellation);
 			} finally {
 				caller.abort();
@@ -796,7 +798,7 @@ describe("AgentSession message pipeline", () => {
 			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 			"base64",
 		);
-		const webpData = Buffer.from(await new Bun.Image(seed).resize(2, 2).webp({ quality: 90 }).bytes()).toBase64();
+		const webpData = Buffer.from(await new Image(seed).resize(2, 2).webp({ quality: 90 }).bytes()).toBase64();
 		const historicalImage: ImageContent = {
 			type: "image",
 			data: webpData,
@@ -1262,14 +1264,13 @@ describe("AgentSession message pipeline", () => {
 		},
 	);
 
-	it.each([
+	const sideTurnCases: Array<[string, Model<Api>]> = [
 		["Antigravity fixed-profile transport", getBundledModel("google-antigravity", "claude-sonnet-4-6")],
 		...(["cursor-agent", "gitlab-duo-agent"] as const).map(
-			api =>
-				[
-					api,
-					buildModel({ ...getBundledModel("openai", "gpt-4o"), api, provider: "custom", compat: undefined }),
-				] as const,
+			(api): [string, Model<Api>] => [
+				api,
+				buildModel({ ...getBundledModel("openai", "gpt-4o"), api, provider: "custom", compat: undefined }),
+			],
 		),
 		[
 			"Ollama Cloud",
@@ -1289,7 +1290,8 @@ describe("AgentSession message pipeline", () => {
 				omitMaxOutputTokens: true,
 			}),
 		],
-	])("rejects capped %s side turns before inference but permits uncapped turns", async (_label, model) => {
+	];
+	it.each(sideTurnCases)("rejects capped %s side turns before inference but permits uncapped turns", async (_label, model) => {
 		let calls = 0;
 		const sideStreamFn: StreamFn = () => {
 			calls++;
@@ -1985,13 +1987,13 @@ describe("AgentSession message pipeline", () => {
 			},
 		} as never);
 
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		expect(events.some(event => event.type === "message_update")).toBe(true);
 		expect(extensionEmit).toHaveBeenCalledTimes(1);
 
 		resolve();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	});
 
 	it("keeps first-turn memory in the stable prompt on the next turn", async () => {

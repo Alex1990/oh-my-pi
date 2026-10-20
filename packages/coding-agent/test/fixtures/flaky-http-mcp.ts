@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Test fixture: a minimal Streamable HTTP MCP server whose availability can be
  * flipped. While "down" it closes its GET SSE streams (the client sees the
@@ -28,14 +31,14 @@ export interface FlakyHttpMcpServer {
 	stop(): void;
 }
 
-export function startFlakyHttpMcpServer(
+export async function startFlakyHttpMcpServer(
 	options: { port?: number; log?: (line: string) => void } = {},
-): FlakyHttpMcpServer {
+): Promise<FlakyHttpMcpServer> {
 	const log = options.log ?? (() => {});
 	const state = { down: false, generation: 1, initializes: 0, refusals: 0 };
 	const closeStream = new Set<() => void>();
 
-	const server = Bun.serve({
+	const server = await serve({
 		port: options.port ?? 0,
 		hostname: "127.0.0.1",
 		// Bun closes an idle response after 10 s by default; an SSE stream that
@@ -148,14 +151,14 @@ export function startFlakyHttpMcpServer(
 		stop: () => {
 			for (const close of closeStream) close();
 			closeStream.clear();
-			server.stop(true);
+			void server.stop(true);
 		},
 	};
 }
 
-if (import.meta.main) {
-	const flaky = startFlakyHttpMcpServer({
-		port: Number(Bun.env.PORT ?? 8766),
+if (isMainModule(import.meta.url)) {
+	const flaky = await startFlakyHttpMcpServer({
+		port: Number(bun.env.PORT ?? 8766),
 		log: line => console.log(`[flaky ${new Date().toISOString().slice(11, 19)}] ${line}`),
 	});
 	console.log(`[flaky] listening on ${flaky.url}; POST /down and /up on the same host to flip it`);

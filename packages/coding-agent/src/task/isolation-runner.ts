@@ -50,6 +50,7 @@ import {
 } from "./worktree";
 
 import { cfgTaskIsolationCommits } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type IsoBackendKind = natives.IsoBackendKind;
 
@@ -150,7 +151,7 @@ export async function prepareIsolationContext(cwd: string): Promise<IsolationCon
 function deltaFingerprint(rootPatch: string, nestedPatches: readonly NestedRepoPatch[]): bigint | number {
 	let key = rootPatch;
 	for (const { relativePath, patch } of nestedPatches) key += `\0${relativePath}\0${patch}`;
-	return Bun.hash(key);
+	return bun.hash(key);
 }
 
 /** Build a commit-message callback for branch/nested commits; `undefined` ⇒ fall back to generic message. */
@@ -215,7 +216,7 @@ export interface IsolatedRunOptions {
  * and return the paths. Throws on the first write failure: the caller must
  * then keep the isolation workspace alive, because it is the only other copy.
  * Every attempted destination is removed best-effort on failure — including
- * the in-progress file, which `Bun.write` may have created or truncated
+ * the in-progress file, which `bun.write` may have created or truncated
  * before rejecting — so a half-written set cannot be mistaken for the
  * complete capture by the persisted-agent scanner.
  */
@@ -235,7 +236,7 @@ export async function persistNestedPatches(
 			// leave a truncated file behind, and `force: true` makes removing
 			// a never-created path a no-op.
 			saved.push(destination);
-			await Bun.write(destination, nestedPatch.patch);
+			await bun.write(destination, nestedPatch.patch);
 		}
 	} catch (error) {
 		await Promise.all(saved.map(file => fs.rm(file, { force: true }).catch(() => undefined)));
@@ -270,7 +271,7 @@ async function writeIsolationPatch(
 ): Promise<IsolationPatchCapture> {
 	const delta = await captureDeltaPatch(isolationDir, baseline);
 	const patchPath = path.join(artifactsDir, `${agentId}.patch`);
-	await Bun.write(patchPath, delta.rootPatch);
+	await bun.write(patchPath, delta.rootPatch);
 	const nestedPatchPaths = await persistNestedPatches(artifactsDir, agentId, delta.nestedPatches);
 	return {
 		artifacts: {
@@ -331,7 +332,7 @@ export async function retainIsolationWorkspace(
 			return { dir: path.join(retainedBase, path.basename(isolationDir)), sidecarOk };
 		} catch {
 			if (attempt === 2) return { dir: isolationDir, sidecarOk };
-			await Bun.sleep(25);
+			await bun.sleep(25);
 		}
 	}
 	return { dir: isolationDir, sidecarOk };
@@ -705,7 +706,7 @@ export async function mergeIsolatedChanges(opts: IsolationMergeOptions): Promise
 			changesApplied = false;
 			hadAnyChanges = false;
 		} else {
-			const patchText = await Bun.file(result.patchPath).text();
+			const patchText = await bun.file(result.patchPath).text();
 			if (!patchText.trim()) {
 				changesApplied = true;
 				hadAnyChanges = false;

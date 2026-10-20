@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { inflateSync } from "node:zlib";
 import { $which, isEnoent, logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Default cap on a single `direnv` invocation. The first export for a devenv
  *  `.envrc` can build a shell; callers may raise this via `bash.direnvLoadTimeoutMs`. */
@@ -152,7 +153,7 @@ async function direnvWatchesUnchanged(watches: DirenvWatch[]): Promise<boolean> 
 	}
 }
 
-/** Test-only: filtered parent-env baseline (versioned against live Bun.env). */
+/** Test-only: filtered parent-env baseline (versioned against live bun.env). */
 export function cleanSpawnEnvForTests(): Record<string, string> {
 	return cleanSpawnEnv();
 }
@@ -176,8 +177,8 @@ async function findEnvrcCached(startDir: string): Promise<string | null> {
 
 /** direnv computes its diff relative to the spawning env; strip any inherited
  *  direnv state so it loads the target `.envrc` from a clean baseline. */
-// Filtered parent-env baseline, versioned against live Bun.env: production
-// code DOES mutate Bun.env mid-process (deferred MCP discovery sets
+// Filtered parent-env baseline, versioned against live bun.env: production
+// code DOES mutate bun.env mid-process (deferred MCP discovery sets
 // EXA_API_KEY in sdk.ts after the session is usable), so a permanently
 // cached baseline would spawn direnv with stale values. Key cheaply on size
 // + a rolling checksum; a mismatch rebuilds. DIRENV_* values are stripped
@@ -188,11 +189,11 @@ let cleanSpawnEnvCache: { size: number; checksum: number; env: Record<string, st
 function envChecksum(): { size: number; checksum: number } {
 	let size = 0;
 	let checksum = 0;
-	for (const key in Bun.env) {
+	for (const key in bun.env) {
 		if (key.startsWith("DIRENV_")) continue;
 		size++;
 		for (let i = 0; i < key.length; i++) checksum = (checksum * 31 + key.charCodeAt(i)) | 0;
-		const value = Bun.env[key];
+		const value = bun.env[key];
 		if (typeof value === "string") {
 			checksum = (checksum * 31 + value.length) | 0;
 			for (let i = 0; i < value.length; i++) checksum = (checksum * 31 + value.charCodeAt(i)) | 0;
@@ -206,7 +207,7 @@ function cleanSpawnEnv(): Record<string, string> {
 	const cached = cleanSpawnEnvCache;
 	if (cached !== undefined && cached.size === size && cached.checksum === checksum) return cached.env;
 	const out: Record<string, string> = {};
-	for (const [key, value] of Object.entries(Bun.env)) {
+	for (const [key, value] of Object.entries(bun.env)) {
 		if (value !== undefined && !key.startsWith("DIRENV_")) out[key] = value;
 	}
 	cleanSpawnEnvCache = { size, checksum, env: out };
@@ -226,7 +227,7 @@ async function runDirenv(
 	const abortSignal = signal
 		? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
 		: AbortSignal.timeout(timeoutMs);
-	const proc = Bun.spawn([bin, ...args], {
+	const proc = bun.spawn([bin, ...args], {
 		cwd,
 		env,
 		stdout: "pipe",

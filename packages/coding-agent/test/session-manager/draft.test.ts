@@ -1,11 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { isEnoent, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function fileExists(p: string): Promise<boolean> {
 	try {
-		await Bun.file(p).stat();
+		await bun.file(p).stat();
 		return true;
 	} catch (err) {
 		if (isEnoent(err)) return false;

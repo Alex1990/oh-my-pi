@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getEvalDocTopics } from "../../src/tools/eval";
 
 describe("eval agents topic", () => {

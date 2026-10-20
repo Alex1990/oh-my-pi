@@ -15,9 +15,10 @@
  */
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REPO = "stencil-hq/wasm-grammars";
-const REPO_ROOT = path.join(import.meta.dir, "..");
+const REPO_ROOT = path.join(import.meta.dirname, "..");
 const TABLE = path.join(REPO_ROOT, "crates", "pi-ast", "src", "language", "wasm_grammars.rs");
 
 /** A wasm-grammars release `manifest.json`; `tree_sitter` is the CLI version, which fixes the wasm ABI. */
@@ -49,13 +50,13 @@ if (builtMinor !== runtimeMinor) {
 	);
 	process.exit(1);
 }
-await Bun.write(TABLE, renderTable(manifest));
+await bun.write(TABLE, renderTable(manifest));
 console.log(
 	`${path.relative(REPO_ROOT, TABLE)}: ${manifest.grammars.length} grammars from ${REPO} ${manifest.release}`,
 );
 
 async function readManifest(source: string): Promise<unknown> {
-	if (source.endsWith(".json")) return Bun.file(source).json();
+	if (source.endsWith(".json")) return bun.file(source).json();
 	const url =
 		source === "latest"
 			? `https://github.com/${REPO}/releases/latest/download/manifest.json`
@@ -67,7 +68,7 @@ async function readManifest(source: string): Promise<unknown> {
 
 /** Version of the `tree-sitter` runtime crate in Cargo.lock. */
 async function treeSitterRuntimeVersion(): Promise<string> {
-	const lock = await Bun.file(path.join(REPO_ROOT, "Cargo.lock")).text();
+	const lock = await bun.file(path.join(REPO_ROOT, "Cargo.lock")).text();
 	const version = lock.match(/^name = "tree-sitter"\nversion = "([^"]+)"/m)?.[1];
 	if (!version) throw new Error("Cargo.lock has no tree-sitter package");
 	return version;

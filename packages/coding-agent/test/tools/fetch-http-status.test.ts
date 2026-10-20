@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function makeSession(): ToolSession {
 	const cwd = process.cwd();
@@ -19,14 +21,14 @@ function makeSession(): ToolSession {
 }
 
 describe("read URL HTTP status without a body", () => {
-	const servers: Bun.Server<undefined>[] = [];
+	const servers: Server<undefined>[] = [];
 	afterEach(() => {
 		for (const server of servers) server.stop(true);
 		servers.length = 0;
 	});
 
 	it("reports a bodyless 204 as a successful empty read, not a failed fetch", async () => {
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: () => new Response(null, { status: 204, headers: { "content-type": "text/html" } }),
 		});
@@ -42,7 +44,7 @@ describe("read URL HTTP status without a body", () => {
 	});
 
 	it("reports a bodyless 503 as a failed fetch", async () => {
-		const server = Bun.serve({ port: 0, fetch: () => new Response(null, { status: 503 }) });
+		const server = await serve({ port: 0, fetch: () => new Response(null, { status: 503 }) });
 		servers.push(server);
 		const result = await new ReadTool(makeSession()).execute("call", {
 			path: `http://127.0.0.1:${server.port}/healthz`,

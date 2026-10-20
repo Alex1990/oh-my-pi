@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +19,9 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import type { ElementHandle, Page } from "puppeteer-core";
 import { rejectionOf } from "../helpers/rejection";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve, WebSocket } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 
@@ -106,9 +109,9 @@ interface CdpProxy {
 const LARGE_MESSAGE_BYTES = 1024 * 1024;
 
 /** Forward CDP to Chrome, applying `options` to what omp sends. */
-function startCdpProxy(chromePort: number, options: ProxyOptions): CdpProxy {
+async function startCdpProxy(chromePort: number, options: ProxyOptions): Promise<CdpProxy> {
 	const proxy = { port: 0, filePathCalls: 0, stop: () => {} };
-	const server = Bun.serve<ProxiedSocket>({
+	const server = await serve<ProxiedSocket>({
 		hostname: "127.0.0.1",
 		port: 0,
 		async fetch(req, server) {
@@ -142,11 +145,12 @@ function startCdpProxy(chromePort: number, options: ProxyOptions): CdpProxy {
 						}
 					}
 				} else if (options.holdLargeMs) {
-					await Bun.sleep(options.holdLargeMs);
+					await bun.sleep(options.holdLargeMs);
 				}
 				const { upstream } = ws.data;
-				if (upstream?.readyState === WebSocket.OPEN) upstream.send(message);
-				else ws.data.pending.push(message);
+				if (upstream?.readyState === WebSocket.OPEN)
+					upstream.send(typeof message === "string" ? message : Buffer.from(message));
+				else ws.data.pending.push(typeof message === "string" ? message : Buffer.from(message));
 			},
 			close(ws) {
 				ws.data.upstream?.close();
@@ -159,7 +163,7 @@ function startCdpProxy(chromePort: number, options: ProxyOptions): CdpProxy {
 }
 
 let tempDir = "";
-let site: Bun.Server<undefined> | undefined;
+let site: Server<undefined> | undefined;
 let url = "";
 
 function makeSession(): ToolSession {
@@ -192,7 +196,7 @@ async function openConnectedTab(toolCallId: string, options: { page?: string; pr
 	if (!exe) throw new Error("Expected a Chromium executable");
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-upload-connected-"));
 	const port = await findFreeCdpPort();
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			exe,
 			"--headless=new",
@@ -204,7 +208,7 @@ async function openConnectedTab(toolCallId: string, options: { page?: string; pr
 		],
 		{ stdin: "ignore", stdout: "ignore", stderr: "ignore" },
 	);
-	const proxy = startCdpProxy(port, options.proxy ?? {});
+	const proxy = await startCdpProxy(port, options.proxy ?? {});
 	const session = makeSession();
 	const prelude = createBrowserPrelude(session);
 	const context = { session, toolCallId };
@@ -245,8 +249,8 @@ async function writeRandomFile(file: string, size: number): Promise<string> {
 	const bytes = new Uint8Array(size);
 	for (let offset = 0; offset < bytes.length; offset += 65_536)
 		crypto.getRandomValues(bytes.subarray(offset, offset + 65_536));
-	await Bun.write(file, bytes);
-	return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	await bun.write(file, bytes);
+	return new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
 const collectErrors = (uploads: string) => `const errors = [];
@@ -266,7 +270,7 @@ const readDigests = `return await tab.evaluate(() => Promise.all([
 
 beforeAll(async () => {
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-upload-"));
-	site = Bun.serve({
+	site = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: req =>
@@ -304,7 +308,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser uploadFile into a browser omp did 
 			let created: string[] = [];
 			try {
 				const gone = path.join(tempDir, `gone-${route}.txt`);
-				await Bun.write(gone, "gone soon");
+				await bun.write(gone, "gone soon");
 				const modified = new Date("2020-01-02T03:04:05Z");
 				await fs.utimes(gone, modified, modified);
 				const file = JSON.stringify(path.basename(gone));
@@ -356,8 +360,8 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser uploadFile into a browser omp did 
 				proxy: routeProxy(route),
 			});
 			try {
-				await Bun.write(path.join(tempDir, "alpha.txt"), "alpha");
-				await Bun.write(path.join(tempDir, "beta.txt"), "beta");
+				await bun.write(path.join(tempDir, "alpha.txt"), "alpha");
+				await bun.write(path.join(tempDir, "beta.txt"), "beta");
 				// The page swaps its input out from under the chooser. Two overlapping uploads would both take the first
 				// chooser, so whichever reaches it second is refused and only the winner's input gets a file.
 				const result =
@@ -392,7 +396,7 @@ return {
 				proxy: routeProxy(route),
 			});
 			try {
-				await Bun.write(path.join(tempDir, "notes"), "no extension");
+				await bun.write(path.join(tempDir, "notes"), "no extension");
 				const errors = await run(
 					collectErrors(`() => tab.uploadFile("#direct", "notes"),
 	() => tab.uploadFile("#trigger", "notes"),
@@ -417,7 +421,7 @@ return {
 				proxy: routeProxy(route),
 			});
 			try {
-				await Bun.write(path.join(tempDir, "alpha.txt"), "alpha");
+				await bun.write(path.join(tempDir, "alpha.txt"), "alpha");
 				const result = await run(`const errors = [];
 for (const selector of ["#inert", "pierce/#shadow-drop"]) {
 	try { await tab.uploadFile(selector, "alpha.txt"); errors.push(null); }
@@ -440,8 +444,8 @@ return { errors, dropped: await tab.evaluate(() => window.dropped.map(file => fi
 		try {
 			const folder = path.join(tempDir, "album");
 			await fs.mkdir(path.join(folder, "nested"), { recursive: true });
-			await Bun.write(path.join(folder, "one.txt"), "one");
-			await Bun.write(path.join(folder, "nested", "two.txt"), "two");
+			await bun.write(path.join(folder, "one.txt"), "one");
+			await bun.write(path.join(folder, "nested", "two.txt"), "two");
 			expect(await run(collectErrors(`() => tab.uploadFile("#folder", "album"),`))).toEqual([]);
 			const received = await run(`return await tab.evaluate(() => Promise.all(
 	[...document.querySelector("#folder").files].map(async file => [file.webkitRelativePath, await file.text()]),
@@ -462,7 +466,7 @@ return { errors, dropped: await tab.evaluate(() => window.dropped.map(file => fi
 		});
 		try {
 			await fs.mkdir(path.join(tempDir, "refused-album"), { recursive: true });
-			await Bun.write(path.join(tempDir, "refused-album", "one.txt"), "one");
+			await bun.write(path.join(tempDir, "refused-album", "one.txt"), "one");
 			const errors = await run(collectErrors(`() => tab.uploadFile("#folder", "refused-album"),`));
 			expect(errors).toEqual([expect.stringContaining("refused-album is a folder")]);
 		} finally {
@@ -532,7 +536,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser uploadFile into a browser omp laun
 		await prelude.invoke({ action: "open", name, url }, context);
 		try {
 			const file = path.join(tempDir, "recycled.txt");
-			await Bun.write(file, "outlives its worker");
+			await bun.write(file, "outlives its worker");
 			expect(valueOf(await run(collectErrors(`() => tab.uploadFile("#direct", "recycled.txt"),`)))).toEqual([]);
 			await fs.rm(file);
 			// Request interception that cannot be reset after the run moves the tab to a new worker.
@@ -580,7 +584,7 @@ test("sweeps a staging folder a day after its last upload unless an open tab or 
 
 test("reports the type a browser's own pick would for the contents route", async () => {
 	const files = { "a.txt": "text/plain", "a.bin": "application/octet-stream", "a.unknownext": "", notes: "" };
-	for (const name of Object.keys(files)) await Bun.write(path.join(tempDir, name), "x");
+	for (const name of Object.keys(files)) await bun.write(path.join(tempDir, name), "x");
 	const types = await Promise.all(
 		Object.keys(files).map(async name => (await openUploadSource(path.join(tempDir, name))).info.type),
 	);
@@ -601,7 +605,7 @@ test("detaches a chooser session that attaches after the upload was cancelled", 
 	} as unknown as Page;
 	const handle = { evaluate: async () => ({ tag: "BUTTON", type: "" }) } as unknown as ElementHandle;
 	const file = path.join(tempDir, "late.txt");
-	await Bun.write(file, "late");
+	await bun.write(file, "late");
 	const staging = new UploadStaging(path.join(tempDir, "late-staging"));
 	await rejectionOf(prepareElementUpload(page, handle, [file], "upload", "contents", staging, controller.signal));
 	attach({
@@ -644,7 +648,7 @@ test("checks the upload route again after a check that decided nothing, and keep
 		attempt++;
 		// The first check's page navigates away mid-read; the next reads the token.
 		if (attempt === 1) throw new Error("Execution context was destroyed");
-		return await Bun.file(tokenPath).text();
+		return await bun.file(tokenPath).text();
 	});
 	const staging = new UploadStaging(path.join(tempDir, "route-staging"));
 	expect(await staging.route(page)).toBe("contents");
@@ -655,7 +659,7 @@ test("checks the upload route again after a check that decided nothing, and keep
 
 test("stages a symlinked file's contents, once while the file is unchanged", async () => {
 	const target = path.join(tempDir, "link-target.txt");
-	await Bun.write(target, "linked");
+	await bun.write(target, "linked");
 	const link = path.join(tempDir, "link.txt");
 	await fs.symlink(target, link, "file");
 	const staging = new UploadStaging(path.join(tempDir, "symlink-staging"));
@@ -665,32 +669,32 @@ test("stages a symlinked file's contents, once while the file is unchanged", asy
 	// A copy that still pointed at the original would send the browser to it, and break once it is gone.
 	expect((await fs.lstat(first!)).isSymbolicLink()).toBe(false);
 	await fs.rm(target);
-	expect(await Bun.file(first!).text()).toBe("linked");
-	await Bun.write(target, "changed");
+	expect(await bun.file(first!).text()).toBe("linked");
+	await bun.write(target, "changed");
 	await fs.utimes(target, new Date(2_000_000_000_000), new Date(2_000_000_000_000));
 	const [changed] = await staging.stage([await openUploadSource(link)]);
 	expect(changed).not.toBe(first);
-	expect(await Bun.file(changed!).text()).toBe("changed");
+	expect(await bun.file(changed!).text()).toBe("changed");
 });
 
 test("stages a file again when it changes without moving its size or mtime", async () => {
 	const file = path.join(tempDir, "same-stamp.txt");
 	const stamp = new Date(1_900_000_000_000);
-	await Bun.write(file, "before");
+	await bun.write(file, "before");
 	await fs.utimes(file, stamp, stamp);
 	const staging = new UploadStaging(path.join(tempDir, "same-stamp-staging"));
 	await staging.stage([await openUploadSource(file)]);
 	// ctime cannot be set and Linux stamps it from a coarse clock; a real tick apart keeps the rewrite distinguishable.
-	await Bun.sleep(20);
-	await Bun.write(file, "after!");
+	await bun.sleep(20);
+	await bun.write(file, "after!");
 	await fs.utimes(file, stamp, stamp);
 	const [second] = await staging.stage([await openUploadSource(file)]);
-	expect(await Bun.file(second!).text()).toBe("after!");
+	expect(await bun.file(second!).text()).toBe("after!");
 });
 
 test("marks the staging folder used when an upload reuses a copy, so the sweep keeps it", async () => {
 	const file = path.join(tempDir, "reused.txt");
-	await Bun.write(file, "reused");
+	await bun.write(file, "reused");
 	const directory = path.join(os.tmpdir(), `omp-uploads-${process.pid}-reuse-${crypto.randomUUID().slice(0, 8)}`);
 	const staging = new UploadStaging(directory);
 	try {
@@ -708,10 +712,10 @@ test("marks the staging folder used when an upload reuses a copy, so the sweep k
 
 test("stages a folder holding a link back to itself, leaving the loop out", async () => {
 	const album = path.join(tempDir, "looped-album");
-	await Bun.write(path.join(album, "nested", "one.txt"), "one");
+	await bun.write(path.join(album, "nested", "one.txt"), "one");
 	await fs.symlink(album, path.join(album, "nested", "loop"), "junction");
 	const staging = new UploadStaging(path.join(tempDir, "loop-staging"));
 	const [copy] = await staging.stage([await openUploadSource(album)]);
-	expect(await Bun.file(path.join(copy!, "nested", "one.txt")).text()).toBe("one");
+	expect(await bun.file(path.join(copy!, "nested", "one.txt")).text()).toBe("one");
 	expect(await fs.readdir(path.join(copy!, "nested"))).toEqual(["one.txt"]);
 });

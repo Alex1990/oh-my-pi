@@ -24,6 +24,7 @@ import repairPromptSource from "./auto-repair.md" with { type: "text" };
 import type { AppliedEditSnapshot } from "./blackbox";
 
 import { cfgEditAutoRepairEnabled } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Context lines shown around the culprit hunks. */
 const CONTEXT_LINES = 6;
@@ -359,7 +360,7 @@ export async function attemptEditAutoRepair(options: {
 	// observation — and may even have restored the parse.
 	let current: string;
 	try {
-		current = await Bun.file(snapshot.path).text();
+		current = await bun.file(snapshot.path).text();
 	} catch {
 		return undefined;
 	}
@@ -405,7 +406,7 @@ export async function attemptEditAutoRepair(options: {
 	const repair = await repairParseRegression({ ...snapshot, next: current }, complete);
 	if (!repair) return undefined;
 
-	await writethrough(snapshot.path, repair.content, options.signal, Bun.file(snapshot.path));
+	await writethrough(snapshot.path, repair.content, options.signal, bun.file(snapshot.path));
 	invalidateFsScanAfterWrite(snapshot.path);
 	logger.debug("Edit auto-repair applied", {
 		path: snapshot.path,

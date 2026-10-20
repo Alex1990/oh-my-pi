@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { SecurityPublishParams, SecurityScanPlan } from "../../src/security";
 import { createSecurityPublicationTool, SecurityStore } from "../../src/security";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let temporaryRoot = "";
 let repositoryRoot = "";
@@ -123,7 +124,7 @@ describe("security publication", () => {
 			"results.sarif",
 			"scan.json",
 		]);
-		const serializedScan = await Bun.file(path.join(plan.output.root, "scan.json")).text();
+		const serializedScan = await bun.file(path.join(plan.output.root, "scan.json")).text();
 		expect(serializedScan).not.toContain("fixture-workspace");
 		expect(serializedScan).not.toContain("credentialId");
 		expect(JSON.parse(serializedScan)).not.toHaveProperty("plan");
@@ -226,7 +227,7 @@ describe("security publication", () => {
 				reason: "line_out_of_range",
 			},
 		]);
-		const persisted = await Bun.file(path.join(plan.output.root, "findings.json")).text();
+		const persisted = await bun.file(path.join(plan.output.root, "findings.json")).text();
 		expect(persisted).toContain("grounded");
 		expect(persisted).not.toContain("does-not-exist.ts");
 		expect(persisted).not.toContain("ghost-line");
@@ -279,7 +280,7 @@ describe("security publication", () => {
 				reason: "path_absent",
 			},
 		]);
-		const persisted = await Bun.file(path.join(plan.output.root, "findings.json")).text();
+		const persisted = await bun.file(path.join(plan.output.root, "findings.json")).text();
 		expect(persisted).toContain("worktree-grounded");
 		expect(persisted).not.toContain("live-only.ts");
 	});

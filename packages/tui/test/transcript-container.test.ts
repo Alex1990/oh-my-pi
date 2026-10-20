@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { UserMessageComponent } from "@oh-my-pi/pi-tui/chat/user-message";
@@ -9,6 +9,7 @@ import {
 } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { Component } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class Block implements Component {
 	#rows: string[];
@@ -774,7 +775,7 @@ describe("TranscriptContainer", () => {
 		expect(transcript.peekFinalizedBatch(80, 3)).toBeUndefined();
 		const rows = transcript.renderViewport(80, 3, frame);
 		expect(rows[0]).toBe("2 more transcript blocks active");
-		expect(Bun.stripANSI(rows[1] ?? "").trim()).toBe("Implemented");
+		expect(bun.stripANSI(rows[1] ?? "").trim()).toBe("Implemented");
 		expect(rows[2]).toBe("task running");
 	});
 

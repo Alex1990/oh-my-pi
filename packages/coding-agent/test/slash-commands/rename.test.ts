@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -17,6 +17,7 @@ import { tinyTitleClient } from "@oh-my-pi/pi-coding-agent/tiny/title-client";
 import { cfgTitleIcons } from "@oh-my-pi/pi-coding-agent/utils/title-settings";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
 import { createInteractiveModeContext } from "../helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let session: AgentSession | undefined;
 let authStorage: AuthStorage | undefined;
@@ -491,8 +492,8 @@ it.each(["TUI", "headless"] as const)(
 	"keeps a manual %s rename after an older automatic title completes",
 	async mode => {
 		const { session, sessionManager, execute } = createRuntime(mode);
-		const previousNoTitle = Bun.env.PI_NO_TITLE;
-		delete Bun.env.PI_NO_TITLE;
+		const previousNoTitle = bun.env.PI_NO_TITLE;
+		delete bun.env.PI_NO_TITLE;
 		const automatic = Promise.withResolvers<string | null>();
 		const manual = Promise.withResolvers<string | null>();
 		const applied = Promise.withResolvers<void>();
@@ -521,8 +522,8 @@ it.each(["TUI", "headless"] as const)(
 			manual.resolve(null);
 			await pending;
 			unsubscribe();
-			if (previousNoTitle === undefined) delete Bun.env.PI_NO_TITLE;
-			else Bun.env.PI_NO_TITLE = previousNoTitle;
+			if (previousNoTitle === undefined) delete bun.env.PI_NO_TITLE;
+			else bun.env.PI_NO_TITLE = previousNoTitle;
 		}
 	},
 );

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName } from "@oh-my-pi/pi-tui/theme";
 import { recallToolRenderer, reflectToolRenderer, retainToolRenderer } from "@oh-my-pi/pi-tui/tools/memory";
 import { sanitizeText } from "@oh-my-pi/pi-utils";

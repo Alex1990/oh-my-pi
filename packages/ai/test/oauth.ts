@@ -11,6 +11,7 @@ import path from "node:path";
 import { getOAuthApiKey } from "@oh-my-pi/pi-ai/oauth";
 import type { OAuthCredentials, OAuthProvider } from "@oh-my-pi/pi-ai/oauth/types";
 import { $flag, getAgentDir, isEnoent } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * E2E tests require explicit opt-in via E2E=1 environment variable.
@@ -24,7 +25,7 @@ const E2E_ENABLED = $flag("E2E");
  */
 export function e2eApiKey(envVar: string): string | undefined {
 	if (!E2E_ENABLED) return undefined;
-	return Bun.env[envVar];
+	return bun.env[envVar];
 }
 
 const AUTH_PATH = path.join(getAgentDir(), "testauth.db");
@@ -44,7 +45,7 @@ type AuthStorage = Record<string, AuthCredential>;
 
 async function loadAuthStorage(): Promise<AuthStorage> {
 	try {
-		const content = await Bun.file(AUTH_PATH).text();
+		const content = await bun.file(AUTH_PATH).text();
 		return JSON.parse(content);
 	} catch (err) {
 		if (isEnoent(err)) return {};
@@ -53,7 +54,7 @@ async function loadAuthStorage(): Promise<AuthStorage> {
 }
 
 async function saveAuthStorage(storage: AuthStorage): Promise<void> {
-	await Bun.write(AUTH_PATH, JSON.stringify(storage, null, 2));
+	await bun.write(AUTH_PATH, JSON.stringify(storage, null, 2));
 	await fs.chmod(AUTH_PATH, 0o600);
 }
 

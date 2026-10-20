@@ -2,7 +2,7 @@
  * Exclusive `write xd://…` calls stay queued after `message_end` (which marks
  * every pending call args-complete) until that call's own `tool_execution_start`.
  */
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
@@ -13,6 +13,7 @@ import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
 
 import { cfgDisplaySmoothStreaming } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -66,7 +67,7 @@ function createFixture(streamingMessage: AssistantMessage) {
 function cardText(pendingTools: Map<string, ToolExecutionComponent>, id: string): string {
 	const component = pendingTools.get(id);
 	if (!component) throw new Error(`expected pending tool ${id}`);
-	return Bun.stripANSI(component.render(120).join("\n"));
+	return bun.stripANSI(component.render(120).join("\n"));
 }
 
 describe("EventController queues exclusive device writes until execution starts", () => {

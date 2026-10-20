@@ -6,6 +6,7 @@ import type { Browser, CDPSession, Page } from "puppeteer-core";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { replaceFileAcrossDevices, replaceFileAtomically } from "../../utils/atomic-file";
 import { devtoolsFrameId } from "./frames";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Completed download metadata returned by tab download helpers. */
 export interface BrowserDownload {
@@ -180,7 +181,7 @@ export class DownloadManager {
 				await fs.stat(source);
 				break;
 			} catch {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 		}
 		const name = typeof pending.suggestedFilename === "string" ? path.basename(pending.suggestedFilename) : "";

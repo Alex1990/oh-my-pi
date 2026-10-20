@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { disposeAllKernelSessions, executePythonWithKernel } from "@oh-my-pi/pi-coding-agent/eval/py/executor";
 import { DEFAULT_MAX_BYTES } from "@oh-my-pi/pi-tui/tools/streaming-output";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { FakeKernel } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("executePythonWithKernel", () => {
 	it("marks stdin request as error", async () => {
@@ -104,7 +105,7 @@ describe("executePythonWithKernel", () => {
 		expect(result.artifactId).toBe("0");
 		expect(result.output).toContain("TAIL");
 
-		const fullText = await Bun.file(artifactPath).text();
+		const fullText = await bun.file(artifactPath).text();
 		expect(fullText).toBe(largeOutput);
 	});
 });

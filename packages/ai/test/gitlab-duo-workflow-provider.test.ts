@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -42,6 +42,7 @@ import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream"
 import { validateToolArguments } from "@oh-my-pi/pi-ai/utils/validation";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { extractHttpStatusFromError } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(() => configureCredentialRedaction(true));
 afterAll(() => configureCredentialRedaction(false));
@@ -78,10 +79,10 @@ const nativeTools: Tool[] = ["read", "write", "grep", "glob", "bash", "lsp", "to
 
 function restoreOptionalEnv(name: string, value: string | undefined): void {
 	if (value === undefined) {
-		delete Bun.env[name];
+		delete bun.env[name];
 		return;
 	}
-	Bun.env[name] = value;
+	bun.env[name] = value;
 }
 
 describe("GitLab Duo Workflow provider protocol", () => {
@@ -509,13 +510,13 @@ describe("GitLab Duo Workflow namespace resolution", () => {
 			return new Response("{}", { status: 404 });
 		};
 
-		const originalNamespaceId = Bun.env.GITLAB_DUO_NAMESPACE_ID;
-		const originalProjectId = Bun.env.GITLAB_DUO_PROJECT_ID;
-		const originalProjectPath = Bun.env.GITLAB_DUO_PROJECT_PATH;
+		const originalNamespaceId = bun.env.GITLAB_DUO_NAMESPACE_ID;
+		const originalProjectId = bun.env.GITLAB_DUO_PROJECT_ID;
+		const originalProjectPath = bun.env.GITLAB_DUO_PROJECT_PATH;
 		try {
-			delete Bun.env.GITLAB_DUO_NAMESPACE_ID;
-			delete Bun.env.GITLAB_DUO_PROJECT_ID;
-			delete Bun.env.GITLAB_DUO_PROJECT_PATH;
+			delete bun.env.GITLAB_DUO_NAMESPACE_ID;
+			delete bun.env.GITLAB_DUO_PROJECT_ID;
+			delete bun.env.GITLAB_DUO_PROJECT_PATH;
 			const selection = await resolveGitLabDuoWorkflowNamespaceSelection(
 				model,
 				{ apiKey: "redacted", cwd: "/" },
@@ -566,9 +567,9 @@ describe("GitLab Duo Workflow namespace resolution", () => {
 			return new Response("{}", { status: 404 });
 		};
 
-		const originalProjectId = Bun.env.GITLAB_DUO_PROJECT_ID;
+		const originalProjectId = bun.env.GITLAB_DUO_PROJECT_ID;
 		try {
-			Bun.env.GITLAB_DUO_PROJECT_ID = "env-project";
+			bun.env.GITLAB_DUO_PROJECT_ID = "env-project";
 			const resolved = await resolveGitLabDuoWorkflowRootNamespaceId(
 				model,
 				{ apiKey: "redacted", projectPath: "group/project" },
@@ -615,7 +616,7 @@ describe("GitLab Duo Workflow per-account namespace cache", () => {
 		// loaded CI runner and leaves `onopen` undelivered, idling the stream to its 5s timeout.
 		// Poll on a real deadline against the socket factory instead of a turn count.
 		for (let waited = 0; waited < 2000 && !socket; waited += 5) {
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 		if (!socket) throw new Error("GitLab Duo Workflow socket was never opened");
 		socket?.onopen?.(new Event("open"));
@@ -1799,7 +1800,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 		});
 
 		// Give the setup path one microtask hop to reach the first fetch, then cancel.
-		await Bun.sleep(5);
+		await bun.sleep(5);
 		expect(stalledEndpoints.length).toBeGreaterThan(0);
 		controller.abort(new Error("caller cancelled"));
 
@@ -1988,13 +1989,13 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			socketReady.resolve(socket);
 			return socket;
 		};
-		const originalNamespaceId = Bun.env.GITLAB_DUO_NAMESPACE_ID;
-		const originalProjectId = Bun.env.GITLAB_DUO_PROJECT_ID;
-		const originalProjectPath = Bun.env.GITLAB_DUO_PROJECT_PATH;
+		const originalNamespaceId = bun.env.GITLAB_DUO_NAMESPACE_ID;
+		const originalProjectId = bun.env.GITLAB_DUO_PROJECT_ID;
+		const originalProjectPath = bun.env.GITLAB_DUO_PROJECT_PATH;
 		try {
-			delete Bun.env.GITLAB_DUO_NAMESPACE_ID;
-			delete Bun.env.GITLAB_DUO_PROJECT_ID;
-			delete Bun.env.GITLAB_DUO_PROJECT_PATH;
+			delete bun.env.GITLAB_DUO_NAMESPACE_ID;
+			delete bun.env.GITLAB_DUO_PROJECT_ID;
+			delete bun.env.GITLAB_DUO_PROJECT_PATH;
 			const stream = streamGitLabDuoWorkflow(model, context, {
 				apiKey: "pat-token",
 				fetch: fetchImpl,
@@ -3801,7 +3802,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 10 && !socket; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(socket).toBeDefined();
 		socket?.onopen?.(new Event("open"));
@@ -3857,7 +3858,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 10 && sent.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(socketCount).toBe(1);
 		expect(JSON.parse(sent[1] ?? "{}")).toEqual({
@@ -4131,7 +4132,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 20 && sockets.length < 1; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(sockets).toHaveLength(1);
 		sockets[0]?.onopen?.(new Event("open"));
@@ -4190,7 +4191,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 		);
 		// Resume reuses socket 0 (no new socket yet).
 		for (let attempt = 0; attempt < 20 && sockets.length < 1; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		sockets[0]?.onmessage?.(
 			new MessageEvent("message", {
@@ -4216,7 +4217,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 		);
 		// The stall triggers a fresh workflow → a second socket opens; complete it.
 		for (let attempt = 0; attempt < 50 && sockets.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(sockets).toHaveLength(2);
 		sockets[1]?.onopen?.(new Event("open"));
@@ -4303,7 +4304,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 10 && sockets.length < 1; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		sockets[0]?.onopen?.(new Event("open"));
 		sockets[0]?.onmessage?.(
@@ -4343,7 +4344,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 20 && sockets.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		sockets[1]?.onopen?.(new Event("open"));
 		sockets[1]?.onmessage?.(new MessageEvent("message", { data: JSON.stringify({ status: "INPUT_REQUIRED" }) }));
@@ -4427,7 +4428,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 10 && sockets.length < 1; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		sockets[0]?.onopen?.(new Event("open"));
 		sockets[0]?.onmessage?.(
@@ -4468,7 +4469,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 30 && sockets.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		sockets[1]?.onopen?.(new Event("open"));
 		sockets[1]?.onmessage?.(new MessageEvent("message", { data: JSON.stringify({ status: "INPUT_REQUIRED" }) }));
@@ -4607,7 +4608,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 20 && sent.length < 1; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		socket?.onopen?.(new Event("open"));
 		socket?.onmessage?.(new MessageEvent("message", { data: JSON.stringify({ status: "INPUT_REQUIRED" }) }));
@@ -4682,7 +4683,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 10 && !socket; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(socket).toBeDefined();
 		socket?.onopen?.(new Event("open"));
@@ -4717,7 +4718,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 10 && sent.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		expect(socketCount).toBe(1);
 		// Server drops the resumed socket without ever sending a terminal status.
@@ -4780,7 +4781,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			webSocketFactory,
 		});
 		for (let attempt = 0; attempt < 10 && !socket; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		socket?.onopen?.(new Event("open"));
 		socket?.onmessage?.(
@@ -4820,7 +4821,7 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 			},
 		);
 		for (let attempt = 0; attempt < 10 && sent.length < 2; attempt++) {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 		}
 		// Resume checkpoint emits a segment then crosses a tool boundary → pause_turn.
 		socket?.onmessage?.(
@@ -4923,13 +4924,13 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 	});
 
 	it("never lets trace write failures reject into the caller", async () => {
-		const previousEnabled = Bun.env.GITLAB_DUO_WORKFLOW_TRACE;
-		const previousFile = Bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE;
+		const previousEnabled = bun.env.GITLAB_DUO_WORKFLOW_TRACE;
+		const previousFile = bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE;
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "gitlab-duo-trace-"));
 		const parentFile = path.join(tempDir, "not-a-directory");
-		await Bun.write(parentFile, "already a file");
-		Bun.env.GITLAB_DUO_WORKFLOW_TRACE = "1";
-		Bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE = path.join(parentFile, "trace.jsonl");
+		await bun.write(parentFile, "already a file");
+		bun.env.GITLAB_DUO_WORKFLOW_TRACE = "1";
+		bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE = path.join(parentFile, "trace.jsonl");
 		const unhandled: unknown[] = [];
 		const onUnhandled = (reason: unknown): void => {
 			unhandled.push(reason);
@@ -4937,14 +4938,14 @@ describe("GitLab Duo Workflow WebSocket state machine", () => {
 		process.on("unhandledRejection", onUnhandled);
 		try {
 			traceGitLabDuoWorkflow("test.event", { message: "safe" });
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			expect(unhandled).toEqual([]);
 		} finally {
 			process.off("unhandledRejection", onUnhandled);
-			if (previousEnabled === undefined) delete Bun.env.GITLAB_DUO_WORKFLOW_TRACE;
-			else Bun.env.GITLAB_DUO_WORKFLOW_TRACE = previousEnabled;
-			if (previousFile === undefined) delete Bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE;
-			else Bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE = previousFile;
+			if (previousEnabled === undefined) delete bun.env.GITLAB_DUO_WORKFLOW_TRACE;
+			else bun.env.GITLAB_DUO_WORKFLOW_TRACE = previousEnabled;
+			if (previousFile === undefined) delete bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE;
+			else bun.env.GITLAB_DUO_WORKFLOW_TRACE_FILE = previousFile;
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});

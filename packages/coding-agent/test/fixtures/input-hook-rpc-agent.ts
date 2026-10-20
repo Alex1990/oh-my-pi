@@ -11,6 +11,7 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Real RPC dispatch, session queues and extension input handlers; only the model response is scripted.
 // Input handler contract, keyed by message prefix:
@@ -19,7 +20,7 @@ import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 //   "slow:"      -> unchanged, after many I/O round trips so a later submission would overtake it if unordered
 // Session switches take the same detour, so a frame sent right after `new_session` is read before it commits.
 async function ioDetour(): Promise<void> {
-	for (let index = 0; index < 50; index++) await Bun.file(import.meta.path).text();
+	for (let index = 0; index < 50; index++) await bun.file(import.meta.filename).text();
 }
 const authStorage = await AuthStorage.create(path.join(process.cwd(), "auth.db"));
 authStorage.keys.setRuntime("anthropic", "test-key");

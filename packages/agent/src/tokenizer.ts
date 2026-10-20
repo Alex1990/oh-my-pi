@@ -19,8 +19,9 @@ import * as snapcompact from "@oh-my-pi/snapcompact";
 import { isEstimateCacheable, messageEstimateVersion } from "./compaction/message-cache";
 import { base64ImageSize, estimateImageTokens, type ImageDetail, type ImageSize } from "./image-tokens";
 import type { AgentMessage } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const testEnv = Bun.env.NODE_ENV === "test";
+const testEnv = bun.env.NODE_ENV === "test";
 const accurate = process.env.PI_TOKENIZER_ACCURATE === "1" && !testEnv;
 
 const NATIVE_ENCODING: Record<ModelTokenizer, natives.Encoding> = {

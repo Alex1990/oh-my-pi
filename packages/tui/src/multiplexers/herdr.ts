@@ -1,5 +1,6 @@
 import { DEFAULT_NOTIFICATION_TITLE, notificationTitleAndBody, spawnNotifier } from "./notify";
 import type { TerminalMultiplexerModule } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HERDR_PANE_ID_PATTERN = /^[0-9A-Za-z:_-]{1,64}$/u;
 /**
@@ -14,7 +15,7 @@ export const herdrMultiplexer = {
 	precedence: "session",
 	sessionEnvKeys: ["HERDR_ENV", "HERDR_PANE_ID", "HERDR_TAB_ID", "HERDR_WORKSPACE_ID"],
 	ownsScreenGrid: true,
-	isInside(env: NodeJS.ProcessEnv = Bun.env): boolean {
+	isInside(env: NodeJS.ProcessEnv = bun.env): boolean {
 		// Identity vars survive env-sanitizing launchers that drop HERDR_ENV.
 		// Client-only socket, binary, session, and config overrides are not proof
 		// that this process runs inside a pane.

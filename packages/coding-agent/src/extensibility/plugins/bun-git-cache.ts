@@ -2,8 +2,9 @@ import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
-import { runBunCli } from "./bun-cli";
+import { runPackageManagerCli } from "./package-manager-cli";
 import type { GitSource } from "./git-url";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface CommandResult {
 	readonly exitCode: number;
@@ -12,7 +13,7 @@ interface CommandResult {
 }
 
 async function runCommand(command: string[], cwd: string): Promise<CommandResult> {
-	const proc = Bun.spawn(command, {
+	const proc = bun.spawn(command, {
 		cwd,
 		stdin: "ignore",
 		stdout: "pipe",
@@ -47,7 +48,7 @@ function normalizeRepositoryUrl(repository: string): string {
 
 /** Fetches current heads and tags into Bun's matching cached bare clone before a plugin update. */
 export async function refreshBunGitCache(source: GitSource, cwd: string): Promise<void> {
-	const cacheResult = await runBunCli(["pm", "cache"], cwd);
+	const cacheResult = await runPackageManagerCli(["pm", "cache"], cwd);
 	if (cacheResult.exitCode !== 0) {
 		throw new Error(`bun pm cache failed: ${cacheResult.stderr}`);
 	}

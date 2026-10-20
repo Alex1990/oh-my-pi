@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
@@ -9,6 +9,7 @@ import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/t
 import type { CustomMessage, SkillPromptDetails } from "../../../src/session/messages";
 
 import { cfgTuiHyperlinks } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Drop SGR colors and OSC 8 hyperlink wrappers so assertions see the visible text only.
 const strip = (lines: readonly string[]): string =>
@@ -60,7 +61,7 @@ describe("SkillMessageComponent", () => {
 
 		// Every row carries the rail; the header is the chip, not the raw token.
 		const rail = uiTheme.symbol("skill.rail");
-		for (const line of lines) expect(Bun.stripANSI(line).startsWith(rail)).toBe(true);
+		for (const line of lines) expect(bun.stripANSI(line).startsWith(rail)).toBe(true);
 		expect(text).toContain(chip());
 		expect(text).not.toContain("/skill:");
 
@@ -70,7 +71,7 @@ describe("SkillMessageComponent", () => {
 		expect(text).toContain("88 lines");
 
 		// The body keeps its line structure instead of collapsing onto the header.
-		const rows = lines.map(line => Bun.stripANSI(line));
+		const rows = lines.map(line => bun.stripANSI(line));
 		expect(rows.findIndex(row => row.includes("stage all"))).toBeGreaterThan(
 			rows.findIndex(row => row.includes(chip())),
 		);
@@ -98,7 +99,7 @@ describe("SkillMessageComponent", () => {
 		expect(lines.join("\n")).toContain(skillUri);
 		// No rail, no meta line: it reads as an ordinary user turn.
 		const rail = uiTheme.symbol("skill.rail");
-		expect(lines.some(line => Bun.stripANSI(line).startsWith(rail))).toBe(false);
+		expect(lines.some(line => bun.stripANSI(line).startsWith(rail))).toBe(false);
 		expect(text).not.toContain("88 lines");
 	});
 

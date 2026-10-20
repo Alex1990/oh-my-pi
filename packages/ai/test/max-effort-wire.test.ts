@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { transformRequestBody } from "@oh-my-pi/pi-ai/providers/openai-codex/request-transformer";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";

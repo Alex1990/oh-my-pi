@@ -30,7 +30,7 @@
  * non-interactive environments where the consent dialog never fires. Device
  * execution is never blocked on the network and never throws.
  */
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AgentToolResult } from "@oh-my-pi/pi-agent-core";
@@ -285,6 +285,11 @@ export function openAutoQaDb(): Database | null {
 		logger.warn("Failed to open auto-QA database", { error: String(error) });
 		return null;
 	}
+}
+
+/** Test-only: inject the auto-QA database handle (`null` restores lazy open). */
+export function __setAutoQaDbForTests(db: Database | null): void {
+	cachedDb = db;
 }
 
 // ───────────────────────────────────────────────────────────────────────────

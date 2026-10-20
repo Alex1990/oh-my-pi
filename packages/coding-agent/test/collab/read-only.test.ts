@@ -8,7 +8,7 @@
  * are stubbed. One host/relay boots once and is reused; guest frames ride the
  * in-memory transport, so the suite stays fast and time-independent.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
 import { COLLAB_PROTO, type CollabFrame, parseCollabLink } from "@oh-my-pi/pi-coding-agent/collab/protocol";
@@ -19,9 +19,11 @@ import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // In-memory transport: FakeWebSocket + InMemoryRelay (see ./helpers/in-memory-relay)
-// replace the real Bun.serve relay and loopback WebSocket with a zero-latency
+// replace the real serve relay and loopback WebSocket with a zero-latency
 // microtask transport. Real CollabSocket / CollabHost run unchanged on top, so
 // sealing, enveloping, the hello→welcome handshake, and read-only enforcement
 // are all exercised.
@@ -297,7 +299,7 @@ describe("collab read-only links", () => {
 			const id = `transcript-${kind}-${crypto.randomUUID()}`;
 			const text = `${JSON.stringify({ type: "message", content: id })}\n`;
 			const file = dir.join("session.jsonl");
-			await Bun.write(file, text);
+			await bun.write(file, text);
 			const registry = AgentRegistry.global();
 			const ref = registry.register({ id, displayName: id, kind, session: null, sessionFile: file });
 			try {

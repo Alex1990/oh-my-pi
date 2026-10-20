@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { closePartialSvg, hasSvgFence, prepareSvg, splitSvgFences } from "../src/chat/svg-source";
 
 describe("splitSvgFences", () => {

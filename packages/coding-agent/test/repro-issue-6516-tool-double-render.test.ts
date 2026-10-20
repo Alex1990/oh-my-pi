@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -12,6 +12,7 @@ import { buildSessionContext } from "@oh-my-pi/pi-coding-agent/session/session-c
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression for issue #6516 — a tool call renders twice in the transcript.
@@ -37,7 +38,7 @@ const usage = {
 };
 
 function countCommand(mode: InteractiveMode): number {
-	const rendered = Bun.stripANSI(mode.chatContainer.render(120).join("\n"));
+	const rendered = bun.stripANSI(mode.chatContainer.render(120).join("\n"));
 	let count = 0;
 	let index = 0;
 	while (true) {

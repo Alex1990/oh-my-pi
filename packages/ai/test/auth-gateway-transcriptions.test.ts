@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -85,7 +85,7 @@ async function boot(): Promise<Harness> {
 		});
 		return Response.json(UPSTREAM_RESULT);
 	};
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		bind: "127.0.0.1:0",
 		bearerTokens: ["gw-token"],
 		storage,
@@ -146,7 +146,7 @@ describe("auth-gateway POST /v1/audio/transcriptions", () => {
 			responseFormat: "json",
 			language: "en",
 			fileName: "sample.wav",
-			mimeType: "audio/x-wav",
+			mimeType: "audio/wav",
 		});
 		expect(harness.upstream[0]?.audio).toEqual(AUDIO);
 		expect(observed).toHaveLength(1);

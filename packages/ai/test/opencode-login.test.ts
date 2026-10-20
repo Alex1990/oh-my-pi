@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { OAuthAuthInfo, OAuthLoginCallbacks } from "@oh-my-pi/pi-ai/registry/oauth/types";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry/registry";
 

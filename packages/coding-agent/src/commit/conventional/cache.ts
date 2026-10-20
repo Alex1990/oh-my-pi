@@ -1,7 +1,8 @@
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Usage } from "@oh-my-pi/pi-ai";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SCHEMA_VERSION = 3;
 const PRUNE_DIVISOR = 64;
@@ -205,7 +206,7 @@ export class CommitInferenceCache {
 
 /** Compute a stable cache key from all behavior-affecting request material. */
 export function computeCommitCacheKey(material: CommitCacheMaterial): string {
-	const hash = new Bun.CryptoHasher("sha256").update("llm-cache/v1\n");
+	const hash = new bun.CryptoHasher("sha256").update("llm-cache/v1\n");
 	for (const [name, value] of [
 		["operation", material.operation],
 		["model", material.model],

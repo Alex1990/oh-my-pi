@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Rule } from "@oh-my-pi/pi-coding-agent/capability/rule";
 import { resetActiveRulesForTests, setActiveRules } from "@oh-my-pi/pi-coding-agent/capability/rule";
 import type { InternalUrl } from "@oh-my-pi/pi-coding-agent/internal-urls/types";

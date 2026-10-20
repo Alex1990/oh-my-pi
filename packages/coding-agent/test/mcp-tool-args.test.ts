@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { CustomToolContext } from "@oh-my-pi/pi-coding-agent/extensibility/custom-tools";
@@ -7,6 +7,7 @@ import type { MCPServerConnection } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import { createMockConnection, createMockTransport } from "./mcp-test-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type CapturedRequest = {
 	method: string;
@@ -60,7 +61,7 @@ async function createLocalImageContext(
 ): Promise<{ context: CustomToolContext; expectedPath: string }> {
 	const artifactsDir = tempDir.join("artifacts");
 	const writtenPath = path.join(artifactsDir, "local", "image-issue.png");
-	await Bun.write(writtenPath, "png bytes");
+	await bun.write(writtenPath, "png bytes");
 	const expectedPath = await fs.realpath(writtenPath);
 	return {
 		context: {

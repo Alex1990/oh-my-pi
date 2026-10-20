@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { Box } from "../src/components/box";
 import { Disclosure } from "../src/components/disclosure";

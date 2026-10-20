@@ -1,17 +1,36 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import type * as NativeClipboard from "@oh-my-pi/pi-natives/clipboard";
 import {
 	readImageFromClipboard,
 	readMacFileUrlsFromClipboard,
 	readTextFromClipboard,
 } from "@oh-my-pi/pi-coding-agent/utils/clipboard";
-import * as native from "@oh-my-pi/pi-natives/clipboard";
-import type { Subprocess } from "bun";
+import { bun, type SpawnOptions, type Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+// Mock hoisting needs the real Vitest entry point; the test-runtime barrel
+// re-exports it, which Vitest's mock-API check rejects.
+import { vi } from "vitest";
 
-type SpawnOptions = Bun.SpawnOptions.SpawnOptions<
-	Bun.SpawnOptions.Writable,
-	Bun.SpawnOptions.Readable,
-	Bun.SpawnOptions.Readable
->;
+/**
+ * ESM module namespaces are frozen, so these cannot be `vi.spyOn`-ed. The
+ * spies are hoisted mocks handed to the production modules through `vi.mock`.
+ */
+const mocks = vi.hoisted(() => ({
+	spawn: vi.fn(),
+	readImageFromClipboard: vi.fn(),
+	readTextFromClipboard: vi.fn(),
+	actual: {} as typeof NativeClipboard,
+}));
+
+vi.mock("@oh-my-pi/pi-utils/node-runtime", async importOriginal => {
+	const actual = await importOriginal<typeof import("@oh-my-pi/pi-utils/node-runtime")>();
+	return { ...actual, bun: { ...actual.bun, spawn: mocks.spawn } };
+});
+
+vi.mock("@oh-my-pi/pi-natives/clipboard", async importOriginal => {
+	const actual = await importOriginal<typeof NativeClipboard>();
+	mocks.actual = actual;
+	return { ...actual, readImageFromClipboard: mocks.readImageFromClipboard, readTextFromClipboard: mocks.readTextFromClipboard };
+});
 
 type SpawnCall = { cmd: string[]; options: SpawnOptions };
 type SpawnOutput = string | Uint8Array;
@@ -34,18 +53,21 @@ function fakeProcess(stdout: SpawnOutput, exitCode = 0): Subprocess {
 }
 
 function spySpawn(calls: SpawnCall[], stdout: SpawnOutputSource, exitCode: number | number[] = 0) {
-	function mockSpawn(opts: SpawnOptions & { cmd: string[] }): Subprocess;
-	function mockSpawn(cmd: string[], opts?: SpawnOptions): Subprocess;
-	function mockSpawn(first: string[] | (SpawnOptions & { cmd: string[] }), second?: SpawnOptions): Subprocess {
-		const cmd = Array.isArray(first) ? first : first.cmd;
-		const options = Array.isArray(first) ? (second ?? ({} as SpawnOptions)) : (first as SpawnOptions);
-		calls.push({ cmd, options });
+	function mockSpawn(
+		command: string | string[] | ({ cmd: string[] } & SpawnOptions),
+		options?: SpawnOptions,
+	): Subprocess {
+		const cmd = typeof command === "string" ? [command] : Array.isArray(command) ? command : command.cmd;
+		const resolved: SpawnOptions =
+			typeof command === "object" && !Array.isArray(command) ? { ...command, ...options } : (options ?? {});
+		calls.push({ cmd, options: resolved });
 		const output =
 			typeof stdout === "function" ? stdout(cmd) : Array.isArray(stdout) ? (stdout[calls.length - 1] ?? "") : stdout;
 		const code = Array.isArray(exitCode) ? (exitCode[calls.length - 1] ?? 0) : exitCode;
 		return fakeProcess(output, code);
 	}
-	return vi.spyOn(Bun, "spawn").mockImplementation(mockSpawn);
+	mocks.spawn.mockImplementation(mockSpawn);
+	return mocks.spawn;
 }
 
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
@@ -62,6 +84,16 @@ const ENV_KEYS = ["WSL_DISTRO_NAME", "WSL_INTEROP", "DISPLAY", "WAYLAND_DISPLAY"
 let savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
 beforeEach(() => {
+	// `restoreMocks` clears implementations before every test; default to the
+	// real native bridge and an empty process.
+	mocks.readImageFromClipboard.mockImplementation((...args: Parameters<typeof mocks.actual.readImageFromClipboard>) =>
+		mocks.actual.readImageFromClipboard(...args),
+	);
+	mocks.readTextFromClipboard.mockImplementation((...args: Parameters<typeof mocks.actual.readTextFromClipboard>) =>
+		mocks.actual.readTextFromClipboard(...args),
+	);
+	mocks.spawn.mockImplementation(() => fakeProcess(""));
+
 	savedEnv = {};
 	for (const key of ENV_KEYS) {
 		savedEnv[key] = process.env[key];
@@ -91,7 +123,7 @@ describe("readImageFromClipboard on WSL", () => {
 
 		const calls: SpawnCall[] = [];
 		spySpawn(calls, RED_1X1_PNG_BASE64);
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard");
+		const nativeSpy = mocks.readImageFromClipboard;
 
 		const image = await readImageFromClipboard();
 
@@ -111,7 +143,7 @@ describe("readImageFromClipboard on WSL", () => {
 		process.env.WAYLAND_DISPLAY = "wayland-0";
 
 		spySpawn([], "");
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard").mockResolvedValue(null);
+		const nativeSpy = mocks.readImageFromClipboard.mockResolvedValue(null);
 
 		const image = await readImageFromClipboard();
 
@@ -125,7 +157,7 @@ describe("readImageFromClipboard on WSL", () => {
 		process.env.DISPLAY = ":0";
 
 		spySpawn([], "noise", 1);
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard").mockResolvedValue(null);
+		const nativeSpy = mocks.readImageFromClipboard.mockResolvedValue(null);
 
 		await readImageFromClipboard();
 		expect(nativeSpy).toHaveBeenCalledTimes(1);
@@ -137,7 +169,7 @@ describe("readImageFromClipboard on WSL", () => {
 		// No DISPLAY / WAYLAND_DISPLAY — arboard would reject, so we must short-circuit.
 
 		spySpawn([], "");
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard");
+		const nativeSpy = mocks.readImageFromClipboard;
 
 		expect(await readImageFromClipboard()).toBeNull();
 		expect(nativeSpy).not.toHaveBeenCalled();
@@ -147,8 +179,8 @@ describe("readImageFromClipboard on WSL", () => {
 describe("readImageFromClipboard dispatch", () => {
 	it("returns null on linux without a display server and never spawns PowerShell", async () => {
 		setPlatform("linux");
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard");
+		const spawnSpy = mocks.spawn;
+		const nativeSpy = mocks.readImageFromClipboard;
 
 		expect(await readImageFromClipboard()).toBeNull();
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -159,8 +191,8 @@ describe("readImageFromClipboard dispatch", () => {
 		// Regression: a text-only clipboard used to wait ~1s on a cold
 		// powershell.exe GetImage() before Ctrl+V could paste the text.
 		setPlatform("win32");
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		vi.spyOn(native, "readImageFromClipboard").mockResolvedValue(null);
+		const spawnSpy = mocks.spawn;
+		mocks.readImageFromClipboard.mockResolvedValue(null);
 
 		expect(await readImageFromClipboard()).toBeNull();
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -170,7 +202,7 @@ describe("readImageFromClipboard dispatch", () => {
 		setPlatform("win32");
 		const calls: SpawnCall[] = [];
 		spySpawn(calls, RED_1X1_PNG_BASE64);
-		vi.spyOn(native, "readImageFromClipboard").mockRejectedValue(
+		mocks.readImageFromClipboard.mockRejectedValue(
 			new Error("The clipboard image could not be converted to the appropriate format."),
 		);
 
@@ -186,8 +218,8 @@ describe("readImageFromClipboard dispatch", () => {
 	it("delegates straight to the native bridge on non-WSL linux with a display", async () => {
 		setPlatform("linux");
 		process.env.DISPLAY = ":0";
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard").mockResolvedValue(null);
+		const spawnSpy = mocks.spawn;
+		const nativeSpy = mocks.readImageFromClipboard.mockResolvedValue(null);
 
 		await readImageFromClipboard();
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -202,7 +234,7 @@ describe("readImageFromClipboard dispatch", () => {
 		// a null return.
 		setPlatform("linux");
 		process.env.DISPLAY = ":0";
-		vi.spyOn(native, "readImageFromClipboard").mockRejectedValue(
+		mocks.readImageFromClipboard.mockRejectedValue(
 			new Error("Unknown error while interacting with the clipboard: incorrect type received from clipboard"),
 		);
 
@@ -217,7 +249,7 @@ describe("readImageFromClipboard dispatch", () => {
 			const data = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
 			const calls: SpawnCall[] = [];
 			spySpawn(calls, [`text/plain\n${mimeType}\n`, data]);
-			const nativeSpy = vi.spyOn(native, "readImageFromClipboard");
+			const nativeSpy = mocks.readImageFromClipboard;
 
 			const image = await readImageFromClipboard();
 
@@ -233,8 +265,8 @@ describe("readImageFromClipboard dispatch", () => {
 		setPlatform("linux");
 		process.env.TERMUX_VERSION = "0.118";
 		process.env.WSL_DISTRO_NAME = "Ubuntu";
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		const nativeSpy = vi.spyOn(native, "readImageFromClipboard");
+		const spawnSpy = mocks.spawn;
+		const nativeSpy = mocks.readImageFromClipboard;
 
 		expect(await readImageFromClipboard()).toBeNull();
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -245,7 +277,7 @@ describe("readImageFromClipboard dispatch", () => {
 describe("readMacFileUrlsFromClipboard", () => {
 	it("returns an empty list on non-darwin platforms without spawning osascript", async () => {
 		setPlatform("linux");
-		const spawnSpy = vi.spyOn(Bun, "spawn");
+		const spawnSpy = mocks.spawn;
 
 		expect(await readMacFileUrlsFromClipboard()).toEqual([]);
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -261,7 +293,7 @@ describe("readMacFileUrlsFromClipboard", () => {
 		expect(paths).toEqual(["/Users/me/Pictures/photo.png", "/Users/me/Pictures/clip.jpg"]);
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.cmd).toEqual(["osascript", "-"]);
-		// AppleScript payload is piped as stdin; the fix uses Bun.spawn with a
+		// AppleScript payload is piped as stdin; the fix uses bun.spawn with a
 		// Buffer so the child receives it without blocking the event loop.
 		const stdin = calls[0]?.options.stdin;
 		expect(Buffer.isBuffer(stdin)).toBe(true);
@@ -344,7 +376,7 @@ describe("readTextFromClipboard", () => {
 			pid: 1,
 			stdout: new ReadableStream<Uint8Array>({
 				async start(controller) {
-					await Bun.sleep(DELAY_MS);
+					await bun.sleep(DELAY_MS);
 					controller.enqueue(new TextEncoder().encode("payload"));
 					controller.close();
 				},
@@ -352,12 +384,12 @@ describe("readTextFromClipboard", () => {
 			stderr: streamOf(""),
 			exitCode: 0,
 			exited: (async () => {
-				await Bun.sleep(DELAY_MS);
+				await bun.sleep(DELAY_MS);
 				return 0;
 			})(),
 			kill: () => true,
 		} as unknown as Subprocess;
-		vi.spyOn(Bun, "spawn").mockReturnValue(slowProc);
+		mocks.spawn.mockReturnValue(slowProc);
 
 		let ticks = 0;
 		const timer = setInterval(() => {
@@ -378,8 +410,8 @@ describe("readTextFromClipboard", () => {
 
 	it("reads Windows text natively with LF newlines and no PowerShell spawn", async () => {
 		setPlatform("win32");
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		vi.spyOn(native, "readTextFromClipboard").mockResolvedValue("line one\r\nline two");
+		const spawnSpy = mocks.spawn;
+		mocks.readTextFromClipboard.mockResolvedValue("line one\r\nline two");
 
 		expect(await readTextFromClipboard()).toBe("line one\nline two");
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -387,8 +419,8 @@ describe("readTextFromClipboard", () => {
 
 	it("returns an empty string when the Windows clipboard holds no text", async () => {
 		setPlatform("win32");
-		const spawnSpy = vi.spyOn(Bun, "spawn");
-		vi.spyOn(native, "readTextFromClipboard").mockResolvedValue(null);
+		const spawnSpy = mocks.spawn;
+		mocks.readTextFromClipboard.mockResolvedValue(null);
 
 		expect(await readTextFromClipboard()).toBe("");
 		expect(spawnSpy).not.toHaveBeenCalled();
@@ -398,7 +430,7 @@ describe("readTextFromClipboard", () => {
 		setPlatform("win32");
 		const calls: SpawnCall[] = [];
 		spySpawn(calls, "from powershell\r\n");
-		vi.spyOn(native, "readTextFromClipboard").mockRejectedValue(new Error("Failed to access clipboard"));
+		mocks.readTextFromClipboard.mockRejectedValue(new Error("Failed to access clipboard"));
 
 		expect(await readTextFromClipboard()).toBe("from powershell\n");
 		expect(calls).toHaveLength(1);

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "../src/build";
 import { getBundledModelReferenceIndex } from "../src/identity/bundled";
 import { inheritReferenceThinking, resolveModelReference } from "../src/identity/reference";

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -8,6 +9,7 @@ import { arkToWireSchema } from "@oh-my-pi/pi-ai/utils/schema";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { preloadPluginRoots } from "@oh-my-pi/pi-coding-agent/discovery/helpers";
 import { restoreEnvValue } from "../helpers/settings-test-state";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 import { createLspWritethrough, LspTool } from "@oh-my-pi/pi-coding-agent/lsp";
 import * as lspClient from "@oh-my-pi/pi-coding-agent/lsp/client";
 import * as lspConfig from "@oh-my-pi/pi-coding-agent/lsp/config";
@@ -59,12 +61,32 @@ import { ToolAbortError } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 import { clampTimeout } from "@oh-my-pi/pi-coding-agent/tools/tool-timeouts";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { sanitizeText, TempDir } from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import DEFAULTS from "../../src/lsp/defaults.json" with { type: "json" };
 import { renderResult as renderLocalResult } from "@oh-my-pi/pi-tui/tools/lsp";
 import { getLanguageFromPath } from "@oh-my-pi/pi-tui/lang-from-path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { SpawnOptions } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs", { spy: true });
+vi.mock("node:fs/promises", { spy: true });
+vi.mock("node:os", { spy: true });
 
 const lspTestSettings = Settings.isolated();
+
+// Windows without developer mode refuses symlinks; skip only the arms that need one.
+const symlinksSupported = (() => {
+	const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	try {
+		const target = path.join(probeDir, "target");
+		fs.writeFileSync(target, "");
+		fs.symlinkSync(target, path.join(probeDir, "link"));
+		return true;
+	} catch {
+		return false;
+	} finally {
+		fs.rmSync(probeDir, { recursive: true, force: true });
+	}
+})();
 
 /** Minimal LSP tool session: production always supplies `settings`; these tests only need cwd + a default settings stub. */
 function makeLspSession(cwd: string): ToolSession {
@@ -81,7 +103,7 @@ async function raceFifoRead(operation: Promise<unknown>, fifo: string): Promise<
 		value => value,
 		error => error,
 	);
-	const outcome = await Promise.race([settled, Bun.sleep(1_500).then(() => "HUNG" as const)]);
+	const outcome = await Promise.race([settled, bun.sleep(1_500).then(() => "HUNG" as const)]);
 	if (outcome === "HUNG") {
 		try {
 			fs.closeSync(fs.openSync(fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK));
@@ -104,13 +126,13 @@ async function withOpenDocumentSwappedForFifo(
 	const tempDir = TempDir.createSync("@omp-lsp-special-refresh-");
 	const filePath = path.join(tempDir.path(), "input.ts");
 	try {
-		await Bun.write(filePath, "export const value = 1;\n");
+		await bun.write(filePath, "export const value = 1;\n");
 		installHandshakeLsp();
 		const config: ServerConfig = { command: "fake-lsp", fileTypes: [".ts"], rootMarkers: [] };
 		const client = await lspClient.getOrCreateClient(config, tempDir.path(), 1_000);
 		await lspClient.ensureFileOpen(client, filePath);
 		await fs.promises.unlink(filePath);
-		expect(Bun.spawnSync(["mkfifo", filePath]).exitCode).toBe(0);
+		expect(bun.spawnSync(["mkfifo", filePath]).exitCode).toBe(0);
 		await run(client, filePath);
 	} finally {
 		await lspClient.shutdownAll();
@@ -150,6 +172,24 @@ interface FakeLspOptions {
 	killResolvesExit?: boolean;
 	stderr?: string;
 	stdoutClosesBeforeExit?: boolean;
+}
+
+// `LspClient` reads the transport out of the `ptree.ChildProcess` wrapper
+// (`child.proc.stdin`), so fake transports need the wrapper's shape too.
+function asChildProcess(transport: LspClient["proc"]): piUtils.ptree.ChildProcess<"pipe"> {
+	return {
+		proc: { stdin: transport.stdin },
+		stdout: transport.stdout,
+		get exited() {
+			return transport.exited;
+		},
+		get exitCode() {
+			return transport.exitCode;
+		},
+		pid: 0,
+		kill: transport.kill,
+		peekStderr: transport.peekStderr,
+	} as unknown as piUtils.ptree.ChildProcess<"pipe">;
 }
 
 // In-memory LSP transport fake. Replaces the real subprocess (`ptree.spawn`)
@@ -287,9 +327,14 @@ function installFakeLsp(handler: FakeLspHandler, options?: FakeLspOptions): Fake
 		},
 	} as unknown as LspClient["proc"];
 
+	// `LspClient` builds its transport from the `ptree.ChildProcess` wrapper:
+	// `child.proc.stdin` is the write sink, while `stdout`/`exited`/`exitCode`/
+	// `kill`/`peekStderr` live on the wrapper itself.
+	const child = asChildProcess(proc as unknown as LspClient["proc"]);
+
 	vi.spyOn(piUtils.ptree, "spawn").mockImplementation((() => {
 		spawnCount++;
-		return proc as unknown as piUtils.ptree.ChildProcess<"pipe">;
+		return child;
 	}) as typeof piUtils.ptree.spawn);
 	return server;
 }
@@ -315,11 +360,7 @@ function documentUri(params: unknown): string | undefined {
 	return doc.uri;
 }
 
-type BunSpawnOptions = Bun.SpawnOptions.SpawnOptions<
-	Bun.SpawnOptions.Writable,
-	Bun.SpawnOptions.Readable,
-	Bun.SpawnOptions.Readable
->;
+type BunSpawnOptions = SpawnOptions;
 
 interface BunSpawnCall {
 	cmd: string[];
@@ -351,12 +392,12 @@ function completedProcess(stdout = "", stderr = "", exitCode = 0): Subprocess {
 }
 
 function recordBunSpawn(calls: BunSpawnCall[], outputForCommand: (cmd: string[]) => BunSpawnOutput = () => ({})): void {
-	vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[], options?: BunSpawnOptions) => {
+	vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[], options?: BunSpawnOptions) => {
 		const recordedCmd = [...cmd];
 		calls.push({ cmd: recordedCmd, options });
 		const output = outputForCommand(recordedCmd);
 		return completedProcess(output.stdout, output.stderr, output.exitCode);
-	}) as typeof Bun.spawn);
+	}) as typeof bun.spawn);
 }
 
 function textResult(result: AgentToolResult<LspToolDetails>): string {
@@ -472,7 +513,7 @@ describe("lsp regressions", () => {
 				1_000,
 			);
 			const filePath = path.join(tempDir.path(), "component.ts");
-			await Bun.write(filePath, "export const component = true;\n");
+			await bun.write(filePath, "export const component = true;\n");
 			await lspClient.ensureFileOpen(differentLanguage, filePath);
 			const didOpen = await languageServer.waitFor(message => message.method === "textDocument/didOpen");
 			expect(didOpen.params).toMatchObject({ textDocument: { languageId: "typescriptreact" } });
@@ -492,7 +533,7 @@ describe("lsp regressions", () => {
 		const filePath = path.join(tempDir.path(), "foo.gd");
 		const syncedFilePath = path.join(tempDir.path(), "unsaved.gd");
 		try {
-			await Bun.write(
+			await bun.write(
 				path.join(tempDir.path(), ".omp", "lsp.json"),
 				JSON.stringify({
 					servers: {
@@ -505,7 +546,7 @@ describe("lsp regressions", () => {
 					},
 				}),
 			);
-			await Bun.write(filePath, "extends Node\n");
+			await bun.write(filePath, "extends Node\n");
 
 			const server = installFakeLsp((message, srv) => {
 				if (message.method === "initialize") {
@@ -542,7 +583,7 @@ describe("lsp regressions", () => {
 			const tempDir = TempDir.createSync("@omp-lsp-special-file-");
 			const fifo = path.join(tempDir.path(), "input.ts");
 			try {
-				expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+				expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 				installHandshakeLsp();
 				const config: ServerConfig = { command: "fake-lsp", fileTypes: [".ts"], rootMarkers: [] };
 				const client = await lspClient.getOrCreateClient(config, tempDir.path(), 1_000);
@@ -563,7 +604,7 @@ describe("lsp regressions", () => {
 			const tempDir = TempDir.createSync("@omp-lsp-special-read-");
 			const fifo = path.join(tempDir.path(), "input.ts");
 			try {
-				expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+				expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 				const outcome = await raceFifoRead(resolveSymbolColumn(fifo, 1), fifo);
 				expect(outcome).toBeInstanceOf(Error);
 				expect(outcome).toHaveProperty("message", fifoRefusal(fifo));
@@ -580,7 +621,7 @@ describe("lsp regressions", () => {
 			const tempDir = TempDir.createSync("@omp-lsp-special-context-");
 			const fifo = path.join(tempDir.path(), "input.ts");
 			try {
-				expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+				expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 				expect(await raceFifoRead(readLocationContext(fifo, 1), fifo)).toEqual([]);
 			} finally {
 				tempDir.removeSync();
@@ -647,9 +688,10 @@ describe("lsp regressions", () => {
 			expect(server.killed).toBe(false);
 
 			const clientModule = new URL("../../src/lsp/client.ts", import.meta.url).href;
-			const shutdownProbe = Bun.spawn(
+			const shutdownProbe = bun.spawn(
 				[
 					process.execPath,
+					...nodeSourceFlags(),
 					"-e",
 					`import { setIdleTimeout, shutdownAll } from ${JSON.stringify(clientModule)}; setIdleTimeout(60_000); await shutdownAll();`,
 				],
@@ -657,7 +699,7 @@ describe("lsp regressions", () => {
 			);
 			// Real time is required because fake timers cannot advance a separate Bun process.
 			// The process exit itself proves shutdown released the event loop.
-			const probeExit = await Promise.race([shutdownProbe.exited, Bun.sleep(5_000).then(() => null)]);
+			const probeExit = await Promise.race([shutdownProbe.exited, bun.sleep(5_000).then(() => null)]);
 			if (probeExit === null) {
 				shutdownProbe.kill();
 				await shutdownProbe.exited;
@@ -829,7 +871,7 @@ describe("lsp regressions", () => {
 			void existingClient.then(() => {
 				settled = true;
 			});
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(settled).toBe(false);
 
 			initialize.resolve();
@@ -1384,8 +1426,8 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-rust-workspace-");
 		try {
 			const sourcePath = path.join(tempDir.path(), "src", "main.rs");
-			await Bun.write(path.join(tempDir.path(), "Cargo.toml"), '[package]\nname = "fixture"\nversion = "0.0.0"\n');
-			await Bun.write(sourcePath, "fn greet() {}\nfn main() { greet(); }\n");
+			await bun.write(path.join(tempDir.path(), "Cargo.toml"), '[package]\nname = "fixture"\nversion = "0.0.0"\n');
+			await bun.write(sourcePath, "fn greet() {}\nfn main() { greet(); }\n");
 
 			const events: string[] = [];
 			let statusRequests = 0;
@@ -1447,7 +1489,7 @@ describe("lsp regressions", () => {
 				workspaceReadyTimings: { timeoutMs: 5_000, pollMs: 1, settleMs: 2, statusRequestTimeoutMs: 20 },
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "rust-analyzer": server },
 				idleTimeoutMs: undefined,
 			});
@@ -1486,7 +1528,7 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-rust-standalone-");
 		try {
 			const sourcePath = path.join(tempDir.path(), "foo.rs");
-			await Bun.write(sourcePath, 'fn greet() -> &\'static str { "hi" }\n');
+			await bun.write(sourcePath, 'fn greet() -> &\'static str { "hi" }\n');
 
 			const events: string[] = [];
 			installFakeLsp((message, srv) => {
@@ -1522,7 +1564,7 @@ describe("lsp regressions", () => {
 				rootMarkers: [],
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "rust-analyzer": server },
 				idleTimeoutMs: undefined,
 			});
@@ -1560,9 +1602,9 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-glob-");
 		try {
 			await Promise.all([
-				Bun.write(path.join(tempDir.path(), "a.ts"), "export const a = 1;\n"),
-				Bun.write(path.join(tempDir.path(), "b.ts"), "export const b = 1;\n"),
-				Bun.write(path.join(tempDir.path(), "c.ts"), "export const c = 1;\n"),
+				bun.write(path.join(tempDir.path(), "a.ts"), "export const a = 1;\n"),
+				bun.write(path.join(tempDir.path(), "b.ts"), "export const b = 1;\n"),
+				bun.write(path.join(tempDir.path(), "c.ts"), "export const c = 1;\n"),
 			]);
 			const result = await collectGlobMatches("*.ts", tempDir.path(), 2);
 			expect(result.matches).toHaveLength(2);
@@ -1586,7 +1628,7 @@ describe("lsp regressions", () => {
 				"opengraph-image.tsx",
 			);
 			const filePath = path.join(tempDir.path(), diagnosticTarget);
-			await Bun.write(filePath, "export default function OpenGraphImage() {}\n");
+			await bun.write(filePath, "export default function OpenGraphImage() {}\n");
 
 			const result = await resolveDiagnosticTargets(diagnosticTarget, tempDir.path(), 10);
 
@@ -1603,7 +1645,7 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-regression-");
 		try {
 			const filePath = path.join(tempDir.path(), "symbol.ts");
-			await Bun.write(filePath, "foo(bar(foo));\n");
+			await bun.write(filePath, "foo(bar(foo));\n");
 
 			expect(await resolveSymbolColumn(filePath, 1, "foo")).toBe(0);
 			expect(await resolveSymbolColumn(filePath, 1, "foo#2")).toBe(8);
@@ -1616,9 +1658,9 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-missing-symbol-");
 		try {
 			const filePath = path.join(tempDir.path(), "symbol.ts");
-			await Bun.write(filePath, "winston.info('x');\n");
+			await bun.write(filePath, "winston.info('x');\n");
 
-			expect(resolveSymbolColumn(filePath, 1, "nonexistent_symbol")).rejects.toThrow(
+			await expect(resolveSymbolColumn(filePath, 1, "nonexistent_symbol")).rejects.toThrow(
 				'Symbol "nonexistent_symbol" not found on line 1',
 			);
 		} finally {
@@ -1630,9 +1672,9 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-occurrence-");
 		try {
 			const filePath = path.join(tempDir.path(), "symbol.ts");
-			await Bun.write(filePath, "foo();\n");
+			await bun.write(filePath, "foo();\n");
 
-			expect(resolveSymbolColumn(filePath, 1, "foo#2")).rejects.toThrow(
+			await expect(resolveSymbolColumn(filePath, 1, "foo#2")).rejects.toThrow(
 				'Symbol "foo" occurrence 2 is out of bounds on line 1 (found 1)',
 			);
 		} finally {
@@ -1819,7 +1861,7 @@ describe("lsp regressions", () => {
 		const lines = sanitizeText(result.render(width).join("\n")).split("\n");
 		const text = lines.join("\n");
 		expect(text).not.toContain("\t");
-		expect(lines.every(line => Bun.stringWidth(line) <= width)).toBe(true);
+		expect(lines.every(line => bun.stringWidth(line) <= width)).toBe(true);
 		expect(text.match(/x/g)?.length).toBe(200);
 		expect(text).not.toContain("…");
 		const rowContents = lines.map(line => line.replace(/^│\s+[├└│]?─?\s*/, "").replace(/\s*│$/, ""));
@@ -1831,7 +1873,7 @@ describe("lsp regressions", () => {
 			const tempDir = TempDir.createSync("@omp-lsp-pull-diags-");
 			try {
 				const targetFile = path.join(tempDir.path(), "target.ts");
-				await Bun.write(targetFile, "const broken: string = 42;\n");
+				await bun.write(targetFile, "const broken: string = 42;\n");
 				const diagnostic: Diagnostic = {
 					message: "Type 'number' is not assignable to type 'string'.",
 					severity: 1,
@@ -1893,7 +1935,7 @@ describe("lsp regressions", () => {
 					fileTypes: ["ts"],
 					rootMarkers: [],
 				};
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 					servers: { "fake-lsp": serverConfig },
 					idleTimeoutMs: undefined,
 				});
@@ -1949,7 +1991,7 @@ describe("lsp regressions", () => {
 				const tempDir = TempDir.createSync("@omp-lsp-failed-pull-");
 				try {
 					const targetFile = path.join(tempDir.path(), "Program.cs");
-					await Bun.write(targetFile, "private readonly object _gate = new();\n");
+					await bun.write(targetFile, "private readonly object _gate = new();\n");
 					const uri = fileToUri(targetFile);
 					const publishedDiagnostic: Diagnostic = {
 						message: "Use System.Threading.Lock",
@@ -2036,7 +2078,7 @@ describe("lsp regressions", () => {
 			const sourcePath = path.join(tempDir.path(), "UsesMissing.ts");
 			const modulePath = path.join(tempDir.path(), "MissingClass.ts");
 			const sourceUri = fileToUri(sourcePath);
-			await Bun.write(
+			await bun.write(
 				sourcePath,
 				'import { MissingClass } from "./MissingClass";\nexport const value = new MissingClass();\n',
 			);
@@ -2079,7 +2121,7 @@ describe("lsp regressions", () => {
 				missingModuleDiagnostic,
 			]);
 
-			await Bun.write(modulePath, "export class MissingClass {}\n");
+			await bun.write(modulePath, "export class MissingClass {}\n");
 			await lspClient.notifyWorkspaceWatchedFiles(tempDir.path(), [
 				{ filePath: modulePath, type: lspClient.FileChangeType.Created },
 			]);
@@ -2102,7 +2144,7 @@ describe("lsp regressions", () => {
 			const modulePath = path.join(tempDir.path(), "MissingClass.ts");
 			const sourceUri = fileToUri(sourcePath);
 			const moduleUri = fileToUri(modulePath);
-			await Bun.write(
+			await bun.write(
 				sourcePath,
 				'import { MissingClass } from "./MissingClass";\nexport const value = new MissingClass();\n',
 			);
@@ -2209,8 +2251,8 @@ describe("lsp regressions", () => {
 		try {
 			const targetFile = path.join(tempDir.path(), "target.ts");
 			const otherFile = path.join(tempDir.path(), "other.ts");
-			await Bun.write(targetFile, "export const target = 1;\n");
-			await Bun.write(otherFile, "export const other = 1;\n");
+			await bun.write(targetFile, "export const target = 1;\n");
+			await bun.write(otherFile, "export const other = 1;\n");
 
 			const targetUri = fileToUri(targetFile);
 			const otherUri = fileToUri(otherFile);
@@ -2255,12 +2297,12 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: {}, idleTimeoutMs: undefined });
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({ servers: {}, idleTimeoutMs: undefined });
 			vi.spyOn(lspConfig, "getServersForFile").mockReturnValue([["test-lsp", server]]);
 			vi.spyOn(lspClient, "getOrCreateClient").mockResolvedValue(client);
 
 			let poll = 0;
-			vi.spyOn(Bun, "sleep").mockImplementation(async () => {
+			vi.spyOn(bun, "sleep").mockImplementation(async () => {
 				poll++;
 				if (poll === 1) {
 					client.diagnostics.set(otherUri, { diagnostics: [otherDiagnostic], version: 1 });
@@ -2300,7 +2342,7 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-all-servers-fail-");
 		try {
 			const targetFile = path.join(tempDir.path(), "target.ts");
-			await Bun.write(targetFile, "export const target = 1;\n");
+			await bun.write(targetFile, "export const target = 1;\n");
 			// The diagnostics renderer prefixes status lines via the global theme,
 			// which production initializes before any tool runs.
 			await initTheme();
@@ -2310,7 +2352,7 @@ describe("lsp regressions", () => {
 				fileTypes: ["ts"],
 				rootMarkers: [],
 			};
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { broken: serverConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -2341,7 +2383,7 @@ describe("lsp regressions", () => {
 		try {
 			const firstConfig: ServerConfig = { command: "broken-first", fileTypes: ["ts"], rootMarkers: [] };
 			const secondConfig: ServerConfig = { command: "broken-second", fileTypes: ["ts"], rootMarkers: [] };
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { first: firstConfig, second: secondConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -2371,7 +2413,7 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-workspace-symbol-empty-");
 		try {
 			const serverConfig: ServerConfig = { command: "empty-lsp", fileTypes: ["ts"], rootMarkers: [] };
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { empty: serverConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -2398,7 +2440,7 @@ describe("lsp regressions", () => {
 		try {
 			const brokenConfig: ServerConfig = { command: "broken-lsp", fileTypes: ["ts"], rootMarkers: [] };
 			const healthyConfig: ServerConfig = { command: "healthy-lsp", fileTypes: ["ts"], rootMarkers: [] };
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { broken: brokenConfig, healthy: healthyConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -2451,8 +2493,8 @@ describe("lsp regressions", () => {
 		try {
 			const serviceDir = path.join(tempDir.path(), "service");
 			await fs.promises.mkdir(serviceDir, { recursive: true });
-			await Bun.write(path.join(tempDir.path(), "go.work"), ["go 1.22", "", "use ./service", ""].join("\n"));
-			await Bun.write(path.join(serviceDir, "go.mod"), "module example.com/service\n\ngo 1.22\n");
+			await bun.write(path.join(tempDir.path(), "go.work"), ["go 1.22", "", "use ./service", ""].join("\n"));
+			await bun.write(path.join(serviceDir, "go.mod"), "module example.com/service\n\ngo 1.22\n");
 
 			const tool = new LspTool(makeLspSession(tempDir.path()));
 			const result = await tool.execute("go-work-only-diagnostics", {
@@ -2493,10 +2535,10 @@ describe("lsp regressions", () => {
 			const helperDir = path.join(tempDir.path(), "tools", "helper");
 			await fs.promises.mkdir(serviceDir, { recursive: true });
 			await fs.promises.mkdir(helperDir, { recursive: true });
-			await Bun.write(path.join(tempDir.path(), "go.mod"), "module example.com/root\n\ngo 1.22\n");
-			await Bun.write(path.join(serviceDir, "go.mod"), "module example.com/service\n\ngo 1.22\n");
-			await Bun.write(path.join(helperDir, "go.mod"), "module example.com/helper\n\ngo 1.22\n");
-			await Bun.write(
+			await bun.write(path.join(tempDir.path(), "go.mod"), "module example.com/root\n\ngo 1.22\n");
+			await bun.write(path.join(serviceDir, "go.mod"), "module example.com/service\n\ngo 1.22\n");
+			await bun.write(path.join(helperDir, "go.mod"), "module example.com/helper\n\ngo 1.22\n");
+			await bun.write(
 				path.join(tempDir.path(), "go.work"),
 				["go 1.22", "", "use (", "\t.", "\t./service", "\t./tools/helper", ")", ""].join("\n"),
 			);
@@ -2524,14 +2566,14 @@ describe("lsp regressions", () => {
 		}
 
 		const tempDir = TempDir.createSync("@omp-lsp-win32-bin-");
-		const whichSpy = vi.spyOn(Bun, "which").mockReturnValue(null);
+		const whichSpy = vi.spyOn(bun, "which").mockReturnValue(null);
 
 		try {
-			await Bun.write(path.join(tempDir.path(), "package.json"), "{}");
+			await bun.write(path.join(tempDir.path(), "package.json"), "{}");
 			const binDir = path.join(tempDir.path(), "node_modules", ".bin");
 			await fs.promises.mkdir(binDir, { recursive: true });
 			const localTsServer = path.join(binDir, "typescript-language-server.exe");
-			await Bun.write(localTsServer, "");
+			await bun.write(localTsServer, "");
 
 			const config = loadConfig(tempDir.path());
 			expect(config.servers["typescript-language-server"]?.resolvedCommand).toBe(localTsServer);
@@ -2547,25 +2589,25 @@ describe("lsp regressions", () => {
 	// two servers must survive config loading, chosen from the resolved tsc install.
 	describe("TypeScript server selection", () => {
 		async function writeTypescriptWorkspace(root: string, options: { tsserver: boolean; symlinkTsc: boolean }) {
-			await Bun.write(path.join(root, "package.json"), "{}");
+			await bun.write(path.join(root, "package.json"), "{}");
 			const binDir = path.join(root, "node_modules", ".bin");
 			const pkgDir = path.join(root, "node_modules", "typescript");
 			await fs.promises.mkdir(binDir, { recursive: true });
-			await Bun.write(path.join(pkgDir, "package.json"), '{"name":"typescript"}');
-			await Bun.write(path.join(pkgDir, "bin", "tsc"), "");
-			if (options.tsserver) await Bun.write(path.join(pkgDir, "lib", "tsserver.js"), "");
+			await bun.write(path.join(pkgDir, "package.json"), '{"name":"typescript"}');
+			await bun.write(path.join(pkgDir, "bin", "tsc"), "");
+			if (options.tsserver) await bun.write(path.join(pkgDir, "lib", "tsserver.js"), "");
 			if (options.symlinkTsc) {
 				await fs.promises.symlink(path.join("..", "typescript", "bin", "tsc"), path.join(binDir, "tsc"));
 			} else {
-				await Bun.write(path.join(binDir, "tsc"), "");
+				await bun.write(path.join(binDir, "tsc"), "");
 			}
-			await Bun.write(path.join(binDir, "typescript-language-server"), "");
+			await bun.write(path.join(binDir, "typescript-language-server"), "");
 		}
 
 		it("prefers tsc --lsp when the workspace TypeScript ships no tsserver.js", async () => {
 			if (process.platform === "win32") return;
 			const tempDir = TempDir.createSync("@omp-lsp-ts7-");
-			vi.spyOn(Bun, "which").mockReturnValue(null);
+			vi.spyOn(bun, "which").mockReturnValue(null);
 			try {
 				await writeTypescriptWorkspace(tempDir.path(), { tsserver: false, symlinkTsc: true });
 				const config = loadConfig(tempDir.path());
@@ -2582,7 +2624,7 @@ describe("lsp regressions", () => {
 
 		it("keeps typescript-language-server when tsserver.js exists", async () => {
 			const tempDir = TempDir.createSync("@omp-lsp-ts5-");
-			vi.spyOn(Bun, "which").mockReturnValue(null);
+			vi.spyOn(bun, "which").mockReturnValue(null);
 			try {
 				await writeTypescriptWorkspace(tempDir.path(), { tsserver: true, symlinkTsc: false });
 				const config = loadConfig(tempDir.path());
@@ -2595,13 +2637,13 @@ describe("lsp regressions", () => {
 
 		it("drops tsc --lsp when the tsc install layout is unrecognized", async () => {
 			const tempDir = TempDir.createSync("@omp-lsp-ts-unknown-");
-			vi.spyOn(Bun, "which").mockReturnValue(null);
+			vi.spyOn(bun, "which").mockReturnValue(null);
 			try {
-				await Bun.write(path.join(tempDir.path(), "package.json"), "{}");
+				await bun.write(path.join(tempDir.path(), "package.json"), "{}");
 				const binDir = path.join(tempDir.path(), "node_modules", ".bin");
 				await fs.promises.mkdir(binDir, { recursive: true });
-				await Bun.write(path.join(binDir, "tsc"), "");
-				await Bun.write(path.join(binDir, "typescript-language-server"), "");
+				await bun.write(path.join(binDir, "tsc"), "");
+				await bun.write(path.join(binDir, "typescript-language-server"), "");
 				const config = loadConfig(tempDir.path());
 				expect(Object.keys(config.servers)).toEqual(["typescript-language-server"]);
 			} finally {
@@ -2616,14 +2658,14 @@ describe("lsp regressions", () => {
 		Object.defineProperty(process, "platform", { value: "win32", configurable: true, writable: true });
 
 		const tempDir = TempDir.createSync("@omp-lsp-win32-ruff-");
-		const whichSpy = vi.spyOn(Bun, "which").mockReturnValue(null);
+		const whichSpy = vi.spyOn(bun, "which").mockReturnValue(null);
 
 		try {
-			await Bun.write(path.join(tempDir.path(), "pyproject.toml"), '[project]\nname = "demo"\n');
+			await bun.write(path.join(tempDir.path(), "pyproject.toml"), '[project]\nname = "demo"\n');
 			const scriptsDir = path.join(tempDir.path(), ".venv", "Scripts");
 			await fs.promises.mkdir(scriptsDir, { recursive: true });
 			const localRuff = path.join(scriptsDir, "ruff.exe");
-			await Bun.write(localRuff, "");
+			await bun.write(localRuff, "");
 
 			const config = loadConfig(tempDir.path());
 			expect(config.servers.ruff?.resolvedCommand).toBe(localRuff);
@@ -2638,17 +2680,17 @@ describe("lsp regressions", () => {
 	it("detects Ruff in Windows virtualenv Scripts directories for Ruff-only roots", async () => {
 		const originalPlatform = process.platform;
 		Object.defineProperty(process, "platform", { value: "win32", configurable: true, writable: true });
-		const whichSpy = vi.spyOn(Bun, "which").mockReturnValue(null);
+		const whichSpy = vi.spyOn(bun, "which").mockReturnValue(null);
 
 		try {
 			for (const marker of ["ruff.toml", ".ruff.toml"] as const) {
 				const tempDir = TempDir.createSync("@omp-lsp-win32-ruff-marker-");
 				try {
-					await Bun.write(path.join(tempDir.path(), marker), "");
+					await bun.write(path.join(tempDir.path(), marker), "");
 					const scriptsDir = path.join(tempDir.path(), ".venv", "Scripts");
 					await fs.promises.mkdir(scriptsDir, { recursive: true });
 					const localRuff = path.join(scriptsDir, "ruff.exe");
-					await Bun.write(localRuff, "");
+					await bun.write(localRuff, "");
 
 					const config = loadConfig(tempDir.path());
 					expect(config.servers.ruff?.resolvedCommand).toBe(localRuff);
@@ -2666,7 +2708,7 @@ describe("lsp regressions", () => {
 	it("detects pyright and pylsp in Windows virtualenv Scripts for Python-only roots", async () => {
 		const originalPlatform = process.platform;
 		Object.defineProperty(process, "platform", { value: "win32", configurable: true, writable: true });
-		const whichSpy = vi.spyOn(Bun, "which").mockReturnValue(null);
+		const whichSpy = vi.spyOn(bun, "which").mockReturnValue(null);
 
 		try {
 			const cases: Array<{ marker: string; server: string; binary: string }> = [
@@ -2676,11 +2718,11 @@ describe("lsp regressions", () => {
 			for (const { marker, server, binary } of cases) {
 				const tempDir = TempDir.createSync("@omp-lsp-win32-py-marker-");
 				try {
-					await Bun.write(path.join(tempDir.path(), marker), "");
+					await bun.write(path.join(tempDir.path(), marker), "");
 					const scriptsDir = path.join(tempDir.path(), ".venv", "Scripts");
 					await fs.promises.mkdir(scriptsDir, { recursive: true });
 					const localBin = path.join(scriptsDir, binary);
-					await Bun.write(localBin, "");
+					await bun.write(localBin, "");
 
 					const config = loadConfig(tempDir.path());
 					expect(config.servers[server]?.resolvedCommand).toBe(localBin);
@@ -2701,7 +2743,7 @@ describe("lsp regressions", () => {
 		const specPath = path.join(tempDir.path(), "Spec.tla");
 		const aliasPath = path.join(tempDir.path(), "Spec.tlaplus");
 
-		await Bun.write(specPath, "---- MODULE Spec ----\n====\n");
+		await bun.write(specPath, "---- MODULE Spec ----\n====\n");
 
 		const resolvedTlapmLsp = path.join(tempDir.path(), "bin", "tlapm_lsp");
 		const whichSpy = vi
@@ -2732,7 +2774,7 @@ describe("lsp regressions", () => {
 	it("loads config-only marketplace LSP servers from Claude plugin cache", async () => {
 		const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 		delete process.env.CLAUDE_CONFIG_DIR;
-		delete Bun.env.CLAUDE_CONFIG_DIR;
+		delete bun.env.CLAUDE_CONFIG_DIR;
 		const tempDir = TempDir.createSync("@omp-lsp-marketplace-config-");
 		const home = path.join(tempDir.path(), "home");
 		const cwd = path.join(tempDir.path(), "repo");
@@ -2751,8 +2793,8 @@ describe("lsp regressions", () => {
 		await fs.promises.mkdir(pluginRoot, { recursive: true });
 		await fs.promises.mkdir(cwd, { recursive: true });
 		await fs.promises.mkdir(path.dirname(registryPath), { recursive: true });
-		await Bun.write(path.join(cwd, "Example.csproj"), "<Project />\n");
-		await Bun.write(
+		await bun.write(path.join(cwd, "Example.csproj"), "<Project />\n");
+		await bun.write(
 			registryPath,
 			`${JSON.stringify(
 				{
@@ -2773,7 +2815,7 @@ describe("lsp regressions", () => {
 				2,
 			)}\n`,
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(marketplaceRoot, "marketplace.json"),
 			`${JSON.stringify(
 				{
@@ -2827,8 +2869,8 @@ describe("lsp regressions", () => {
 			const sourceFile = path.join(tempDir.path(), "src", "old.ts");
 			const destFile = path.join(tempDir.path(), "src", "new.ts");
 			const referencingFile = path.join(tempDir.path(), "src", "consumer.ts");
-			await Bun.write(sourceFile, "export const value = 42;\n");
-			await Bun.write(referencingFile, "import { value } from './old';\nconsole.log(value);\n");
+			await bun.write(sourceFile, "export const value = 42;\n");
+			await bun.write(referencingFile, "import { value } from './old';\nconsole.log(value);\n");
 
 			const sourceUri = fileToUri(sourceFile);
 			const destUri = fileToUri(destFile);
@@ -2856,7 +2898,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -2907,7 +2949,7 @@ describe("lsp regressions", () => {
 			expect(fs.existsSync(destFile)).toBe(true);
 
 			// Importer file got the LSP-provided edit
-			const updatedConsumer = await Bun.file(referencingFile).text();
+			const updatedConsumer = await bun.file(referencingFile).text();
 			expect(updatedConsumer).toBe("import { value } from './new';\nconsole.log(value);\n");
 
 			// didRenameFiles notification fired with the same pair list
@@ -2935,9 +2977,9 @@ describe("lsp regressions", () => {
 			const destFile = path.join(tempDir.path(), "src", "new.ts");
 			const plainFile = path.join(tempDir.path(), "src", "plain.ts");
 			const snippetFile = path.join(tempDir.path(), "src", "snippet.ts");
-			await Bun.write(sourceFile, "export const value = 42;\n");
-			await Bun.write(plainFile, "import { value } from './old';\n");
-			await Bun.write(snippetFile, "import { value } from './old';\n");
+			await bun.write(sourceFile, "export const value = 42;\n");
+			await bun.write(plainFile, "import { value } from './old';\n");
+			await bun.write(snippetFile, "import { value } from './old';\n");
 
 			const plainUri = fileToUri(plainFile);
 			const snippetUri = fileToUri(snippetFile);
@@ -2964,7 +3006,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3007,8 +3049,8 @@ describe("lsp regressions", () => {
 
 			// Nothing was half-applied: the plain bucket is untouched and the
 			// rename never ran.
-			expect(await Bun.file(plainFile).text()).toBe("import { value } from './old';\n");
-			expect(await Bun.file(snippetFile).text()).toBe("import { value } from './old';\n");
+			expect(await bun.file(plainFile).text()).toBe("import { value } from './old';\n");
+			expect(await bun.file(snippetFile).text()).toBe("import { value } from './old';\n");
 			expect(fs.existsSync(sourceFile)).toBe(true);
 			expect(fs.existsSync(destFile)).toBe(false);
 		} finally {
@@ -3022,7 +3064,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "src", "old.ts");
 			const destFile = path.join(tempDir.path(), "src", "new.ts");
-			await Bun.write(sourceFile, "export const value = 42;\n");
+			await bun.write(sourceFile, "export const value = 42;\n");
 
 			const server: ServerConfig = { command: "test-lsp", fileTypes: ["ts"], rootMarkers: [] };
 			const client: LspClient = {
@@ -3046,7 +3088,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3094,7 +3136,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "src", "old.ts");
 			const destFile = path.join(tempDir.path(), "src", "new.ts");
-			await Bun.write(sourceFile, "export const value = 42;\n");
+			await bun.write(sourceFile, "export const value = 42;\n");
 
 			const server: ServerConfig = { command: "test-lsp", fileTypes: ["ts"], rootMarkers: [] };
 			const client: LspClient = {
@@ -3118,7 +3160,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3154,7 +3196,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "old.ts");
 			const destFile = path.join(tempDir.path(), "new.ts");
-			await Bun.write(sourceFile, "export const value = 42;\n");
+			await bun.write(sourceFile, "export const value = 42;\n");
 
 			const server: ServerConfig = { command: "test-lsp", fileTypes: ["ts"], rootMarkers: [] };
 			const client: LspClient = {
@@ -3178,7 +3220,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3213,8 +3255,8 @@ describe("lsp regressions", () => {
 			const dstDir = path.join(tempDir.path(), "new");
 			const fileA = path.join(srcDir, "a.ts");
 			const fileB = path.join(srcDir, "nested", "b.ts");
-			await Bun.write(fileA, "export const a = 1;\n");
-			await Bun.write(fileB, "export const b = 2;\n");
+			await bun.write(fileA, "export const a = 1;\n");
+			await bun.write(fileB, "export const b = 2;\n");
 
 			const server: ServerConfig = { command: "test-lsp", fileTypes: ["ts"], rootMarkers: [] };
 			const client: LspClient = {
@@ -3238,7 +3280,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3283,7 +3325,7 @@ describe("lsp regressions", () => {
 		const tempDir = TempDir.createSync("@omp-lsp-request-");
 		try {
 			const filePath = path.join(tempDir.path(), "src", "lib.rs");
-			await Bun.write(filePath, 'fn main() {\n    println!("hi");\n}\n');
+			await bun.write(filePath, 'fn main() {\n    println!("hi");\n}\n');
 
 			const server: ServerConfig = { command: "test-rs", fileTypes: ["rs"], rootMarkers: [] };
 			const client: LspClient = {
@@ -3307,7 +3349,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-rs": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3376,7 +3418,7 @@ describe("lsp regressions", () => {
 				resolveProjectLoaded: () => {},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3439,7 +3481,7 @@ describe("lsp regressions", () => {
 				},
 			};
 
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-lsp": server },
 				idleTimeoutMs: undefined,
 			});
@@ -3471,7 +3513,7 @@ describe("lsp regressions", () => {
 		const uri = fileToUri(filePath);
 		let overlay = "";
 		try {
-			await Bun.write(filePath, "package main\nfunc OldName() {}\n");
+			await bun.write(filePath, "package main\nfunc OldName() {}\n");
 			const serverConfig: ServerConfig = {
 				command: "fake-gopls",
 				fileTypes: ["go"],
@@ -3545,7 +3587,7 @@ describe("lsp regressions", () => {
 					srv.exit(0);
 				}
 			});
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-gopls": serverConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -3561,7 +3603,7 @@ describe("lsp regressions", () => {
 				symbol: "OldName",
 				new_name: "NewName",
 			});
-			expect(await Bun.file(filePath).text()).toContain("NewName");
+			expect(await bun.file(filePath).text()).toContain("NewName");
 
 			const symbols = await tool.execute("symbols-after-rename", { action: "symbols", file: filePath });
 			expect(textResult(symbols)).toContain("NewName");
@@ -3581,7 +3623,7 @@ describe("lsp regressions", () => {
 		let sawDidChange = false;
 		let referencedSymbol = "";
 		try {
-			await Bun.write(filePath, original);
+			await bun.write(filePath, original);
 			const serverConfig: ServerConfig = {
 				command: "fake-pyls",
 				fileTypes: ["py"],
@@ -3653,7 +3695,7 @@ describe("lsp regressions", () => {
 					srv.exit(0);
 				}
 			});
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-pyls": serverConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -3672,7 +3714,7 @@ describe("lsp regressions", () => {
 			// External edit (not via OMP's write/edit tools): prepend two blank
 			// lines so `target` now lives on line 3 while `wrong` sits where the
 			// server's stale document still has it.
-			await Bun.write(filePath, `\n\n${original}`);
+			await bun.write(filePath, `\n\n${original}`);
 
 			await tool.execute("references-after-edit", {
 				action: "references",
@@ -3697,7 +3739,7 @@ describe("lsp regressions", () => {
 		const original = "def target():\n    return 1\n";
 		const sent: string[] = [];
 		try {
-			await Bun.write(filePath, original);
+			await bun.write(filePath, original);
 			const serverConfig: ServerConfig = { command: "fake-pyls", fileTypes: ["py"], rootMarkers: [] };
 			const client: LspClient = {
 				name: "pending-write-lsp",
@@ -3741,7 +3783,7 @@ describe("lsp regressions", () => {
 			// Simulate an in-flight OMP write: writethrough has synced the new text
 			// to the server and marked the file, but disk still holds the old bytes.
 			lspClient.beginPendingDiskWrite(filePath);
-			await Bun.write(filePath, `\n\n${original}`);
+			await bun.write(filePath, `\n\n${original}`);
 			sent.length = 0;
 			await lspClient.reconcileFileFromDisk(client, filePath);
 			expect(sent).toHaveLength(0);
@@ -3764,7 +3806,7 @@ describe("lsp regressions", () => {
 		// context.diagnostics length seen by the most recent codeAction request.
 		let contextDiagnosticsCount = -1;
 		try {
-			await Bun.write(filePath, original);
+			await bun.write(filePath, original);
 			const serverConfig: ServerConfig = {
 				command: "fake-pyls",
 				fileTypes: ["py"],
@@ -3857,7 +3899,7 @@ describe("lsp regressions", () => {
 					srv.exit(0);
 				}
 			});
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-pyls": serverConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -3867,7 +3909,7 @@ describe("lsp regressions", () => {
 			await tool.execute("code-actions-warm", { action: "code_actions", file: filePath, line: 1 });
 
 			// External edit: change the file on disk so the next query reconciles.
-			await Bun.write(filePath, `${original}value = target()\n`);
+			await bun.write(filePath, `${original}value = target()\n`);
 			contextDiagnosticsCount = -1;
 
 			await tool.execute("code-actions-after-edit", { action: "code_actions", file: filePath, line: 1 });
@@ -3890,7 +3932,7 @@ describe("lsp regressions", () => {
 			const srcDir = path.join(tempDir.path(), "src");
 			fs.mkdirSync(srcDir, { recursive: true });
 			const childPath = path.join(srcDir, "a.ts");
-			await Bun.write(childPath, "export const a = 1;\n");
+			await bun.write(childPath, "export const a = 1;\n");
 
 			const childUri = fileToUri(childPath);
 			const oldFolderUri = fileToUri(srcDir);
@@ -3947,9 +3989,9 @@ describe("lsp regressions", () => {
 		try {
 			const oldPath = path.join(tempDir.path(), "old.ts");
 			const newPath = path.join(tempDir.path(), "new.ts");
-			await Bun.write(oldPath, "export const moved = 1;\n");
+			await bun.write(oldPath, "export const moved = 1;\n");
 			// A pre-existing target file the rename is about to clobber.
-			await Bun.write(newPath, "export const target = 2;\n");
+			await bun.write(newPath, "export const target = 2;\n");
 
 			const oldUri = fileToUri(oldPath);
 			const newUri = fileToUri(newPath);
@@ -4052,8 +4094,8 @@ describe("lsp regressions", () => {
 			const okPath = path.join(tempDir.path(), "ok.ts");
 			const badPath = path.join(tempDir.path(), "bad.ts");
 			const okContent = "export const ok = 1;\n";
-			await Bun.write(okPath, okContent);
-			await Bun.write(badPath, "export const bad = 2;\n");
+			await bun.write(okPath, okContent);
+			await bun.write(badPath, "export const bad = 2;\n");
 
 			const workspaceEdit: WorkspaceEdit = {
 				changes: {
@@ -4109,7 +4151,7 @@ describe("lsp regressions", () => {
 			// Standalone `$store` starts at column 16; compound `bar$store`
 			// contains the substring at column 7. Old code returned 7; new code
 			// returns 16.
-			await Bun.write(filePath, "let bar$store = $store + 1;\n");
+			await bun.write(filePath, "let bar$store = $store + 1;\n");
 
 			const column = await resolveSymbolColumn(filePath, 1, "$store");
 			expect(column).toBe(16);
@@ -4177,7 +4219,7 @@ describe("lsp regressions", () => {
 		try {
 			const filePath = path.join(tempDir.path(), "existing.ts");
 			const uri = fileToUri(filePath);
-			await Bun.write(filePath, "ORIGINAL");
+			await bun.write(filePath, "ORIGINAL");
 
 			const ignored = await applyWorkspaceEdit(
 				{
@@ -4212,8 +4254,8 @@ describe("lsp regressions", () => {
 			const newPath = path.join(tempDir.path(), "new.ts");
 			const oldUri = fileToUri(oldPath);
 			const newUri = fileToUri(newPath);
-			await Bun.write(oldPath, "SOURCE");
-			await Bun.write(newPath, "TARGET");
+			await bun.write(oldPath, "SOURCE");
+			await bun.write(newPath, "TARGET");
 
 			const ignored = await applyWorkspaceEdit(
 				{
@@ -4261,8 +4303,8 @@ describe("lsp regressions", () => {
 		try {
 			const oldPath = path.join(tempDir.path(), "old.ts");
 			const newPath = path.join(tempDir.path(), "new.ts");
-			await Bun.write(oldPath, "SOURCE");
-			await Bun.write(newPath, "TARGET");
+			await bun.write(oldPath, "SOURCE");
+			await bun.write(newPath, "TARGET");
 
 			const server = installFakeLsp((message, srv) => {
 				if (message.method === "initialize") {
@@ -4315,7 +4357,7 @@ describe("lsp regressions", () => {
 			const srcDir = path.join(tempDir.path(), "src");
 			fs.mkdirSync(srcDir);
 			const filePath = path.join(srcDir, "a.ts");
-			await Bun.write(filePath, "export const a = 1;\n");
+			await bun.write(filePath, "export const a = 1;\n");
 
 			const server = installFakeLsp((message, srv) => {
 				if (message.method === "initialize") {
@@ -4374,7 +4416,7 @@ describe("lsp regressions", () => {
 			const directory = path.join(tempDir.path(), "directory");
 			const uri = fileToUri(directory);
 			fs.mkdirSync(directory);
-			await Bun.write(path.join(directory, "child.ts"), "KEEP");
+			await bun.write(path.join(directory, "child.ts"), "KEEP");
 
 			const nonRecursive: DeleteFile = { kind: "delete", uri, options: { recursive: false } };
 			await expect(applyWorkspaceEdit({ documentChanges: [nonRecursive] }, tempDir.path())).rejects.toThrow();
@@ -4397,7 +4439,7 @@ describe("lsp regressions", () => {
 		}
 	});
 
-	it("does not delete the source when a rename target resolves to the same file", async () => {
+	it.skipIf(!symlinksSupported)("does not delete the source when a rename target resolves to the same file", async () => {
 		// A case-only rename on a case-insensitive filesystem yields distinct path
 		// strings that resolve to one inode. Reproduce that deterministically on a
 		// case-sensitive filesystem with a symlinked parent directory: `dir/f.ts`
@@ -4408,7 +4450,7 @@ describe("lsp regressions", () => {
 			const realDir = path.join(tempDir.path(), "dir");
 			fs.mkdirSync(realDir);
 			const filePath = path.join(realDir, "f.ts");
-			await Bun.write(filePath, "SOURCE");
+			await bun.write(filePath, "SOURCE");
 
 			const linkDir = path.join(tempDir.path(), "dirlink");
 			fs.symlinkSync(realDir, linkDir);
@@ -4439,8 +4481,8 @@ describe("lsp regressions", () => {
 		try {
 			const oldPath = path.join(tempDir.path(), "old.ts");
 			const newPath = path.join(tempDir.path(), "new.ts");
-			await Bun.write(oldPath, "SOURCE");
-			await Bun.write(newPath, "TARGET");
+			await bun.write(oldPath, "SOURCE");
+			await bun.write(newPath, "TARGET");
 
 			const realRename = fsp.rename;
 			vi.spyOn(fsp, "rename").mockImplementation(async (from, to) => {
@@ -4485,7 +4527,7 @@ describe("lsp regressions", () => {
 			const srcDir = path.join(tempDir.path(), "src");
 			fs.mkdirSync(srcDir, { recursive: true });
 			const childPath = path.join(srcDir, "a.ts");
-			await Bun.write(childPath, "export const a = 1;\n");
+			await bun.write(childPath, "export const a = 1;\n");
 
 			const childUri = fileToUri(childPath);
 			const folderUri = fileToUri(srcDir);
@@ -4590,10 +4632,10 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "notes.md");
 			const destFile = path.join(tempDir.path(), "renamed.md");
-			await Bun.write(sourceFile, "# heading\n");
+			await bun.write(sourceFile, "# heading\n");
 
 			// Only a TS server is configured; .md should not trigger any willRenameFiles.
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "test-ts": { command: "test-ts", fileTypes: [".ts"], rootMarkers: [] } },
 				idleTimeoutMs: undefined,
 			});
@@ -4630,7 +4672,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "locked.ts");
 			const destFile = path.join(tempDir.path(), "renamed.ts");
-			await Bun.write(sourceFile, "export const a = 1;\n");
+			await bun.write(sourceFile, "export const a = 1;\n");
 
 			// EACCES is not ENOENT: the file is there, we just can't read it.
 			const realStat = fs.promises.stat;
@@ -4670,7 +4712,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "old.ts");
 			const destFile = path.join(tempDir.path(), "new.ts");
-			await Bun.write(sourceFile, "export const a = 1;\n");
+			await bun.write(sourceFile, "export const a = 1;\n");
 
 			// A failed destination probe never established that the path is free,
 			// so treating it as absent would rename onto a file we cannot see.
@@ -4711,7 +4753,7 @@ describe("lsp regressions", () => {
 		try {
 			const sourceFile = path.join(tempDir.path(), "old.ts");
 			const destFile = path.join(tempDir.path(), "dangling.ts");
-			await Bun.write(sourceFile, "export const a = 1;\n");
+			await bun.write(sourceFile, "export const a = 1;\n");
 			const sourceStat = await fs.promises.stat(sourceFile);
 			const realLstat = fs.promises.lstat;
 			const lstatSpy = vi.spyOn(fs.promises, "lstat").mockImplementation((async (target: fs.PathLike) => {
@@ -4743,7 +4785,7 @@ describe("lsp regressions", () => {
 		const destFile = path.join(lspHomeOverride, "other", "renamed.ts");
 		fs.mkdirSync(path.dirname(sourceFile), { recursive: true });
 		fs.mkdirSync(cwd, { recursive: true });
-		await Bun.write(sourceFile, "export const a = 1;\n");
+		await bun.write(sourceFile, "export const a = 1;\n");
 		const realStat = fs.promises.stat;
 		vi.spyOn(fs.promises, "stat").mockImplementation((async (target: fs.PathLike) => {
 			if (target === sourceFile) {
@@ -4788,7 +4830,7 @@ describe("lsp regressions", () => {
 				initOptions: { generation: 2 },
 				settings: { diagnostics: true },
 			};
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-lsp": newConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -4837,7 +4879,7 @@ describe("lsp regressions", () => {
 
 			const newServer = installHandshakeLsp();
 			const newConfig: ServerConfig = { ...oldConfig, args: ["--mode", "new"] };
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-lsp": newConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -4924,7 +4966,7 @@ describe("lsp regressions", () => {
 
 			const newServer = installHandshakeLsp();
 			const newConfig: ServerConfig = { ...oldConfig, args: ["--mode", "new"] };
-			vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+			vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 				servers: { "fake-lsp": newConfig },
 				idleTimeoutMs: undefined,
 			});
@@ -4934,7 +4976,7 @@ describe("lsp regressions", () => {
 				() => "resolved",
 				error => String(error),
 			);
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(newServer.received.some(message => message.method === "initialize")).toBe(false);
 			oldServer.send({ jsonrpc: "2.0", id: initialize.id, result: { capabilities: {} } });
 			expect(await oldOutcome).toContain("superseded during initialization");
@@ -4971,7 +5013,7 @@ describe("lsp regressions", () => {
 			const controller = new AbortController();
 			const reason = new Error("reload cancelled");
 			const cleanup = lspClient.shutdownStaleClients(tempDir.path(), [newConfig], controller.signal);
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			controller.abort(reason);
 			await expect(cleanup).rejects.toBeInstanceOf(ToolAbortError);
 
@@ -4988,30 +5030,33 @@ describe("lsp regressions", () => {
 	it("workspace reload rediscovers LSP servers after an empty config was cached", async () => {
 		const tempDir = TempDir.createSync("@omp-lsp-reload-redetect-");
 		try {
+			const cwd = tempDir.path();
 			const server: ServerConfig = {
-				command: "test-lsp",
+				command: process.execPath,
 				fileTypes: [".ts"],
 				rootMarkers: ["package.json"],
 			};
-			const configs: LspConfig[] = [
-				{ servers: {}, idleTimeoutMs: undefined },
-				{ servers: { "test-lsp": server }, idleTimeoutMs: undefined },
-				{ servers: { "test-lsp": server }, idleTimeoutMs: undefined },
-			];
-			const loadConfigSpy = vi
-				.spyOn(lspConfig, "loadConfig")
-				.mockImplementation(() => configs.shift() ?? configs[0]);
+			// Seed the per-cwd cache the way an earlier session would have: an
+			// empty discovery result. The on-disk config below appears afterwards,
+			// so only `reload`'s cache invalidation can surface it.
+			lspConfig.configCache.set(cwd, { servers: {}, idleTimeoutMs: undefined });
+			fs.mkdirSync(path.join(cwd, ".omp"), { recursive: true });
+			fs.writeFileSync(path.join(cwd, "package.json"), "{}");
+			fs.writeFileSync(path.join(cwd, ".omp", "lsp.json"), JSON.stringify({ servers: { "test-lsp": server } }));
+
 			const client = { proc: { kill: vi.fn() }, config: server, openFiles: new Map() } as unknown as LspClient;
 			vi.spyOn(lspClient, "getOrCreateClient").mockResolvedValue(client);
 			vi.spyOn(lspClient, "sendNotification").mockResolvedValue(undefined);
 
-			const tool = new LspTool(makeLspSession(tempDir.path()));
+			const tool = new LspTool(makeLspSession(cwd));
 			const initial = await tool.execute("reload-redetect-status", { action: "status" });
 			const initialOutput = initial.content
 				.filter(block => block.type === "text")
 				.map(block => block.text)
 				.join("\n");
 			expect(initialOutput).toContain("No language servers configured for this project");
+			// The seeded cache still serves the status call: no discovery ran.
+			expect(lspConfig.configCache.get(cwd)?.servers).toEqual({});
 
 			const starResult = await tool.execute("reload-redetect-star", { action: "reload", file: "*" });
 			const starOutput = starResult.content
@@ -5025,11 +5070,18 @@ describe("lsp regressions", () => {
 				.map(block => block.text)
 				.join("\n");
 
-			expect(loadConfigSpy).toHaveBeenCalledTimes(3);
 			expect(starOutput).toContain("Reloaded test-lsp");
 			expect(omittedOutput).toContain("Reloaded test-lsp");
-			expect(lspClient.getOrCreateClient).toHaveBeenCalledWith(server, tempDir.path(), undefined, expect.anything());
+			// Reload re-read the file and repopulated the cache with the fresh server.
+			expect(lspConfig.configCache.get(cwd)?.servers["test-lsp"]).toBeDefined();
+			expect(lspClient.getOrCreateClient).toHaveBeenCalledWith(
+				expect.objectContaining({ command: process.execPath, fileTypes: [".ts"] }),
+				cwd,
+				undefined,
+				expect.anything(),
+			);
 		} finally {
+			lspConfig.configCache.delete(tempDir.path());
 			vi.restoreAllMocks();
 			tempDir.removeSync();
 		}
@@ -5040,7 +5092,7 @@ describe("lsp regressions", () => {
 		// tsls has actually been spawned. Status must reflect that — claiming
 		// rust-analyzer is 'active' when the process never started was the
 		// original bug.
-		vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+		vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 			servers: {
 				"rust-analyzer": { command: "rust-analyzer", fileTypes: [".rs"], rootMarkers: ["Cargo.toml"] },
 				"typescript-language-server": {
@@ -5076,20 +5128,17 @@ describe("lsp regressions", () => {
 		try {
 			const cwd = tempDir.path();
 			const empty: LspConfig = { servers: {}, idleTimeoutMs: undefined };
-			const withServer: LspConfig = {
-				servers: {
-					"fake-pylsp": {
-						command: "true",
-						fileTypes: [".py"],
-						rootMarkers: [".python-root"],
-						resolvedCommand: "/bin/true",
-					},
-				},
-				idleTimeoutMs: undefined,
-			};
-			const loadConfigSpy = vi
-				.spyOn(lspConfig, "loadConfig")
-				.mockImplementation(() => (loadConfigSpy.mock.calls.length === 1 ? empty : withServer));
+			// Seed the cache as the first LSP call would have, then write the
+			// config file afterwards: only invalidation can make it visible.
+			lspConfig.configCache.set(cwd, empty);
+			fs.mkdirSync(path.join(cwd, ".omp"), { recursive: true });
+			fs.writeFileSync(path.join(cwd, ".python-root"), "");
+			fs.writeFileSync(
+				path.join(cwd, ".omp", "lsp.json"),
+				JSON.stringify({
+					"fake-pylsp": { command: process.execPath, fileTypes: [".py"], rootMarkers: [".python-root"] },
+				}),
+			);
 			// Prevent any real LSP subprocess from spawning when reload iterates
 			// the refreshed server list — the spawn path would race with the
 			// test's teardown.
@@ -5104,16 +5153,18 @@ describe("lsp regressions", () => {
 				.map(b => b.text)
 				.join("\n");
 			expect(text1).toContain("No language servers configured");
-			expect(loadConfigSpy).toHaveBeenCalledTimes(1);
+			expect(lspConfig.configCache.get(cwd)).toBe(empty);
 
 			// Second status hits the cache — proves caching is the baseline, so
 			// the next assertion measures invalidation, not a missing cache.
 			await tool.execute("cache-2", { action: "status" });
-			expect(loadConfigSpy).toHaveBeenCalledTimes(1);
+			expect(lspConfig.configCache.get(cwd)).toBe(empty);
 
 			// `reload *` MUST drop the cached empty config and re-read from disk.
 			const reload = await tool.execute("cache-3", { action: "reload", file: "*" });
-			expect(loadConfigSpy).toHaveBeenCalledTimes(2);
+			const refreshed = lspConfig.configCache.get(cwd);
+			expect(refreshed).not.toBe(empty);
+			expect(refreshed?.servers["fake-pylsp"]).toBeDefined();
 			const reloadText = reload.content
 				.filter(b => b.type === "text")
 				.map(b => b.text)
@@ -5130,8 +5181,9 @@ describe("lsp regressions", () => {
 				.map(b => b.text)
 				.join("\n");
 			expect(text3).toContain("fake-pylsp (configured, not started)");
-			expect(loadConfigSpy).toHaveBeenCalledTimes(2);
+			expect(lspConfig.configCache.get(cwd)).toBe(refreshed);
 		} finally {
+			lspConfig.configCache.delete(tempDir.path());
 			tempDir.removeSync();
 		}
 	});
@@ -5151,7 +5203,7 @@ describe("lsp regressions", () => {
 			try {
 				const sourcePath = path.join(tempDir.path(), "UsesMissing.ts");
 				const sourceUri = fileToUri(sourcePath);
-				await Bun.write(sourcePath, 'import { MissingClass } from "./MissingClass";\n');
+				await bun.write(sourcePath, 'import { MissingClass } from "./MissingClass";\n');
 				const missingModuleDiagnostic: Diagnostic = {
 					message: "Cannot find module './MissingClass' or its corresponding type declarations.",
 					severity: 1,
@@ -5183,7 +5235,7 @@ describe("lsp regressions", () => {
 					}
 				});
 				const config: ServerConfig = { command: "fake-lsp", fileTypes: [".ts"], rootMarkers: [] };
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 					servers: { "fake-lsp": config },
 					idleTimeoutMs: undefined,
 				});
@@ -5222,7 +5274,7 @@ describe("lsp regressions", () => {
 					// signal decides its fate.
 				});
 				const config: ServerConfig = { command: "rust-analyzer", fileTypes: [".ts"], rootMarkers: [] };
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
 
 				const tool = new LspTool(makeLspSession(tempDir.path()));
 				const controller = new AbortController();
@@ -5259,7 +5311,7 @@ describe("lsp regressions", () => {
 					}
 				});
 				const config: ServerConfig = { command: "rust-analyzer", fileTypes: [".ts"], rootMarkers: [] };
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
 
 				const tool = new LspTool(makeLspSession(tempDir.path()));
 				const pending = tool.execute("reload-cancel-fb", { action: "reload", file: "*" }, controller.signal);
@@ -5288,7 +5340,7 @@ describe("lsp regressions", () => {
 					}
 				});
 				const config: ServerConfig = { command: "rust-analyzer", fileTypes: [".ts"], rootMarkers: [] };
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
 
 				const tool = new LspTool(makeLspSession(tempDir.path()));
 				const result = await tool.execute("reload-fallback", { action: "reload", file: "*" });
@@ -5319,7 +5371,7 @@ describe("lsp regressions", () => {
 					}
 				});
 				const config: ServerConfig = { command: "rust-analyzer", fileTypes: [".ts"], rootMarkers: [] };
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({ servers: { fake: config }, idleTimeoutMs: undefined });
 
 				const tool = new LspTool(makeLspSession(tempDir.path()));
 				const result = await tool.execute("reload-fallback-code", { action: "reload", file: "*" });
@@ -5358,7 +5410,7 @@ describe("lsp regressions", () => {
 					rootMarkers: [],
 					settings,
 				};
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 					servers: { csharp: config },
 					idleTimeoutMs: undefined,
 				});
@@ -5428,7 +5480,7 @@ describe("lsp regressions", () => {
 				expect(lspClient.getActiveClients().some(s => s.name === config.command)).toBe(true);
 
 				server.exit(0);
-				await Bun.sleep(0);
+				await bun.sleep(0);
 				expect(lspClient.getActiveClients().some(s => s.name === config.command)).toBe(false);
 			} finally {
 				vi.restoreAllMocks();
@@ -5515,7 +5567,7 @@ describe("lsp regressions", () => {
 						server.exit(0);
 					}
 				});
-				vi.spyOn(lspConfig, "loadConfig").mockReturnValue({
+				vi.spyOn(lspConfig, "getConfig").mockReturnValue({
 					servers: { fake: config },
 					idleTimeoutMs: undefined,
 				});
@@ -5630,7 +5682,7 @@ describe("lsp regressions", () => {
 			};
 
 			const first = lspClient.sendNotification(client, "workspace/didChangeConfiguration", { settings: {} });
-			await Bun.sleep(0);
+			await bun.sleep(0);
 
 			const controller = new AbortController();
 			const second = lspClient.sendNotification(client, "textDocument/didOpen", {}, controller.signal);
@@ -5768,7 +5820,7 @@ describe("lsp regressions", () => {
 				},
 			} as unknown as LspClient["proc"];
 
-			vi.spyOn(piUtils.ptree, "spawn").mockReturnValue(proc as unknown as piUtils.ptree.ChildProcess<"pipe">);
+			vi.spyOn(piUtils.ptree, "spawn").mockReturnValue(asChildProcess(proc));
 
 			const tempDir = TempDir.createSync("@omp-lsp-flush-wedge-");
 			try {
@@ -5870,7 +5922,7 @@ describe("ty python lsp", () => {
 			command === "ty" ? resolvedTy : command === "ruff" ? resolvedRuff : null,
 		);
 		try {
-			await Bun.write(path.join(tempDir.path(), "pyproject.toml"), '[project]\nname = "demo"\n');
+			await bun.write(path.join(tempDir.path(), "pyproject.toml"), '[project]\nname = "demo"\n');
 			const config = loadConfig(tempDir.path());
 			expect(config.servers.ty?.resolvedCommand).toBe(resolvedTy);
 			expect(config.servers.ruff?.resolvedCommand).toBe(resolvedRuff);
@@ -5893,8 +5945,8 @@ describe("ty python lsp", () => {
 		// $which never succeeds: only LOCAL_BIN_PATHS resolution can find ty.
 		vi.spyOn(piUtils, "$which").mockImplementation(() => null);
 		try {
-			await Bun.write(path.join(tempDir.path(), "ty.toml"), "[configuration]\n");
-			await Bun.write(resolvedTy, '#!/bin/sh\nexec ty "$@"\n');
+			await bun.write(path.join(tempDir.path(), "ty.toml"), "[configuration]\n");
+			await bun.write(resolvedTy, '#!/bin/sh\nexec ty "$@"\n');
 			const config = loadConfig(tempDir.path());
 			expect(config.servers.ty?.resolvedCommand).toBe(resolvedTy);
 			expect(config.servers.ty?.command).toBe("ty");

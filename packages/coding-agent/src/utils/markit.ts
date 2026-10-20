@@ -8,6 +8,7 @@ import {
 	readMarkitConversionCache,
 	writeMarkitConversionCache,
 } from "./markit-cache";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * File extensions markit can actually convert to markdown — one per registered
@@ -156,7 +157,7 @@ export async function convertFileWithMarkit(
 	throwIfAborted(signal);
 	let bytes: Uint8Array;
 	try {
-		bytes = await untilAborted(signal, () => Bun.file(filePath).bytes());
+		bytes = await untilAborted(signal, () => bun.file(filePath).bytes());
 	} catch (error) {
 		if (error instanceof ToolAbortError) throw error;
 		if (error instanceof Error && error.name === "AbortError") throw new ToolAbortError();

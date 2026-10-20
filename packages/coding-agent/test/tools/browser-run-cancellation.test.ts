@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { postmortem, TempDir } from "@oh-my-pi/pi-utils";
 import { JsRuntime, type RuntimeHooks } from "../../src/eval/js/shared/runtime";
@@ -12,8 +12,13 @@ import {
 	withBrowserPromiseCombinatorTracking,
 } from "../../src/tools/run-scope";
 import { ToolAbortError } from "../../src/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { TS_CHILD_FLAGS } from "./node-flags";
+import { Worker } from "@oh-my-pi/pi-utils/worker";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 const runScopeModuleUrl = new URL("../../src/tools/run-scope.ts", import.meta.url).href;
+const postmortemModuleUrl = new URL("../../../utils/src/postmortem.ts", import.meta.url).href;
 
 async function collectUnhandledRejections(action: () => void | Promise<void>): Promise<unknown[]> {
 	const reasons: unknown[] = [];
@@ -165,6 +170,7 @@ describe("browser run cancellation", () => {
 	it("keeps a later cause-wrapped rejection on the fatal path", async () => {
 		vi.useRealTimers();
 		const script = `
+			import ${JSON.stringify(postmortemModuleUrl)};
 			import { markBrowserRunRejection } from ${JSON.stringify(runScopeModuleUrl)};
 
 			const browserFailure = new Error("browser failure");
@@ -172,7 +178,7 @@ describe("browser run cancellation", () => {
 			Promise.reject(new Error("unrelated fatal", { cause: browserFailure }));
 			await Promise.resolve();
 		`;
-		const proc = Bun.spawn([process.execPath, "-e", script], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...TS_CHILD_FLAGS, "-e", script], {
 			cwd: process.cwd(),
 			stdout: "pipe",
 			stderr: "pipe",
@@ -292,7 +298,7 @@ describe("browser run cancellation", () => {
 						throw reason;
 					});
 					// oxlint-enable unicorn/no-single-promise-in-promise-methods
-					await Bun.sleep(20);
+					await bun.sleep(20);
 				},
 			);
 
@@ -361,7 +367,7 @@ describe("browser run cancellation", () => {
 				} catch (error) {
 					caught = error;
 				}
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			},
 		);
 
@@ -373,7 +379,7 @@ describe("browser run cancellation", () => {
 		vi.useRealTimers();
 		using workerDir = TempDir.createSync("@omp-browser-rejections-");
 		const workerPath = workerDir.join("worker.ts");
-		await Bun.write(
+		await bun.write(
 			workerPath,
 			`
 				import {
@@ -419,7 +425,7 @@ describe("browser run cancellation", () => {
 				try {
 					const result = await Promise.race([
 						done.promise,
-						Bun.sleep(1000).then(() => {
+						bun.sleep(1000).then(() => {
 							throw new Error("worker timed out");
 						}),
 					]);
@@ -428,7 +434,7 @@ describe("browser run cancellation", () => {
 					await worker.terminate();
 				}
 			`;
-			const proc = Bun.spawn([process.execPath, "-e", script], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...TS_CHILD_FLAGS, "-e", script], {
 				cwd: process.cwd(),
 				stdout: "pipe",
 				stderr: "pipe",
@@ -497,7 +503,7 @@ describe("browser run cancellation", () => {
 		void facade.ok().finally(() => {
 			throw new Error("finally failed");
 		});
-		await Bun.sleep(20);
+		await bun.sleep(20);
 
 		const messages = floatingRejections
 			.map(reason => (reason instanceof Error ? reason.message : String(reason)))
@@ -522,7 +528,7 @@ describe("browser run cancellation", () => {
 		void facade.fail().catch(reason => {
 			throw reason;
 		});
-		await Bun.sleep(20);
+		await bun.sleep(20);
 
 		expect(isBrowserRunRejection(browserFailure, owner)).toBe(true);
 		expect(floatingRejections).toEqual([browserFailure]);

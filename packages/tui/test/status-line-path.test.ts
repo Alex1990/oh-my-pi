@@ -1,4 +1,5 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +14,17 @@ import {
 	removeSyncWithRetries,
 	setProjectDir,
 } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type * as OsModule from "node:os";
+
+// `node:os` exports are non-configurable in ESM, so `vi.spyOn(os, "homedir")`
+// cannot replace them. Redirect `homedir` through hoisted state instead.
+const fakeHome = vi.hoisted(() => ({ value: undefined as string | undefined }));
+
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof OsModule>();
+	return { ...actual, homedir: () => fakeHome.value ?? actual.homedir() };
+});
 
 const originalProjectDir = getProjectDir();
 const SCRATCH_ROOT_PREFIXES: readonly string[] = [
@@ -88,6 +100,7 @@ function createPathContext(): SegmentContext {
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	fakeHome.value = undefined;
 	setProjectDir(originalProjectDir);
 });
 
@@ -116,7 +129,7 @@ function createFakeHome(): { home: string; projectsRoot: string } {
 	const home = fs.mkdtempSync(path.join(homeRoot, "omp-status-line-home-"));
 	const projectsRoot = path.join(home, "Projects");
 	fs.mkdirSync(projectsRoot, { recursive: true });
-	vi.spyOn(os, "homedir").mockReturnValue(home);
+	fakeHome.value = home;
 	return { home, projectsRoot };
 }
 
@@ -133,7 +146,7 @@ describe("status line path segment", () => {
 
 		const ctx = createPathContext();
 		ctx.options.path = { abbreviate: false, maxLength: 1000, stripWorkPrefix: false };
-		const label = Bun.stripANSI(renderSegment("path", ctx).content).toLowerCase();
+		const label = bun.stripANSI(renderSegment("path", ctx).content).toLowerCase();
 		expect(label).toContain(home.toLowerCase());
 		expect(label).not.toContain(shortHome.toLowerCase());
 
@@ -154,13 +167,13 @@ describe("status line path segment", () => {
 			relativeRepoRoot: ".",
 			source: "single-direct-child-repo",
 		};
-		const label = Bun.stripANSI(renderSegment("path", ctx).content);
+		const label = bun.stripANSI(renderSegment("path", ctx).content);
 		expect(label).toContain("~");
 		expect(label.toLowerCase()).not.toContain(shortHome.toLowerCase());
 		expect(ctx.activeRepo.cwd).toBe(shortHome);
 
 		ctx.options.path.abbreviate = false;
-		expectContentToContainPath(Bun.stripANSI(renderSegment("path", ctx).content), shortHome);
+		expectContentToContainPath(bun.stripANSI(renderSegment("path", ctx).content), shortHome);
 	});
 
 	it.skipIf(process.platform !== "win32")("keeps junction spelling in the displayed cwd", () => {
@@ -174,7 +187,7 @@ describe("status line path segment", () => {
 
 			const ctx = createPathContext();
 			ctx.options.path = { abbreviate: false, maxLength: 1000, stripWorkPrefix: false };
-			const label = Bun.stripANSI(renderSegment("path", ctx).content);
+			const label = bun.stripANSI(renderSegment("path", ctx).content);
 			expect(path.basename(getProjectDir())).toBe("alias");
 			expect(label).toContain("alias");
 			expect(label).not.toContain(`${path.sep}target`);
@@ -249,7 +262,7 @@ describe("status line path segment", () => {
 				relativeRepoRoot: "repo",
 				source: "single-direct-child-repo",
 			};
-			expect(Bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} project ↳ repo`);
+			expect(bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} project ↳ repo`);
 
 			ctx.activeRepo.cwd = scratchDir;
 			renderSegment("path", ctx);
@@ -257,7 +270,7 @@ describe("status line path segment", () => {
 			fs.symlinkSync(scratchDir, alias, process.platform === "win32" ? "junction" : "dir");
 			ctx.activeRepo.cwd = alias;
 
-			const rendered = Bun.stripANSI(renderSegment("path", ctx).content);
+			const rendered = bun.stripANSI(renderSegment("path", ctx).content);
 			expectContentToContainPath(rendered, `${theme.icon.scratchFolder} ${path.basename(scratchDir)} ↳ repo`);
 			expect(rendered).not.toContain(theme.icon.folder);
 		} finally {
@@ -274,14 +287,14 @@ describe("status line path segment", () => {
 			fs.mkdirSync(firstProject);
 			setProjectDir(firstProject);
 			const ctx = createPathContext();
-			expect(Bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} first-project`);
+			expect(bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} first-project`);
 
 			const second = createFakeHome();
 			secondHome = second.home;
 			const secondProject = path.join(second.projectsRoot, "second-project");
 			fs.mkdirSync(secondProject);
 			setProjectDir(secondProject);
-			expect(Bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} second-project`);
+			expect(bun.stripANSI(renderSegment("path", ctx).content)).toBe(`${theme.icon.folder} second-project`);
 		} finally {
 			setProjectDir(originalProjectDir);
 			removeSyncWithRetries(first.home);
@@ -404,7 +417,7 @@ describe("status line path segment in a linked worktree", () => {
 
 	it("collapses to the project name and drops the worktree dir when it equals the branch", () => {
 		const rendered = renderSegment("path", worktreeContext({ projectName: "pi", worktreeName: "xx" }, "xx"));
-		const content = Bun.stripANSI(rendered.content);
+		const content = bun.stripANSI(rendered.content);
 		expect(rendered.visible).toBe(true);
 		expect(content).toBe(`${theme.icon.worktree} pi`);
 		// The base prefix, the worktree dir, and the folder icon are all gone.
@@ -415,12 +428,12 @@ describe("status line path segment in a linked worktree", () => {
 
 	it("keeps the worktree dir when it diverges from the branch", () => {
 		const rendered = renderSegment("path", worktreeContext({ projectName: "pi", worktreeName: "wt-icon" }, "icon"));
-		expect(Bun.stripANSI(rendered.content)).toBe(`${theme.icon.worktree} pi/wt-icon`);
+		expect(bun.stripANSI(rendered.content)).toBe(`${theme.icon.worktree} pi/wt-icon`);
 	});
 
 	it("keeps the worktree dir when no branch is shown", () => {
 		const rendered = renderSegment("path", worktreeContext({ projectName: "pi", worktreeName: "xx" }, null));
-		expect(Bun.stripANSI(rendered.content)).toBe(`${theme.icon.worktree} pi/xx`);
+		expect(bun.stripANSI(rendered.content)).toBe(`${theme.icon.worktree} pi/xx`);
 	});
 
 	it("falls back to the on-disk path when stripWorkPrefix is disabled", () => {
@@ -429,7 +442,7 @@ describe("status line path segment in a linked worktree", () => {
 			setProjectDir(scratchDir);
 			const ctx = worktreeContext({ projectName: "pi", worktreeName: "xx" }, "xx");
 			ctx.options.path = { ...ctx.options.path, stripWorkPrefix: false };
-			const content = Bun.stripANSI(renderSegment("path", ctx).content);
+			const content = bun.stripANSI(renderSegment("path", ctx).content);
 			expect(content).not.toContain(theme.icon.worktree);
 			expect(content).toContain(theme.icon.folder);
 		} finally {
@@ -441,7 +454,7 @@ describe("status line path segment in a linked worktree", () => {
 	it("clamps a long worktree label to maxLength so overflow shrink works", () => {
 		const ctx = worktreeContext({ projectName: "very-long-project-name", worktreeName: "feature" }, "other");
 		ctx.options.path = { ...ctx.options.path, maxLength: 10 };
-		const label = Bun.stripANSI(renderSegment("path", ctx).content).slice(theme.icon.worktree.length + 1);
+		const label = bun.stripANSI(renderSegment("path", ctx).content).slice(theme.icon.worktree.length + 1);
 		expect(label.length).toBeLessThanOrEqual(10);
 		expect(label.startsWith("…")).toBe(true);
 		expect(label.endsWith("feature")).toBe(true);

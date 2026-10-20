@@ -17,6 +17,8 @@ import { compileRuleCondition, type Rule } from "../capability/rule";
 import { ensureGrammar } from "../utils/grammars";
 import type { TtsrSettings } from "./ttsr-settings";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 export type TtsrMatchSource = "text" | "thinking" | "tool";
 
 /** Context about the stream content currently being checked against TTSR rules. */
@@ -104,7 +106,7 @@ export async function judgeRules(
 
 interface ToolScope {
 	toolName?: string;
-	pathGlob?: Bun.Glob;
+	pathGlob?: Glob;
 	pathPattern?: string;
 }
 
@@ -125,7 +127,7 @@ interface TtsrEntry {
 	/** Judge question; set → conditions only prefilter completed output, never stream matches. */
 	question?: string;
 	scope: TtsrScope;
-	globalPathGlobs?: Bun.Glob[];
+	globalPathGlobs?: Glob[];
 }
 
 /** Tracks when a rule was last injected (for repeat gating). */
@@ -558,7 +560,7 @@ export class TtsrManager {
 		return compiled;
 	}
 
-	#compileGlobalPathGlobs(globs: Rule["globs"]): Bun.Glob[] | undefined {
+	#compileGlobalPathGlobs(globs: Rule["globs"]): Glob[] | undefined {
 		if (!globs || globs.length === 0) {
 			return undefined;
 		}
@@ -566,7 +568,7 @@ export class TtsrManager {
 		const compiled = globs
 			.map(glob => glob.trim())
 			.filter(glob => glob.length > 0)
-			.map(glob => new Bun.Glob(glob));
+			.map(glob => new Glob(glob));
 		return compiled.length > 0 ? compiled : undefined;
 	}
 
@@ -590,7 +592,7 @@ export class TtsrManager {
 		return {
 			toolName,
 			pathPattern,
-			pathGlob: new Bun.Glob(pathPattern),
+			pathGlob: new Glob(pathPattern),
 		};
 	}
 
@@ -672,7 +674,7 @@ export class TtsrManager {
 		return pathValue.replaceAll("\\", "/");
 	}
 
-	#matchesGlob(glob: Bun.Glob, filePaths: string[] | undefined): boolean {
+	#matchesGlob(glob: Glob, filePaths: string[] | undefined): boolean {
 		if (!filePaths || filePaths.length === 0) {
 			return false;
 		}

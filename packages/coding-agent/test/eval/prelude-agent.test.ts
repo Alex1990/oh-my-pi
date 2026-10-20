@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as vm from "node:vm";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
 import { createHelpers } from "../../src/eval/js/shared/helpers";
 import { JAVASCRIPT_PRELUDE_SOURCE } from "../../src/eval/js/shared/prelude";
 import { artifactReadBridge } from "../helpers/artifact-read-bridge";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * The eval `agent()` helper always returns an `AgentHandle` — spawning is
@@ -235,7 +236,7 @@ describe("eval js read() URI delegation", () => {
 
 	it("returns an empty string for artifact:// reads with a non-positive limit", async () => {
 		using tmp = TempDir.createSync("@eval-prelude-artifact-limit-");
-		await Bun.write(path.join(tmp.path(), "12.eval.log"), "first\nsecond\nthird\n");
+		await bun.write(path.join(tmp.path(), "12.eval.log"), "first\nsecond\nthird\n");
 		const { calls, sandbox } = loadArtifactPrelude(tmp.path());
 
 		expect(await vm.runInContext(`read("artifact://12", { limit: 0 })`, sandbox)).toBe("");
@@ -247,7 +248,7 @@ describe("eval js read() URI delegation", () => {
 	it("reads an artifact another session holds in full, however large, through the read tool", async () => {
 		using tmp = TempDir.createSync("@eval-prelude-artifact-fallback-");
 		const owner = path.join(tmp.path(), "owner");
-		await Bun.write(path.join(owner, "7.bash.log"), largeArtifact);
+		await bun.write(path.join(owner, "7.bash.log"), largeArtifact);
 		const { calls, sandbox } = loadArtifactPrelude(
 			path.join(tmp.path(), "own"),
 			artifactReadBridge(tmp.path(), owner),
@@ -269,7 +270,7 @@ describe("eval js read() URI delegation", () => {
 
 	it("reads an artifact in full through the read tool when no artifacts dir was injected", async () => {
 		using tmp = TempDir.createSync("@eval-prelude-artifact-no-root-");
-		await Bun.write(path.join(tmp.path(), "12.eval.log"), largeArtifact);
+		await bun.write(path.join(tmp.path(), "12.eval.log"), largeArtifact);
 		const { calls, sandbox } = loadArtifactPrelude(undefined, artifactReadBridge(tmp.path(), tmp.path()));
 
 		expect(await vm.runInContext(`read("artifact://12")`, sandbox)).toBe(largeArtifact);

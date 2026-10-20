@@ -1,20 +1,23 @@
-import { afterEach, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Writable } from "node:stream";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { RpcFrameDecoder, RpcFrameEncoder } from "../src/modes/rpc/rpc-frame";
 import { RpcOutputWriter } from "../src/modes/rpc/rpc-output";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 afterEach(() => {
 	mock.restore();
 });
 
 it("drains RPC command responses after stdin EOF while the real stdout pipe is backpressured", async () => {
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			process.execPath,
-			path.join(import.meta.dir, "../src/cli.ts"),
+			path.join(import.meta.dirname, "../src/cli.ts"),
 			"--mode",
 			"rpc",
 			"--no-extensions",
@@ -27,7 +30,7 @@ it("drains RPC command responses after stdin EOF while the real stdout pipe is b
 			"claude-sonnet-4-5",
 		],
 		{
-			cwd: import.meta.dir,
+			cwd: import.meta.dirname,
 			env: { ...process.env, PI_NO_TITLE: "1" },
 			stdin: "pipe",
 			stdout: "pipe",
@@ -46,7 +49,7 @@ it("drains RPC command responses after stdin EOF while the real stdout pipe is b
 		}
 		await child.stdin.flush();
 		child.stdin.end();
-		await Bun.sleep(300);
+		await bun.sleep(300);
 		while (true) {
 			const next = await reader.read();
 			if (next.done) break;
@@ -75,7 +78,7 @@ it("delivers ordered v1 and chunked v2 frames through a slow sink before close c
 		highWaterMark: 1024,
 		write(chunk, _encoding, callback) {
 			chunks.push(Buffer.from(chunk));
-			void Bun.sleep(1).then(() => callback());
+			void bun.sleep(1).then(() => callback());
 		},
 	});
 	const errors: Error[] = [];
@@ -115,7 +118,7 @@ it("fails promptly and removes spilled output when the reader disconnects", asyn
 	sink.destroy(new Error("reader disconnected"));
 	await expect(closed).rejects.toThrow("reader disconnected");
 	expect((await failure.promise).message).toBe("reader disconnected");
-	expect(await Bun.file(dir.join("output")).exists()).toBe(false);
+	expect(await bun.file(dir.join("output")).exists()).toBe(false);
 });
 
 it("reports disk exhaustion and removes the partial spool instead of silently dropping accepted output", async () => {
@@ -130,7 +133,7 @@ it("reports disk exhaustion and removes the partial spool instead of silently dr
 	writer.write(["first\n", "pending\n"]);
 	await expect(writer.close()).rejects.toThrow("disk full");
 	expect(failures.map(error => error.message)).toEqual(["disk full"]);
-	expect(await Bun.file(dir.join("output")).exists()).toBe(false);
+	expect(await bun.file(dir.join("output")).exists()).toBe(false);
 	sink.destroy();
 });
 
@@ -152,6 +155,6 @@ it("reports a truncated spool during delivery instead of completing a partial pr
 	release?.();
 	await expect(closed).rejects.toThrow("spool ended before delivery completed");
 	expect(failures.map(error => error.message)).toEqual(["RPC output spool ended before delivery completed"]);
-	expect(await Bun.file(dir.join("output")).exists()).toBe(false);
+	expect(await bun.file(dir.join("output")).exists()).toBe(false);
 	sink.destroy();
 });

@@ -16,10 +16,11 @@ import * as fsSync from "node:fs";
 import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { detectHostAvx2Support, resolveLocalHostAddon } from "../../../scripts/host-detect";
 import { stampNativeVersion } from "../../../scripts/stamp-native-version";
 import { generateEnumExports } from "./gen-enums";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // pcre2-sys prefers a system libpcre2 when pkg-config finds one. Keep the
 // static build so the local addon never retains host Homebrew paths.
@@ -31,7 +32,7 @@ process.env.PCRE2_SYS_STATIC ??= "1";
 // without exposing them, so outside a vcvars prompt the build dies on
 // "cmake not found". Resolve the VS install via vswhere and append its
 // CMake/Ninja dirs, keeping any user-provided tools ahead.
-if (process.platform === "win32" && (!Bun.which("cmake") || !Bun.which("ninja"))) {
+if (process.platform === "win32" && (!bun.which("cmake") || !bun.which("ninja"))) {
 	const vcToolsComponent =
 		process.arch === "arm64"
 			? "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
@@ -42,7 +43,7 @@ if (process.platform === "win32" && (!Bun.which("cmake") || !Bun.which("ninja"))
 		"Installer",
 		"vswhere.exe",
 	);
-	const probe = Bun.spawnSync(
+	const probe = bun.spawnSync(
 		[vswhere, "-latest", "-products", "*", "-requires", vcToolsComponent, "-property", "installationPath"],
 		{ stdout: "pipe", stderr: "pipe" },
 	);
@@ -58,10 +59,10 @@ if (process.platform === "win32" && (!Bun.which("cmake") || !Bun.which("ninja"))
 	}
 }
 
-const repoRoot = path.join(import.meta.dir, "../../..");
+const repoRoot = path.join(import.meta.dirname, "../../..");
 const rustDir = path.join(repoRoot, "crates/pi-natives");
-const nativeDir = path.join(import.meta.dir, "../native");
-const packageJsonPath = path.join(import.meta.dir, "../package.json");
+const nativeDir = path.join(import.meta.dirname, "../native");
+const packageJsonPath = path.join(import.meta.dirname, "../package.json");
 
 const localAddon = resolveLocalHostAddon({
 	platform: process.platform,
@@ -77,7 +78,7 @@ const variantSuffix = effectiveVariant ? `-${effectiveVariant}` : "";
 // host's CPU features into the addon and trips ring 0.17's aarch64-apple
 // const assertion (CAPS_STATIC == MIN_STATIC_FEATURES). Shipping Windows addons
 // also link the MSVC CRT statically so clean systems need no VC++ Redistributable.
-if (!Bun.env.RUSTFLAGS) {
+if (!bun.env.RUSTFLAGS) {
 	const rustFlags: string[] = [];
 	if (process.platform === "win32") {
 		rustFlags.push("-C", "target-feature=+crt-static");
@@ -88,7 +89,7 @@ if (!Bun.env.RUSTFLAGS) {
 		rustFlags.push("-C", "target-cpu=x86-64-v2");
 	}
 	if (rustFlags.length > 0) {
-		Bun.env.RUSTFLAGS = rustFlags.join(" ");
+		bun.env.RUSTFLAGS = rustFlags.join(" ");
 	}
 }
 
@@ -215,7 +216,7 @@ const napiBin = path.join(path.dirname(napiManifestPath), napiBinEntry);
 
 // Profiles live in the root Cargo.toml; `local` trades size for iteration
 // speed, `ci` strips and drops incremental state.
-const cargoProfile = Bun.env.OMP_NATIVE_CARGO_PROFILE?.trim() || "local";
+const cargoProfile = bun.env.OMP_NATIVE_CARGO_PROFILE?.trim() || "local";
 
 const napiArgs = [
 	"build",
@@ -235,7 +236,7 @@ const napiArgs = [
 
 // Local-only opt-in: pass extra cargo features through to napi build, e.g.
 // OMP_NATIVE_FEATURES=wayland-pipewire bun --cwd=packages/natives run build
-const extraFeatures = Bun.env.OMP_NATIVE_FEATURES?.trim();
+const extraFeatures = bun.env.OMP_NATIVE_FEATURES?.trim();
 if (extraFeatures) {
 	napiArgs.push("--features", extraFeatures);
 }
@@ -255,21 +256,28 @@ function tailSection(label: string, text: string): string {
 }
 
 try {
-	// The package declares Bun as its build runtime. Invoke napi's JavaScript
-	// entry through this Bun process instead of its `#!/usr/bin/env node` shim so
-	// an old host Node installation cannot make an otherwise supported Bun build fail.
-	const buildResult = await $`${process.execPath} ${napiBin} ${napiArgs}`.nothrow();
-	if (buildResult.exitCode !== 0) {
-		const stdout = buildResult.stdout?.toString("utf-8") ?? "";
-		const stderr = buildResult.stderr?.toString("utf-8") ?? "";
-		const detail = `${tailSection("stdout", stdout)}${tailSection("stderr", stderr)}`;
-		throw new Error(`napi build failed (exit ${buildResult.exitCode})${detail}`);
+	// Invoke napi's JavaScript entry through this Node process instead of its
+	// `#!/usr/bin/env node` shim so a stale host Node cannot break the build.
+	// Spawning an argv array (not a shell string) keeps Windows paths with spaces
+	// intact.
+	const buildProc = bun.spawn([process.execPath, napiBin, ...napiArgs], {
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const [buildStdout, buildStderr, buildExitCode] = await Promise.all([
+		new Response(buildProc.stdout).text(),
+		new Response(buildProc.stderr).text(),
+		buildProc.exited,
+	]);
+	if (buildExitCode !== 0) {
+		const detail = `${tailSection("stdout", buildStdout)}${tailSection("stderr", buildStderr)}`;
+		throw new Error(`napi build failed (exit ${buildExitCode})${detail}`);
 	}
 
 	const builtAddonPath = await resolveBuiltAddonPath(buildOutputDir, canonicalAddonFilename);
 	// Stamp the release version post-link, before the addon becomes visible
 	// under its canonical name, so a version bump never recompiles the crate.
-	const { version } = (await Bun.file(packageJsonPath).json()) as { version: string };
+	const { version } = (await bun.file(packageJsonPath).json()) as { version: string };
 	await stampNativeVersion(builtAddonPath, version);
 	if (builtAddonPath !== canonicalAddonPath) {
 		console.log(`Normalizing native addon filename: ${path.basename(builtAddonPath)} → ${canonicalAddonFilename}`);

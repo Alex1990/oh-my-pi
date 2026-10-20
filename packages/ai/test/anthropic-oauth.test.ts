@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getClaudeCodeVersion } from "@oh-my-pi/pi-ai/providers/claude-code-fingerprint";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { OAuthCredentials, OAuthController } from "@oh-my-pi/pi-ai/registry/oauth/types";
@@ -9,6 +9,7 @@ import {
 	buildAnthropicUrl,
 } from "@oh-my-pi/pi-ai/utils/anthropic-auth";
 import { withEnv } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -89,7 +90,7 @@ describe("anthropic oauth alignment", () => {
 						{ status: 200, headers: { "Content-Type": "application/json" } },
 					);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 		const result = await refreshAnthropic({

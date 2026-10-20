@@ -90,7 +90,7 @@ type InferParse<s extends string> = s extends
 				: s extends "object.json.stringify"
 					? string
 					: s extends "FormData.parse"
-						? Record<string, Bun.FormDataEntryValue | Bun.FormDataEntryValue[]>
+						? Record<string, FormDataEntryValue | FormDataEntryValue[]>
 						: s extends "parse.boolean"
 							? boolean
 							: s extends "parse.bigint"

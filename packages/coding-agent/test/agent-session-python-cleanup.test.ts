@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -12,6 +12,7 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { Snowflake, TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const OK_EXECUTION = { status: "ok", cancelled: false, timedOut: false, stdinRequested: false } as const;
 
@@ -107,16 +108,16 @@ const emptyWorkspaceTree = (cwd: string): WorkspaceTree => ({
 });
 
 const mockPositiveSleepsImmediate = () => {
-	const realSleep = Bun.sleep.bind(Bun);
-	return vi.spyOn(Bun, "sleep").mockImplementation((duration?: number | Date) => {
+	const realSleep = bun.sleep;
+	return vi.spyOn(bun, "sleep").mockImplementation((duration?: number) => {
 		if (typeof duration === "number" && duration > 0) {
-			return Promise.resolve();
+			return Promise.resolve(undefined);
 		}
 		return realSleep(duration ?? 0);
 	});
 };
 
-const expectSleepNear = (sleepSpy: Mock<typeof Bun.sleep>, targetMs: number) => {
+const expectSleepNear = (sleepSpy: Mock<typeof bun.sleep>, targetMs: number) => {
 	const minMs = targetMs - 100;
 	expect(
 		sleepSpy.mock.calls.some(
@@ -172,21 +173,21 @@ describe("AgentSession python cleanup", () => {
 	let originalNullPrompt: string | undefined;
 
 	beforeEach(() => {
-		originalNullPrompt = Bun.env.NULL_PROMPT;
-		Bun.env.NULL_PROMPT = "true";
+		originalNullPrompt = bun.env.NULL_PROMPT;
+		bun.env.NULL_PROMPT = "true";
 	});
 
 	afterEach(async () => {
 		if (originalNullPrompt === undefined) {
-			delete Bun.env.NULL_PROMPT;
+			delete bun.env.NULL_PROMPT;
 		} else {
-			Bun.env.NULL_PROMPT = originalNullPrompt;
+			bun.env.NULL_PROMPT = originalNullPrompt;
 		}
 		originalNullPrompt = undefined;
 		vi.restoreAllMocks();
 		AgentStorage.close();
 		await pythonExecutor.disposeAllKernelSessions();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		// Best-effort cleanup: createAgentSession opens AgentStorage
 		// inside agentDir that may outlive the test (dispose() doesn't close them).
 		// On Windows the leaked SQLite handles keep the dir locked; swallow EBUSY
@@ -378,13 +379,13 @@ describe("AgentSession python cleanup", () => {
 				expect(firstExecutionSettled).toBe(true);
 				firstDisposed = true;
 			});
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(firstDisposed).toBe(false);
 			expect(blockedExecutionSettled).toBe(false);
 			expect(firstExecutionSettled).toBe(false);
 
 			const secondExecution = secondSession.executePython("print('second')");
-			await Bun.sleep(0);
+			await bun.sleep(0);
 
 			expect(firstDisposed).toBe(false);
 			expect(blockedExecutionSettled).toBe(false);
@@ -486,7 +487,7 @@ describe("AgentSession python cleanup", () => {
 		kernel.abortBlockedExecution = false;
 
 		vi.spyOn(pythonKernel, "checkPythonKernelAvailability").mockResolvedValue({ ok: true });
-		const sleepSpy = vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		const sleepSpy = vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 
 		const startSpy = vi
 			.spyOn(pythonKernel.PythonKernel, "start")
@@ -593,7 +594,7 @@ describe("AgentSession python cleanup", () => {
 		const disposeSession = session.dispose().then(() => {
 			disposed = true;
 		});
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(disposed).toBe(false);
 		releaseHook.resolve();
 		await expect(execution).rejects.toThrow("Python execution is unavailable while session disposal is in progress");
@@ -647,7 +648,7 @@ describe("AgentSession python cleanup", () => {
 		const disposeSession = session.dispose().then(() => {
 			disposed = true;
 		});
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(disposed).toBe(false);
 		releaseHook.resolve();
 		await expect(execution).rejects.toThrow("Python execution is unavailable while session disposal is in progress");

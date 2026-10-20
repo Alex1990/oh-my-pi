@@ -14,13 +14,13 @@ Most runtime lookups use `$env` from `@oh-my-pi/pi-utils` (`packages/utils/src/e
 
 `$env` loading order:
 
-1. Existing process environment (`Bun.env`)
+1. Existing process environment (`process.env`)
 2. Project `.env` from the launch working directory for keys whose current value is empty/unset
 3. Active agent `.env` (normally `~/.omp/agent/.env`) for keys whose current value is empty/unset
 4. Active config-root `.env` (normally `~/.omp/.env`) for keys whose current value is empty/unset
 5. Home `.env` (`~/.env`) for keys whose current value is empty/unset
 
-The agent/root locations respect profiles, `PI_CONFIG_DIR`, and—only for the default profile—`PI_CODING_AGENT_DIR`. Whole dotenv files are parsed with Bun's `node:util.parseEnv`, including quoted multiline values, escaped newlines, and inline comments. Names must be shell identifiers (`[A-Za-z_][A-Za-z0-9_]*`); unsafe names/values are discarded. Variable references remain literal in this parser; only Bun's launch-directory dotenv autoload performs variable expansion before this module runs. Child-shell filtering uses the same parser to identify project dotenv values across `.env`, `.env.<NODE_ENV>` (default `development`), `.env.local`, and `.env.<NODE_ENV>.local`. It removes project-dotenv credentials from shell subprocesses while preserving launcher-owned variables; Linux's original exec environment provides the authoritative launch snapshot, with best-effort value matching elsewhere.
+The agent/root locations respect profiles, `PI_CONFIG_DIR`, and—only for the default profile—`PI_CODING_AGENT_DIR`. Whole dotenv files are parsed with `node:util.parseEnv`, including quoted multiline values, escaped newlines, and inline comments. Names must be shell identifiers (`[A-Za-z_][A-Za-z0-9_]*`); unsafe names/values are discarded. Variable references remain literal in this parser; project dotenv loading performs variable expansion before this module runs. Child-shell filtering uses the same parser to identify project dotenv values across `.env`, `.env.<NODE_ENV>` (default `development`), `.env.local`, and `.env.<NODE_ENV>.local`. It removes project-dotenv credentials from shell subprocesses while preserving launcher-owned variables; Linux's original exec environment provides the authoritative launch snapshot, with best-effort value matching elsewhere.
 
 Additional rule inside each `.env` file: every `OMP_*` key is mirrored to its `PI_*` alias, and that mirrored value replaces a same-file `PI_*` value. This mirroring applies to parsed dotenv files, not arbitrary variables inherited from the parent process.
 
@@ -212,9 +212,9 @@ When `CLAUDE_CODE_USE_FOUNDRY` is enabled, Anthropic requests switch to Foundry 
   - inline PEM (including escaped `\n` sequences).
 
   `NODE_EXTRA_CA_CERTS` is honoured for every provider fetch (OpenAI-compatible,
-  Codex, Ollama, Azure Responses, Google, Anthropic), not just Foundry — Bun's
+  Codex, Ollama, Azure Responses, Google, Anthropic), not just Foundry — the provider's
   `fetch` does not consume the env var natively, so the bundle is merged into
-  `RequestInit.tls.ca` alongside the system root store. The `CLAUDE_CODE_*` mTLS
+  the request TLS options alongside the system root store. The `CLAUDE_CODE_*` mTLS
   material remains Anthropic-Foundry-specific.
 
 | Variable                    | Value type                                     | Behavior                                                                                                                                                      |
@@ -240,8 +240,8 @@ When `CLAUDE_CODE_USE_FOUNDRY` is enabled, Anthropic requests switch to Foundry 
 | `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` / `AWS_CONTAINER_CREDENTIALS_FULL_URI` | Marks Bedrock as available in provider detection (credential resolution itself covers env keys, profiles/SSO/`credential_process`, then IMDSv2) |
 | `AWS_WEB_IDENTITY_TOKEN_FILE` + `AWS_ROLE_ARN`                                  | Marks Bedrock as available in provider detection (same caveat as the ECS variables above)                                                       |
 | `AWS_BEDROCK_SKIP_AUTH` | Boolean flag injects dummy credentials for Converse (proxy/non-auth scenarios); empty defers to false |
-| `HTTPS_PROXY` / `HTTP_PROXY`                                                    | Honored via Bun's native fetch proxy support (the provider no longer ships an AWS SDK / proxy-agent transport)                                  |
-| `NO_PROXY`                                                                      | Excludes matching hosts from Bun's native proxy routing                                                                                         |
+| `HTTPS_PROXY` / `HTTP_PROXY`                                                    | Honored by the provider fetch stack (the provider no longer ships an AWS SDK / proxy-agent transport)                                           |
+| `NO_PROXY`                                                                      | Excludes matching hosts from proxy routing                                                                                                      |
 
 Region fallback in provider code: `options.region` → `AWS_REGION` → `AWS_DEFAULT_REGION` → `us-east-1`.
 

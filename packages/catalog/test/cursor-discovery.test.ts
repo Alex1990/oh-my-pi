@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as http2 from "node:http2";
 import * as net from "node:net";
@@ -34,6 +34,7 @@ import { resolveProviderModels } from "../src/model-manager";
 import { cursorModelManagerOptions } from "../src/provider-models/special";
 import { calculateUncachedInputCost, getModelPricingStatus } from "../src/models";
 import type { ModelSpec } from "../src/types";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const FIXTURE_MODEL_IDS = [
 	// Reference-less ids from families whose native catalogs are multimodal.
@@ -637,7 +638,7 @@ describe("fetchCursorUsableModels", () => {
 			requestId: string | null;
 		}[] = [];
 		let decodedAvailableRequest: AvailableModelsRequest | undefined;
-		const httpServer = Bun.serve({
+		const httpServer = await serve({
 			port: 0,
 			async fetch(request) {
 				const url = new URL(request.url);
@@ -936,8 +937,8 @@ describe("fetchCursorUsableModels", () => {
 });
 
 /** HTTP/1 Cursor stub answering each RPC path with a fixed status and body. */
-function serveCursorRpcStatuses(routes: Readonly<Record<string, { status: number; body?: Uint8Array }>>) {
-	return Bun.serve({
+async function serveCursorRpcStatuses(routes: Readonly<Record<string, { status: number; body?: Uint8Array }>>) {
+	return await serve({
 		port: 0,
 		fetch(request) {
 			const route = routes[new URL(request.url).pathname];
@@ -998,13 +999,13 @@ describe("cursor rich discovery review regressions", () => {
 			GetDefaultModelForCliResponseSchema,
 			create(GetDefaultModelForCliResponseSchema, { model: create(ModelDetailsSchema, { modelId: "default" }) }),
 		);
-		const failing = serveCursorRpcStatuses({
+		const failing = await serveCursorRpcStatuses({
 			"/agent.v1.AgentService/GetUsableModels": { status: 503 },
 			"/aiserver.v1.AiService/AvailableModels": { status: 503 },
 			"/agent.v1.AgentService/GetDefaultModelForCli": { status: 200, body: providerDefault },
 		});
 		// An empty 200 body is a decoded (empty) GetUsableModels message.
-		const empty = serveCursorRpcStatuses({
+		const empty = await serveCursorRpcStatuses({
 			"/agent.v1.AgentService/GetUsableModels": { status: 200, body: new Uint8Array() },
 			"/aiserver.v1.AiService/AvailableModels": { status: 503 },
 			"/agent.v1.AgentService/GetDefaultModelForCli": { status: 200, body: providerDefault },
@@ -1202,7 +1203,7 @@ describe("cursor rich discovery review regressions", () => {
 			}),
 		);
 		const discoverIds = async (availableStatus: number): Promise<string[]> => {
-			const server = serveCursorRpcStatuses({
+			const server = await serveCursorRpcStatuses({
 				"/agent.v1.AgentService/GetUsableModels": { status: 200, body: usable },
 				"/aiserver.v1.AiService/AvailableModels": { status: availableStatus, body: available },
 			});

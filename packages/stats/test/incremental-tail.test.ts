@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,8 @@ import { closeDb, getFileOffset, getRecentRequests, initDb } from "@oh-my-pi/omp
 import { getOverallStats } from "@oh-my-pi/omp-stats/rollup";
 import { getSessionsDir, getStatsDbPath } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 const isolation = installStatsTestIsolation("@pi-stats-tail-");
 
@@ -53,7 +55,7 @@ function tier(value: string | null): string {
 
 async function session(content: string): Promise<string> {
 	const file = path.join(getSessionsDir(), "--tmp--tail", "session.jsonl");
-	await Bun.write(file, content);
+	await bun.write(file, content);
 	return file;
 }
 
@@ -96,15 +98,15 @@ describe("incremental stats ingestion", () => {
 					},
 				})}\n`;
 			const fork = path.join(getSessionsDir(), "--tmp--tail", "fork.jsonl");
-			await Bun.write(fork, "");
+			await bun.write(fork, "");
 			const owner = await session(entry(oldTime));
 			await syncAllSessions({ workers: 1 });
-			await Bun.write(fork, entry(oldTime));
+			await bun.write(fork, entry(oldTime));
 			await syncAllSessions({ workers: 1 });
 			const db = await initDb();
 			db.prepare("DELETE FROM meta WHERE key = 'messages_cost_reingest_v1'").run();
 			closeDb();
-			await Bun.write(`${owner}.replacement`, entry(newTime, kind === "tool-entry" ? "new-entry" : "shared"));
+			await bun.write(`${owner}.replacement`, entry(newTime, kind === "tool-entry" ? "new-entry" : "shared"));
 			await fs.rename(`${owner}.replacement`, owner);
 			await syncAllSessions({ workers: 1 });
 			const table = kind === "message" ? "messages" : kind === "user" ? "user_messages" : "tool_calls";
@@ -121,7 +123,7 @@ describe("incremental stats ingestion", () => {
 		const db = await initDb();
 		db.prepare("DELETE FROM meta WHERE key = 'messages_cost_reingest_v1'").run();
 		closeDb();
-		await Bun.write(`${file}.replacement`, assistant("new"));
+		await bun.write(`${file}.replacement`, assistant("new"));
 		await fs.rename(`${file}.replacement`, file);
 		await syncAllSessions({ workers: 1 });
 		expect(getRecentRequests().map(row => row.entryId)).toEqual(["new"]);
@@ -130,7 +132,7 @@ describe("incremental stats ingestion", () => {
 	it("detects a second replacement after interruption without forgetting its previous file identity", async () => {
 		const fileA = await session(assistant("oldA"));
 		const fileB = path.join(path.dirname(fileA), "second.jsonl");
-		await Bun.write(fileB, assistant("oldB"));
+		await bun.write(fileB, assistant("oldB"));
 		await syncAllSessions({ workers: 1 });
 		await fs.writeFile(fileA, assistant("newA"));
 		await expect(
@@ -177,7 +179,7 @@ describe("incremental stats ingestion", () => {
 			"\n" +
 			assistant("first");
 		const file = await session(content);
-		await Bun.write(
+		await bun.write(
 			path.join(path.dirname(file), "unrelated.jsonl"),
 			`${JSON.stringify({ type: "custom", padding: "y".repeat(2_000_000) })}\n`,
 		);
@@ -185,10 +187,10 @@ describe("incremental stats ingestion", () => {
 		closeDb();
 		const tail = assistant("second");
 		await fs.appendFile(file, tail);
-		const prototype: Bun.BunFile = Object.getPrototypeOf(Bun.file(file));
+		const prototype: NodeFile = Object.getPrototypeOf(bun.file(file));
 		const original = prototype.bytes;
 		let readBytes = 0;
-		const observer = spyOn(prototype, "bytes").mockImplementation(async function (this: Bun.BunFile) {
+		const observer = spyOn(prototype, "bytes").mockImplementation(async function (this: NodeFile) {
 			const bytes = await original.call(this);
 			readBytes += bytes.length;
 			return bytes;
@@ -217,7 +219,7 @@ describe("incremental stats ingestion", () => {
 			await syncAllSessions({ workers: 1 });
 			const replacement = assistant("new");
 			if (operation === "replace") {
-				await Bun.write(`${file}.new`, replacement);
+				await bun.write(`${file}.new`, replacement);
 				await fs.rename(`${file}.new`, file);
 			} else {
 				await fs.writeFile(file, replacement);
@@ -299,7 +301,7 @@ describe("incremental stats ingestion", () => {
 		it(`rolls back every replacement and cursor in a failed batch with ${workers} parsing workers`, async () => {
 			const first = await session(assistant("oldA"));
 			const second = path.join(path.dirname(first), "second.jsonl");
-			await Bun.write(second, assistant("oldB"));
+			await bun.write(second, assistant("oldB"));
 			await syncAllSessions({ workers });
 			const offsets = [getFileOffset(first), getFileOffset(second)];
 			const db = await initDb();
@@ -349,7 +351,7 @@ describe("incremental stats ingestion", () => {
 		const folder = path.join(getSessionsDir(), "--tmp--tail");
 		const count = 1025;
 		for (let index = 0; index < count; index++) {
-			await Bun.write(path.join(folder, `${index}.jsonl`), assistant(`entry-${index}`));
+			await bun.write(path.join(folder, `${index}.jsonl`), assistant(`entry-${index}`));
 		}
 		let reports = 0;
 		let committed: string[] = [];
@@ -384,7 +386,7 @@ describe("incremental stats ingestion", () => {
 	it("keeps a request still present in a fork when its original transcript is replaced", async () => {
 		const file = await session(assistant("shared"));
 		await syncAllSessions({ workers: 1 });
-		await Bun.write(path.join(path.dirname(file), "fork.jsonl"), assistant("shared"));
+		await bun.write(path.join(path.dirname(file), "fork.jsonl"), assistant("shared"));
 		await syncAllSessions({ workers: 1 });
 		expect(getOverallStats().totalRequests).toBe(1);
 		await fs.writeFile(file, assistant("new"));
@@ -399,7 +401,7 @@ describe("incremental stats ingestion", () => {
 	it("resumes fork reconciliation after interruption following a committed replacement", async () => {
 		const file = await session(assistant("shared"));
 		await syncAllSessions({ workers: 1 });
-		await Bun.write(path.join(path.dirname(file), "fork.jsonl"), assistant("shared"));
+		await bun.write(path.join(path.dirname(file), "fork.jsonl"), assistant("shared"));
 		await syncAllSessions({ workers: 1 });
 		await fs.writeFile(file, assistant("new"));
 		await expect(

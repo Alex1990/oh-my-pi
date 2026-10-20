@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type BlockState,
 	handleServerMessage,
@@ -149,7 +149,10 @@ describe("Cursor interaction queries", () => {
 		const response = expectInteractionResponse(frames);
 		expect(response.id).toBe(21);
 		expect(response.result.case).toBeUndefined();
-		expect(response.$unknown).toEqual([{ no: 12, wireType: 2, data: new Uint8Array([0x02, 0x0a, 0x00]) }]);
+		expect(response.$unknown).toHaveLength(1);
+		expect(response.$unknown?.[0]?.no).toBe(12);
+		expect(response.$unknown?.[0]?.wireType).toBe(2);
+		expect(Array.from(response.$unknown?.[0]?.data ?? [])).toEqual([0x02, 0x0a, 0x00]);
 	});
 });
 

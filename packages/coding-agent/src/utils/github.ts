@@ -2,6 +2,7 @@ import { $which, isRecord } from "@oh-my-pi/pi-utils";
 import { REJECT_PROMPT_COMMAND } from "../exec/non-interactive-env";
 import { ToolAbortError, throwIfAborted } from "../tools/tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Captured result of a completed `gh` invocation. */
 export interface GhCommandResult {
@@ -138,7 +139,7 @@ export const github = {
 		const timeoutSignal = AbortSignal.timeout(GH_COMMAND_TIMEOUT_MS);
 		const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 		try {
-			const child = Bun.spawn(["gh", ...args], {
+			const child = bun.spawn(["gh", ...args], {
 				cwd,
 				env: GH_NON_INTERACTIVE_ENV,
 				stdin: "ignore",

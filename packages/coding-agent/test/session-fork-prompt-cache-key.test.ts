@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
@@ -14,6 +14,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { CURRENT_SESSION_VERSION, type SessionHeader } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const OPENAI_TEST_MODEL = getBundledModel("openai", "gpt-4o-mini");
 
@@ -43,7 +44,7 @@ async function createSourceSessionFixture(tempDir: TempDir, parentId: string): P
 		timestamp: new Date().toISOString(),
 		cwd,
 	};
-	await Bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
+	await bun.write(sourceFile, `${JSON.stringify(sourceHeader)}\n`);
 	return { cwd, sourceFile, sourceHeader, forkSessionDir };
 }
 

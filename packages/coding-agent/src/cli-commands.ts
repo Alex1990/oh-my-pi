@@ -17,11 +17,10 @@ import {
 	STRING_VALUE_FLAGS,
 	VALUELESS_FLAGS,
 } from "./cli/flag-tables";
-import type * as LaunchHelp from "./commands/launch-help";
+import { launchHelp } from "./commands/launch-help";
 
-function loadLaunchHelp(): typeof LaunchHelp.launchHelp {
-	const module: typeof LaunchHelp = require("./commands/launch-help");
-	return module.launchHelp;
+function loadLaunchHelp(): typeof launchHelp {
+	return launchHelp;
 }
 
 export const commands: CommandEntry[] = [

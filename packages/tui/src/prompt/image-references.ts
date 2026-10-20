@@ -5,6 +5,7 @@ import { span } from "../native/describe";
 import { isNativeRendering } from "../native/state";
 import { fileHyperlink, fileLinkSpan, isHyperlinkEnabled, isNativeLinkEnabled } from "../render/hyperlink";
 import { blobExtensionForImageMimeType } from "./image-format";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Materialized image destination returned by the host blob writer. */
 interface ImageBlobResult {
@@ -143,7 +144,7 @@ export function transcriptImageLink(
 	if (!imageLinksEnabled()) return undefined;
 	if (sourcePath) return sourcePath;
 	if (!hostBlobWriter || !image.data) return undefined;
-	const key = `${image.mimeType}:${Bun.hash(image.data)}`;
+	const key = `${image.mimeType}:${bun.hash(image.data)}`;
 	const cached = blobLinks.get(key);
 	if (cached) return cached;
 	const link = materializeImageReferenceLink({ type: "image", ...image }, 1, hostBlobWriter);

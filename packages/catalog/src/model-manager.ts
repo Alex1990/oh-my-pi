@@ -15,6 +15,7 @@ import {
 	type TokenCost,
 } from "./types";
 import { isRecord } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 const NON_AUTHORITATIVE_RETRY_MS = 5 * 60 * 1000;
@@ -291,7 +292,7 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 	// matching-static-catalog caches written by the prior resolver.
 	const staticFingerprint =
 		cacheDropIds && cacheDropIds.length > 0
-			? `${staticCatalogFingerprint}:drop:${Bun.hash(cacheDropIds.join("\0")).toString(36)}`
+			? `${staticCatalogFingerprint}:drop:${bun.hash(cacheDropIds.join("\0")).toString(36)}`
 			: staticCatalogFingerprint;
 	const cacheFingerprintMatches = cache?.staticFingerprint === staticFingerprint && staticFingerprint.length > 0;
 	const cacheNeedsModelMigration =
@@ -654,7 +655,7 @@ export function fingerprintStaticModels<TApi extends Api>(
 	if (models.length === 0) return `${MODEL_CACHE_FINGERPRINT_VERSION}:empty`;
 	if (dynamicModelsAuthoritative)
 		return `${MODEL_CACHE_FINGERPRINT_VERSION}:authoritative:${fingerprintStaticModels(models)}`;
-	return `${MODEL_CACHE_FINGERPRINT_VERSION}:${Bun.hash(JSON.stringify(models)).toString(36)}`;
+	return `${MODEL_CACHE_FINGERPRINT_VERSION}:${bun.hash(JSON.stringify(models)).toString(36)}`;
 }
 
 function mergeDynamicModel<TApi extends Api>(

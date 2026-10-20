@@ -10,6 +10,7 @@ import { Args, type CliConfig, Command, type CommandCtor } from "@oh-my-pi/pi-ut
 import { completionsHelp as commandHelp } from "../cli/command-help";
 import { buildSpec, generateCompletion, type Shell } from "../cli/completion-gen";
 import { commands } from "../cli-commands";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Entry name of the default command whose flags become top-level completions. */
 const ROOT_COMMAND = "launch";
@@ -17,7 +18,10 @@ const SHELLS = ["bash", "zsh", "fish"] as const;
 
 /** Generate a completion script from the live command registry. */
 export async function generateLiveCompletion(shell: Shell): Promise<string> {
-	const loaded = await Promise.all(commands.map(async entry => ({ entry, Cmd: await entry.load() })));
+	// Load sequentially: concurrent dynamic imports of this module graph deadlock
+	// under Node's ESM loader (the completions command never returns).
+	const loaded: { entry: (typeof commands)[number]; Cmd: CommandCtor }[] = [];
+	for (const entry of commands) loaded.push({ entry, Cmd: await entry.load() });
 	const map = new Map<string, CommandCtor>();
 	const aliasMap = new Map<string, readonly string[]>();
 	for (const { entry, Cmd } of loaded) {
@@ -54,7 +58,7 @@ export default class Completions extends Command {
 			return;
 		}
 
-		await Bun.write(Bun.stdout, await generateLiveCompletion(shell));
+		await bun.write(bun.stdout, await generateLiveCompletion(shell));
 		await postmortem.quit(0);
 	}
 }

@@ -8,7 +8,7 @@
  * `redis-session-storage.test.ts`; we don't require a live server.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Usage } from "@oh-my-pi/pi-ai";
 import {

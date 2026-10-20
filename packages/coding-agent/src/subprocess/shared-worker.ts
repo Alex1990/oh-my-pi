@@ -10,10 +10,11 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import { IpcConnection, ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { logger } from "@oh-my-pi/pi-utils";
 import type { RefCountedWorkerHandle } from "./worker-client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CONNECT_TIMEOUT_MS = 3_000;
 const PROBE_TIMEOUT_MS = 3_000;
@@ -237,7 +238,7 @@ export function spawnDetached(
 ): SpawnedWorker {
 	const log = fs.openSync(logPath, "w");
 	try {
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd,
 			cwd,
 			env,
@@ -258,14 +259,14 @@ async function waitForEndpointRelease(endpoint: string): Promise<void> {
 	const deadline = Date.now() + SHUTDOWN_WAIT_MS;
 	while (Date.now() < deadline) {
 		if ((await probeSharedWorker(endpoint, "")).kind === "absent") return;
-		await Bun.sleep(PROBE_INTERVAL_MS);
+		await bun.sleep(PROBE_INTERVAL_MS);
 	}
 }
 
 /** Last 500 chars of a worker's log, minus its readiness banner; `""` when absent or empty. */
 async function logTail(logPath: string): Promise<string> {
 	try {
-		const text = await Bun.file(logPath).text();
+		const text = await bun.file(logPath).text();
 		return text
 			.split("\n")
 			.filter(line => !/^omp .+ listening on /.test(line))
@@ -294,7 +295,7 @@ async function awaitSpawnedWorker(
 			const tail = await logTail(spawned.logPath);
 			throw new Error(`${launch.label} exited with code ${spawned.proc.exitCode}${tail ? `: ${tail}` : ""}`);
 		}
-		await Bun.sleep(PROBE_INTERVAL_MS);
+		await bun.sleep(PROBE_INTERVAL_MS);
 	}
 	throw new Error(`${launch.label} did not bind ${endpoint} within ${timeoutMs}ms`);
 }

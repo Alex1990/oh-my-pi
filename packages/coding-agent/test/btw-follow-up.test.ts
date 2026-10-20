@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,9 @@ import * as clipboard from "@oh-my-pi/pi-coding-agent/utils/clipboard";
 import { Container, Input, type KeyId, type TUI } from "@oh-my-pi/pi-tui";
 import type { DictationTarget } from "@oh-my-pi/pi-coding-agent/stt/push-to-talk";
 import { SPACE_HOLD_MECHANICAL_RUN, type SpaceHoldHandler } from "@oh-my-pi/pi-tui/space-hold";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
 
 interface TurnArgs {
 	promptText: string;
@@ -172,12 +175,12 @@ describe("BTW follow-up lifecycle", () => {
 		await h.controller.start("Keep the final answer");
 		const topic = (await records(h.manager))[0]!;
 		const recordPath = path.join(h.manager.getArtifactsDir()!, "btw-history", `entry-${topic.id}.json`);
-		const originalBytes = await Bun.file(recordPath).text();
+		const originalBytes = await bun.file(recordPath).text();
 		const failed = Promise.withResolvers<void>();
 		vi.spyOn(h.ctx, "showError").mockImplementation(() => failed.resolve());
 		try {
 			const externalBytes = JSON.stringify({ ...JSON.parse(originalBytes), answer: "External content" });
-			await Bun.write(recordPath, externalBytes);
+			await bun.write(recordPath, externalBytes);
 			h.requests.at(-1)!.resolve(answer("Unsaved final answer"));
 			await failed.promise;
 			await expect(h.controller.flush()).rejects.toThrow("BTW history could not be saved");
@@ -192,19 +195,19 @@ describe("BTW follow-up lifecycle", () => {
 			const copy = vi.spyOn(clipboard, "copyToClipboard").mockResolvedValue(undefined);
 			expect(await h.controller.handleCopy()).toBe(true);
 			expect(copy).toHaveBeenCalledWith("Unsaved final answer");
-			expect(await Bun.file(recordPath).text()).toBe(externalBytes);
+			expect(await bun.file(recordPath).text()).toBe(externalBytes);
 
 			// Restoring the exact revision repairs this synthetic conflict without
 			// letting recovery silently rebase over another writer's contents.
-			await Bun.write(recordPath, originalBytes);
+			await bun.write(recordPath, originalBytes);
 			await h.controller.flush();
 			expect((await records(h.manager))[0]?.answer).toBe("Unsaved final answer");
 			expect(await h.controller.withSessionMove(operation)).toBe(true);
 			expect(operation).toHaveBeenCalledTimes(1);
 		} finally {
 			// Keep teardown safe even if an earlier assertion fails before repair.
-			if ((await Bun.file(recordPath).text()).includes("External content")) {
-				await Bun.write(recordPath, originalBytes);
+			if ((await bun.file(recordPath).text()).includes("External content")) {
+				await bun.write(recordPath, originalBytes);
 				await h.controller.flush();
 			}
 		}
@@ -240,7 +243,7 @@ describe("BTW follow-up lifecycle", () => {
 			expect(failure.message).toContain("~/blocked directory/btw.json");
 			expect(failure.message).not.toContain(os.homedir());
 			expect(failure.message).not.toMatch(/[\x00-\x1f\x7f-\x9f]/);
-			expect(Bun.stringWidth(failure.message)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.RECAP);
+			expect(bun.stringWidth(failure.message)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.RECAP);
 			expect((await records(h.manager))[0]?.answer).toBe("");
 			const operation = vi.fn(async () => true);
 			expect(await h.controller.withSessionMove(operation)).toBe(false);
@@ -249,7 +252,7 @@ describe("BTW follow-up lifecycle", () => {
 				expect(message).toContain("EACCES");
 				expect(message).not.toContain(os.homedir());
 				expect(message).not.toMatch(/[\x00-\x1f\x7f-\x9f]/);
-				expect(Bun.stringWidth(message)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
+				expect(bun.stringWidth(message)).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE);
 			}
 			unavailable = false;
 			expect(await h.controller.withSessionMove(operation)).toBe(true);
@@ -279,7 +282,7 @@ describe("BTW follow-up lifecycle", () => {
 		const history = panel.render(160).join("\n");
 		for (const rendered of [inline, history]) {
 			expect(rendered).not.toContain("\x1b[2J");
-			const plain = Bun.stripANSI(rendered);
+			const plain = bun.stripANSI(rendered);
 			expect(plain).toContain("EACCES");
 			expect(plain).toContain("~/private/file");
 			expect(plain).not.toContain(os.homedir());
@@ -365,7 +368,7 @@ describe("BTW follow-up lifecycle", () => {
 			}),
 		).toBe(true);
 		expect(h.manager.getCwd()).toBe(targetCwd);
-		expect(await Bun.file(sourceFile).exists()).toBe(false);
+		expect(await bun.file(sourceFile).exists()).toBe(false);
 		expect((await records(h.manager))[0]?.answer).toBe("Preserved answer");
 		expect(h.controller.hasActiveRequest()).toBe(false);
 	});
@@ -421,7 +424,7 @@ describe("BTW follow-up lifecycle", () => {
 		panel.handleInput("\x1b");
 		expect(running.args.signal?.aborted).toBe(true);
 		expect(handle.hide).not.toHaveBeenCalled();
-		expect(Bun.stripANSI(panel.render(100).join("\n"))).toContain("Retained partial answer");
+		expect(bun.stripANSI(panel.render(100).join("\n"))).toContain("Retained partial answer");
 		await h.controller.flush();
 		expect((await records(h.manager))[0]).toMatchObject({
 			answer: "Retained partial answer",
@@ -453,7 +456,7 @@ describe("BTW follow-up lifecycle", () => {
 		panel.handleInput("\x1b");
 		expect(running.args.signal?.aborted).toBe(false);
 		expect(h.controller.hasActiveRequest()).toBe(true);
-		expect(Bun.stripANSI(h.ctx.btwContainer.render(100).join("\n"))).toContain("Visible partial follow-up");
+		expect(bun.stripANSI(h.ctx.btwContainer.render(100).join("\n"))).toContain("Visible partial follow-up");
 		expect(h.controller.handleEscape()).toBe(true);
 		expect(running.args.signal?.aborted).toBe(true);
 		expect(h.controller.hasActiveRequest()).toBe(true);
@@ -669,7 +672,7 @@ describe("BTW follow-up lifecycle", () => {
 	it("resumes only the selected chronological conversation, including cancelled partial output, without promoting it into main chat", async () => {
 		const h = await harness();
 		const file = h.manager.getSessionFile()!;
-		const journal = await Bun.file(file).text();
+		const journal = await bun.file(file).text();
 		const leaf = h.manager.getLeafId();
 		const context = JSON.stringify(h.manager.buildSessionContext());
 		const root = await h.root("Selected root question", "Selected root answer");
@@ -740,7 +743,7 @@ describe("BTW follow-up lifecycle", () => {
 			["Cancelled follow-up question", "Cancelled partial answer", "cancelled"],
 			["Continue after cancellation", "Resumed follow-up answer", "complete"],
 		]);
-		expect(await Bun.file(file).text()).toBe(journal);
+		expect(await bun.file(file).text()).toBe(journal);
 		expect(reopened.getLeafId()).toBe(leaf);
 		expect(JSON.stringify(reopened.buildSessionContext())).toBe(context);
 	});
@@ -954,22 +957,22 @@ describe("BTW follow-up composer", () => {
 			[other],
 		);
 		tabbed.panel.handleInput("\t");
-		const tabRender = Bun.stripANSI(tabbed.panel.render(120).join("\n"));
+		const tabRender = bun.stripANSI(tabbed.panel.render(120).join("\n"));
 		const slashed = composer(
 			vi.fn(async () => true),
 			[other],
 		);
 		slashed.panel.handleInput(String.fromCharCode(31));
-		expect(Bun.stripANSI(slashed.panel.render(120).join("\n"))).toBe(tabRender);
-		expect(Bun.stripANSI(slashed.panel.render(120).join("\n"))).toContain("switch pane");
+		expect(bun.stripANSI(slashed.panel.render(120).join("\n"))).toBe(tabRender);
+		expect(bun.stripANSI(slashed.panel.render(120).join("\n"))).toContain("switch pane");
 	});
 
 	it("confirms a history copy visually until the answer changes", () => {
 		const h = composer(vi.fn(async () => true));
 		h.panel.markCopied(h.record.id, h.record.answer);
-		expect(Bun.stripANSI(h.panel.render(120).join("\n"))).toContain("Copied to clipboard");
+		expect(bun.stripANSI(h.panel.render(120).join("\n"))).toContain("Copied to clipboard");
 		h.panel.update([{ ...h.record, answer: "Follow-up answer", updatedAt: 3 }]);
-		expect(Bun.stripANSI(h.panel.render(120).join("\n"))).not.toContain("Copied to clipboard");
+		expect(bun.stripANSI(h.panel.render(120).join("\n"))).not.toContain("Copied to clipboard");
 	});
 	it("treats f/c/x as draft text and lets Escape cancel only the composer", () => {
 		const followUp = vi.fn(async () => true);
@@ -977,7 +980,7 @@ describe("BTW follow-up composer", () => {
 		h.panel.handleInput("f");
 		h.panel.render(100);
 		for (const key of ["f", "c", "x"]) h.panel.handleInput(key);
-		expect(Bun.stripANSI(h.panel.render(100).join("\n"))).toContain("fcx");
+		expect(bun.stripANSI(h.panel.render(100).join("\n"))).toContain("fcx");
 		h.panel.handleInput("\x1b");
 		h.panel.render(100);
 		expect(followUp).not.toHaveBeenCalled();
@@ -994,15 +997,15 @@ describe("BTW follow-up composer", () => {
 		h.panel.update([{ ...h.record, answer }]);
 		h.panel.handleInput("f");
 		h.panel.pasteText("draft");
-		const pinned = Bun.stripANSI(h.panel.render(100).join("\n"));
+		const pinned = bun.stripANSI(h.panel.render(100).join("\n"));
 		expect(pinned).toContain("Answer row 80");
 		for (let i = 0; i < 10; i++) h.panel.handleInput("\x1b[5~");
-		const scrolled = Bun.stripANSI(h.panel.render(100).join("\n"));
+		const scrolled = bun.stripANSI(h.panel.render(100).join("\n"));
 		expect(scrolled).toMatch(/Answer row 1 /);
 		expect(scrolled).not.toContain("Answer row 80");
 		expect(scrolled).toContain("draft");
 		h.panel.handleInput("\x1b[B");
-		expect(Bun.stripANSI(h.panel.render(100).join("\n"))).not.toBe(scrolled);
+		expect(bun.stripANSI(h.panel.render(100).join("\n"))).not.toBe(scrolled);
 	});
 
 	it("submits once while pending and retains the rejected draft for a successful retry", async () => {
@@ -1018,7 +1021,7 @@ describe("BTW follow-up composer", () => {
 		expect(followUp).toHaveBeenCalledTimes(1);
 		pending.resolve(false);
 		await drain();
-		expect(Bun.stripANSI(h.panel.render(100).join("\n"))).toContain("fcx");
+		expect(bun.stripANSI(h.panel.render(100).join("\n"))).toContain("fcx");
 		followUp.mockResolvedValue(true);
 		h.panel.handleInput("\r");
 		await drain();

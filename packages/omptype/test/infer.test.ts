@@ -1,3 +1,4 @@
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { InferDef, InferDefIn } from "../src/infer";
 
 type Eq<a, b> = (<t>() => t extends a ? 1 : 2) extends <t>() => t extends b ? 1 : 2 ? true : false;
@@ -88,3 +89,8 @@ const _arkFlat: Eq<InferDef<FlatTool>, { command: string; timeout: number; cwd?:
 const _arkEnum: Eq<InferDef<EnumObject>, { mode: "fast" | "safe"; verbose?: boolean }> = true;
 const _arkNested: Eq<InferDef<NestedTuple>, { matrix: number[][] }> = true;
 const _arkBounds: Eq<InferDef<" 0 < number <= 3600 ">, number> = true;
+
+it("infers definitions at the type level", () => {
+	expect(_string).toBe(true);
+	expect(_arkBounds).toBe(true);
+});

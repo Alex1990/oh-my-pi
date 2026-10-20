@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { loadCustomCommands } from "../../../src/extensibility/custom-commands/loader";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempRoot: string | undefined;
 
@@ -20,7 +21,7 @@ describe("custom command loader", () => {
 		const commandDir = path.join(tempRoot, "commands", "arktype-compat");
 		await fs.mkdir(commandDir, { recursive: true });
 		const commandPath = path.join(commandDir, "index.js");
-		await Bun.write(
+		await bun.write(
 			commandPath,
 			[
 				"export default api => {",

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ApiKeyResolution, ApiKeyResolveContext } from "@oh-my-pi/pi-ai";
 import { registerCustomApi, resolveApiKeyOnce, seedApiKeyResolver, unregisterCustomApis } from "@oh-my-pi/pi-ai";
 import { OAuthError, ProviderHttpError } from "@oh-my-pi/pi-ai/error";

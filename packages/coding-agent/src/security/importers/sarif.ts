@@ -20,6 +20,7 @@ import {
 	parseSecurityScanBundle,
 } from "../contracts";
 import { pathIsWithin } from "../preflight";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SarifRegion {
 	startLine?: number;
@@ -180,7 +181,7 @@ function semanticResultAnchor(
 	message: string,
 	locations: readonly SecurityLocation[],
 ): string {
-	return `sarif-result/v1:sha256:${Bun.SHA256.hash(
+	return `sarif-result/v1:sha256:${bun.SHA256.hash(
 		canonicalSecurityJson({
 			ruleId,
 			category,
@@ -328,7 +329,7 @@ export async function importSarif(input: unknown, options: SarifImportOptions): 
 				displayName: path.basename(canonicalRoot),
 				includePaths: [],
 				excludePaths: [],
-				treeDigest: Bun.SHA256.hash(JSON.stringify(input), "hex"),
+				treeDigest: bun.SHA256.hash(JSON.stringify(input), "hex"),
 			},
 			producer,
 			provenance: scanProvenance,
@@ -347,7 +348,7 @@ export async function importSarifFile(
 	filePath: string,
 	options: Omit<SarifImportOptions, "sourcePath">,
 ): Promise<SecurityScanBundle> {
-	return importSarif(JSON.parse(await Bun.file(filePath).text()) as unknown, {
+	return importSarif(JSON.parse(await bun.file(filePath).text()) as unknown, {
 		...options,
 		sourcePath: path.resolve(filePath),
 	});

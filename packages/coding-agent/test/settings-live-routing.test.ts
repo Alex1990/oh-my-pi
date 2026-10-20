@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
@@ -10,8 +10,9 @@ import { getRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/retry-
 import { cfgRetryUsageReservePct } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { cfgTaskAgentModelOverrides } from "@oh-my-pi/pi-coding-agent/task/settings";
 import { logger, TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const routing = (model: string, reservePct = 10, priority = 1) => ({
 	modelRoles: { smol: `anthropic/${model}`, slow: "anthropic/strong" },
@@ -26,7 +27,7 @@ async function waitFor(check: () => boolean): Promise<void> {
 	const deadline = Date.now() + 3000;
 	while (!check()) {
 		if (Date.now() >= deadline) throw new Error("Timed out waiting for live config reload");
-		await Bun.sleep(10);
+		await bun.sleep(10);
 	}
 }
 
@@ -77,7 +78,7 @@ describe("live routing config files", () => {
 
 	it("applies atomic overlay edits to subsequent model selection, fallbacks and account health", async () => {
 		const file = tempDir.join("routing.yml");
-		await Bun.write(file, YAML.stringify(routing("first")));
+		await bun.write(file, YAML.stringify(routing("first")));
 		await start(file);
 		const storage = new AuthStorage(await SqliteAuthCredentialStore.open(tempDir.join("auth.db")), {
 			defaultReservePct: cfgRetryUsageReservePct.get(settings),
@@ -116,7 +117,7 @@ describe("live routing config files", () => {
 
 		const next = routing("second", 30, 7);
 		next.task.agentModelOverrides.worker = "@slow";
-		await Bun.write(`${file}.next`, YAML.stringify(next));
+		await bun.write(`${file}.next`, YAML.stringify(next));
 		await fs.rename(`${file}.next`, file);
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/second");
 		await sync.settled();
@@ -129,13 +130,13 @@ describe("live routing config files", () => {
 
 	it("applies an edit that landed before the watch was armed", async () => {
 		const file = tempDir.join("routing.yml");
-		await Bun.write(file, YAML.stringify(routing("first")));
+		await bun.write(file, YAML.stringify(routing("first")));
 		settings = await Settings.init({ cwd: tempDir.path(), agentDir: tempDir.join("agent"), configFiles: [file] });
-		await Bun.write(file, YAML.stringify(routing("second")));
+		await bun.write(file, YAML.stringify(routing("second")));
 		// Real-time wait, not fake timers: macOS FSEvents can still hand a just-journaled
 		// write to a stream created right after it. Once journaled, only a re-read on
 		// arming can apply the edit. A slow journal makes this pass vacuously, never flake.
-		await Bun.sleep(100);
+		await bun.sleep(100);
 		settings.startWatching();
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/second");
 		expect(getRetryFallbackChains(settings).smol).toEqual(["anthropic/second-fallback"]);
@@ -144,15 +145,15 @@ describe("live routing config files", () => {
 	it("follows replacement of a profile ancestor symlink and watches the new target", async () => {
 		const first = tempDir.join("profile-a");
 		const second = tempDir.join("profile-b");
-		await Bun.write(path.join(first, "config", "routing.yml"), YAML.stringify(routing("first")));
-		await Bun.write(path.join(second, "config", "routing.yml"), YAML.stringify(routing("second")));
+		await bun.write(path.join(first, "config", "routing.yml"), YAML.stringify(routing("first")));
+		await bun.write(path.join(second, "config", "routing.yml"), YAML.stringify(routing("second")));
 		const profile = tempDir.join("profile");
 		await fs.symlink(first, profile, "dir");
 		await start(path.join(profile, "config", "routing.yml"));
 		await retargetDirLink(profile, second);
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/second");
 		expect(selection(settings).patterns).toEqual(["anthropic/second"]);
-		await Bun.write(path.join(second, "config", "routing.yml"), YAML.stringify(routing("third")));
+		await bun.write(path.join(second, "config", "routing.yml"), YAML.stringify(routing("third")));
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/third");
 		expect(getRetryFallbackChains(settings).smol).toEqual(["anthropic/third-fallback"]);
 	});
@@ -160,8 +161,8 @@ describe("live routing config files", () => {
 	it("follows an intermediate file symlink replaced without touching the logical overlay", async () => {
 		const first = tempDir.join("first.yml");
 		const second = tempDir.join("second.yml");
-		await Bun.write(first, YAML.stringify(routing("first")));
-		await Bun.write(second, YAML.stringify(routing("second")));
+		await bun.write(first, YAML.stringify(routing("first")));
+		await bun.write(second, YAML.stringify(routing("second")));
 		const managed = tempDir.join("managed", "current.yml");
 		await fs.mkdir(path.dirname(managed));
 		await fs.symlink(first, managed, "file");
@@ -172,15 +173,15 @@ describe("live routing config files", () => {
 		await fs.rename(`${managed}.next`, managed);
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/second");
 		expect(selection(settings).patterns).toEqual(["anthropic/second"]);
-		await Bun.write(second, YAML.stringify(routing("third")));
+		await bun.write(second, YAML.stringify(routing("third")));
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/third");
 	});
 
 	it("keeps last good routing on malformed target replacement and preserves runtime overrides on recovery", async () => {
 		const first = tempDir.join("profile-a");
 		const second = tempDir.join("profile-b");
-		await Bun.write(path.join(first, "routing.yml"), YAML.stringify(routing("first")));
-		await Bun.write(path.join(second, "routing.yml"), "modelRoles: [\n");
+		await bun.write(path.join(first, "routing.yml"), YAML.stringify(routing("first")));
+		await bun.write(path.join(second, "routing.yml"), "modelRoles: [\n");
 		const profile = tempDir.join("profile");
 		await fs.symlink(first, profile, "dir");
 		await start(path.join(profile, "routing.yml"));
@@ -189,8 +190,8 @@ describe("live routing config files", () => {
 		await retargetDirLink(profile, second);
 		await waitFor(() => warnings.mock.calls.some(([message]) => message.includes("keeping last good config")));
 		expect(settings.getModelRole("smol")).toBe("anthropic/first");
-		expect(await Bun.file(path.join(second, "routing.yml")).text()).toBe("modelRoles: [\n");
-		await Bun.write(path.join(second, "routing.yml"), YAML.stringify(routing("recovered")));
+		expect(await bun.file(path.join(second, "routing.yml")).text()).toBe("modelRoles: [\n");
+		await bun.write(path.join(second, "routing.yml"), YAML.stringify(routing("recovered")));
 		await waitFor(() => settings.getModelRole("smol") === "anthropic/recovered");
 		expect(selection(settings).patterns).toEqual(["anthropic/runtime"]);
 		expect(getRetryFallbackChains(settings).smol).toEqual(["anthropic/recovered-fallback"]);

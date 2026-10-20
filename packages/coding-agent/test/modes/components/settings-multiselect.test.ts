@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import { getProjectAgentDir, removeWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgDevAutoqa } from "@oh-my-pi/pi-coding-agent/tools/settings";
 import { cfgContextFilesExtra } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -69,7 +70,7 @@ function createSelector(): SettingsSelectorComponent {
 }
 
 function optionRow(component: SettingsSelectorComponent, label: string): number {
-	const lines = Bun.stripANSI(component.render(120).join("\n")).split("\n");
+	const lines = bun.stripANSI(component.render(120).join("\n")).split("\n");
 	const row = lines.findIndex(line => line.includes(label));
 	if (row === -1) throw new Error(`Missing settings option: ${label}`);
 	return row + 1;
@@ -140,7 +141,7 @@ describe("extra context filenames editor", () => {
 		const component = openExtraContextFiles();
 		await submitText(component, input);
 		expect(cfgContextFilesExtra.get(settings)).toEqual(["TEAM.md"]);
-		expect(Bun.stripANSI(component.render(120).join("\n"))).toMatch(error);
+		expect(bun.stripANSI(component.render(120).join("\n"))).toMatch(error);
 		const document = new TspDocument("settings");
 		const reconciler = new Reconciler("settings");
 		const ops = reconciler.reconcile(
@@ -157,7 +158,7 @@ describe("extra context filenames editor", () => {
 			const cwd = path.join(root, "repo");
 			const agentDir = path.join(root, "agent");
 			await fs.mkdir(agentDir, { recursive: true });
-			await Bun.write(path.join(getProjectAgentDir(cwd), "config.yml"), "contextFiles:\n  extra:\n    - TEAM.md\n");
+			await bun.write(path.join(getProjectAgentDir(cwd), "config.yml"), "contextFiles:\n  extra:\n    - TEAM.md\n");
 			resetSettingsForTest();
 			await Settings.init({ cwd, agentDir });
 
@@ -165,8 +166,8 @@ describe("extra context filenames editor", () => {
 			component.handleInput("\r");
 			await settings.flush();
 
-			expect(Bun.stripANSI(component.render(120).join("\n"))).not.toContain("Extra Context Files");
-			const globalConfig = Bun.file(path.join(agentDir, "config.yml"));
+			expect(bun.stripANSI(component.render(120).join("\n"))).not.toContain("Extra Context Files");
+			const globalConfig = bun.file(path.join(agentDir, "config.yml"));
 			expect((await globalConfig.exists()) ? await globalConfig.text() : "").not.toContain("TEAM.md");
 		} finally {
 			resetSettingsForTest();

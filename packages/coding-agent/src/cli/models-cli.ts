@@ -27,6 +27,7 @@ import { SessionManager } from "../session/session-manager";
 import { EventBus } from "../utils/event-bus";
 
 import { cfgDisabledExtensions, cfgExtensions } from "../extensibility/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type ModelsAction = "ls" | "find" | "refresh";
 
@@ -141,7 +142,7 @@ interface BoxColumn {
 
 /** Right- or left-pad a plain (ANSI-free) cell to `width` display columns. */
 function padCell(text: string, width: number, align: ColumnAlign = "left"): string {
-	const space = width - Bun.stringWidth(text);
+	const space = width - bun.stringWidth(text);
 	if (space <= 0) return text;
 	const fill = " ".repeat(space);
 	return align === "right" ? fill + text : text + fill;
@@ -153,7 +154,7 @@ function padCell(text: string, width: number, align: ColumnAlign = "left"): stri
  */
 function boxTable(columns: BoxColumn[], rows: string[][]): string[] {
 	const widths = columns.map((column, index) =>
-		Math.max(Bun.stringWidth(column.header), ...rows.map(row => Bun.stringWidth(row[index] ?? ""))),
+		Math.max(bun.stringWidth(column.header), ...rows.map(row => bun.stringWidth(row[index] ?? ""))),
 	);
 	const bar = chalk.dim("│");
 	const segments = widths.map(width => "─".repeat(width + 2));

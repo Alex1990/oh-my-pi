@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as settingsModule from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { Theme } from "@oh-my-pi/pi-tui/theme";
 import { renderAsciiBar } from "@oh-my-pi/pi-tui/chrome/format";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const testTheme = {
 	fg(color: Parameters<Theme["fg"]>[0], text: string): string {
@@ -42,7 +43,7 @@ describe("renderAsciiBar", () => {
 
 		const rendered = renderAsciiBar(0.5, 4, testTheme);
 
-		expect(Bun.stripANSI(rendered)).toBe("[██░░] 50%");
+		expect(bun.stripANSI(rendered)).toBe("[██░░] 50%");
 	});
 
 	it("colors the shimmer band with the theme accent", () => {
@@ -51,6 +52,6 @@ describe("renderAsciiBar", () => {
 		const rendered = renderAsciiBar(undefined, 4, testTheme);
 
 		expect(rendered).toContain("\x1b[36m");
-		expect(Bun.stripANSI(rendered)).toBe("[····]");
+		expect(bun.stripANSI(rendered)).toBe("[····]");
 	});
 });

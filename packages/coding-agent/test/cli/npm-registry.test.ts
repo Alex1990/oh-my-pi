@@ -1,10 +1,11 @@
 // oxlint-disable no-template-curly-in-string -- literal `${VAR}` is .npmrc syntax under test
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { loadNpmRegistryResolver } from "../../src/cli/npm-registry";
-import { buildBunInstallArgs, buildNpmInstallArgs } from "../../src/cli/update-cli";
+import { buildNpmInstallArgs, buildPnpmInstallArgs } from "../../src/cli/update-cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PKG = "@oh-my-pi/pi-coding-agent";
 const dirs: string[] = [];
@@ -12,7 +13,7 @@ const dirs: string[] = [];
 async function home(files: Record<string, string>): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-npm-registry-"));
 	dirs.push(dir);
-	for (const [name, content] of Object.entries(files)) await Bun.write(path.join(dir, name), content);
+	for (const [name, content] of Object.entries(files)) await bun.write(path.join(dir, name), content);
 	return dir;
 }
 
@@ -88,7 +89,7 @@ describe("loadNpmRegistryResolver", () => {
 		expect(registry.authorization).toBe(`Basic ${btoa("me:p@ss")}`);
 		expect(registry.url).toBe("https://creds.example/");
 		const argv = [
-			...buildBunInstallArgs("19.0.0", "linux-x64", undefined, { registry: registry.url }),
+			...buildPnpmInstallArgs("19.0.0", "linux-x64", undefined, { registry: registry.url }),
 			...buildNpmInstallArgs("19.0.0", "linux-x64", undefined, { registry: registry.url }),
 		].join(" ");
 		expect(argv).not.toContain("p%40ss");
@@ -108,9 +109,9 @@ describe("loadNpmRegistryResolver", () => {
 });
 
 describe("install args follow the checked registry", () => {
-	it("pins bun and npm installs to the registry the release was resolved from", () => {
+	it("pins pnpm and npm installs to the registry the release was resolved from", () => {
 		const registry = "https://npm.corp.example/api/npm/feed/";
-		expect(buildBunInstallArgs("19.0.0", "linux-x64", undefined, { registry })).toContain(`--registry=${registry}`);
+		expect(buildPnpmInstallArgs("19.0.0", "linux-x64", undefined, { registry })).toContain(`--registry=${registry}`);
 		expect(buildNpmInstallArgs("19.0.0", "linux-x64", undefined, { registry })).toContain(`--registry=${registry}`);
 	});
 });

@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SessionSelectorComponent } from "@oh-my-pi/pi-tui/overlays/session-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { SessionInfo } from "@oh-my-pi/pi-coding-agent/session/session-listing";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { StressRenderScheduler } from "../../../../tui/test/render-stress-scheduler";
 import { VirtualTerminal } from "../../../../tui/test/virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(() => {
 	initTheme();
@@ -48,7 +49,7 @@ describe("issue #3283: /resume picker scrolls down after deleting a session", ()
 			tui.start();
 			await scheduler.drain(term);
 
-			const headerRowBefore = term.getViewport().findIndex(row => Bun.stripANSI(row).includes("Resume Session"));
+			const headerRowBefore = term.getViewport().findIndex(row => bun.stripANSI(row).includes("Resume Session"));
 			expect(headerRowBefore).toBeGreaterThanOrEqual(0);
 
 			// Press Delete (CSI 3 ~) to open the confirmation dialog, then
@@ -60,7 +61,7 @@ describe("issue #3283: /resume picker scrolls down after deleting a session", ()
 			// onDelete is async; let its microtasks flush before draining renders.
 			for (let i = 0; i < 8; i++) await Promise.resolve();
 			await scheduler.drain(term);
-			const viewport = term.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+			const viewport = term.getViewport().map(row => bun.stripANSI(row).trimEnd());
 			const headerRowAfter = viewport.findIndex(row => row.includes("Resume Session"));
 
 			// Regression: dialog growing the frame and then shrinking must
@@ -94,7 +95,7 @@ describe("issue #3283: /resume picker scrolls down after deleting a session", ()
 		try {
 			tui.start();
 			await scheduler.drain(term);
-			const headerRowBefore = term.getViewport().findIndex(row => Bun.stripANSI(row).includes("Resume Session"));
+			const headerRowBefore = term.getViewport().findIndex(row => bun.stripANSI(row).includes("Resume Session"));
 			expect(headerRowBefore).toBeGreaterThanOrEqual(0);
 
 			// Open dialog, then Esc to cancel without deleting.
@@ -104,7 +105,7 @@ describe("issue #3283: /resume picker scrolls down after deleting a session", ()
 			selector.handleInput("\x1b");
 			await scheduler.drain(term);
 
-			const viewport = term.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+			const viewport = term.getViewport().map(row => bun.stripANSI(row).trimEnd());
 			const headerRowAfter = viewport.findIndex(row => row.includes("Resume Session"));
 			expect(headerRowAfter).toBe(headerRowBefore);
 			// Dialog gone, no scroll-down artefact.

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/registry/oauth";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
@@ -12,12 +12,13 @@ import {
 	SINGULARITYAPI_TECH_API_BASE_URL,
 	normalizeSingularityApiBaseUrl,
 } from "@oh-my-pi/pi-catalog/wire/singularityapi";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const originalKey = Bun.env.SINGULARITYAPI_TECH_API_KEY;
+const originalKey = bun.env.SINGULARITYAPI_TECH_API_KEY;
 
 afterEach(() => {
-	if (originalKey === undefined) delete Bun.env.SINGULARITYAPI_TECH_API_KEY;
-	else Bun.env.SINGULARITYAPI_TECH_API_KEY = originalKey;
+	if (originalKey === undefined) delete bun.env.SINGULARITYAPI_TECH_API_KEY;
+	else bun.env.SINGULARITYAPI_TECH_API_KEY = originalKey;
 	vi.restoreAllMocks();
 });
 
@@ -118,9 +119,9 @@ describe("SingularityAPI reserved lanes support", () => {
 		expect(isCatalogDescriptor(descriptor!)).toBe(false);
 		expect(DEFAULT_MODEL_PER_PROVIDER["singularityapi-tech"]).toBe("deepseek-ai/DeepSeek-V4.1-Flash");
 
-		delete Bun.env.SINGULARITYAPI_TECH_API_KEY;
+		delete bun.env.SINGULARITYAPI_TECH_API_KEY;
 		expect(getEnvApiKey("singularityapi-tech")).toBeUndefined();
-		Bun.env.SINGULARITYAPI_TECH_API_KEY = "sk-test";
+		bun.env.SINGULARITYAPI_TECH_API_KEY = "sk-test";
 		expect(getEnvApiKey("singularityapi-tech")).toBe("sk-test");
 	});
 

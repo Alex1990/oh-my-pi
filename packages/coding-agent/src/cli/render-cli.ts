@@ -11,7 +11,7 @@
  * The session file is copied to a temp dir before opening, so rendering never
  * takes the single-writer lock on (or appends breadcrumbs to) a live session.
  */
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
@@ -28,6 +28,7 @@ import { AgentSession } from "../session/agent-session";
 import { AuthStorage, SqliteAuthCredentialStore } from "../session/auth-storage";
 import { resolveSessionFileArg } from "./session-arg";
 import { SessionManager } from "../session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface RenderCommandArgs {
 	/** Session file path or id prefix; default: most recent session for cwd. */
@@ -215,7 +216,7 @@ export async function runRenderCommand(args: RenderCommandArgs): Promise<number>
 
 		if (!args.quiet) {
 			const lines = mode.chatContainer.render(width);
-			const text = args.plain ? lines.map(line => Bun.stripANSI(line)).join("\n") : lines.join("\n");
+			const text = args.plain ? lines.map(line => bun.stripANSI(line)).join("\n") : lines.join("\n");
 			process.stdout.write(text);
 			process.stdout.write("\n");
 		}

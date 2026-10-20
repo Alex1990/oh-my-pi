@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { type AuthBrokerServerHandle, startAuthBroker } from "@oh-my-pi/pi-ai/auth-broker";
@@ -9,6 +9,7 @@ import { createAuthStorageSettingsSync } from "@oh-my-pi/pi-coding-agent/session
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgAuthBrokerUrl } from "@oh-my-pi/pi-coding-agent/config/model-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER = "live-broker-test";
 const TOKEN = "live-broker-bearer";
@@ -22,7 +23,7 @@ interface Broker {
 async function startBroker(dir: string, apiKey: string): Promise<Broker> {
 	const storage = new AuthStorage(await SqliteAuthCredentialStore.open(path.join(dir, `${apiKey}.db`)));
 	await storage.credentials.set(PROVIDER, { type: "api_key", key: apiKey });
-	const handle = startAuthBroker({ storage, bind: "127.0.0.1:0", bearerTokens: [TOKEN], disableRefresher: true });
+	const handle = await startAuthBroker({ storage, bind: "127.0.0.1:0", bearerTokens: [TOKEN], disableRefresher: true });
 	return { handle, storage };
 }
 
@@ -64,7 +65,7 @@ describe("auth broker settings take effect live", () => {
 		const brokerB = await startBroker(tempDir.path(), "key-from-b");
 		brokers.push(brokerA, brokerB);
 		const agentDir = tempDir.join("agent");
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			`auth:\n  broker:\n    url: ${brokerA.handle.url}\n    token: ${TOKEN}\n`,
 		);

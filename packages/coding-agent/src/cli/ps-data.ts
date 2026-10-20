@@ -29,6 +29,7 @@ import {
 	type PsTarget,
 } from "@oh-my-pi/pi-tui/apps/ps-data";
 import { parseDaemonSnapshot, parseDaemonSpec } from "../launch/protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROJECT_SCOPE_KEY = /^[0-9a-f]{16}$/;
 /** Hard SIGTERM->SIGKILL grace used by `kill`; effectively immediate. */
@@ -107,7 +108,7 @@ async function resolveScopeProjectDir(runtimeDir: string): Promise<string | unde
 	if (recorded) return recorded;
 	for (const entry of await readdirQuiet(path.join(runtimeDir, "clients"))) {
 		try {
-			const decoded: unknown = await Bun.file(path.join(runtimeDir, "clients", entry.name)).json();
+			const decoded: unknown = await bun.file(path.join(runtimeDir, "clients", entry.name)).json();
 			if (
 				typeof decoded === "object" &&
 				decoded !== null &&

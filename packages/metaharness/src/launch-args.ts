@@ -7,8 +7,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { BenchmarkKind, RunRole } from "./store";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
 
 /** POST /api/runs body. Mirrors the runner CLI surface we actually use. */
 export interface LaunchRequest {
@@ -59,7 +60,7 @@ export function harborRunnerArgs(
 	// Prefer Apple Container when its CLI is present: native arm64 task
 	// containers with no Docker daemon. The runner itself defaults to
 	// docker, so the preference must be stated here.
-	const environment = request.environment ?? (Bun.which("container") ? "apple-container" : "docker");
+	const environment = request.environment ?? (bun.which("container") ? "apple-container" : "docker");
 	argv.push("--environment", environment);
 	if (request.agent) argv.push("--agent", request.agent);
 	// An explicit include list IS the sample — never let the runner's

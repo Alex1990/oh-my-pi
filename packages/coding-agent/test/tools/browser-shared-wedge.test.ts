@@ -20,7 +20,7 @@
  * CDP endpoint no longer answers.
  */
 
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { withTimeout } from "@oh-my-pi/pi-utils";
@@ -41,6 +41,20 @@ import { getTabsMapForTest, releaseTab, runInTab } from "@oh-my-pi/pi-coding-age
 import type { TabSession } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+
+// `rawHttpGet` awaits the compat socket `connect`; a runtime Bun global no
+// longer exists to spy on, so this suite substitutes the module itself.
+const netControl = vi.hoisted(() => ({ stalledConnect: null as null | (() => Promise<unknown>) }));
+vi.mock("@oh-my-pi/pi-utils/net-compat", async () => {
+	const actual = await vi.importActual<typeof import("@oh-my-pi/pi-utils/net-compat")>("@oh-my-pi/pi-utils/net-compat");
+	return {
+		...actual,
+		connect: (...args: Parameters<typeof actual.connect>) =>
+			netControl.stalledConnect ? (netControl.stalledConnect() as Promise<never>) : actual.connect(...args),
+	};
+});
 
 const DAEMON_NAME = "omp.browser.headless";
 /** The target id the incident log names for the tab whose close never landed. */
@@ -71,7 +85,7 @@ async function ownedTargets(scope: SharedTargetScope): Promise<string[]> {
 	await recordSharedTarget(scope, probe);
 	await forgetSharedTarget(scope, probe);
 	const file = path.join(daemonRuntimeDir(scope.projectDir), `${scope.daemonName}.targets`, `${process.pid}.json`);
-	const raw = await Bun.file(file)
+	const raw = await bun.file(file)
 		.text()
 		.catch(() => null);
 	if (raw === null) return [];
@@ -465,11 +479,11 @@ describe("shared browser reachability check", () => {
 	});
 
 	it("settles and frees its single-flight slot when the CDP connect never opens", async () => {
-		// `rawHttpGet` awaits `Bun.connect` before its own timer can settle the
-		// call, so a stalled connect used to pin the check (and every later
+		// `rawHttpGet` awaits the compat `connect` before its own timer can settle
+		// the call, so a stalled connect used to pin the check (and every later
 		// cleanup that joined it) indefinitely.
 		const connect = Promise.withResolvers<unknown>();
-		const connectSpy = spyOn(Bun, "connect").mockImplementation((() => connect.promise) as never);
+		netControl.stalledConnect = () => connect.promise;
 		try {
 			const scope = trackedScope();
 			const stops: string[] = [];
@@ -489,7 +503,7 @@ describe("shared browser reachability check", () => {
 			expect(await stopSharedBrowserIfUnreachable(scope, { client: broker, probe: async () => true })).toBe(false);
 			expect(stops).toEqual(stopsAfter);
 		} finally {
-			connectSpy.mockRestore();
+			netControl.stalledConnect = null;
 			connect.resolve(undefined);
 		}
 	});
@@ -536,7 +550,7 @@ describe("shared browser reachability check", () => {
 		// the subject here, so the slow answer is held until the probe's own
 		// timeout aborts the request rather than a guessed sleep.
 		let requests = 0;
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			hostname: "127.0.0.1",
 			async fetch(req) {

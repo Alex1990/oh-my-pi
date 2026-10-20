@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as url from "node:url";
@@ -6,6 +6,7 @@ import { __buildLegacyPiPackageRootOverrides } from "@oh-my-pi/pi-coding-agent/e
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { __renderLegacyPiVirtualModule, collectBundledPiEntries } from "../../scripts/legacy-pi-virtual-module";
 import type { BundledPiEntry } from "../../scripts/legacy-pi-virtual-module";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const bundledEntries = await collectBundledPiEntries();
 const bundledModuleKeys = new Set(bundledEntries.map(entry => entry.key));
@@ -13,8 +14,8 @@ const bundledModuleKeys = new Set(bundledEntries.map(entry => entry.key));
 async function runRegistryProbe(entries: BundledPiEntry[], source: string): Promise<unknown> {
 	// Bare package imports in the generated registry need the workspace links.
 	const packageRoot = path.join(path.dirname(url.fileURLToPath(import.meta.url)), "..", "..");
-	const registryPath = path.join(packageRoot, `.probe-legacy-pi-${Bun.randomUUIDv7()}.ts`);
-	await Bun.write(registryPath, `${__renderLegacyPiVirtualModule(entries)}\n${source}\n`);
+	const registryPath = path.join(packageRoot, `.probe-legacy-pi-${bun.randomUUIDv7()}.ts`);
+	await bun.write(registryPath, `${__renderLegacyPiVirtualModule(entries)}\n${source}\n`);
 	try {
 		// Runtime-selected registry filename: static imports cannot exercise its generated module.
 		const registry = await import(url.pathToFileURL(registryPath).href);
@@ -27,7 +28,7 @@ async function runRegistryProbe(entries: BundledPiEntry[], source: string): Prom
 // Regression for issue #3442: extension validation in compiled-binary mode
 // failed to resolve `@earendil-works/pi-ai/oauth` because the override map
 // only covered bare package roots — every non-wildcard subpath fell through
-// to `Bun.resolveSync`, which bunfs can't satisfy on Bun 1.3.14+, then the
+// to `bun.resolveSync`, which bunfs can't satisfy on Bun 1.3.14+, then the
 // `rewriteLegacyPiImports` catch left the original specifier in place and
 // Bun's native resolver couldn't find a peer install. The build plugin now
 // derives every module key from current package exports, so subpaths route to
@@ -39,13 +40,13 @@ describe("legacy pi compat compiled-mode subpath overrides (issue #3442)", () =>
 		const alphaPath = path.join(tempDir.path(), "alpha.ts");
 		const betaPath = path.join(tempDir.path(), "beta.ts");
 		const registryPath = path.join(tempDir.path(), "registry.ts");
-		await Bun.write(alphaPath, 'Reflect.set(globalThis, "__alphaLoads", 1);\nexport const value = "alpha";\n');
-		await Bun.write(betaPath, 'Reflect.set(globalThis, "__betaLoads", 1);\nexport const value = "beta";\n');
+		await bun.write(alphaPath, 'Reflect.set(globalThis, "__alphaLoads", 1);\nexport const value = "alpha";\n');
+		await bun.write(betaPath, 'Reflect.set(globalThis, "__betaLoads", 1);\nexport const value = "beta";\n');
 		const registry = __renderLegacyPiVirtualModule([
 			{ key: "alpha", binding: "bundledAlpha", importSpecifier: url.pathToFileURL(alphaPath).href },
 			{ key: "beta", binding: "bundledBeta", importSpecifier: url.pathToFileURL(betaPath).href },
 		]);
-		await Bun.write(
+		await bun.write(
 			registryPath,
 			`${registry}
 export const beforeAlpha = Reflect.get(globalThis, "__alphaLoads") ?? 0;
@@ -228,7 +229,7 @@ export const observed = buildModel({
 		expect(overrides).not.toHaveProperty("@oh-my-pi/pi-ai/oauth");
 		expect(overrides).not.toHaveProperty("@oh-my-pi/pi-coding-agent/tools");
 		// Dev keeps only the historical shim entries so canonical subpath
-		// imports continue to flow through `Bun.resolveSync` against the live
+		// imports continue to flow through `bun.resolveSync` against the live
 		// monorepo / installed `node_modules` tree.
 	});
 

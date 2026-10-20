@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { CleanseBoardModel } from "../src/apps/cleanse-board";
 import { showGitOverlay } from "../src/apps/git/git-tui";
@@ -11,6 +11,7 @@ import type { DescribeContext, NativeChild, NativeNode } from "../src/native/nod
 import { TSP_KINDS, type TspKind } from "@oh-my-pi/pi-wire";
 import type { DaemonSnapshot, DaemonSpec } from "../src/tools/daemon";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function nodes(children: readonly NativeChild[] | undefined): NativeNode[] {
 	const out: NativeNode[] = [];
@@ -127,7 +128,7 @@ describe("git native", () => {
 		const h = await TspHarness.start(undefined, { cols: 150, rows: 40 });
 		const settle = async (): Promise<void> => {
 			for (let i = 0; i < 4; i++) {
-				await Bun.sleep(0); // zero-delay yield: lets the model's async file load settle, no wall-clock wait
+				await bun.sleep(0); // zero-delay yield: lets the model's async file load settle, no wall-clock wait
 				h.tui.requestRender();
 				h.flush(10);
 			}

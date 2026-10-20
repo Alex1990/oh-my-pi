@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { ASYNC_JOB_MANAGER_SHUTDOWN_REASON, AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -22,6 +22,7 @@ import { TASK_SUBAGENT_LIFECYCLE_CHANNEL } from "@oh-my-pi/pi-coding-agent/task/
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createSessionDefaults } from "../helpers/session-defaults";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Contracts under test — the soft request budget must degrade gracefully
@@ -435,8 +436,8 @@ describe("runSubprocess soft request budget", () => {
 		const id = "RacedScout";
 		const rootSessionFile = `${tempDir.path()}/main.jsonl`;
 		const workerSessionFile = `${tempDir.path()}/main/${id}.jsonl`;
-		await Bun.write(rootSessionFile, "");
-		await Bun.write(
+		await bun.write(rootSessionFile, "");
+		await bun.write(
 			workerSessionFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id, timestamp: "2026-08-13T17:14:48.000Z", cwd: "/tmp" }),
@@ -481,7 +482,7 @@ describe("runSubprocess soft request budget", () => {
 		expect(result.aborted).toBe(true);
 		expect(AgentRegistry.global().get(id)).toBeUndefined();
 		expect(handle.disposeCalls()).toBeGreaterThanOrEqual(1);
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
 		const restored = new AgentRegistry();
 		await registerPersistedSubagents(restored, rootSessionFile);
 		expect(restored.get(id)?.status).toBe("parked");
@@ -491,8 +492,8 @@ describe("runSubprocess soft request budget", () => {
 		const id = "ShutdownScout";
 		const rootSessionFile = `${tempDir.path()}/main.jsonl`;
 		const workerSessionFile = `${tempDir.path()}/main/${id}.jsonl`;
-		await Bun.write(rootSessionFile, "");
-		await Bun.write(
+		await bun.write(rootSessionFile, "");
+		await bun.write(
 			workerSessionFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id, timestamp: "2026-08-13T17:14:48.000Z", cwd: "/tmp" }),
@@ -535,7 +536,7 @@ describe("runSubprocess soft request budget", () => {
 		await manager.dispose({ timeoutMs: 1_000 });
 		AsyncJobManager.setInstance(undefined);
 
-		expect(await Bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
+		expect(await bun.file(`${workerSessionFile}.tombstone`).exists()).toBe(false);
 		expect(AgentRegistry.global().get(id)).toBeUndefined();
 		const restoredRegistry = new AgentRegistry();
 		await registerPersistedSubagents(restoredRegistry, rootSessionFile);
@@ -725,11 +726,11 @@ describe("task.agentSoftRequestBudget", () => {
 		using tempDir = TempDir.createSync("@pi-agent-budget-");
 		const agentDir = path.join(tempDir.path(), "agent");
 		const overlay = path.join(tempDir.path(), "overlay.yml");
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			JSON.stringify({ task: { agentSoftRequestBudget: { scout: 150, lead: 400 } } }),
 		);
-		await Bun.write(overlay, JSON.stringify({ task: { agentSoftRequestBudget: { scout: null } } }));
+		await bun.write(overlay, JSON.stringify({ task: { agentSoftRequestBudget: { scout: null } } }));
 
 		// Ambient overlays would join the layers under test.
 		const previousConfigFiles = process.env.PI_CONFIG_FILES;

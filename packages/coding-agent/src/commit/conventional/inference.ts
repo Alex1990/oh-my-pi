@@ -7,6 +7,7 @@ import { extractTextContent } from "../utils";
 import { type CommitInferenceCache, computeCommitCacheKey } from "./cache";
 import type { ConventionalGenerationConfig } from "./config";
 import type { ConventionalPromptFamily } from "./prompts";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Model roles preserved from llm-git's analysis/summary/map/fast pipeline. */
 export type CommitInferenceRole = "analysis" | "summary" | "map" | "fast";
@@ -51,7 +52,7 @@ export class OmpCommitInference implements CommitInference {
 	readonly #authStorage: AuthStorage | null;
 	readonly #onProgress?: CommitProgress;
 	readonly #signal?: AbortSignal;
-	readonly #sessionId = Bun.randomUUIDv7();
+	readonly #sessionId = bun.randomUUIDv7();
 
 	constructor(options: {
 		primary: ResolvedCommitModel;
@@ -163,7 +164,7 @@ export class OmpCommitInference implements CommitInference {
 					error: lastError.message,
 				});
 				if (attempt < this.#config.maxRetries) {
-					await Bun.sleep(Math.max(0, this.#config.initialBackoffMs) * 2 ** (attempt - 1));
+					await bun.sleep(Math.max(0, this.#config.initialBackoffMs) * 2 ** (attempt - 1));
 				}
 			}
 		}

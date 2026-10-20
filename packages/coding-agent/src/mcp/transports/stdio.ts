@@ -8,7 +8,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getProjectDir, readJsonl } from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import { hostHasInheritableConsole } from "../../eval/py/spawn-options";
 import type {
 	JsonRpcError,
@@ -24,6 +24,7 @@ import { createMCPJsonRpcError, MCPTransportError, normalizeMCPTransportError } 
 import { RequestIdAllocator } from "../request-id";
 import { isMCPTimeoutEnabled, resolveMCPTimeoutMs } from "../timeout";
 import { isThenable } from "../../utils/ipc";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Subprocess argv and platform-derived spawn flags for an MCP stdio server. */
 export interface StdioSpawnCommand {
@@ -58,7 +59,7 @@ export interface StdioSpawnCommand {
 	 */
 	detached: boolean;
 	/**
-	 * Pass argv to `Bun.spawn` verbatim (Windows only), suppressing the
+	 * Pass argv to `bun.spawn` verbatim (Windows only), suppressing the
 	 * default libuv backslash-quoting.
 	 *
 	 * Set when `cmd` already holds a `cmd.exe /d /e:ON /v:OFF /c "<line>"`
@@ -184,7 +185,7 @@ async function resolveWindowsNpmShimCommand(
 
 	let content: string;
 	try {
-		content = await Bun.file(commandPath).text();
+		content = await bun.file(commandPath).text();
 	} catch {
 		return null;
 	}
@@ -320,9 +321,9 @@ function buildCmdExeArgv(comspec: string, command: string, args: readonly string
  * Resolve the subprocess argv used to launch an MCP stdio server.
  *
  * On Windows, our PATH/PATHEXT walk may return `null` for a bare command
- * (e.g. `npx`) — `Bun.env.PATH` empty under a restricted parent process,
+ * (e.g. `npx`) — `bun.env.PATH` empty under a restricted parent process,
  * UNC/network mounts that reject `fs.access`, locked-down shells. The
- * legacy fallback handed `Bun.spawn` the bare name, but `CreateProcess`
+ * legacy fallback handed `bun.spawn` the bare name, but `CreateProcess`
  * only appends `.exe` for extensionless names — `.cmd`/`.bat` are never
  * tried, so `npx` (which exists only as `npx.cmd` on Windows) crashes the
  * subprocess immediately. When the resolver can't pin the command down,
@@ -417,7 +418,7 @@ const KILL_GRACE_MS = 500;
  * The subset of `Subprocess` that termination needs. Decoupled from the
  * `Subprocess<In, Out, Err>` stdio generics — `#process`'s pipes are
  * irrelevant to signaling — so tests can exercise it against a plain
- * `Bun.spawn(cmd, { stdio: "ignore" })` child without fighting the generics.
+ * `bun.spawn(cmd, { stdio: "ignore" })` child without fighting the generics.
  */
 interface KillableSubprocess {
 	readonly pid: number;
@@ -543,7 +544,7 @@ export async function terminateStdioProcess(
  * Spawns a subprocess and communicates via stdin/stdout.
  */
 export class StdioTransport implements MCPTransport {
-	#process: Subprocess<"pipe", "pipe", "pipe"> | null = null;
+	#process: Subprocess | null = null;
 	#pendingRequests = new Map<
 		string | number,
 		{
@@ -579,7 +580,7 @@ export class StdioTransport implements MCPTransport {
 		if (this.#connected) return;
 
 		const env = {
-			...Bun.env,
+			...bun.env,
 			...this.config.env,
 		};
 		const cwd = this.config.cwd ?? getProjectDir();
@@ -600,7 +601,7 @@ export class StdioTransport implements MCPTransport {
 		// triggers macOS Apple Events TCC prompts uses the same shape; the
 		// one-object `{ cmd }` overload timed out before prompting for `mcpbridge`
 		// even with `detached: false` (#5085).
-		this.#process = Bun.spawn(spawnCommand.cmd, {
+		this.#process = bun.spawn(spawnCommand.cmd, {
 			cwd,
 			env,
 			stdin: "pipe",

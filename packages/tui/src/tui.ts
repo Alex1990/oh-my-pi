@@ -63,6 +63,7 @@ import {
 	visibleWidth,
 } from "./utils";
 import { tmuxClientRendersSixel } from "./tmux";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Full-attribute reset terminating each rendered content row. */
 export const SEGMENT_RESET = "\x1b[0m";
@@ -124,7 +125,7 @@ type MouseTrackingState = "off" | "inline" | "full";
  * turns into a flicker loop.
  */
 function resizeInPlaceOverride(): boolean | null {
-	const override = Bun.env.PI_TUI_RESIZE_IN_PLACE;
+	const override = bun.env.PI_TUI_RESIZE_IN_PLACE;
 	if (override === "1" || override === "true") return true;
 	if (override === "0" || override === "false") return false;
 	return null;
@@ -1126,7 +1127,7 @@ export class TUI extends Container {
 		this.#watchdog = new LoopWatchdog();
 	}
 	static #initialResizeScrollbackMode(): ResizeScrollbackMode {
-		const mode = Bun.env.PI_TUI_RESIZE_SCROLLBACK;
+		const mode = bun.env.PI_TUI_RESIZE_SCROLLBACK;
 		return mode === "append" || mode === "rebuild" || mode === "preserve" ? mode : "preserve";
 	}
 
@@ -1869,7 +1870,7 @@ export class TUI extends Container {
 		const override = resizeInPlaceOverride();
 		if (override !== null) return override;
 		if (isInsideTerminalMultiplexer() || this.terminal.hostOwnsGridOnResize === true) return false;
-		return Bun.env.TERM_PROGRAM?.toLowerCase() === "warpterminal";
+		return bun.env.TERM_PROGRAM?.toLowerCase() === "warpterminal";
 	}
 
 	#resizeAvoidsAltBuffer(): boolean {
@@ -1905,7 +1906,7 @@ export class TUI extends Container {
 		// Inside a multiplexer the mux consumes alt toggles itself, so no echo is
 		// possible: every ±1 resize is real and must restart the transaction.
 		if (isInsideTerminalMultiplexer()) return false;
-		if (Bun.env.TERM_PROGRAM?.toLowerCase() !== "warpterminal") return false;
+		if (bun.env.TERM_PROGRAM?.toLowerCase() !== "warpterminal") return false;
 		return (
 			this.terminal.columns === this.#altToggleColumns && Math.abs(this.terminal.rows - this.#altToggleRows) <= 1
 		);
@@ -3414,7 +3415,7 @@ export class TUI extends Container {
 			viewport = Array.from(plan.viewport);
 			if (viewport.length > height) {
 				const message = `Frame provider returned ${viewport.length} rows for a ${height}-row viewport`;
-				if (Bun.env.NODE_ENV === "test" || Bun.env.NODE_ENV === "development") throw new Error(message);
+				if (bun.env.NODE_ENV === "test" || bun.env.NODE_ENV === "development") throw new Error(message);
 				logger.error("TUI layout contract violated", { rows: viewport.length, height });
 				viewport = viewport.slice(0, height);
 			}

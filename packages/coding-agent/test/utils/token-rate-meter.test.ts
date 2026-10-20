@@ -11,7 +11,7 @@
  *    and hidden pre-delta reasoning is charged against its silent span.
  * 4. Too few tokens is no reading, not a spurious one; reset blanks it.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TokenRateMeter } from "../../src/utils/token-rate";
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;

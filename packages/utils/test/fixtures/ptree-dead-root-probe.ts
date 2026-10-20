@@ -1,4 +1,5 @@
-const child = Bun.spawn([process.execPath, "-e", "await Bun.sleep(30_000)"], {
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+const child = bun.spawn([process.execPath, "-e", "setTimeout(() => {}, 30_000)"], {
 	stdin: "ignore",
 	stdout: "inherit",
 	stderr: "inherit",
@@ -8,5 +9,5 @@ const child = Bun.spawn([process.execPath, "-e", "await Bun.sleep(30_000)"], {
 	detached: true,
 });
 
-await Bun.write(Bun.stdout, `${child.pid}\n`);
+await bun.write(bun.stdout, `${child.pid}\n`);
 process.exit(0);

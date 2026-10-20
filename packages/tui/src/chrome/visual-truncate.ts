@@ -4,6 +4,7 @@
  */
 import { viewportRange } from "../components/scroll-viewport";
 import { Text } from "../components/text";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export interface VisualTruncateResult {
 	/** The visual lines to display */
 	visualLines: readonly string[];
@@ -15,7 +16,7 @@ const textCache = new Map<string, Text>();
 const TRUNCATE_CACHE_MAX = 8;
 
 function cacheKey(text: string, width: number, paddingX: number): string {
-	return `${paddingX} ${width} ${text.length} ${Bun.hash(text).toString(36)}`;
+	return `${paddingX} ${width} ${text.length} ${bun.hash(text).toString(36)}`;
 }
 
 function getCachedText(cacheKeyValue: string, paddingX: number): Text {

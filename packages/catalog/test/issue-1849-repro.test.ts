@@ -14,7 +14,7 @@
  *   3. The bundled catalog ships the capped value for the regenerated
  *      `fireworks/kimi-k2.5` / `fireworks/kimi-k2.6` entries.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 

@@ -1,10 +1,19 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { __internalsForTesting, withFileLock } from "../src/file-lock";
 import { isEnoent } from "../src/fs-error";
 import { removeWithRetries } from "../src/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 const { tryAcquireLock, getLockPath } = __internalsForTesting;
 
@@ -61,10 +70,16 @@ describe("native file-lock ownership", () => {
 		const target = path.join(root, "abandoned.json");
 		const readyPath = path.join(root, "holder-ready");
 		const lockPath = getLockPath(target);
-		const holder = Bun.spawn(
-			[process.execPath, path.join(import.meta.dir, "fixtures/file-lock-holder.ts"), target, readyPath],
+		const holder = bun.spawn(
+			[
+				process.execPath,
+				...nodeTsArgs,
+				path.join(import.meta.dirname, "fixtures/file-lock-holder.ts"),
+				target,
+				readyPath,
+			],
 			{
-				cwd: path.resolve(import.meta.dir, "../../.."),
+				cwd: path.resolve(import.meta.dirname, "../../.."),
 				env: { HOME: process.env.HOME ?? "", PATH: process.env.PATH ?? "" },
 				stdin: "ignore",
 				stdout: "ignore",

@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { AgentLifecycleManager } from "@oh-my-pi/pi-coding-agent/registry/agent-lifecycle";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { registerPersistedSubagents } from "@oh-my-pi/pi-coding-agent/registry/persisted-agents";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SONNET = { provider: "anthropic", model: "claude-sonnet-5" };
 const SOL = { provider: "openai-codex", model: "gpt-5.6-sol" };
@@ -89,8 +90,8 @@ function transcriptHead(): string[] {
 
 /** Writes a worker transcript beside an empty root session and registers it. */
 async function historyFor(dir: string, id: string, records: string[]): Promise<AgentRegistry> {
-	await Bun.write(path.join(dir, "main.jsonl"), "");
-	await Bun.write(path.join(dir, "main", `${id}.jsonl`), `${records.join("\n")}\n`);
+	await bun.write(path.join(dir, "main.jsonl"), "");
+	await bun.write(path.join(dir, "main", `${id}.jsonl`), `${records.join("\n")}\n`);
 	const registry = new AgentRegistry();
 	await registerPersistedSubagents(registry, path.join(dir, "main.jsonl"));
 	return registry;

@@ -13,8 +13,8 @@ interface V8HeapSnapshot {
 
 const LARGE_STRING_MIN_SIZE = 1024 * 1024;
 
-Bun.gc(true);
-const heap = JSON.parse(Bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
+bun.gc(true);
+const heap = JSON.parse(bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
 const { node_fields: nodeFields, node_types: nodeTypes } = heap.snapshot.meta;
 const typeOffset = nodeFields.indexOf("type");
 const nameOffset = nodeFields.indexOf("name");
@@ -35,3 +35,4 @@ for (let nodeOffset = 0; nodeOffset < heap.nodes.length; nodeOffset += nodeField
 }
 
 process.stdout.write(JSON.stringify({ retainedChangelogStrings }));
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

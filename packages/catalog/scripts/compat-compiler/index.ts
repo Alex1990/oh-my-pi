@@ -12,6 +12,7 @@ import { compileBehavior } from "./compile-behavior";
 import { compileCascade } from "./compile-cascade";
 import { compileProviders } from "./compile-providers";
 import { compileTaxonomy } from "./compile-taxonomy";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { renderProviderIds } from "./compile-providers";
 export { CompatCompileError } from "./kdl-reader";
@@ -33,7 +34,7 @@ async function readGroup(rulesDir: string, group: string): Promise<RuleSource[]>
 	for (const name of entries.sort()) {
 		if (!name.endsWith(".kdl")) continue;
 		const file = `${group}/${name}`;
-		sources.push({ file, text: await Bun.file(path.join(rulesDir, file)).text() });
+		sources.push({ file, text: await bun.file(path.join(rulesDir, file)).text() });
 	}
 	return sources;
 }

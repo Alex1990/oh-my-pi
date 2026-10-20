@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { ApprovalDialogComponent } from "@oh-my-pi/pi-tui/overlays/approval-dialog";
 import { AskDialogComponent } from "@oh-my-pi/pi-tui/overlays/ask-dialog";
@@ -15,6 +15,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import manualContinuePrompt from "../src/prompts/system/manual-continue.md" with { type: "text" };
 import { imageAttachmentSource } from "@oh-my-pi/pi-tui/prompt/image-source";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type FakeEditor = {
 	onEscape?: () => void;
@@ -800,7 +801,7 @@ describe("InputController image paste into an image-accepting prompt", () => {
 
 	async function writePng(name: string, data = TINY_PNG): Promise<string> {
 		const file = tempDir.join(name);
-		await Bun.write(file, Buffer.from(data, "base64"));
+		await bun.write(file, Buffer.from(data, "base64"));
 		return file;
 	}
 

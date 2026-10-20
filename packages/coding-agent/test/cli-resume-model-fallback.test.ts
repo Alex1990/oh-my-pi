@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { readJsonl, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const cliEntry = path.resolve(import.meta.dir, "../src/cli.ts");
+const cliEntry = path.resolve(import.meta.dirname, "../src/cli.ts");
 
 describe("headless startup resume", () => {
 	test.each(["print", "json", "rpc", "rpc-ui"])(
@@ -10,7 +13,7 @@ describe("headless startup resume", () => {
 		async mode => {
 			using tempDir = TempDir.createSync("@omp-resume-model-");
 			const requests: string[] = [];
-			const server = Bun.serve({
+			const server = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				async fetch(request) {
@@ -20,7 +23,7 @@ describe("headless startup resume", () => {
 			});
 			try {
 				const agentDir = tempDir.join("home", ".omp", "agent");
-				await Bun.write(
+				await bun.write(
 					path.join(agentDir, "models.yml"),
 					JSON.stringify({
 						providers: {
@@ -43,7 +46,7 @@ describe("headless startup resume", () => {
 						},
 					}),
 				);
-				await Bun.write(
+				await bun.write(
 					path.join(agentDir, "config.yml"),
 					JSON.stringify({
 						modelRoles: { default: "other/default-model" },
@@ -53,7 +56,7 @@ describe("headless startup resume", () => {
 				);
 				const sessionFile = tempDir.join("saved.jsonl");
 				const timestamp = "2026-06-01T00:00:00.000Z";
-				await Bun.write(
+				await bun.write(
 					sessionFile,
 					`${[
 						{ type: "session", version: 3, id: "saved", timestamp, cwd: tempDir.path() },
@@ -79,9 +82,10 @@ describe("headless startup resume", () => {
 				const rpc = mode === "rpc" || mode === "rpc-ui";
 				const args = mode === "print" ? ["-p"] : ["--mode", mode];
 				if (!rpc) args.push("Continue the previous turn.");
-				const proc = Bun.spawn(
+				const proc = bun.spawn(
 					[
 						process.execPath,
+						...nodeSourceFlags(),
 						cliEntry,
 						"--no-title",
 						"--no-lsp",
@@ -174,7 +178,7 @@ describe("headless runtime session switch", () => {
 		using tempDir = TempDir.createSync("@omp-switch-model-");
 		const cwd = tempDir.path();
 		const requests: { provider: string; body: string }[] = [];
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			async fetch(request) {
@@ -183,7 +187,7 @@ describe("headless runtime session switch", () => {
 			},
 		});
 		const agentDir = path.join(cwd, "home", ".omp", "agent");
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "models.yml"),
 			JSON.stringify({
 				providers: {
@@ -202,7 +206,7 @@ describe("headless runtime session switch", () => {
 				},
 			}),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			JSON.stringify({
 				modelRoles: { default: "other/default-model" },
@@ -232,7 +236,7 @@ describe("headless runtime session switch", () => {
 				stopReason: "stop",
 				timestamp: Date.parse(timestamp),
 			};
-			await Bun.write(
+			await bun.write(
 				file,
 				`${[
 					{ type: "session", version: 3, id: name, timestamp, cwd },
@@ -252,8 +256,18 @@ describe("headless runtime session switch", () => {
 			return { dir, file };
 		};
 
-		const proc = Bun.spawn(
-			[process.execPath, cliEntry, "--no-title", "--no-lsp", "--no-extensions", "--no-tools", "--mode", "rpc"],
+		const proc = bun.spawn(
+			[
+				process.execPath,
+				...nodeSourceFlags(),
+				cliEntry,
+				"--no-title",
+				"--no-lsp",
+				"--no-extensions",
+				"--no-tools",
+				"--mode",
+				"rpc",
+			],
 			{
 				cwd,
 				env: {

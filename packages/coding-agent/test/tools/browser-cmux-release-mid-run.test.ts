@@ -28,7 +28,7 @@
  *    from PR #4502.)
  */
 
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -45,6 +45,7 @@ import {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { encodeRawPng } from "@oh-my-pi/pi-coding-agent/utils/png-encode";
 import * as logger from "@oh-my-pi/pi-utils/logger";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeKind(socketSuffix: string): CmuxKind {
 	return {
@@ -223,10 +224,10 @@ describe("browser tab-supervisor — cmux tab close mid-run (#4499)", () => {
 			const session = makeSession("/tmp");
 			// The user code awaits `wait(60_000)` — which drives
 			// `waitForRun(60_000, signal)` -> `untilAborted(signal,
-			// () => Bun.sleep(60_000))` INSIDE the runtime. Nothing hits the
+			// () => bun.sleep(60_000))` INSIDE the runtime. Nothing hits the
 			// cmux socket, so on `main` the reviewer's exact scenario applies:
 			// even after `pending.reject` unblocks the caller, `runCmuxCode`
-			// stays blocked in `Bun.sleep(60_000)` until the run's timeout,
+			// stays blocked in `bun.sleep(60_000)` until the run's timeout,
 			// leaking the run past the tab lifetime.
 			//
 			// The fix composes `pending.closeAc.signal` into the run's abort
@@ -497,7 +498,7 @@ describe("browser tab-supervisor — cmux tab close mid-run (#4499)", () => {
 		if (typeof savedPath !== "string") throw new Error("tab.screenshot() did not return a path");
 		expect(path.dirname(savedPath)).toBe(os.tmpdir());
 		expect(savedPath).not.toBe("/workspace/screenshots/daemon-owned.png");
-		expect(await Bun.file(savedPath).exists()).toBe(true);
+		expect(await bun.file(savedPath).exists()).toBe(true);
 		await fs.rm(savedPath);
 	});
 
@@ -544,7 +545,7 @@ describe("browser tab-supervisor — cmux tab close mid-run (#4499)", () => {
 			expect(typeof savedPath).toBe("string");
 			if (typeof savedPath !== "string") throw new Error("tab.screenshot() did not return a path");
 			expect(path.dirname(savedPath)).toBe(screenshotDir);
-			expect(await Bun.file(savedPath).exists()).toBe(true);
+			expect(await bun.file(savedPath).exists()).toBe(true);
 		} finally {
 			await fs.rm(screenshotDir, { recursive: true, force: true });
 		}

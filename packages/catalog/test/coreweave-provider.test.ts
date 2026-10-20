@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import {
@@ -7,17 +7,18 @@ import {
 	mapModelsDevToModels,
 } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 import type { FetchImpl } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const COREWEAVE_ENV_KEYS = ["COREWEAVE_PROJECT", "WANDB_INFERENCE_PROJECT", "WANDB_ENTITY", "WANDB_PROJECT"] as const;
-const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, Bun.env[key]]));
+const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, bun.env[key]]));
 
 function restoreCoreWeaveEnv(): void {
 	for (const key of COREWEAVE_ENV_KEYS) {
 		const value = ORIGINAL_ENV.get(key);
 		if (value === undefined) {
-			delete Bun.env[key];
+			delete bun.env[key];
 		} else {
-			Bun.env[key] = value;
+			bun.env[key] = value;
 		}
 	}
 }
@@ -29,10 +30,10 @@ afterEach(() => {
 
 describe("CoreWeave Serverless Inference provider support", () => {
 	test("discovers dynamic models with the CoreWeave project header", async () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		delete Bun.env.WANDB_ENTITY;
-		delete Bun.env.WANDB_PROJECT;
+		bun.env.COREWEAVE_PROJECT = "team/project";
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		delete bun.env.WANDB_ENTITY;
+		delete bun.env.WANDB_PROJECT;
 
 		const calls: Array<{ url: string; authorization: string | null; project: string | null }> = [];
 		const fetchMock: FetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {

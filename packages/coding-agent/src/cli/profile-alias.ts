@@ -2,6 +2,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { normalizeProfileName } from "@oh-my-pi/pi-utils/dirs";
 import { quotePosixArgument } from "../utils/shell-quote";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type ProfileAliasShell = "bash" | "zsh" | "fish" | "powershell" | "pwsh";
 
@@ -324,7 +325,7 @@ function upsertBlock(content: string, aliasName: string, block: string): string 
 }
 
 function readAliasConfigText(filePath: string): Promise<string> {
-	return Bun.file(filePath).text();
+	return bun.file(filePath).text();
 }
 
 export async function readProfileAliasConfigFile(
@@ -355,7 +356,7 @@ export async function installProfileAlias(options: ProfileAliasInstallOptions): 
 	const writeFile =
 		options.writeFile ??
 		(async (filePath, content) => {
-			await Bun.write(filePath, content);
+			await bun.write(filePath, content);
 		});
 
 	const current = await readFile(configPath);

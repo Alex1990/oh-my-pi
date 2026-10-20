@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type DaemonOperation, parseDaemonRpcResult, parseDaemonWireRequest } from "../../src/launch/protocol";
 
 const operation: Extract<DaemonOperation, { op: "logs" }> = {

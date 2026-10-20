@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,11 +8,12 @@ import { MCPCommandController } from "@oh-my-pi/pi-coding-agent/modes/controller
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { getMCPConfigPath, getProjectDir, removeWithRetries, setProjectDir } from "@oh-my-pi/pi-utils";
 import { createInteractiveModeContext, createMcpManagerStub } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalProjectDir = getProjectDir();
 
 async function writeExternalProjectConfig(projectDir: string, servers: Record<string, MCPServerConfig>): Promise<void> {
-	await Bun.write(
+	await bun.write(
 		getMCPConfigPath("project", projectDir),
 		`${JSON.stringify(
 			{
@@ -86,7 +87,7 @@ describe("/mcp reload picks up external mcp.json edits", () => {
 		const primed = await readFile(configPath);
 		expect(primed).toContain("old-cmd");
 
-		await Bun.write(
+		await bun.write(
 			configPath,
 			`${JSON.stringify({ mcpServers: { test: { type: "stdio", command: "new-cmd" } } }, null, 2)}\n`,
 		);

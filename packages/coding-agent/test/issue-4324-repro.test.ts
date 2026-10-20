@@ -13,7 +13,7 @@
  * tests pin that contract so the exit-code-7 crash (and the next one) actually
  * shows up in `~/.omp/logs/omp.log` without regressing idle-worker shutdown.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { createWorkerSubprocess, type SpawnedSubprocess } from "@oh-my-pi/pi-coding-agent/subprocess/worker-client";
 
 interface FakeWorkerOutbound {

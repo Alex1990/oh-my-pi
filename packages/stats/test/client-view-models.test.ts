@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatEstimatedCost } from "../src/client/data/formatters";
 import { buildAgentTokenShare, buildCostSummary, buildModelPerformanceLookup } from "../src/client/data/view-models";
 import type { AgentTypeStats, CostTimeSeriesPoint, ModelPerformancePoint } from "../src/shared-types";

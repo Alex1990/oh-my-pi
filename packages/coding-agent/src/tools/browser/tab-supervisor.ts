@@ -57,6 +57,9 @@ import { cfgBrowserScreenshotDir } from "./settings";
 import { listTernBlocks, noTernBlockError, pickTernBlock } from "./tern/blocks";
 import { TernTab } from "./tern/tern-tab";
 import { newUploadStagingDir, removeUploadStaging, sweepUploadStaging } from "./upload-files";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker, type WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 // Coding-agent binary/bundle workers route through the CLI entrypoint with a
 // hidden argv mode, so compiled/npm builds only need one JavaScript entry.
@@ -1523,7 +1526,7 @@ async function setTabFrozen(tab: TabSession, frozen: boolean): Promise<boolean> 
 				// One retry for the in-flight run's sake: a brief frozen
 				// blip is harmless (rAF just skips frames), but an
 				// indefinite freeze stalls it to timeout.
-				await Bun.sleep(100);
+				await bun.sleep(100);
 				if (await sendLifecycleState(session, "active")) return false;
 				tab.frozen = true;
 				return false;
@@ -1582,7 +1585,7 @@ async function unfreezeTabSession(tab: TabSession): Promise<boolean> {
 		}
 	}
 	if (await setTabFrozen(tab, false).catch(() => false)) return true;
-	await Bun.sleep(100);
+	await bun.sleep(100);
 	return await setTabFrozen(tab, false).catch(() => false);
 }
 
@@ -2326,8 +2329,8 @@ async function spawnTabWorker(): Promise<WorkerHandle> {
 	try {
 		const hostEntry = workerHostEntry();
 		const worker = hostEntry
-			? new Worker(hostEntry, { type: "module", argv: ["__omp_worker_tab"] })
-			: new Worker(new URL("./tab-worker-entry.ts", import.meta.url).href, { type: "module" });
+			? new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: "__omp_worker_tab" } })
+			: new Worker(new URL("./tab-worker-entry.ts", import.meta.url).href);
 		return wrapBunWorker(worker);
 	} catch (err) {
 		logger.warn("Bun Worker spawn failed; using inline tab worker (no sync-loop guard)", {
@@ -2342,17 +2345,17 @@ function wrapBunWorker(worker: Worker): WorkerHandle {
 	return {
 		mode: "worker",
 		send(msg, transferList) {
-			worker.postMessage(msg, { transfer: transferList ?? [] });
+			worker.postMessage(msg, transferList ?? []);
 		},
 		onMessage(handler) {
-			const wrap = (event: MessageEvent): void => handler(event.data as WorkerOutbound);
+			const wrap = (event: Event): void => handler((event as MessageEvent).data as WorkerOutbound);
 			worker.addEventListener("message", wrap);
 			return () => worker.removeEventListener("message", wrap);
 		},
 		onError(handler) {
-			const onError = (event: ErrorEvent): void => handler(errorFromWorkerEvent(event));
-			const onMessageError = (event: MessageEvent): void =>
-				handler(new WorkerMessageError(`Tab worker message error: ${String(event.data)}`));
+			const onError = (event: Event): void => handler(errorFromWorkerEvent(event as WorkerErrorEvent));
+			const onMessageError = (event: Event): void =>
+				handler(new WorkerMessageError(`Tab worker message error: ${String((event as MessageEvent).data)}`));
 			worker.addEventListener("error", onError);
 			worker.addEventListener("messageerror", onMessageError);
 			return () => {
@@ -2361,8 +2364,8 @@ function wrapBunWorker(worker: Worker): WorkerHandle {
 			};
 		},
 		onExit(handler) {
-			const onClose = (event: CloseEvent): void => {
-				if (!terminated) handler(event.code);
+			const onClose = (event: Event): void => {
+				if (!terminated) handler((event as Event & { code: number }).code);
 			};
 			worker.addEventListener("close", onClose);
 			return () => worker.removeEventListener("close", onClose);
@@ -2503,7 +2506,7 @@ export function initializeTabWorkerForTest(
 	return initializeTabWorker(worker, payload, timeoutMs, deadlineStart);
 }
 
-function errorFromWorkerEvent(event: ErrorEvent): Error {
+function errorFromWorkerEvent(event: WorkerErrorEvent): Error {
 	if (event.error instanceof Error) return event.error;
 	if (event.message) return new Error(event.message);
 	return new Error("Unknown tab worker error");

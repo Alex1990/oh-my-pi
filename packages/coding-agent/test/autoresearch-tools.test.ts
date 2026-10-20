@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
@@ -17,7 +17,8 @@ import type { ASIData, LogDetails, NumericMetricMap, RunDetails } from "@oh-my-p
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -82,7 +83,7 @@ let templateBaselineCommit: string;
 
 beforeAll(async () => {
 	templateRepo = makeTempDir("@pi-autoresearch-template-");
-	await Bun.write(path.join(templateRepo.path(), "README.md"), "# baseline\n");
+	await bun.write(path.join(templateRepo.path(), "README.md"), "# baseline\n");
 	// maintenance.auto/gc.auto off: every template below is copied with cpSync,
 	// and a background `git maintenance run --auto` lock would race the copy.
 	await $`git init --initial-branch=main && git config core.autocrlf false && git config core.fsmonitor false && git config maintenance.auto false && git config gc.auto 0 && git config user.email tester@example.com && git config user.name Tester && git add -A && git commit -m baseline`
@@ -93,7 +94,7 @@ beforeAll(async () => {
 	// the baseline for log_experiment's on-branch keep/discard scenarios.
 	templateBranchRepo = makeTempDir("@pi-autoresearch-template-branch-");
 	fs.cpSync(templateRepo.path(), templateBranchRepo.path(), { recursive: true });
-	await Bun.write(path.join(templateBranchRepo.path(), "autoresearch.sh"), "#!/usr/bin/env bash\necho METRIC m=1\n");
+	await bun.write(path.join(templateBranchRepo.path(), "autoresearch.sh"), "#!/usr/bin/env bash\necho METRIC m=1\n");
 	await $`git add -A && git commit -m harness && git checkout -b autoresearch/base`
 		.cwd(templateBranchRepo.path())
 		.quiet();
@@ -101,7 +102,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
 	closeAllAutoresearchStorages();
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	await templateRepo.remove();
 	await templateBranchRepo.remove();
 });
@@ -127,7 +128,7 @@ async function checkoutBranch(dir: string, name: string): Promise<void> {
 }
 
 async function writeHarnessStub(dir: string, body = "echo METRIC m=1"): Promise<void> {
-	await Bun.write(path.join(dir, "autoresearch.sh"), `#!/usr/bin/env bash\n${body}\n`);
+	await bun.write(path.join(dir, "autoresearch.sh"), `#!/usr/bin/env bash\n${body}\n`);
 }
 
 // Insert a completed-but-unlogged run straight into storage, mirroring what
@@ -176,7 +177,7 @@ describe("init_experiment", () => {
 	afterEach(async () => {
 		delete process.env.OMP_AUTORESEARCH_DB_DIR;
 		closeAllAutoresearchStorages();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await dbOverride.remove();
 	});
 
@@ -355,7 +356,7 @@ describe("run_experiment", () => {
 	afterEach(async () => {
 		delete process.env.OMP_AUTORESEARCH_DB_DIR;
 		closeAllAutoresearchStorages();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await dbOverride.remove();
 	});
 
@@ -446,7 +447,7 @@ describe("log_experiment", () => {
 	afterEach(async () => {
 		delete process.env.OMP_AUTORESEARCH_DB_DIR;
 		closeAllAutoresearchStorages();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await dbOverride.remove();
 	});
 
@@ -530,7 +531,7 @@ describe("log_experiment", () => {
 		const dir = freshRepo().dir;
 		const { log } = await setupRun(dir);
 		fs.mkdirSync(path.join(dir, "forbidden"), { recursive: true });
-		await Bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
 		const result = await log.execute(
 			"l",
 			{ metric: 10, status: "keep", description: "wrote forbidden" },
@@ -548,7 +549,7 @@ describe("log_experiment", () => {
 		const dir = freshRepo().dir;
 		const { log } = await setupRun(dir);
 		fs.mkdirSync(path.join(dir, "forbidden"), { recursive: true });
-		await Bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
 		const result = await log.execute(
 			"l",
 			{
@@ -659,7 +660,7 @@ describe("log_experiment", () => {
 		await writeHarnessStub(dir);
 		// Commit `src/edit-me.ts` to baseline so it is tracked, not in pre-run dirty paths.
 		fs.mkdirSync(path.join(dir, "src"), { recursive: true });
-		await Bun.write(path.join(dir, "src", "edit-me.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "src", "edit-me.ts"), "export const v = 1;\n");
 		await $`git add -A && git commit -m seed`.cwd(dir).quiet();
 		const runtime = createSessionRuntime();
 		const harness = createPiHarness();
@@ -681,11 +682,11 @@ describe("log_experiment", () => {
 			pi: harness.api,
 		});
 		// Pre-existing untracked file (will not be touched by revert because it was dirty before run)
-		await Bun.write(path.join(dir, "preexisting.txt"), "leave me\n");
+		await bun.write(path.join(dir, "preexisting.txt"), "leave me\n");
 		await run.execute("r", {}, undefined, undefined, createCtx(dir));
 		// Simulate a run-introduced change
-		await Bun.write(path.join(dir, "src", "edit-me.ts"), "export const v = 2;\n");
-		await Bun.write(path.join(dir, "src", "new.ts"), "export const NEW = true;\n");
+		await bun.write(path.join(dir, "src", "edit-me.ts"), "export const v = 2;\n");
+		await bun.write(path.join(dir, "src", "new.ts"), "export const NEW = true;\n");
 
 		const log = createLogExperimentTool({
 			dashboard: dashboardStub(),
@@ -718,7 +719,7 @@ describe("log_experiment", () => {
 		});
 		await init.execute("i", { name: "x", primary_metric: "m" }, undefined, undefined, createCtx(dir));
 		// Simulate a previously kept iteration by committing it directly on the branch.
-		await Bun.write(path.join(dir, "src", "kept.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "src", "kept.ts"), "export const v = 1;\n");
 		await $`git add -A && git commit -m "kept iteration"`.cwd(dir).quiet();
 		const headBeforeDiscard = await vcs.requireGit(dir).headSha();
 
@@ -727,8 +728,8 @@ describe("log_experiment", () => {
 		// seeded pending run drives log_experiment without the run subprocess.
 		seedCompletedRun(storage, storage.getActiveSession()!, { parsedPrimary: 1, parsedMetrics: { m: 1 } });
 		// Current iteration's uncommitted edits.
-		await Bun.write(path.join(dir, "src", "kept.ts"), "export const v = 999;\n");
-		await Bun.write(path.join(dir, "scratch.ts"), "// junk\n");
+		await bun.write(path.join(dir, "src", "kept.ts"), "export const v = 999;\n");
+		await bun.write(path.join(dir, "scratch.ts"), "// junk\n");
 
 		const log = createLogExperimentTool({
 			dashboard: dashboardStub(),
@@ -755,7 +756,7 @@ describe("log_experiment", () => {
 	it("on an autoresearch branch, keep commits files that were dirty before run_experiment", async () => {
 		const dir = freshBranchRepo().dir;
 		// Seed a tracked file that the agent will edit during the iteration.
-		await Bun.write(path.join(dir, "src", "store.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "src", "store.ts"), "export const v = 1;\n");
 		await $`git add -A && git commit -m seed`.cwd(dir).quiet();
 		const runtime = createSessionRuntime();
 		const harness = createPiHarness();
@@ -773,7 +774,7 @@ describe("log_experiment", () => {
 		);
 		// Agent edits BEFORE running the benchmark — the iteration's diff is dirty
 		// at run_experiment time.
-		await Bun.write(path.join(dir, "src", "store.ts"), "export const v = 2;\n");
+		await bun.write(path.join(dir, "src", "store.ts"), "export const v = 2;\n");
 		const storage = await openAutoresearchStorage(dir);
 		seedCompletedRun(storage, storage.getActiveSession()!, { parsedPrimary: 1, parsedMetrics: { m: 1 } });
 
@@ -815,7 +816,7 @@ describe("log_experiment", () => {
 		);
 		// Off-scope edit BEFORE run_experiment.
 		fs.mkdirSync(path.join(dir, "forbidden"), { recursive: true });
-		await Bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
+		await bun.write(path.join(dir, "forbidden", "x.ts"), "export const v = 1;\n");
 		const storage = await openAutoresearchStorage(dir);
 		seedCompletedRun(storage, storage.getActiveSession()!, { parsedPrimary: 1, parsedMetrics: { m: 1 } });
 
@@ -847,7 +848,7 @@ describe("update_notes", () => {
 	afterEach(async () => {
 		delete process.env.OMP_AUTORESEARCH_DB_DIR;
 		closeAllAutoresearchStorages();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await dbOverride.remove().catch(() => {});
 	});
 

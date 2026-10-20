@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import {
 	renderTableList,
 } from "@oh-my-pi/pi-coding-agent/tools/sqlite-reader";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type ToolTextResult = {
 	content: Array<{ type: string; text?: string }>;
@@ -173,8 +174,8 @@ describe("SQLite tool support", () => {
 		sqlitePath = path.join(tmpDir, "app.sqlite");
 		sqliteDbPath = path.join(tmpDir, "app.db");
 		invalidDbPath = path.join(tmpDir, "thumbs.db");
-		originalEditVariant = Bun.env.PI_EDIT_VARIANT;
-		Bun.env.PI_EDIT_VARIANT = "replace";
+		originalEditVariant = bun.env.PI_EDIT_VARIANT;
+		bun.env.PI_EDIT_VARIANT = "replace";
 
 		fixtureBytes = buildFixtureBytes();
 		await fs.writeFile(sqlitePath, fixtureBytes);
@@ -188,9 +189,9 @@ describe("SQLite tool support", () => {
 
 	afterAll(async () => {
 		if (originalEditVariant === undefined) {
-			delete Bun.env.PI_EDIT_VARIANT;
+			delete bun.env.PI_EDIT_VARIANT;
 		} else {
-			Bun.env.PI_EDIT_VARIANT = originalEditVariant;
+			bun.env.PI_EDIT_VARIANT = originalEditVariant;
 		}
 		await removeWithRetries(tmpDir);
 	});
@@ -293,7 +294,7 @@ describe("SQLite tool support", () => {
 					);
 					INSERT INTO products (id, price, quantity) VALUES (1, 5, 2), (2, 3, 5);
 				`);
-				await Bun.write(dbPath, db.serialize());
+				await bun.write(dbPath, db.serialize());
 			} finally {
 				db.close();
 			}
@@ -446,7 +447,7 @@ describe("SQLite tool support", () => {
 		});
 
 		for (const line of rendered.split("\n")) {
-			expect(Bun.stringWidth(line)).toBeLessThanOrEqual(120);
+			expect(bun.stringWidth(line)).toBeLessThanOrEqual(120);
 		}
 	});
 
@@ -476,7 +477,7 @@ describe("SQLite tool support", () => {
 		expect(rendered).toContain("col_32: value_32");
 
 		for (const line of rendered.split("\n")) {
-			expect(Bun.stringWidth(line)).toBeLessThanOrEqual(120);
+			expect(bun.stringWidth(line)).toBeLessThanOrEqual(120);
 		}
 	});
 

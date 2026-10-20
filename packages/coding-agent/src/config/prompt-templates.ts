@@ -10,6 +10,8 @@ import {
 } from "@oh-my-pi/pi-utils";
 import { jtdToTypeScript } from "../tools/jtd-to-typescript";
 import { parseCommandArgs, substituteArgs } from "../utils/command-args";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Represents a prompt template loaded from a markdown file
@@ -81,7 +83,7 @@ async function loadTemplatesFromDir(
 ): Promise<PromptTemplate[]> {
 	const templates: PromptTemplate[] = [];
 	try {
-		const glob = new Bun.Glob("**/*");
+		const glob = new Glob("**/*");
 		const entries = [];
 		for await (const entry of glob.scan({ cwd: dir, absolute: false, onlyFiles: false })) {
 			entries.push(entry);
@@ -92,7 +94,7 @@ async function loadTemplatesFromDir(
 
 		for (const entry of entries) {
 			const fullPath = path.join(dir, entry);
-			const file = Bun.file(fullPath);
+			const file = bun.file(fullPath);
 
 			try {
 				const stat = await file.exists();

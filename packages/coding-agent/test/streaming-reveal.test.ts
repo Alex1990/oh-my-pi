@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/modes/controllers/streaming-reveal";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { getSegmenter } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false);
@@ -148,7 +149,7 @@ describe("streaming reveal", () => {
 		expect(textAt(display, 1)).toBe("");
 
 		const component = new AssistantMessageComponent(display);
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("...");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("...");
 	});
 
 	it("refreshes prose-only setting during unsmoothed streaming updates", () => {

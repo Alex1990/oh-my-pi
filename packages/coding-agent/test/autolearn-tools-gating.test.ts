@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,9 @@ import { LearnTool } from "@oh-my-pi/pi-coding-agent/tools/learn";
 import { ManageSkillTool } from "@oh-my-pi/pi-coding-agent/tools/manage-skill";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function makeSession(settingsOverrides: Record<string, unknown> = {}, extra: Partial<ToolSession> = {}): ToolSession {
 	return {
@@ -137,10 +140,10 @@ describe("manage_skill execute", () => {
 	it("create writes the managed SKILL.md; delete removes it", async () => {
 		const file = path.join(getManagedSkillsDir(), "demo", "SKILL.md");
 		await tool().execute("1", { action: "create", name: "demo", description: "When to demo.", body: "# Demo" });
-		expect(await Bun.file(file).exists()).toBe(true);
+		expect(await bun.file(file).exists()).toBe(true);
 
 		await tool().execute("2", { action: "delete", name: "demo" });
-		expect(await Bun.file(file).exists()).toBe(false);
+		expect(await bun.file(file).exists()).toBe(false);
 	});
 
 	it("rejects create without a body and delete of a missing skill", async () => {
@@ -187,7 +190,7 @@ describe("manage_skill execute", () => {
 		expect(text).toMatch(/authored skill/i);
 		expect(text).not.toContain("Created");
 		// Nothing was written, so the managed skill can never surface.
-		expect(await Bun.file(path.join(getManagedSkillsDir(), "demo", "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getManagedSkillsDir(), "demo", "SKILL.md")).exists()).toBe(false);
 	});
 });
 
@@ -226,8 +229,8 @@ describe("learn execute", () => {
 	});
 
 	it("stores a lesson to memory without writing a skill when no skill payload", async () => {
-		await new LearnTool(learnSession()).execute("1", { memory: "Prefer Bun.file over readFileSync." });
-		expect(remembered).toEqual(["Prefer Bun.file over readFileSync."]);
+		await new LearnTool(learnSession()).execute("1", { memory: "Prefer bun.file over readFileSync." });
+		expect(remembered).toEqual(["Prefer bun.file over readFileSync."]);
 		// No managed skills written.
 		expect(await fs.readdir(getManagedSkillsDir()).catch(() => [])).toHaveLength(0);
 	});
@@ -238,7 +241,7 @@ describe("learn execute", () => {
 			skill: { action: "create", name: "worker-host", description: "Spawn workers.", body: "# Worker host" },
 		});
 		expect(remembered).toHaveLength(1);
-		expect(await Bun.file(path.join(getManagedSkillsDir(), "worker-host", "SKILL.md")).exists()).toBe(true);
+		expect(await bun.file(path.join(getManagedSkillsDir(), "worker-host", "SKILL.md")).exists()).toBe(true);
 	});
 
 	it("surfaces a partial-outcome error when the skill name is invalid", async () => {
@@ -297,7 +300,7 @@ describe("learn execute", () => {
 			}),
 		).rejects.toThrow(/only available with the Mnemopi backend/i);
 		expect(queued).toEqual([]);
-		expect(await Bun.file(path.join(getManagedSkillsDir(), "global-lesson", "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getManagedSkillsDir(), "global-lesson", "SKILL.md")).exists()).toBe(false);
 	});
 
 	it("reports Hindsight skill failures as queued partial outcomes", async () => {
@@ -342,6 +345,6 @@ describe("learn execute", () => {
 			}),
 		).rejects.toThrow("Mnemopi did not store the lesson: database or disk is full");
 		// A failed lesson must not leave a minted skill behind.
-		expect(await Bun.file(path.join(getManagedSkillsDir(), "should-not-exist", "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getManagedSkillsDir(), "should-not-exist", "SKILL.md")).exists()).toBe(false);
 	});
 });

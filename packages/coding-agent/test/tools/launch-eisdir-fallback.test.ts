@@ -1,14 +1,33 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import type { PathLike } from "node:fs";
 import * as fs from "node:fs/promises";
+import type * as NodeFsPromisesModule from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { registerDaemonProjectPresence } from "../../src/launch/presence";
 
+// Node module namespaces are frozen; drive `fs.realpath` through a mock factory.
+const fsRealpath = vi.hoisted(() => ({
+	override: undefined as undefined | ((input: string) => Promise<string>),
+	actual: undefined as undefined | ((input: PathLike) => Promise<string>),
+}));
+vi.mock("node:fs/promises", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFsPromisesModule>();
+	fsRealpath.actual = actual.realpath as unknown as (input: PathLike) => Promise<string>;
+	return {
+		...actual,
+		realpath: (input: PathLike) =>
+			fsRealpath.override ? fsRealpath.override(String(input)) : actual.realpath(input),
+	};
+});
+
 describe("daemon presence canonicalProjectDir EISDIR fallback", () => {
-	const originalRealpath = fs.realpath.bind(fs);
+	const originalRealpath = (input: PathLike): Promise<string> =>
+		(fsRealpath.actual ?? fs.realpath)(input) as Promise<string>;
 
 	afterEach(() => {
+		fsRealpath.override = undefined;
 		vi.restoreAllMocks();
 	});
 
@@ -18,8 +37,8 @@ describe("daemon presence canonicalProjectDir EISDIR fallback", () => {
 		const resolvedProjectDir = path.resolve(projectDir);
 		let realpathCalls = 0;
 
-		vi.spyOn(fs, "realpath").mockImplementation((async (p: PathLike) => {
-			if (path.resolve(String(p)) === resolvedProjectDir) {
+		fsRealpath.override = async p => {
+			if (path.resolve(p) === resolvedProjectDir) {
 				realpathCalls++;
 				const err = new Error("EISDIR: illegal operation on a directory") as NodeJS.ErrnoException;
 				err.code = "EISDIR";
@@ -29,7 +48,7 @@ describe("daemon presence canonicalProjectDir EISDIR fallback", () => {
 				throw err;
 			}
 			return originalRealpath(p);
-		}) as typeof fs.realpath);
+		};
 
 		try {
 			const presence = await registerDaemonProjectPresence(projectDir, runtimeDir);

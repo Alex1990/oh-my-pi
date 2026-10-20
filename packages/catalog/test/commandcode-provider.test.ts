@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/registry/oauth";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
@@ -9,15 +9,16 @@ import { getBundledModels } from "@oh-my-pi/pi-catalog/models";
 import { DEFAULT_MODEL_PER_PROVIDER, PROVIDER_DESCRIPTORS } from "@oh-my-pi/pi-catalog/provider-models/descriptors";
 import { commandCodeModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 import type { FetchImpl, ModelSpec } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const originalPrimaryKey = Bun.env.COMMAND_CODE_API_KEY;
-const originalLegacyKey = Bun.env.COMMANDCODE_API_KEY;
+const originalPrimaryKey = bun.env.COMMAND_CODE_API_KEY;
+const originalLegacyKey = bun.env.COMMANDCODE_API_KEY;
 
 afterEach(() => {
-	if (originalPrimaryKey === undefined) delete Bun.env.COMMAND_CODE_API_KEY;
-	else Bun.env.COMMAND_CODE_API_KEY = originalPrimaryKey;
-	if (originalLegacyKey === undefined) delete Bun.env.COMMANDCODE_API_KEY;
-	else Bun.env.COMMANDCODE_API_KEY = originalLegacyKey;
+	if (originalPrimaryKey === undefined) delete bun.env.COMMAND_CODE_API_KEY;
+	else bun.env.COMMAND_CODE_API_KEY = originalPrimaryKey;
+	if (originalLegacyKey === undefined) delete bun.env.COMMANDCODE_API_KEY;
+	else bun.env.COMMANDCODE_API_KEY = originalLegacyKey;
 	vi.restoreAllMocks();
 });
 
@@ -479,10 +480,10 @@ describe("Command Code provider support", () => {
 			true,
 		);
 
-		delete Bun.env.COMMAND_CODE_API_KEY;
-		Bun.env.COMMANDCODE_API_KEY = "legacy-key";
+		delete bun.env.COMMAND_CODE_API_KEY;
+		bun.env.COMMANDCODE_API_KEY = "legacy-key";
 		expect(getEnvApiKey("commandcode")).toBe("legacy-key");
-		Bun.env.COMMAND_CODE_API_KEY = "primary-key";
+		bun.env.COMMAND_CODE_API_KEY = "primary-key";
 		expect(getEnvApiKey("commandcode")).toBe("primary-key");
 	});
 

@@ -24,6 +24,7 @@ import type {
 	UrlCompletion,
 } from "./types";
 import { formatByteSize } from "../utils/video";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface LocalProtocolOptions {
 	getArtifactsDir?: () => string | null;
@@ -140,7 +141,7 @@ async function buildFileResource(
 	if (resolved.size > LOCAL_TEXT_RESOURCE_MAX_BYTES) {
 		return buildLargeLocalTextResource(url, resolved.path, resolved.size);
 	}
-	const content = await Bun.file(resolved.path).text();
+	const content = await bun.file(resolved.path).text();
 	return {
 		url: url.href,
 		content,

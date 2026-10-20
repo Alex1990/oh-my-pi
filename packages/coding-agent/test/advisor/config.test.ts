@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import {
 	slugifyAdvisorName,
 } from "../../src/advisor/config";
 import type { WatchdogConfigDoc } from "@oh-my-pi/pi-tui/overlays/advisor-config";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("discoverAdvisorConfigs", () => {
 	let tmp: string;
@@ -43,7 +44,7 @@ describe("discoverAdvisorConfigs", () => {
 			"  - name: Security Reviewer",
 			"    tools: [read, definitely-not-a-tool]",
 		].join("\n");
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
 
 		const { advisors, sharedInstructions } = await discoverAdvisorConfigs(tmp, agentDir);
 		expect(advisors).toHaveLength(2);
@@ -73,7 +74,7 @@ describe("discoverAdvisorConfigs", () => {
 			"  - name: Invalid Only",
 			"    tools: [reed]",
 		].join("\n");
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
 
 		const { advisors } = await discoverAdvisorConfigs(tmp, agentDir);
 		const noTools = advisors.find(a => a.name === "No Tools");
@@ -86,7 +87,7 @@ describe("discoverAdvisorConfigs", () => {
 	});
 
 	it("ignores a malformed YAML file without throwing", async () => {
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: [unclosed bracket");
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: [unclosed bracket");
 		const result = await discoverAdvisorConfigs(tmp, agentDir);
 		expect(result.advisors).toEqual([]);
 		expect(result.sharedInstructions).toBeUndefined();
@@ -100,7 +101,7 @@ describe("discoverAdvisorConfigs", () => {
 	});
 
 	it("skips a file whose shape fails the schema (advisors must be a list)", async () => {
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: not-an-array");
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: not-an-array");
 		const result = await discoverAdvisorConfigs(tmp, agentDir);
 		expect(result.advisors).toEqual([]);
 		expect(result.warnings).toHaveLength(1);
@@ -112,7 +113,7 @@ describe("discoverAdvisorConfigs", () => {
 	});
 
 	it("drops only the malformed entry and reports one warning per problem", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tmp, "WATCHDOG.yml"),
 			[
 				"advisors:",
@@ -134,7 +135,7 @@ describe("discoverAdvisorConfigs", () => {
 	it("rejects malformed review intervals consistently during discovery and editing", async () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
 		for (const interval of ["0", "-1", "1.5", "'3'", ".nan", ".inf", "9007199254740992"]) {
-			await Bun.write(file, `advisors:\n  - name: Invalid\n    reviewInterval: ${interval}\n`);
+			await bun.write(file, `advisors:\n  - name: Invalid\n    reviewInterval: ${interval}\n`);
 			const doc = await loadWatchdogConfigFile(file);
 			expect(doc.advisors).toEqual([]);
 			expect(doc.warnings).toHaveLength(1);
@@ -145,7 +146,7 @@ describe("discoverAdvisorConfigs", () => {
 
 	it("editor load drops only the malformed entry, like discovery", async () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
-		await Bun.write(file, "advisors:\n  - name: Good\n  - name: Bad\n    reviewMode: bogus\n");
+		await bun.write(file, "advisors:\n  - name: Good\n  - name: Bad\n    reviewMode: bogus\n");
 		const doc = await loadWatchdogConfigFile(file);
 		expect(doc.advisors.map(a => a.name)).toEqual(["Good"]);
 		expect(doc.warnings).toHaveLength(1);
@@ -311,7 +312,7 @@ describe("WATCHDOG.yml file round-trip", () => {
 	it("serializes block-style YAML that the discovery path also parses", async () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
 		await saveWatchdogConfigFile(file, doc);
-		const text = await Bun.file(file).text();
+		const text = await bun.file(file).text();
 		// Block style (not the flow `{...}` form), so it stays hand-editable.
 		expect(text).toContain("advisors:");
 		expect(text).not.toMatch(/^\{/);
@@ -355,7 +356,7 @@ describe("WATCHDOG.yml file round-trip", () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
 		await saveWatchdogConfigFile(file, doc);
 		await saveWatchdogConfigFile(file, { advisors: [] });
-		expect(await Bun.file(file).exists()).toBe(false);
+		expect(await bun.file(file).exists()).toBe(false);
 		// Loading a missing file yields an empty doc, never throws.
 		expect(await loadWatchdogConfigFile(file)).toEqual({ advisors: [] });
 	});
@@ -390,13 +391,13 @@ describe("resolveAdvisorConfigEditPath", () => {
 	});
 
 	it("edits an existing .yaml in place when only it exists", async () => {
-		await Bun.write(path.join(tmp, "WATCHDOG.yaml"), "advisors: []\n");
+		await bun.write(path.join(tmp, "WATCHDOG.yaml"), "advisors: []\n");
 		expect(await resolveAdvisorConfigEditPath("project", dirs(tmp))).toBe(path.join(tmp, "WATCHDOG.yaml"));
 	});
 
 	it("prefers the canonical .yml when both exist", async () => {
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: []\n");
-		await Bun.write(path.join(tmp, "WATCHDOG.yaml"), "advisors: []\n");
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), "advisors: []\n");
+		await bun.write(path.join(tmp, "WATCHDOG.yaml"), "advisors: []\n");
 		expect(await resolveAdvisorConfigEditPath("project", dirs(tmp))).toBe(path.join(tmp, "WATCHDOG.yml"));
 	});
 });
@@ -452,7 +453,7 @@ describe("maxNotesPerUpdate configuration", () => {
 				"    maxNotesPerUpdate: 5",
 				"  - name: Default Budget",
 			].join("\n");
-			await Bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
+			await bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
 
 			const { advisors, sharedMaxNotesPerUpdate } = await discoverAdvisorConfigs(tmp, tmp);
 			expect(sharedMaxNotesPerUpdate).toBe(4);
@@ -507,7 +508,7 @@ describe("per-advisor syncBacklog override", () => {
 			"    syncBacklog: 3",
 			"  - name: Inheriting",
 		].join("\n");
-		await Bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
+		await bun.write(path.join(tmp, "WATCHDOG.yml"), yaml);
 
 		const { advisors } = await discoverAdvisorConfigs(tmp, tmp);
 		expect(advisors).toHaveLength(4);
@@ -527,7 +528,7 @@ describe("per-advisor syncBacklog override", () => {
 	});
 
 	it("drops entries with an out-of-set syncBacklog while healthy entries load", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tmp, "WATCHDOG.yml"),
 			[
 				"advisors:",
@@ -563,7 +564,7 @@ describe("per-advisor syncBacklog override", () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
 		await saveWatchdogConfigFile(file, doc);
 
-		const text = await Bun.file(file).text();
+		const text = await bun.file(file).text();
 		expect(text).toContain('syncBacklog: "off"');
 		expect(text).toContain("syncBacklog: strict");
 		expect(text.match(/syncBacklog:/g)).toHaveLength(2);
@@ -587,7 +588,7 @@ describe("per-advisor syncBacklog override", () => {
 
 	it("reports a non-mapping document in the editor just like discovery does", async () => {
 		const file = path.join(tmp, "WATCHDOG.yml");
-		await Bun.write(file, "- just\n- a\n- list\n");
+		await bun.write(file, "- just\n- a\n- list\n");
 
 		const discovered = await discoverAdvisorConfigs(tmp, tmp);
 		expect(discovered.advisors).toEqual([]);

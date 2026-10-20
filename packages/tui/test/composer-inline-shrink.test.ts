@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { COMPOSER_DEFAULTS, Composer } from "@oh-my-pi/pi-tui/prompt/composer";
@@ -11,6 +11,7 @@ import { AskDialogComponent } from "@oh-my-pi/pi-tui/overlays/ask-dialog";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -105,7 +106,7 @@ async function cycleWidget(h: Harness): Promise<void> {
  * frame can fill.
  */
 function blankBand(terminal: VirtualTerminal, bottom = "EDITOR"): number {
-	const view = terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+	const view = terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 	let run = 0;
 	let longest = 0;
 	for (const row of view.slice(
@@ -186,7 +187,7 @@ describe("composer inline shrink (#11007)", () => {
 		const visibleRows = (): number[] =>
 			h.terminal
 				.getScrollBuffer()
-				.map(row => Bun.stripANSI(row).trimEnd())
+				.map(row => bun.stripANSI(row).trimEnd())
 				.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 				.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 		dialog.handleInput("\r");
@@ -206,7 +207,7 @@ describe("composer inline shrink (#11007)", () => {
 		h.composer.ui.requestRender();
 		await h.scheduler.settle(h.terminal);
 		const row = (needle: string): number =>
-			h.terminal.getViewport().findIndex(line => Bun.stripANSI(line).trimEnd().startsWith(needle));
+			h.terminal.getViewport().findIndex(line => bun.stripANSI(line).trimEnd().startsWith(needle));
 		expect(row(`${TRANSCRIPT_PREFIX}0`)).toBe(0);
 		h.widget.rows = 0;
 		h.composer.ui.requestRender();
@@ -274,7 +275,7 @@ describe("composer inline shrink (#11007)", () => {
 		expect(blankBand(terminal)).toBeLessThanOrEqual(1);
 		const indices = terminal
 			.getScrollBuffer()
-			.map(row => Bun.stripANSI(row).trimEnd())
+			.map(row => bun.stripANSI(row).trimEnd())
 			.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 			.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 		expect(indices).toEqual(Array.from({ length: 80 }, (_, i) => i));
@@ -307,14 +308,14 @@ describe("composer inline shrink (#11007)", () => {
 			const reachable = (): number[] =>
 				h.terminal
 					.getScrollBuffer()
-					.map(row => Bun.stripANSI(row).trimEnd())
+					.map(row => bun.stripANSI(row).trimEnd())
 					.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 					.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 			// Alt+H collapses the pending ask to one line: the rows it covered are
 			// still live, so they refill the screen instead of leaving a band.
 			dialog.handleInput("\x1bh");
 			await h.scheduler.settle(h.terminal);
-			const view = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+			const view = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 			expect(view[ROWS - 1]).toContain("Ask hidden");
 			expect(blankBand(h.terminal, "Ask hidden")).toBeLessThanOrEqual(1);
 			expect(reachable()).toEqual(Array.from({ length: TRANSCRIPT_ROWS }, (_, i) => i));
@@ -333,12 +334,12 @@ describe("composer inline shrink (#11007)", () => {
 	it("keeps the editor pinned to the bottom after transient below-transcript chrome shrinks", async () => {
 		const h = makeHarness();
 		await h.scheduler.settle(h.terminal);
-		const before = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const before = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		expect(before.findIndex(row => row.includes("EDITOR"))).toBe(ROWS - 1);
 
 		await cycleWidget(h);
 
-		const after = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const after = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		// Regression: the editor used to strand ~24 blank rows below it after the
 		// shrink because retired transcript rows never returned to the live tail.
 		expect(after.findIndex(row => row.includes("EDITOR"))).toBe(ROWS - 1);
@@ -356,7 +357,7 @@ describe("composer inline shrink (#11007)", () => {
 		// in order — the shrink must not drop rows into a gap or duplicate them.
 		const indices = h.terminal
 			.getScrollBuffer()
-			.map(row => Bun.stripANSI(row).trimEnd())
+			.map(row => bun.stripANSI(row).trimEnd())
 			.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 			.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 		expect(indices).toEqual(Array.from({ length: TRANSCRIPT_ROWS }, (_, i) => i));
@@ -371,7 +372,7 @@ describe("composer inline shrink (#11007)", () => {
 		const reachable = (): number[] =>
 			h.terminal
 				.getScrollBuffer()
-				.map(row => Bun.stripANSI(row).trimEnd())
+				.map(row => bun.stripANSI(row).trimEnd())
 				.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 				.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 		await h.scheduler.settle(h.terminal);
@@ -395,7 +396,7 @@ describe("composer inline shrink (#11007)", () => {
 		expect(reachable()).toEqual(Array.from({ length: TRANSCRIPT_ROWS + STREAMED }, (_, i) => i));
 		// The input keeps the bottom row; the slack the retired rows left is the
 		// band between the newest row and the input, which new output fills.
-		const view = (): string[] => h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const view = (): string[] => h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		const newest = `${TRANSCRIPT_PREFIX}${TRANSCRIPT_ROWS + STREAMED - 1}`;
 		const shrunk = view();
 		expect(shrunk[ROWS - 1]).toBe("EDITOR");
@@ -433,7 +434,7 @@ describe("composer inline shrink (#11007)", () => {
 		h.composer.ui.requestRender();
 		await h.scheduler.settle(h.terminal);
 
-		const after = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const after = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		expect(after.findIndex(row => row.includes("EDITOR"))).toBe(shorter - 1);
 		const lastContent = after.reduce((last, row, i) => (row.length > 0 ? i : last), -1);
 		expect(lastContent).toBe(shorter - 1);
@@ -454,7 +455,7 @@ describe("composer inline shrink (#11007)", () => {
 		h.composer.ui.requestRender();
 		await h.scheduler.settle(h.terminal);
 
-		const view = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const view = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		const editorRow = view.findIndex(row => row.includes("EDITOR"));
 		expect(editorRow).toBe(ROWS - 1);
 		const transcriptRows = view.slice(0, editorRow - 3);
@@ -482,7 +483,7 @@ describe("composer inline shrink (#11007)", () => {
 		expect(blankBand(h.terminal)).toBeLessThanOrEqual(1);
 		const indices = h.terminal
 			.getScrollBuffer()
-			.map(row => Bun.stripANSI(row).trimEnd())
+			.map(row => bun.stripANSI(row).trimEnd())
 			.filter(row => row.startsWith(TRANSCRIPT_PREFIX))
 			.map(row => Number(row.slice(TRANSCRIPT_PREFIX.length)));
 		expect(indices).toEqual(Array.from({ length: TRANSCRIPT_ROWS }, (_, i) => i));
@@ -517,7 +518,7 @@ describe("composer inline shrink (#11007)", () => {
 			.getScrollBuffer()
 			.join(" ")
 			.split(/\s+/)
-			.map(word => Bun.stripANSI(word))
+			.map(word => bun.stripANSI(word))
 			.filter(word => /^p\d+w\d+$/.test(word));
 		expect(new Set(words).size).toBe(words.length);
 		expect(words.length).toBe(text.split(/\s+/).filter(Boolean).length);
@@ -595,14 +596,14 @@ describe("composer inline shrink (#11007)", () => {
 			const history = (): string[] =>
 				h.terminal
 					.getScrollBuffer()
-					.map(row => Bun.stripANSI(row).trim())
+					.map(row => bun.stripANSI(row).trim())
 					.filter(row => /^(shell|line|next)\d+$/.test(row));
 			const expected = [...shell, ...Array.from({ length: 110 }, (_, i) => `line${i}`)];
 			expect(history()).toEqual(expected);
 			expect(
 				h.terminal
 					.getViewport()
-					.map(row => Bun.stripANSI(row).trim())
+					.map(row => bun.stripANSI(row).trim())
 					.filter(row => row.startsWith("Live widget row ")),
 			).toEqual(Array.from({ length: 7 }, (_, i) => `Live widget row ${i}`));
 
@@ -668,14 +669,14 @@ describe("composer inline shrink (#11007)", () => {
 					const history = (): string[] =>
 						h.terminal
 							.getScrollBuffer()
-							.map(row => Bun.stripANSI(row).trim())
+							.map(row => bun.stripANSI(row).trim())
 							.filter(row => /^(shell|line)\d+$/.test(row));
 					const expected = [...shell, ...Array.from({ length: 110 }, (_, i) => `line${i}`)];
 					expect(history()).toEqual(expected);
 					expect(
 						h.terminal
 							.getViewport()
-							.map(row => Bun.stripANSI(row).trim())
+							.map(row => bun.stripANSI(row).trim())
 							.filter(row => row.startsWith("Live widget row ")),
 					).toEqual([
 						...Array.from({ length: 3 }, (_, i) => `Live widget row ${i}`),
@@ -717,10 +718,10 @@ describe("composer inline shrink (#11007)", () => {
 			const history = (): string[] =>
 				h.terminal
 					.getScrollBuffer()
-					.map(row => Bun.stripANSI(row).trim())
+					.map(row => bun.stripANSI(row).trim())
 					.filter(row => /^(shell|line|next)\d+$/.test(row));
 			const widgetRows = (): number =>
-				h.terminal.getViewport().filter(row => Bun.stripANSI(row).trim().startsWith("Live widget row ")).length;
+				h.terminal.getViewport().filter(row => bun.stripANSI(row).trim().startsWith("Live widget row ")).length;
 			const expected = [...shell, ...Array.from({ length: 110 }, (_, i) => `line${i}`)];
 			// The persistent widget settled and was promoted into the retirement floor.
 			expect(history()).toEqual(expected);
@@ -758,7 +759,7 @@ describe("composer inline shrink (#11007)", () => {
 			expect(widgetRows()).toBe(0);
 			expect(h.terminal.getViewport().findIndex(row => row.includes("EDITOR"))).toBe(rows - 1);
 			expect(blankBand(h.terminal)).toBeLessThanOrEqual(2);
-			const viewport = h.terminal.getViewport().map(row => Bun.stripANSI(row).trim());
+			const viewport = h.terminal.getViewport().map(row => bun.stripANSI(row).trim());
 			expect(viewport.filter(row => /^next\d+$/.test(row)).at(-1)).toBe("next39");
 			expect(history()).toEqual([...expected, ...next]);
 			h.composer.ui.requestRender();
@@ -811,7 +812,7 @@ describe("composer inline shrink (#11007)", () => {
 			expect(blankBand(h.terminal)).toBeLessThanOrEqual(2);
 			const history = h.terminal
 				.getScrollBuffer()
-				.map(row => Bun.stripANSI(row).trim())
+				.map(row => bun.stripANSI(row).trim())
 				.filter(row => /^(shell|line)\d+$/.test(row));
 			expect(history).toEqual([...shell, ...answer]);
 		} finally {
@@ -864,13 +865,13 @@ describe("composer inline shrink (#11007)", () => {
 			composer.editor.setText("EDITOR");
 			composer.ui.requestRender();
 			await scheduler.advance(terminal, 300);
-			const view = terminal.getViewport().map(row => Bun.stripANSI(row));
+			const view = terminal.getViewport().map(row => bun.stripANSI(row));
 			expect(view.some(row => row.includes("draft1"))).toBe(false);
 			expect(view.findIndex(row => row.includes("EDITOR"))).toBeGreaterThanOrEqual(rows - 3);
 			expect(blankBand(terminal)).toBeLessThanOrEqual(2);
 			const history = terminal
 				.getScrollBuffer()
-				.map(row => Bun.stripANSI(row).trim())
+				.map(row => bun.stripANSI(row).trim())
 				.filter(row => /^(shell|line)\d+$/.test(row));
 			expect(history).toEqual([...shell, ...answer]);
 		} finally {
@@ -890,7 +891,7 @@ describe("composer inline shrink (#11007)", () => {
 		toolRows = 4;
 		h.composer.ui.requestRender();
 		await h.scheduler.settle(h.terminal);
-		const view = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const view = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		expect(view.findIndex(row => row.includes("EDITOR"))).toBe(ROWS - 1);
 		expect(view.filter(row => row.startsWith("Tool row "))).toHaveLength(4);
 		h.composer.stop();
@@ -923,7 +924,7 @@ describe("composer inline shrink (#11007)", () => {
 		h.hud.rows = 0;
 		h.composer.ui.requestRender();
 		await h.scheduler.settle(h.terminal);
-		const view = h.terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+		const view = h.terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 		const bottom = view.findIndex(row => row.includes("└"));
 		let run = 0;
 		let longest = 0;

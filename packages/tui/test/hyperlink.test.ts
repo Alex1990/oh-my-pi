@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as url from "node:url";
 import { getMarkdownTheme, initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -12,13 +12,14 @@ import {
 	urlHyperlinkAlways,
 } from "@oh-my-pi/pi-tui/render/hyperlink";
 import * as terminalCaps from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // OSC 8 sequence markers
 const OSC = "\x1b]";
 const ST = "\x1b\\";
 const BEL = "\x07";
 const LINK_END = `${OSC}8;;${ST}`;
-const ORIGINAL_NO_COLOR = Bun.env.NO_COLOR;
+const ORIGINAL_NO_COLOR = bun.env.NO_COLOR;
 
 /** Extract the hyperlink URI from a wrapped string. Returns undefined if not wrapped. */
 function extractLinkUri(text: string): string | undefined {
@@ -43,9 +44,9 @@ function setHyperlinkMode(mode: "off" | "auto" | "always"): void {
 afterEach(() => {
 	applyHyperlinkSetting("auto");
 	if (ORIGINAL_NO_COLOR === undefined) {
-		delete Bun.env.NO_COLOR;
+		delete bun.env.NO_COLOR;
 	} else {
-		Bun.env.NO_COLOR = ORIGINAL_NO_COLOR;
+		bun.env.NO_COLOR = ORIGINAL_NO_COLOR;
 	}
 });
 
@@ -62,7 +63,7 @@ describe("isHyperlinkEnabled", () => {
 
 	it("returns false in auto mode when NO_COLOR is set", () => {
 		setHyperlinkMode("auto");
-		Bun.env.NO_COLOR = "1";
+		bun.env.NO_COLOR = "1";
 		expect(isHyperlinkEnabled()).toBe(false);
 	});
 
@@ -83,7 +84,7 @@ describe("isHyperlinkEnabled", () => {
 
 	it("resolves auto against detected capability, immune to runtime flag mutation", () => {
 		setHyperlinkMode("auto");
-		delete Bun.env.NO_COLOR;
+		delete bun.env.NO_COLOR;
 		const origTTY = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 		const origHyperlinks = terminalCaps.TERMINAL.hyperlinks;
 		try {
@@ -242,7 +243,7 @@ describe("urlHyperlink", () => {
 describe("urlHyperlinkAlways", () => {
 	it("wraps HTTP URLs in auto mode even when capability detection would suppress", () => {
 		setHyperlinkMode("auto");
-		Bun.env.NO_COLOR = "1"; // forces isHyperlinkEnabled() to false in auto mode
+		bun.env.NO_COLOR = "1"; // forces isHyperlinkEnabled() to false in auto mode
 		const result = urlHyperlinkAlways("www.example.com/path", "example");
 
 		expect(isHyperlinkEnabled()).toBe(false);

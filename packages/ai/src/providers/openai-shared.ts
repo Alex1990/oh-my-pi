@@ -64,6 +64,7 @@ import {
 } from "../types";
 import { resolveCopilotRequestIdentity } from "./github-copilot-headers";
 import { resolveXaiBaseUrl } from "./xai-base-url";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type { OpenAIPromptCacheOptions } from "../types";
 
@@ -1450,7 +1451,7 @@ function normalizeOpenAIStableId(value: string | undefined, maxLength: number, h
 	if (!value || value.length === 0) return undefined;
 	const wellFormed = value.toWellFormed();
 	if (wellFormed.length <= maxLength) return wellFormed;
-	return `${hashPrefix}${Bun.hash(wellFormed).toString(36)}`;
+	return `${hashPrefix}${bun.hash(wellFormed).toString(36)}`;
 }
 
 export const OPENAI_RESPONSES_PROGRESS_EVENT_TYPES: ReadonlySet<string> = new Set([
@@ -1508,7 +1509,7 @@ export function parseTextSignature(
 }
 
 export function encodeResponsesToolCallId(callId: string, itemId: string | null | undefined): string {
-	const stableItemId = itemId && itemId.length > 0 ? itemId : `fc_${Bun.hash(callId).toString(36)}`;
+	const stableItemId = itemId && itemId.length > 0 ? itemId : `fc_${bun.hash(callId).toString(36)}`;
 	return `${callId}|${stableItemId}`;
 }
 
@@ -1524,7 +1525,7 @@ export function normalizeResponsesToolCallIdForTransform(
 	if (isForeignToolCall || sep >= 0 || id.length > 64) {
 		const [callId, itemId] = sep > 0 ? [id.slice(0, sep), id.slice(sep + 1)] : [id, undefined];
 		const normalizedCallId = sanitizeCodexCallId(callId);
-		let normalizedItemId = itemId ? `fc_${Bun.hash(itemId).toString(36)}` : `fc_${Bun.hash(id).toString(36)}`;
+		let normalizedItemId = itemId ? `fc_${bun.hash(itemId).toString(36)}` : `fc_${bun.hash(id).toString(36)}`;
 		if (normalizedItemId.length > 64) normalizedItemId = normalizedItemId.slice(0, 64);
 		return `${normalizedCallId}|${normalizedItemId}`;
 	}
@@ -4296,7 +4297,7 @@ export function populateResponsesUsageFromResponse(
 
 /**
  * Structural equality for the chain prefix/option check, equivalent to the
- * default {@link Bun.deepEquals} (own enumerable keys, `absent ≡ own-undefined`)
+ * default {@link bun.deepEquals} (own enumerable keys, `absent ≡ own-undefined`)
  * except for two deliberate exclusions:
  *  - **symbol-keyed properties are ignored** — `for…in` walks enumerable
  *    *string* keys only (never symbols); these are plain wire items whose
@@ -4309,7 +4310,7 @@ export function populateResponsesUsageFromResponse(
  *  - keys listed in `omitKeys` are skipped (the option compare omits `input`
  *    and the per-turn `client_metadata`).
  * A defined value differing across sides IS a difference; a key undefined or
- * absent on both stays equal. Nested values use full {@link Bun.deepEquals}.
+ * absent on both stays equal. Nested values use full {@link bun.deepEquals}.
  */
 function deepEqualsWithout(
 	a: unknown,
@@ -4317,14 +4318,14 @@ function deepEqualsWithout(
 	omitKeys?: Readonly<Record<string, boolean>>,
 	additionalOmitKeys?: Readonly<Record<string, boolean>>,
 ): boolean {
-	if (!a || !b || typeof a !== "object" || typeof b !== "object") return Bun.deepEquals(a, b);
+	if (!a || !b || typeof a !== "object" || typeof b !== "object") return bun.deepEquals(a, b);
 	const ao = a as Record<string, unknown>;
 	const bo = b as Record<string, unknown>;
 	for (const key in ao) {
 		if (omitKeys?.[key] || additionalOmitKeys?.[key]) continue;
 		const av = ao[key];
 		const bv = bo[key];
-		if (av !== bv && !Bun.deepEquals(av, bv)) return false;
+		if (av !== bv && !bun.deepEquals(av, bv)) return false;
 	}
 	for (const key in bo) {
 		if (omitKeys?.[key] || additionalOmitKeys?.[key]) continue;

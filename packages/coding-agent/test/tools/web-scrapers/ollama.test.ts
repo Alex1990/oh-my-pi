@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleOllama } from "@oh-my-pi/pi-coding-agent/web/scrapers/ollama";
 import * as scrapers from "@oh-my-pi/pi-coding-agent/web/scrapers/types";
 

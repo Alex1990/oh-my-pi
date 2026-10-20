@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseFileDiffs } from "@oh-my-pi/pi-coding-agent/commit/git/diff";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 

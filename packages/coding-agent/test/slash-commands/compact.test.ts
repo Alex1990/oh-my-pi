@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { CompactionCancelledError } from "@oh-my-pi/pi-agent-core/compaction";
 import type { CompactOptions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/types";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";

@@ -12,7 +12,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { type PredictedWord, TextPredictor } from "@oh-my-pi/pi-natives";
 import { getHistoryDbPath, getPredictStateDir, isEnoent, logger, VERSION } from "@oh-my-pi/pi-utils";
 import { JsonLineServer } from "../subprocess/jsonl-server";
@@ -28,6 +28,7 @@ import {
 	textPredictReadyBanner,
 } from "./protocol";
 import { getSmolLmModelDir, smolLmWeightsReady } from "./smollm-weights";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Exit after this long without a request; clients restart the daemon on demand. */
 const IDLE_EXIT_MS = 15 * 60_000;
@@ -53,7 +54,7 @@ const CURSOR_FILE = "cursor.json";
 /** Persisted history cursor, or `undefined` when the engine has no persisted state yet. */
 async function readCursor(stateDir: string): Promise<number | undefined> {
 	try {
-		const raw: unknown = await Bun.file(path.join(stateDir, CURSOR_FILE)).json();
+		const raw: unknown = await bun.file(path.join(stateDir, CURSOR_FILE)).json();
 		if (typeof raw === "object" && raw !== null && "historyId" in raw && typeof raw.historyId === "number") {
 			return raw.historyId;
 		}
@@ -162,7 +163,7 @@ class Engine {
 		this.#dirty = false;
 		try {
 			await this.predictor.persist();
-			await Bun.write(path.join(this.stateDir, CURSOR_FILE), JSON.stringify({ historyId: cursor }));
+			await bun.write(path.join(this.stateDir, CURSOR_FILE), JSON.stringify({ historyId: cursor }));
 			this.#persistedCursor = cursor;
 		} catch (error) {
 			this.#dirty = true;
@@ -383,8 +384,8 @@ class TextPredictDaemon {
 
 /** Worker entry: serve the endpoint and agent directory named by the broker spec environment. */
 export async function startTextPredictDaemonFromEnvironment(): Promise<void> {
-	const endpoint = Bun.env[TEXT_PREDICT_SOCKET_ENV];
-	const agentDir = Bun.env[TEXT_PREDICT_AGENT_DIR_ENV];
+	const endpoint = bun.env[TEXT_PREDICT_SOCKET_ENV];
+	const agentDir = bun.env[TEXT_PREDICT_AGENT_DIR_ENV];
 	if (!endpoint || !agentDir) {
 		throw new Error(`${TEXT_PREDICT_SOCKET_ENV} and ${TEXT_PREDICT_AGENT_DIR_ENV} must be set`);
 	}

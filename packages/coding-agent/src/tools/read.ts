@@ -185,6 +185,7 @@ import {
 	cfgReadSummarizeProse,
 } from "./settings";
 import { cfgImagesAutoResize } from "../modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Largest profile (`*.sample.txt`, `*.cpuprofile`) converted to a bottleneck summary; bigger files read as plain text. */
 const MAX_PROFILE_SUMMARY_BYTES = 32 * 1024 * 1024;
@@ -215,7 +216,7 @@ interface BufferedFileText {
 	readonly rawText: string;
 	/** {@link rawText} split on LF, CR retained, so segments stay byte-faithful. */
 	readonly rawSegments: readonly string[];
-	/** BOM-stripped, CRLF-preserving text: what `Bun.file(path).text()` returns. */
+	/** BOM-stripped, CRLF-preserving text: what `bun.file(path).text()` returns. */
 	readonly strippedText: string;
 	/** {@link strippedText} normalized to LF — the exact text the snapshot store hashes. */
 	readonly normalizedText: string;
@@ -245,7 +246,7 @@ async function readWholeFile(absolutePath: string): Promise<Buffer | undefined> 
 /**
  * Derive every view of `bytes` the read path needs, decoding exactly once.
  *
- * `Bun.file(path).text()` strips a leading BOM while `Buffer.toString` keeps it,
+ * `bun.file(path).text()` strips a leading BOM while `Buffer.toString` keeps it,
  * and the snapshot store plus the patcher's live-file read both go through the
  * stripping decoder. {@link BufferedFileText.strippedText} therefore reproduces
  * that decode for hashing while {@link BufferedFileText.rawText} stays verbatim
@@ -849,12 +850,12 @@ function appendRepeatReadHint(session: ToolSession, path: string, result: AgentT
 
 	let hash = BigInt(result.content.length);
 	for (const content of result.content) {
-		hash = Bun.hash.wyhash(content.type, hash);
+		hash = bun.hash.wyhash(content.type, hash);
 		if (content.type === "text") {
-			hash = Bun.hash.wyhash(content.text, hash);
+			hash = bun.hash.wyhash(content.text, hash);
 		} else if (content.type === "image") {
-			hash = Bun.hash.wyhash(content.mimeType, hash);
-			hash = Bun.hash.wyhash(content.data, hash);
+			hash = bun.hash.wyhash(content.mimeType, hash);
+			hash = bun.hash.wyhash(content.data, hash);
 		}
 	}
 	const entry = tracker.get(path);
@@ -921,7 +922,7 @@ export interface LocalReadSpeculationEvidence {
  * the speculative execution must both use this, so their evidence compares.
  */
 export function digestLocalReadBytes(bytes: Uint8Array): string {
-	return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	return new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
 async function assessLocalReadSpeculation(
@@ -1399,7 +1400,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 	}): Promise<AgentToolResult<ReadToolDetails>> {
 		const { readPath, absolutePdfPath, page, pdfFileSize, question, suffixResolution, signal } = options;
 		const screenshot = await renderPdfPageScreenshot(this.session, absolutePdfPath, page, signal);
-		const screenshotFile = Bun.file(screenshot.dest);
+		const screenshotFile = bun.file(screenshot.dest);
 		const screenshotMetadata = await readImageMetadata(screenshot.dest);
 		const loaded = await this.#loadImageContent({
 			readPath,
@@ -1958,7 +1959,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 		let fileSize = 0;
 		let specialKind: string | undefined;
 		try {
-			const stat = await Bun.file(absolutePath).stat();
+			const stat = await bun.file(absolutePath).stat();
 			fileSize = stat.size;
 			isDirectory = stat.isDirectory();
 			specialKind = specialFileKind(stat);
@@ -1982,7 +1983,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 					const suffixMatch = await findSuffixMatchCached(this.session, suffixCache, localReadPath, signal);
 					if (suffixMatch) {
 						try {
-							const retryStat = await Bun.file(suffixMatch.absolutePath).stat();
+							const retryStat = await bun.file(suffixMatch.absolutePath).stat();
 							absolutePath = suffixMatch.absolutePath;
 							fileSize = retryStat.size;
 							isDirectory = retryStat.isDirectory();
@@ -2000,7 +2001,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 					const approvedPlanPath = await this.#approvedPlanAlias(absolutePath, signal);
 					if (approvedPlanPath) {
 						try {
-							const approvedPlanStat = await Bun.file(approvedPlanPath).stat();
+							const approvedPlanStat = await bun.file(approvedPlanPath).stat();
 							absolutePath = approvedPlanPath;
 							fileSize = approvedPlanStat.size;
 							isDirectory = approvedPlanStat.isDirectory();
@@ -2110,9 +2111,9 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 		if (!mimeType && !isRawSelector(parsed) && fileSize <= MAX_PROFILE_SUMMARY_BYTES) {
 			let rendered: string | null = null;
 			if (isSampleProfilePath(renderAbsolutePath))
-				rendered = renderSampleProfile(await Bun.file(absolutePath).text());
+				rendered = renderSampleProfile(await bun.file(absolutePath).text());
 			else if (isCpuProfilePath(renderAbsolutePath))
-				rendered = renderCpuProfile(await Bun.file(absolutePath).text());
+				rendered = renderCpuProfile(await bun.file(absolutePath).text());
 			if (rendered) {
 				return buildInMemorySelectorResult(this.session, rendered, parsed, {
 					details: { resolvedPath: renderAbsolutePath },
@@ -2171,7 +2172,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 		} else if (renderAbsolutePath.toLowerCase().endsWith(".ipynb") && !isRawSelector(parsed)) {
 			let notebookJson: string;
 			try {
-				notebookJson = await Bun.file(absolutePath).text();
+				notebookJson = await bun.file(absolutePath).text();
 			} catch (error) {
 				if (isEnoent(error)) throw new Error(`File not found: ${resolvedDisplayPath}`);
 				throw error;
@@ -2251,7 +2252,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 
 			// Unbounded schemes (instruction documents) read whole: no summary, no result limits.
 			if (located?.spec.unbounded) {
-				const text = buffered?.strippedText ?? (await Bun.file(absolutePath).text());
+				const text = buffered?.strippedText ?? (await bun.file(absolutePath).text());
 				return buildInMemorySelectorResult(this.session, text, parsed, {
 					details: { resolvedPath: renderAbsolutePath },
 					sourcePath: renderAbsolutePath,

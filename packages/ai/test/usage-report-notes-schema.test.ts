@@ -9,7 +9,7 @@
  * the field so local `AuthStorage.usage.reports` results type-check.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { usageReportSchema } from "@oh-my-pi/pi-ai";
 import { usageResponseSchema } from "@oh-my-pi/pi-ai/auth-broker/wire-schemas";

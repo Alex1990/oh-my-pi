@@ -4,6 +4,7 @@ import { MCPTool } from "@oh-my-pi/pi-coding-agent/mcp/tool-bridge";
 import type { MCPServerConnection, MCPToolDefinition } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { SessionTools, type SessionToolsHost } from "@oh-my-pi/pi-coding-agent/session/session-tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface V8HeapSnapshot {
 	snapshot: {
@@ -84,10 +85,10 @@ await refreshRepeatedly();
 // stack at a different depth, so a stale pointer that one scan happened to
 // pin is not reachable from the next.
 for (let pass = 0; pass < 2; pass++) {
-	await Bun.sleep(0);
-	Bun.gc(true);
+	await bun.sleep(0);
+	bun.gc(true);
 }
-const heap = JSON.parse(Bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
+const heap = JSON.parse(bun.generateHeapSnapshot("v8")) as V8HeapSnapshot;
 const { node_fields: nodeFields, node_types: nodeTypes } = heap.snapshot.meta;
 const typeOffset = nodeFields.indexOf("type");
 const nameOffset = nodeFields.indexOf("name");

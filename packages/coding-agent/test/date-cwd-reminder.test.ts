@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, AssistantMessage, Context, Message, Model, ModelSpec } from "@oh-my-pi/pi-ai";
 import { clearCustomApis, registerCustomApi } from "@oh-my-pi/pi-ai";
 import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
@@ -13,6 +13,7 @@ import { formatLocalCalendarDate } from "@oh-my-pi/pi-tui/chrome/local-date";
 import { normalizePromptPath } from "@oh-my-pi/pi-coding-agent/utils/prompt-path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("date-cwd-reminder", () => {
 	afterEach(() => {
@@ -237,7 +238,7 @@ describe("date-cwd reminder on the provider wire", () => {
 
 	it("keeps an earlier steering message byte-identical when the date rolls over mid-turn", async () => {
 		using tempDir = TempDir.createSync("@pi-date-cwd-reminder-");
-		await Bun.write(tempDir.join("notes.txt"), "notes");
+		await bun.write(tempDir.join("notes.txt"), "notes");
 		const api = "test-date-cwd-reminder-steer";
 		const contexts: Context[] = [];
 		const pushReadCall = (stream: AssistantMessageEventStream, id: string) => {

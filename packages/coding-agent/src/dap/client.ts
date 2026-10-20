@@ -13,6 +13,9 @@ import type {
 	DapResolvedAdapter,
 	DapResponseMessage,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { connect, listen, type NodeSocket } from "@oh-my-pi/pi-utils/net-compat";
+
 
 interface DapSpawnOptions {
 	adapter: DapResolvedAdapter;
@@ -27,7 +30,7 @@ interface DapSpawnOptions {
 	socketReadyTimeoutMs?: number;
 }
 
-/** Minimal write interface shared by Bun.FileSink and Bun TCP sockets. */
+/** Minimal write interface shared by FileSink and Bun TCP sockets. */
 interface DapWriteSink {
 	write(data: string | Uint8Array): number | Promise<number>;
 	flush(): number | Promise<number> | undefined;
@@ -94,7 +97,9 @@ export class DapClient {
 		this.cwd = cwd;
 		this.proc = proc;
 		this.#readable = options?.readable ?? (proc.stdout as ReadableStream<Uint8Array>);
-		this.#writeSink = options?.writeSink ?? proc.stdin;
+		const writeSink = options?.writeSink ?? proc.stdin;
+		if (!writeSink) throw new Error("DAP adapter was spawned without a stdin pipe");
+		this.#writeSink = writeSink;
 		this.#socket = options?.socket;
 		this.port = options?.port;
 		this.proc.exited.then(
@@ -115,7 +120,7 @@ export class DapClient {
 		// debuggee children can reach /dev/tty and trigger SIGTTIN, suspending
 		// the parent harness under shell job control.
 		const env = {
-			...Bun.env,
+			...bun.env,
 			...NON_INTERACTIVE_ENV,
 		};
 		const proc = ptree.spawn([adapter.resolvedCommand, ...adapter.args], {
@@ -167,7 +172,7 @@ export class DapClient {
 	/** Spawn an adapter that listens on a caller-selected TCP port. */
 	static async #spawnTcp({ adapter, cwd, socketReadyTimeoutMs }: DapSpawnOptions): Promise<DapClient> {
 		const host = "127.0.0.1";
-		const reservation = Bun.listen({
+		const reservation = await listen({
 			hostname: host,
 			port: 0,
 			socket: {
@@ -178,13 +183,13 @@ export class DapClient {
 			},
 		});
 		const port = reservation.port;
-		reservation.stop(true);
+		await reservation.stop(true);
 		const args = adapter.args.map(arg => arg.replaceAll("$" + "{port}", String(port)));
 		const proc = ptree.spawn([adapter.resolvedCommand, ...args], {
 			cwd,
 			stdin: "pipe",
 			env: {
-				...Bun.env,
+				...bun.env,
 				...NON_INTERACTIVE_ENV,
 			},
 			detached: true,
@@ -223,7 +228,7 @@ export class DapClient {
 	 */
 	static async #spawnSocket({ adapter, cwd, socketReadyTimeoutMs }: DapSpawnOptions): Promise<DapClient> {
 		const env = {
-			...Bun.env,
+			...bun.env,
 			...NON_INTERACTIVE_ENV,
 		};
 		const timeoutMs = socketReadyTimeoutMs ?? SOCKET_READY_TIMEOUT_MS;
@@ -286,10 +291,10 @@ export class DapClient {
 		env: Record<string, string | undefined>;
 		timeoutMs: number;
 	}): Promise<DapClient> {
-		const { promise: connPromise, resolve: resolveConn } = Promise.withResolvers<Bun.Socket<undefined>>();
+		const { promise: connPromise, resolve: resolveConn } = Promise.withResolvers<NodeSocket>();
 
 		// Listen on port 0 (OS picks a free port)
-		const server = Bun.listen({
+		const server = await listen({
 			hostname: "127.0.0.1",
 			port: 0,
 			socket: {
@@ -795,7 +800,7 @@ async function waitForCondition(
 		if (proc.exitCode !== null) {
 			throw new Error("Adapter process exited before socket was ready");
 		}
-		await Bun.sleep(50);
+		await bun.sleep(50);
 	}
 	throw new Error(`Socket not ready after ${timeoutMs}ms`);
 }
@@ -811,7 +816,7 @@ async function connectTcpSocket(host: string, port: number, onClose?: () => void
 		},
 	});
 
-	void Bun.connect({
+	void connect({
 		hostname: host,
 		port,
 		socket: {
@@ -871,7 +876,7 @@ async function waitForTcpTransport(
 		try {
 			return await connectTcpSocket(host, port);
 		} catch {
-			await Bun.sleep(50);
+			await bun.sleep(50);
 		}
 	}
 	throw new Error(`TCP port ${host}:${port} was not ready after ${timeoutMs}ms`);
@@ -919,7 +924,7 @@ export async function waitForTcpServerListening(
 		}
 		ready.resolve();
 	})();
-	await Promise.race([ready.promise, Bun.sleep(timeoutMs)]);
+	await Promise.race([ready.promise, bun.sleep(timeoutMs)]);
 }
 
 interface SocketTransport {
@@ -929,7 +934,7 @@ interface SocketTransport {
 }
 
 /** Adapt a Bun.Socket to DapWriteSink. */
-function socketToSink(socket: Bun.Socket<undefined>): DapWriteSink {
+function socketToSink(socket: NodeSocket): DapWriteSink {
 	return {
 		write(data: string | Uint8Array) {
 			return socket.write(data);
@@ -972,7 +977,7 @@ export async function connectSocket(options: { unix: string }, timeoutMs: number
 		() => clearTimeout(timer),
 	);
 
-	Bun.connect({
+	connect({
 		unix: options.unix,
 		socket: {
 			open(socket) {
@@ -1019,7 +1024,7 @@ export async function connectSocket(options: { unix: string }, timeoutMs: number
 }
 
 /** Wrap an already-connected Bun.Socket into DAP transport streams. */
-function wrapBunSocket(rawSocket: Bun.Socket<undefined>): SocketTransport {
+function wrapBunSocket(rawSocket: NodeSocket): SocketTransport {
 	let streamController: ReadableStreamDefaultController<Uint8Array>;
 
 	const readable = new ReadableStream<Uint8Array>({

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,8 @@ import { RpcLiveBridge, type RpcLiveSession } from "@oh-my-pi/pi-coding-agent/mo
 import type { RpcLiveFrame } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-types";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { readLines, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 class FakeLiveSession implements RpcLiveSession {
 	muted = false;
@@ -169,7 +171,7 @@ describe("RpcLiveBridge", () => {
 describe("live commands over RPC", () => {
 	test("start/mute/stop wire shapes; frames bypass set_event_filter; stdin end stops the session", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-live-"));
-		const child = Bun.spawn([process.execPath, path.join(import.meta.dir, "fixtures", "live-rpc-agent.ts")], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), path.join(import.meta.dirname, "fixtures", "live-rpc-agent.ts")], {
 			cwd: dir,
 			env: { ...process.env, PI_CODING_AGENT_DIR: dir, PI_NO_TITLE: "1" },
 			stdin: "pipe",
@@ -237,7 +239,7 @@ describe("live commands over RPC", () => {
 			while (await receive()) {}
 			expect(await child.exited).toBe(0);
 			expect(seen.at(-1)).toEqual({ type: "live_end" });
-			expect(await Bun.file(path.join(dir, "live-stopped.json")).json()).toEqual({
+			expect(await bun.file(path.join(dir, "live-stopped.json")).json()).toEqual({
 				voice: "sol",
 				instructions: "Hey {{firstName}}",
 			});

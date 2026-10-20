@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildExactVectorIndex, searchExactVectorIndex } from "../src/core/vector-index";
 
 describe("exact vector index", () => {

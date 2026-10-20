@@ -7,7 +7,7 @@
  * tool results and spans every entry in the session rather than the live
  * transcript window, so compaction does not roll the totals back.
  */
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { statusLineHost } from "@oh-my-pi/pi-coding-agent/modes/status-line-host";
@@ -17,6 +17,7 @@ import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { FooterComponent } from "@oh-my-pi/pi-tui/status-line/footer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -89,7 +90,7 @@ describe("FooterComponent session cost", () => {
 
 		const component = new FooterComponent(session, statusLineHost);
 		try {
-			const line = Bun.stripANSI(component.render(200).join("\n"));
+			const line = bun.stripANSI(component.render(200).join("\n"));
 			// $1 from the parent's assistant turn plus $2 from the subagent task result.
 			expect(line).toContain("$3.000");
 		} finally {
@@ -150,7 +151,7 @@ describe("FooterComponent session cost", () => {
 
 		const component = new FooterComponent(session, statusLineHost);
 		try {
-			const line = Bun.stripANSI(component.render(200).join("\n"));
+			const line = bun.stripANSI(component.render(200).join("\n"));
 			// $4 dropped from the live context by compaction, plus $2 kept and $1 after.
 			expect(line).toContain("$7.000");
 		} finally {

@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
+import { vi } from "vitest";
 import * as path from "node:path";
 import {
 	clearAwsCredentialCache,
@@ -10,8 +11,16 @@ import {
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { removeWithRetries } from "../../utils/src/temp";
 import { waitForDelayOrAbort } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
-// `credential_process` integration coverage. Drives a real `Bun.spawn`
+const osState = vi.hoisted(() => ({ homedir: undefined as string | undefined }));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof os>();
+	return { ...actual, homedir: () => osState.homedir ?? actual.homedir() };
+});
+
+// `credential_process` integration coverage. Drives a real `bun.spawn`
 // against a fixture script so the JSON envelope contract, exit-code
 // handling, abort propagation, cache behavior, and the platform-specific
 // (POSIX shell / Windows CRT) tokenizers are all exercised end-to-end.
@@ -138,18 +147,18 @@ describe("resolveAwsCredentials", () => {
 
 	beforeEach(async () => {
 		for (const k of ENV_KEYS) {
-			saved.set(k, Bun.env[k]);
-			delete Bun.env[k];
+			saved.set(k, bun.env[k]);
+			delete bun.env[k];
 		}
-		Bun.env.AWS_EC2_METADATA_DISABLED = "true";
+		bun.env.AWS_EC2_METADATA_DISABLED = "true";
 		tmp = await fs.mkdtemp(path.join(os.tmpdir(), "aws-credproc-"));
 		clearAwsCredentialCache();
 	});
 
 	afterEach(async () => {
 		for (const [k, v] of saved) {
-			if (v === undefined) delete Bun.env[k];
-			else Bun.env[k] = v;
+			if (v === undefined) delete bun.env[k];
+			else bun.env[k] = v;
 		}
 		saved.clear();
 		await removeWithRetries(tmp);
@@ -158,28 +167,28 @@ describe("resolveAwsCredentials", () => {
 
 	async function writeFixture(name: string, body: string): Promise<string> {
 		const p = path.join(tmp, name);
-		await Bun.write(p, body);
+		await bun.write(p, body);
 		return p;
 	}
 
 	async function writeConfig(profile: string, line: string): Promise<void> {
 		const cfg = path.join(tmp, "config");
-		await Bun.write(cfg, `[profile ${profile}]\n${line}\n`);
-		Bun.env.AWS_CONFIG_FILE = cfg;
+		await bun.write(cfg, `[profile ${profile}]\n${line}\n`);
+		bun.env.AWS_CONFIG_FILE = cfg;
 		// Point shared credentials at a known-empty file so static-creds resolution
 		// definitely misses.
 		const sharedPath = path.join(tmp, "credentials");
-		await Bun.write(sharedPath, "");
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
+		await bun.write(sharedPath, "");
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
 	}
 
 	async function writeRawConfig(body: string): Promise<void> {
 		const cfg = path.join(tmp, "config");
-		await Bun.write(cfg, body);
-		Bun.env.AWS_CONFIG_FILE = cfg;
+		await bun.write(cfg, body);
+		bun.env.AWS_CONFIG_FILE = cfg;
 		const sharedPath = path.join(tmp, "credentials");
-		await Bun.write(sharedPath, "");
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
+		await bun.write(sharedPath, "");
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
 	}
 
 	/** Mock STS: web-identity + AssumeRole exchanges, capturing each request body. */
@@ -200,7 +209,7 @@ describe("resolveAwsCredentials", () => {
 					{ headers: { "content-type": "text/xml" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 	}
 
@@ -234,7 +243,7 @@ describe("resolveAwsCredentials", () => {
 
 		await resolveAwsCredentials({ profile: "counted" });
 		await resolveAwsCredentials({ profile: "counted" });
-		const calls = Number(await Bun.file(counterPath).text());
+		const calls = Number(await bun.file(counterPath).text());
 		expect(calls).toBe(1);
 	});
 
@@ -268,11 +277,11 @@ describe("resolveAwsCredentials", () => {
 	test("resolves ECS container credentials with the authorization token", async () => {
 		const credentialsPath = path.join(tmp, "empty-credentials");
 		const configPath = path.join(tmp, "empty-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "/v2/credentials/test";
-		Bun.env.AWS_CONTAINER_AUTHORIZATION_TOKEN = "container-auth";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "/v2/credentials/test";
+		bun.env.AWS_CONTAINER_AUTHORIZATION_TOKEN = "container-auth";
 		const capture: { url?: string; authorization?: string | null } = {};
 		const fetchImpl: FetchImpl = Object.assign(
 			async (input: string | URL | Request, init?: RequestInit) => {
@@ -285,7 +294,7 @@ describe("resolveAwsCredentials", () => {
 					Expiration: "2099-01-01T00:00:00Z",
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const credentials = await resolveAwsCredentials({ fetch: fetchImpl });
@@ -303,10 +312,10 @@ describe("resolveAwsCredentials", () => {
 	test("rejects dynamic container credentials without expiration", async () => {
 		const credentialsPath = path.join(tmp, "empty-dynamic-credentials");
 		const configPath = path.join(tmp, "empty-dynamic-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "/v2/credentials/rotating";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "/v2/credentials/rotating";
 		let calls = 0;
 		const fetchImpl: FetchImpl = Object.assign(
 			async () => {
@@ -317,7 +326,7 @@ describe("resolveAwsCredentials", () => {
 					Token: "ecs-token",
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		await expect(resolveAwsCredentials({ fetch: fetchImpl })).rejects.toThrow(/missing or invalid Expiration/);
@@ -327,10 +336,10 @@ describe("resolveAwsCredentials", () => {
 	test("rejects container relative URIs that can replace the metadata host", async () => {
 		const credentialsPath = path.join(tmp, "empty-relative-credentials");
 		const configPath = path.join(tmp, "empty-relative-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "//attacker.invalid/credentials";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = "//attacker.invalid/credentials";
 
 		await expect(resolveAwsCredentials()).rejects.toThrow(/single-host absolute path/);
 	});
@@ -338,11 +347,11 @@ describe("resolveAwsCredentials", () => {
 	test("honors AWS_EC2_METADATA_SERVICE_ENDPOINT for instance-role credentials", async () => {
 		const credentialsPath = path.join(tmp, "empty-imds-credentials");
 		const configPath = path.join(tmp, "empty-imds-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_EC2_METADATA_DISABLED = "false";
-		Bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT = "http://imds.internal:8181/";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_EC2_METADATA_DISABLED = "false";
+		bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT = "http://imds.internal:8181/";
 		const requestedUrls: string[] = [];
 		const fetchImpl: FetchImpl = Object.assign(
 			async (input: string | URL | Request) => {
@@ -357,7 +366,7 @@ describe("resolveAwsCredentials", () => {
 					Expiration: "2099-01-01T00:00:00Z",
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const credentials = await resolveAwsCredentials({ fetch: fetchImpl });
@@ -374,11 +383,11 @@ describe("resolveAwsCredentials", () => {
 	test("uses the IPv6 IMDS endpoint when endpoint mode requests it", async () => {
 		const credentialsPath = path.join(tmp, "empty-ipv6-imds-credentials");
 		const configPath = path.join(tmp, "empty-ipv6-imds-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_EC2_METADATA_DISABLED = "false";
-		Bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE = "IPv6";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_EC2_METADATA_DISABLED = "false";
+		bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE = "IPv6";
 		const requestedUrls: string[] = [];
 		const fetchImpl: FetchImpl = Object.assign(
 			async (input: string | URL | Request) => {
@@ -393,7 +402,7 @@ describe("resolveAwsCredentials", () => {
 					Expiration: "2099-01-01T00:00:00Z",
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		await resolveAwsCredentials({ fetch: fetchImpl });
@@ -404,11 +413,11 @@ describe("resolveAwsCredentials", () => {
 	test("gives each IMDS request its own timeout budget", async () => {
 		const credentialsPath = path.join(tmp, "empty-slow-imds-credentials");
 		const configPath = path.join(tmp, "empty-slow-imds-config");
-		await Promise.all([Bun.write(credentialsPath, ""), Bun.write(configPath, "")]);
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
-		Bun.env.AWS_CONFIG_FILE = configPath;
-		Bun.env.AWS_EC2_METADATA_DISABLED = "false";
-		Bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT = "http://slow-imds.internal";
+		await Promise.all([bun.write(credentialsPath, ""), bun.write(configPath, "")]);
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = credentialsPath;
+		bun.env.AWS_CONFIG_FILE = configPath;
+		bun.env.AWS_EC2_METADATA_DISABLED = "false";
+		bun.env.AWS_EC2_METADATA_SERVICE_ENDPOINT = "http://slow-imds.internal";
 		let calls = 0;
 		const fetchImpl: FetchImpl = Object.assign(
 			async (_input: string | URL | Request, init?: RequestInit) => {
@@ -423,7 +432,7 @@ describe("resolveAwsCredentials", () => {
 					Expiration: "2099-01-01T00:00:00Z",
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const credentials = await resolveAwsCredentials({ fetch: fetchImpl });
@@ -434,10 +443,10 @@ describe("resolveAwsCredentials", () => {
 
 	test("exchanges web identity tokens for STS credentials", async () => {
 		const tokenPath = path.join(tmp, "web-identity-token");
-		await Bun.write(tokenPath, "signed-identity-token\n");
-		Bun.env.AWS_WEB_IDENTITY_TOKEN_FILE = tokenPath;
-		Bun.env.AWS_ROLE_ARN = "arn:aws:iam::123456789012:role/test-role";
-		Bun.env.AWS_ROLE_SESSION_NAME = "test-session";
+		await bun.write(tokenPath, "signed-identity-token\n");
+		bun.env.AWS_WEB_IDENTITY_TOKEN_FILE = tokenPath;
+		bun.env.AWS_ROLE_ARN = "arn:aws:iam::123456789012:role/test-role";
+		bun.env.AWS_ROLE_SESSION_NAME = "test-session";
 		await writeConfig("regional", "region = cn-north-1");
 		let requestedUrl = "";
 		let requestBody = "";
@@ -453,7 +462,7 @@ describe("resolveAwsCredentials", () => {
 					{ headers: { "content-type": "text/xml" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const credentials = await resolveAwsCredentials({ profile: "regional", fetch: fetchImpl });
@@ -471,9 +480,9 @@ describe("resolveAwsCredentials", () => {
 
 	test("rejects web-identity responses without a valid expiration", async () => {
 		const tokenPath = path.join(tmp, "web-identity-token-without-expiration");
-		await Bun.write(tokenPath, "signed-identity-token\n");
-		Bun.env.AWS_WEB_IDENTITY_TOKEN_FILE = tokenPath;
-		Bun.env.AWS_ROLE_ARN = "arn:aws:iam::123456789012:role/test-role";
+		await bun.write(tokenPath, "signed-identity-token\n");
+		bun.env.AWS_WEB_IDENTITY_TOKEN_FILE = tokenPath;
+		bun.env.AWS_ROLE_ARN = "arn:aws:iam::123456789012:role/test-role";
 		const fetchImpl: FetchImpl = Object.assign(
 			async () =>
 				new Response(
@@ -483,7 +492,7 @@ describe("resolveAwsCredentials", () => {
 					</Credentials></AssumeRoleWithWebIdentityResult></AssumeRoleWithWebIdentityResponse>`,
 					{ headers: { "content-type": "text/xml" } },
 				),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		await expect(resolveAwsCredentials({ region: "us-east-1", fetch: fetchImpl })).rejects.toThrow(
@@ -493,7 +502,7 @@ describe("resolveAwsCredentials", () => {
 
 	test("chains role_arn + source_profile through web identity then AssumeRole", async () => {
 		const tokenPath = path.join(tmp, "sa-token");
-		await Bun.write(tokenPath, "irsa-jwt\n");
+		await bun.write(tokenPath, "irsa-jwt\n");
 		await writeRawConfig(
 			`[profile irsa]\nrole_arn = arn:aws:iam::111122223333:role/workspace\nweb_identity_token_file = ${tokenPath}\n\n` +
 				`[profile app]\nrole_arn = arn:aws:iam::111122223333:role/user\nrole_session_name = someone@example.com\n` +
@@ -538,7 +547,7 @@ describe("resolveAwsCredentials", () => {
 					{ headers: { "content-type": "text/xml" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const creds = await resolveAwsCredentials({ profile: "role", region: "us-east-1", fetch: fetchImpl });
@@ -571,26 +580,24 @@ describe("resolveAwsCredentials", () => {
 describe("resolveAwsCredentials SSO token refresh", () => {
 	let tmp: string;
 	let cacheDir: string;
-	let homedirSpy: ReturnType<typeof spyOn<typeof os, "homedir">>;
 	const saved = new Map<string, string | undefined>();
 	const START_URL = "https://example.awsapps.com/start";
 	const SESSION = "my-session";
 
 	/** SSO cache filenames are sha1(sso_session) for the sso-session profile shape. */
 	function cacheFileName(key: string): string {
-		return `${new Bun.CryptoHasher("sha1").update(key).digest("hex")}.json`;
+		return `${new bun.CryptoHasher("sha1").update(key).digest("hex")}.json`;
 	}
 
 	beforeEach(async () => {
 		for (const k of ENV_KEYS) {
-			saved.set(k, Bun.env[k]);
-			delete Bun.env[k];
+			saved.set(k, bun.env[k]);
+			delete bun.env[k];
 		}
-		Bun.env.AWS_EC2_METADATA_DISABLED = "true";
+		bun.env.AWS_EC2_METADATA_DISABLED = "true";
 		tmp = await fs.mkdtemp(path.join(os.tmpdir(), "aws-sso-"));
-		// The SSO cache path is built from os.homedir(), which Bun resolves from the
-		// passwd entry rather than $HOME, so redirect it the way stream.test.ts does.
-		homedirSpy = spyOn(os, "homedir").mockReturnValue(tmp);
+		// The SSO cache path is built from os.homedir(); redirect the mocked export.
+		osState.homedir = tmp;
 		cacheDir = path.join(tmp, ".aws", "sso", "cache");
 		await fs.mkdir(cacheDir, { recursive: true });
 		clearAwsCredentialCache();
@@ -598,18 +605,18 @@ describe("resolveAwsCredentials SSO token refresh", () => {
 
 	afterEach(async () => {
 		for (const [k, v] of saved) {
-			if (v === undefined) delete Bun.env[k];
-			else Bun.env[k] = v;
+			if (v === undefined) delete bun.env[k];
+			else bun.env[k] = v;
 		}
 		saved.clear();
-		homedirSpy.mockRestore();
+		osState.homedir = undefined;
 		await removeWithRetries(tmp);
 		clearAwsCredentialCache();
 	});
 
 	async function writeSsoConfig(): Promise<void> {
 		const cfg = path.join(tmp, "config");
-		await Bun.write(
+		await bun.write(
 			cfg,
 			`[profile sso-test]\n` +
 				`sso_session = ${SESSION}\n` +
@@ -620,15 +627,15 @@ describe("resolveAwsCredentials SSO token refresh", () => {
 				`sso_start_url = ${START_URL}\n` +
 				`sso_region = us-east-1\n`,
 		);
-		Bun.env.AWS_CONFIG_FILE = cfg;
+		bun.env.AWS_CONFIG_FILE = cfg;
 		const sharedPath = path.join(tmp, "credentials");
-		await Bun.write(sharedPath, "");
-		Bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
+		await bun.write(sharedPath, "");
+		bun.env.AWS_SHARED_CREDENTIALS_FILE = sharedPath;
 	}
 
 	async function writeCachedToken(token: Record<string, unknown>): Promise<string> {
 		const file = path.join(cacheDir, cacheFileName(SESSION));
-		await Bun.write(file, JSON.stringify(token));
+		await bun.write(file, JSON.stringify(token));
 		return file;
 	}
 
@@ -677,7 +684,7 @@ describe("resolveAwsCredentials SSO token refresh", () => {
 					},
 				});
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 	}
 
@@ -710,7 +717,7 @@ describe("resolveAwsCredentials SSO token refresh", () => {
 			fetch: ssoMock(captured, { rotateRefreshToken: true }),
 		});
 
-		const persisted = JSON.parse(await Bun.file(file).text());
+		const persisted = JSON.parse(await bun.file(file).text());
 		expect(persisted.accessToken).toBe("fresh-access-token");
 		expect(persisted.refreshToken).toBe("refresh-token-2");
 		expect(Date.parse(persisted.expiresAt)).toBeGreaterThan(Date.now());

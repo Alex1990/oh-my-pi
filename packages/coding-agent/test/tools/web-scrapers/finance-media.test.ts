@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleArtifactHub } from "@oh-my-pi/pi-coding-agent/web/scrapers/artifacthub";
 import { handleCoinGecko } from "@oh-my-pi/pi-coding-agent/web/scrapers/coingecko";
 import { handleDiscogs } from "@oh-my-pi/pi-coding-agent/web/scrapers/discogs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleCoinGecko", () => {
 	it("returns null for non-CoinGecko URLs", async () => {

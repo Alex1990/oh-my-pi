@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import * as connectionManager from "../../src/ssh/connection-manager";
@@ -21,7 +21,7 @@ describe("mountRemote", () => {
 
 describe("isMounted", () => {
 	it("detects a macOS mount point when mountpoint is unavailable", async () => {
-		const parentPath = import.meta.dir;
+		const parentPath = import.meta.dirname;
 		const mountPath = path.join(parentPath, "mounted");
 		const stat = async (filePath: string) => ({ dev: filePath === mountPath ? 2 : 1 });
 

@@ -1,10 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { MemoizedRuntime } from "../src/subprocess/worker-runtime";
 import type { SttTransport, SttWorkerInbound, SttWorkerOutbound } from "../src/stt/asr-protocol";
 import { startSttWorker } from "../src/stt/asr-worker";
 import * as registry from "../src/stt/models";
 import * as runtime from "../src/stt/sherpa-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
 
 // A stateful native-API double: each positive sample introduces a token, -1
 // ends an utterance, and token 3 needs inputFinished before it becomes ready.
@@ -91,7 +93,7 @@ const offlineSpec = registry.getSttModelSpec("parakeet-tdt-0.6b-v3")!;
 let nextKey = 0;
 let key: registry.SttModelKey;
 let offlineKey: registry.SttModelKey;
-const presentFile = await fs.stat(import.meta.path);
+const presentFile = await fs.stat(import.meta.filename);
 
 function harness() {
 	const events: SttWorkerOutbound[] = [];

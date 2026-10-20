@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderWelcomeTip, WelcomeComponent } from "@oh-my-pi/pi-tui/prompt/welcome";
 import { initTheme, setSymbolPreset, setTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("renderWelcomeTip", () => {
 	beforeAll(async () => {
@@ -12,7 +13,7 @@ describe("renderWelcomeTip", () => {
 		const tip = "Next time you see spaghetti try creating a TTSR rule that prevents this pattern before it spreads";
 		const width = 44;
 		const lines = renderWelcomeTip(tip, width);
-		const plain = lines.map(line => Bun.stripANSI(line));
+		const plain = lines.map(line => bun.stripANSI(line));
 
 		expect(plain.length).toBeGreaterThan(1);
 		expect(plain.join(" ")).not.toContain("…");
@@ -26,7 +27,7 @@ describe("renderWelcomeTip", () => {
 
 	it("replaces a trailing [NEW] marker with a rainbow NEW! tag", () => {
 		const lines = renderWelcomeTip("Try the shiny advisor [NEW]", 60);
-		const plain = lines.map(line => Bun.stripANSI(line)).join("\n");
+		const plain = lines.map(line => bun.stripANSI(line)).join("\n");
 		const styled = lines.join("\n");
 
 		expect(plain).toContain("Try the shiny advisor");
@@ -44,7 +45,7 @@ describe("renderWelcomeTip", () => {
 			for (const line of lines) {
 				expect(visibleWidth(line)).toBeLessThanOrEqual(width);
 			}
-			expect(lines.map(l => Bun.stripANSI(l)).join("\n")).toContain("NEW!");
+			expect(lines.map(l => bun.stripANSI(l)).join("\n")).toContain("NEW!");
 		}
 	});
 
@@ -54,12 +55,12 @@ describe("renderWelcomeTip", () => {
 		const shifted = renderWelcomeTip(tip, 60, 0.5);
 
 		expect(shifted.join("\n")).not.toBe(still.join("\n")); // hues rotate
-		expect(shifted.map(l => Bun.stripANSI(l))).toEqual(still.map(l => Bun.stripANSI(l)));
+		expect(shifted.map(l => bun.stripANSI(l))).toEqual(still.map(l => bun.stripANSI(l)));
 	});
 
 	it("leaves tips without the marker untouched", () => {
 		const lines = renderWelcomeTip("Plain old tip", 60);
-		const plain = lines.map(line => Bun.stripANSI(line)).join("\n");
+		const plain = lines.map(line => bun.stripANSI(line)).join("\n");
 		expect(plain).not.toContain("NEW!");
 		expect(plain).toContain("Tip: Plain old tip");
 	});

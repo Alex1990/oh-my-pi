@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { YieldGate } from "@oh-my-pi/pi-agent-core/utils/yield";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const YIELD_INTERVAL_MS = 50;
 
@@ -69,7 +70,7 @@ describe("ExponentialYield.race", () => {
 		// A child process makes event-loop liveness observable without measuring
 		// how quickly a loaded CI worker schedules a short racer. If race() leaves
 		// its losing timer behind, the child cannot exit before the watchdog.
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
 				"-e",
@@ -81,7 +82,7 @@ describe("ExponentialYield.race", () => {
 				`,
 			],
 			{
-				cwd: import.meta.dir + "/..",
+				cwd: import.meta.dirname + "/..",
 				stdin: "ignore",
 				stdout: "ignore",
 				stderr: "inherit",

@@ -126,6 +126,7 @@ import {
 	joinTextWithImagePlaceholder,
 	NON_VISION_IMAGE_PLACEHOLDER,
 } from "./vision-guard";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { applyOpenRouterRoutingVariant } from "./openai-shared";
 
@@ -2383,7 +2384,7 @@ export function convertMessages(
 
 	const generateFallbackToolCallId = (seed: string): string => {
 		generatedToolCallIdCounter += 1;
-		const hash = Bun.hash(`${model.provider}:${model.id}:${seed}:${generatedToolCallIdCounter}`).toString(36);
+		const hash = bun.hash(`${model.provider}:${model.id}:${seed}:${generatedToolCallIdCounter}`).toString(36);
 		return `call_${hash}`;
 	};
 

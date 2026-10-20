@@ -12,6 +12,7 @@ import type { MnemopiSessionState } from "../mnemopi/state";
 import { releaseSharpshooterSession } from "../sharpshooter/backend";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Id prefixes of the memory backends' own settings; their live edits reconfigure the active backend. */
 const MEMORY_BACKEND_SETTING_PREFIXES: readonly string[] = ["hindsight.", "mnemopi.", "sharpshooter."];
@@ -106,7 +107,7 @@ export class SessionMemory {
 		if (!previous || this.#host.isDisposed()) return;
 		const next = memorySettingsValue().get(this.#host.settings);
 		const changed: string[] = [];
-		for (const id in next) if (!Bun.deepEquals(next[id], previous[id])) changed.push(id);
+		for (const id in next) if (!bun.deepEquals(next[id], previous[id])) changed.push(id);
 		if (changed.length === 0) return;
 		this.#observedSettings = next;
 		const handling = this.#applySettingsChange(changed);

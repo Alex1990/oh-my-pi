@@ -12,7 +12,7 @@
  * the `publishCollabHost` export redirects discovery metadata into a temp dir,
  * so the registry's real Unix-socket IPC is exercised without touching ~/.omp.
  */
-import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

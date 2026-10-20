@@ -18,11 +18,12 @@
  *   bun scripts/gen-bazel-lock.ts --check  # exit 1 when MODULE.bazel.lock is stale
  */
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const check = process.argv.includes("--check");
 
-const bazel = Bun.which("bazelisk") ?? Bun.which("bazel");
+const bazel = bun.which("bazelisk") ?? bun.which("bazel");
 if (!bazel) {
 	console.error(
 		"gen-bazel-lock: bazelisk (or bazel) not found on PATH. Install bazelisk " +
@@ -34,7 +35,7 @@ if (!bazel) {
 // `fetch --repo=@crates` evaluates exactly the crate_universe extension (and
 // whatever it needs), never the build graph.
 const args = ["fetch", "--repo=@crates", `--lockfile_mode=${check ? "error" : "update"}`];
-const proc = Bun.spawn([bazel, ...args], { cwd: repoRoot, stdio: ["inherit", "inherit", "inherit"] });
+const proc = bun.spawn([bazel, ...args], { cwd: repoRoot, stdio: ["inherit", "inherit", "inherit"] });
 const code = await proc.exited;
 if (code === 0) {
 	console.log(check ? "MODULE.bazel.lock is up to date." : "MODULE.bazel.lock refreshed.");

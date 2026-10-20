@@ -33,6 +33,8 @@ import { initializeWithSettings, loadCapability } from "../discovery";
 import { buildRuleFromMarkdown, createSourceMeta } from "../discovery/helpers";
 import { ensureGrammar } from "../utils/grammars";
 import type { TtsrManager } from "../export/ttsr";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type TtsrAction = "test" | "list" | "scan";
 
@@ -143,12 +145,12 @@ interface ScanRegexCondition {
 
 interface ScanScopePlan {
 	toolName?: string;
-	pathGlob?: Bun.Glob;
+	pathGlob?: Glob;
 }
 
 interface ScanRulePlan {
 	rule: Rule;
-	globalPathGlobs?: Bun.Glob[];
+	globalPathGlobs?: Glob[];
 	defaultToolScope: boolean;
 	scopes: ScanScopePlan[];
 	regexConditions: ScanRegexCondition[];
@@ -165,17 +167,17 @@ interface ScanFileCandidate {
 async function readSnippet(opts: { snippet?: string; file?: string }): Promise<string> {
 	if (opts.file) {
 		if (opts.file === STDIN_MARKER) {
-			return await Bun.stdin.text();
+			return await bun.stdin.text();
 		}
 		const resolved = path.resolve(opts.file);
-		const file = Bun.file(resolved);
+		const file = bun.file(resolved);
 		if (!(await file.exists())) {
 			throw new Error(`Snippet file not found: ${resolved}`);
 		}
 		return await file.text();
 	}
 	if (opts.snippet !== undefined) return opts.snippet;
-	if (process.stdin.isTTY === false) return await Bun.stdin.text();
+	if (process.stdin.isTTY === false) return await bun.stdin.text();
 	throw new Error("No snippet provided. Pass inline text, --file <path>, or pipe via --file -.");
 }
 
@@ -321,7 +323,7 @@ async function loadProjectScanRules(cwd: string): Promise<Rule[]> {
 
 async function readIsolatedRule(rulePath: string): Promise<Rule> {
 	const resolved = path.resolve(rulePath);
-	const file = Bun.file(resolved);
+	const file = bun.file(resolved);
 	if (!(await file.exists())) {
 		throw new Error(`Rule file not found: ${resolved}`);
 	}
@@ -554,7 +556,7 @@ function isWithinDirectory(child: string, parent: string): boolean {
 	return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 }
 
-function matchesScanGlob(glob: Bun.Glob, filePaths: string[] | undefined): boolean {
+function matchesScanGlob(glob: Glob, filePaths: string[] | undefined): boolean {
 	if (!filePaths || filePaths.length === 0) {
 		return false;
 	}
@@ -572,14 +574,14 @@ function matchesScanGlob(glob: Bun.Glob, filePaths: string[] | undefined): boole
 	return false;
 }
 
-function compileScanPathGlobs(globs: Rule["globs"]): Bun.Glob[] | undefined {
+function compileScanPathGlobs(globs: Rule["globs"]): Glob[] | undefined {
 	if (!globs || globs.length === 0) {
 		return undefined;
 	}
 	const compiled = globs
 		.map(globPattern => globPattern.trim())
 		.filter(globPattern => globPattern.length > 0)
-		.map(globPattern => new Bun.Glob(globPattern));
+		.map(globPattern => new Glob(globPattern));
 	return compiled.length > 0 ? compiled : undefined;
 }
 
@@ -596,7 +598,7 @@ function parseScanToolScopeToken(token: string): ScanScopePlan | undefined {
 	const pathPattern = groups?.path?.trim();
 	return {
 		toolName,
-		pathGlob: pathPattern ? new Bun.Glob(pathPattern) : undefined,
+		pathGlob: pathPattern ? new Glob(pathPattern) : undefined,
 	};
 }
 
@@ -827,7 +829,7 @@ async function readScanFileText(
 	maxBytes: number,
 	knownSize: number | undefined,
 ): Promise<{ content: string } | { skip: ReadSkipReason }> {
-	const file = Bun.file(absPath);
+	const file = bun.file(absPath);
 	try {
 		const fileSize = knownSize ?? file.size;
 		if (maxBytes > 0 && fileSize > maxBytes) {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai";
 import { extractFacts } from "@oh-my-pi/pi-mnemopi/core/extraction";
 import { type ChatMessage, ExtractionClient } from "@oh-my-pi/pi-mnemopi/core/extraction/client";

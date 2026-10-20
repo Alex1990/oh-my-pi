@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -13,6 +13,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { sharpshooterMemoryFilePath } from "@oh-my-pi/pi-coding-agent/sharpshooter/paths";
 import { getAgentDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("advisor memory context", () => {
 	let authStorage: AuthStorage;
@@ -91,7 +92,7 @@ describe("advisor memory context", () => {
 		const decision = "Keep storage project-scoped for advisor memory test.";
 		const memoryFile = sharpshooterMemoryFilePath(tempDir.path(), tempDir.path(), "architecture.md");
 		await fs.mkdir(memoryFile.slice(0, memoryFile.lastIndexOf("/")), { recursive: true });
-		await Bun.write(memoryFile, `- ${decision}\n`);
+		await bun.write(memoryFile, `- ${decision}\n`);
 
 		session = await createAdvisedSession("sharpshooter");
 		// Primary path: the decision file lands in the main agent's system prompt.
@@ -130,7 +131,7 @@ describe("advisor memory context", () => {
 		try {
 			const memoryRoot = getMemoryRoot(tempDir.path(), tempDir.path());
 			await fs.mkdir(memoryRoot, { recursive: true });
-			await Bun.write(`${memoryRoot}/memory_summary.md`, "Advisor project summary marker.\n");
+			await bun.write(`${memoryRoot}/memory_summary.md`, "Advisor project summary marker.\n");
 
 			session = await createAdvisedSession(backend, SessionManager.inMemory(tempDir.path()));
 			expect(session.sessionFile).toBeUndefined();
@@ -156,7 +157,7 @@ describe("advisor memory context", () => {
 
 			if (backend === "mnemopi") {
 				for (let attempt = 0; !session.getMnemopiSessionState() && attempt < 100; attempt++) {
-					await Bun.sleep(10);
+					await bun.sleep(10);
 				}
 				const id = session.getMnemopiSessionState()?.rememberInScope("Advisor scoped memory marker.");
 				if (!id) throw new Error("Expected a stored memory id");

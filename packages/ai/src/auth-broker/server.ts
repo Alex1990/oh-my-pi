@@ -50,6 +50,7 @@ import {
 	credentialDisableRequestSchema,
 	credentialUploadRequestSchema,
 } from "./wire-schemas";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const DEFAULT_EXTERNAL_CHANGE_POLL_MS = 250;
 const AUTH_RECOVERY_REFRESH_OPTIONS = { reuseRecentMint: true } as const;
@@ -806,7 +807,7 @@ function serveSnapshotStream(
 }
 
 /** Boot the broker. Caller owns lifecycle; `handle.close()` to stop. */
-export function startAuthBroker(opts: AuthBrokerServerOptions): AuthBrokerServerHandle {
+export async function startAuthBroker(opts: AuthBrokerServerOptions): Promise<AuthBrokerServerHandle> {
 	const bind = parseBind(opts.bind ?? DEFAULT_AUTH_BROKER_BIND);
 	const tokens = new Set<string>(opts.bearerTokens);
 	const version = opts.version;
@@ -825,7 +826,7 @@ export function startAuthBroker(opts: AuthBrokerServerOptions): AuthBrokerServer
 	const generationGate = new GenerationGate(opts.storage, externalChangePollMs);
 	const streamHub = new SnapshotStreamHub(opts.storage, snapshotSource);
 
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: bind.hostname,
 		port: bind.port,
 		idleTimeout: DEFAULT_SERVER_IDLE_TIMEOUT_S,

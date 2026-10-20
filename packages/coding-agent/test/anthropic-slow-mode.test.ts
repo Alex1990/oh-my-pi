@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AnthropicSlowModeFailure, AnthropicSlowModeHooks, AnthropicSlowModeSignal, Model } from "@oh-my-pi/pi-ai";
 import { Settings } from "../src/config/settings";
 import {

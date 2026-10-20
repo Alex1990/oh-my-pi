@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { skillPromptTitleInput, titleTextFromSkillPrompt } from "@oh-my-pi/pi-tui/chat/skill-title-input";
 import { formatTitleConversationContext } from "../../src/tiny/message-preproc";
 

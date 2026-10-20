@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentEvent } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "../src/config/model-registry";
@@ -10,6 +10,7 @@ import { AgentSession } from "../src/session/agent-session";
 import { AuthStorage } from "../src/session/auth-storage";
 import { SessionManager } from "../src/session/session-manager";
 import { EventBus } from "../src/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function makeSession() {
 	const runtime = new ExtensionRuntime();
@@ -109,7 +110,7 @@ test("a failing message_update handler does not block later updates", async () =
 	try {
 		emit("A");
 		emit("B");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(received).toEqual(["B"]);
 	} finally {
 		await session.dispose();

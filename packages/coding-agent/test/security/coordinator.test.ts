@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,7 +6,7 @@ import { unregisterCustomApis } from "@oh-my-pi/pi-ai/api-registry";
 import { type AuthCredentialStore, AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { createMockModel, type MockResponseSource, registerMockApi } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { ModelRegistry } from "../../src/config/model-registry";
 import { Settings } from "../../src/config/settings";
 import {
@@ -18,6 +18,7 @@ import {
 	SecurityStore,
 } from "../../src/security";
 import { SessionManager } from "../../src/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MOCK_SOURCE_ID = "security-coordinator-test";
 let temporaryRoot = "";
@@ -67,7 +68,7 @@ beforeEach(async () => {
 	repositoryRoot = path.join(temporaryRoot, "repo");
 	stateRoot = path.join(temporaryRoot, "state");
 	await fs.mkdir(path.join(repositoryRoot, "src"), { recursive: true });
-	await Bun.write(path.join(repositoryRoot, "src", "app.ts"), "export const app = true;\n");
+	await bun.write(path.join(repositoryRoot, "src", "app.ts"), "export const app = true;\n");
 	settings = Settings.isolated({ "security.enabled": true, "compaction.enabled": false });
 	registerMockApi(MOCK_SOURCE_ID);
 });
@@ -288,7 +289,7 @@ describe("native security coordinator", () => {
 		await $`git add src/app.ts`.cwd(repositoryRoot).quiet();
 		await $`git commit -m base`.cwd(repositoryRoot).quiet();
 		const baseRevision = (await $`git rev-parse HEAD`.cwd(repositoryRoot).text()).trim();
-		await Bun.write(path.join(repositoryRoot, "src", "app.ts"), "export const app = 'head';\n");
+		await bun.write(path.join(repositoryRoot, "src", "app.ts"), "export const app = 'head';\n");
 		await $`git add src/app.ts`.cwd(repositoryRoot).quiet();
 		await $`git commit -m head`.cwd(repositoryRoot).quiet();
 		const headRevision = (await $`git rev-parse HEAD`.cwd(repositoryRoot).text()).trim();
@@ -312,7 +313,7 @@ describe("native security coordinator", () => {
 					return {
 						prompt: async text => {
 							request = text;
-							reviewedContent = await Bun.file(path.join(input.executionRoot, "src", "app.ts")).text();
+							reviewedContent = await bun.file(path.join(input.executionRoot, "src", "app.ts")).text();
 							return true;
 						},
 						waitForIdle: async () => undefined,

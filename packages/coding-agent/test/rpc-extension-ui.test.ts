@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "bun:test";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { isRecord, readJsonl, TempDir } from "@oh-my-pi/pi-utils";
 import type { ExtensionAskDialogQuestion } from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
@@ -9,6 +10,7 @@ import {
 	requestRpcDialog,
 	requestRpcSelect,
 } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-mode";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function requireRequest(frame: object | undefined): { id: string } {
 	if (!frame || !("id" in frame)) {
@@ -93,8 +95,8 @@ describe("RPC extension UI", () => {
 	it("keeps extension dialogs headless while tool selections round-trip", async () => {
 		await using temp = await TempDir.create("@rpc-headless-tool-ui-");
 		const fixturePath = temp.join("runtime.ts");
-		const sourceDir = path.resolve(import.meta.dir, "../src");
-		await Bun.write(
+		const sourceDir = path.resolve(import.meta.dirname, "../src");
+		await bun.write(
 			fixturePath,
 			`
 import { createAgentSession, Settings } from ${JSON.stringify(path.join(sourceDir, "sdk.ts"))};
@@ -126,10 +128,10 @@ await runRpcMode(session, {
 });
 `,
 		);
-		const child = Bun.spawn([process.execPath, fixturePath], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), fixturePath], {
 			cwd: temp.path(),
 			env: {
-				PATH: Bun.env.PATH,
+				PATH: bun.env.PATH,
 				HOME: temp.join("home"),
 				PI_CODING_AGENT_DIR: temp.join("agent"),
 				XDG_CONFIG_HOME: temp.join("config"),
@@ -257,7 +259,7 @@ await runRpcMode(session, {
 	it("rejects secret login input, completes ordinary OAuth input, and logs the stored account out", async () => {
 		await using temp = await TempDir.create("@rpc-login-");
 		const extensionPath = temp.join("login.mjs");
-		await Bun.write(
+		await bun.write(
 			extensionPath,
 			`
 export default function(pi) {
@@ -289,10 +291,10 @@ export default function(pi) {
 }
 `,
 		);
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
-				path.join(import.meta.dir, "..", "src", "cli.ts"),
+				path.join(import.meta.dirname, "..", "src", "cli.ts"),
 				"--trusted-extension",
 				extensionPath,
 				"--mode",
@@ -305,7 +307,7 @@ export default function(pi) {
 			{
 				cwd: temp.path(),
 				env: {
-					PATH: Bun.env.PATH,
+					PATH: bun.env.PATH,
 					HOME: temp.join("home"),
 					PI_CODING_AGENT_DIR: temp.join("agent"),
 					XDG_CONFIG_HOME: temp.join("config"),
@@ -566,11 +568,11 @@ describe("RPC ask dialog", () => {
 	it("keeps select prompts until the host opts in, then sends each ask as one dialog", async () => {
 		await using temp = await TempDir.create("@rpc-ask-dialog-");
 		const extensionPath = temp.join("scripted-ask.ts");
-		await Bun.write(extensionPath, scriptedAskProvider);
-		const child = Bun.spawn(
+		await bun.write(extensionPath, scriptedAskProvider);
+		const child = bun.spawn(
 			[
 				process.execPath,
-				path.join(import.meta.dir, "..", "src", "cli.ts"),
+				path.join(import.meta.dirname, "..", "src", "cli.ts"),
 				"--trusted-extension",
 				extensionPath,
 				"--mode",
@@ -580,7 +582,7 @@ describe("RPC ask dialog", () => {
 			{
 				cwd: temp.path(),
 				env: {
-					PATH: Bun.env.PATH,
+					PATH: bun.env.PATH,
 					HOME: temp.join("home"),
 					PI_CODING_AGENT_DIR: temp.join("agent"),
 					XDG_CONFIG_HOME: temp.join("config"),

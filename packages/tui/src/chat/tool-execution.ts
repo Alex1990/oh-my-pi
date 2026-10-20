@@ -53,6 +53,7 @@ import { FenceFigure } from "./fence-figure";
 import { sanitizeWithOptionalSixelPassthrough } from "../render/sixel";
 import { renderDiff } from "../chrome/diff";
 import { type AnimationFrame, trimBlankEdges } from "../chrome/transcript-container";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Resolves the canonical renderer key while retaining the provider's wire name in message history. */
 export function toolRenderName(wireName: string, tool: AgentTool | undefined): string {
@@ -579,7 +580,7 @@ export class ToolExecutionComponent extends Container {
 			await this.#previewReady.promise;
 			return;
 		}
-		await Promise.race([this.#previewReady.promise, Bun.sleep(timeoutMs)]);
+		await Promise.race([this.#previewReady.promise, bun.sleep(timeoutMs)]);
 	}
 
 	updateStreamPreview(update: unknown): void {

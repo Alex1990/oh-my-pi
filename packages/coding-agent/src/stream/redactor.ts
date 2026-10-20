@@ -1,6 +1,7 @@
 import { getAgentDir, getDotenvEnvValues, logger } from "@oh-my-pi/pi-utils";
 import { builtinCredentialSecretEntries, collectEnvSecrets, loadSecrets } from "../secrets";
 import { CREDENTIAL_PREFIX_RULES } from "../secrets/patterns";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REDACTION = "••••••";
 const MIN_PLAIN_SECRET_LENGTH = 8;
@@ -67,7 +68,7 @@ export class StreamRedactor {
 
 	/** Redact one ANSI terminal row, dropping styling whenever any sensitive span is found. */
 	redactRow(row: string): string {
-		const plain = Bun.stripANSI(row);
+		const plain = bun.stripANSI(row);
 		const spans: number[] = [];
 
 		for (const pattern of this.#patterns) {

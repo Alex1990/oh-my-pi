@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Agent, type AgentMessage } from "@oh-my-pi/pi-agent-core";
@@ -17,6 +17,7 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { __resetDirsFromEnvForTests, getProjectAgentDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function restoreEnv(key: string, value: string | undefined): void {
 	if (value === undefined) {
@@ -258,11 +259,11 @@ describe("AgentSession advisor toggle", () => {
 		const projectB = path.join(tempDir.path(), "project-b");
 		const agentDir = path.join(tempDir.path(), "agent");
 		await fs.mkdir(agentDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(getProjectAgentDir(projectA), "settings.json"),
 			JSON.stringify({ modelRoles: { advisor: `${model.provider}/${model.id}` } }),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(getProjectAgentDir(projectB), "settings.json"),
 			JSON.stringify({ modelRoles: { advisor: `${replacementModel.provider}/${replacementModel.id}` } }),
 		);

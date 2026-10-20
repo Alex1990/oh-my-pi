@@ -17,12 +17,14 @@
  * channel rather than a coincidental clean exit — and pins that the parent
  * survives.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 describe("issue #9158 — malformed worker IPC frame must not terminate the parent", () => {
 	it("contains an advanced-serialization decode failure to the worker instead of exiting the session", async () => {
-		const repoRoot = path.resolve(import.meta.dir, "..");
+		const repoRoot = path.resolve(import.meta.dirname, "..");
 		// Bun advanced-IPC frame with an invalid structured-clone body, written
 		// raw to the IPC fd (3), then the child blocks forever. Staying alive is
 		// the point: the malformed frame — not an exit — must fault the worker.
@@ -50,7 +52,7 @@ describe("issue #9158 — malformed worker IPC frame must not terminate the pare
 			const err = await errored;
 			process.stdout.write("FAULTED:" + err.message);
 		`;
-		const proc = Bun.spawn([process.execPath, "-e", wrapperScript], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", wrapperScript], {
 			cwd: repoRoot,
 			stdout: "pipe",
 			stderr: "pipe",
@@ -68,13 +70,13 @@ describe("issue #9158 — malformed worker IPC frame must not terminate the pare
 		// Guards the narrowed matcher: an application-thrown `TypeError` carrying
 		// this exact message but a populated stack must stay on the fatal path,
 		// so a genuine bug is never silently swallowed as a worker IPC frame.
-		const repoRoot = path.resolve(import.meta.dir, "..");
+		const repoRoot = path.resolve(import.meta.dirname, "..");
 		const wrapperScript = `
 			import "@oh-my-pi/pi-coding-agent/subprocess/worker-client";
 			process.stdout.write("BEFORE_THROW");
 			queueMicrotask(() => { throw new TypeError("Unable to deserialize data."); });
 		`;
-		const proc = Bun.spawn([process.execPath, "-e", wrapperScript], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", wrapperScript], {
 			cwd: repoRoot,
 			stdout: "pipe",
 			stderr: "pipe",

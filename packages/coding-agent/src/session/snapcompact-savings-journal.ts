@@ -21,6 +21,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { getStatsDbPath, isEnoent, logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface SnapcompactSavingsRecord {
 	/** Epoch milliseconds when the swap was applied. */
@@ -95,7 +96,7 @@ export async function readSnapcompactSavingsJournal(
 ): Promise<SnapcompactSavingsRecord[]> {
 	let text: string;
 	try {
-		text = await Bun.file(journalPath).text();
+		text = await bun.file(journalPath).text();
 	} catch (err) {
 		if (isEnoent(err)) return [];
 		throw err;

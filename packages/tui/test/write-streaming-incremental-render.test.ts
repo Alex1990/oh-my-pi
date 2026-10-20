@@ -1,7 +1,27 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
+import type { Theme } from "@oh-my-pi/pi-tui/theme";
+import type * as ThemeModule from "@oh-my-pi/pi-tui/theme/theme";
 import { writeToolRenderer } from "@oh-my-pi/pi-tui/tools/write";
 import type { HighlightStream } from "@oh-my-pi/pi-natives";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// `write.ts` imports `createHighlightStream` from the theme module directly,
+// and that module's exports are non-configurable, so a namespace spy would not
+// reach it. Swap the export through Vitest's mock registry instead.
+const highlightStream = vi.hoisted(() => ({
+	impl: undefined as ((language: string | undefined, uiTheme: Theme) => HighlightStream | null) | undefined,
+}));
+
+vi.mock("@oh-my-pi/pi-tui/theme/theme", async importOriginal => {
+	const actual = await importOriginal<typeof ThemeModule>();
+	return {
+		...actual,
+		createHighlightStream: (language?: string, uiTheme?: Theme) =>
+			highlightStream.impl?.(language, uiTheme as Theme) ?? actual.createHighlightStream(language, uiTheme),
+	};
+});
 
 const stripAnsi = (s: string): string => s.replace(/\[[0-9;]*m/g, "");
 const hasLine = (lines: readonly string[], n: number): boolean =>
@@ -24,6 +44,7 @@ describe("write streaming preview incremental line tracking", () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+		highlightStream.impl = undefined;
 	});
 
 	async function getUiTheme() {
@@ -55,7 +76,7 @@ describe("write streaming preview incremental line tracking", () => {
 			uiTheme,
 			args,
 		);
-		const text = Bun.stripANSI(result.render(120).join("\n"));
+		const text = bun.stripANSI(result.render(120).join("\n"));
 		expect(text).toMatch(/IRC \S+ all broadcast/);
 		expect(text).toContain("Please review the change");
 		expect(text).toContain("Broadcast delivered to 2 of 2 peer(s).");
@@ -149,15 +170,13 @@ describe("write streaming preview incremental line tracking", () => {
 	it("feeds only newline-terminated chunks to the highlight stream", async () => {
 		const uiTheme = await getUiTheme();
 		const pushes: string[] = [];
-		vi.spyOn(themeModule, "createHighlightStream").mockImplementation(
-			() =>
-				({
-					push: (chunk: string) => {
-						pushes.push(chunk);
-						return chunk;
-					},
-				}) as unknown as HighlightStream,
-		);
+		highlightStream.impl = () =>
+			({
+				push: (chunk: string) => {
+					pushes.push(chunk);
+					return chunk;
+				},
+			}) as unknown as HighlightStream;
 		const options = { expanded: false, isPartial: true, spinnerFrame: 0 };
 		let acc = "";
 		for (const piece of ["const a = ", "1;\nconst b = ", "2;\nconst c = 3"]) {
@@ -175,15 +194,13 @@ describe("write streaming preview incremental line tracking", () => {
 	it("highlights the trailing line once args are complete", async () => {
 		const uiTheme = await getUiTheme();
 		const pushes: string[] = [];
-		vi.spyOn(themeModule, "createHighlightStream").mockImplementation(
-			() =>
-				({
-					push: (chunk: string) => {
-						pushes.push(chunk);
-						return `H(${chunk})`;
-					},
-				}) as unknown as HighlightStream,
-		);
+		highlightStream.impl = () =>
+			({
+				push: (chunk: string) => {
+					pushes.push(chunk);
+					return `H(${chunk})`;
+				},
+			}) as unknown as HighlightStream;
 		const content = "const solo = 1;";
 		const streamingOptions = { expanded: true, isPartial: true, spinnerFrame: 0 };
 		const streaming = writeToolRenderer.renderCall({ path: "/tmp/solo.ts", content }, streamingOptions, uiTheme);

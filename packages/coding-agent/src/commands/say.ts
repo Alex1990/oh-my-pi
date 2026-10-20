@@ -24,6 +24,7 @@ import { resolveLocalSpeechModelId } from "../tts/vocalizer";
 import { encodeWav } from "../tts/wav";
 
 import { cfgTtsLocalSpeed, cfgTtsLocalVoice } from "../tts/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export default class Say extends Command {
 	static description = commandHelp.description;
@@ -74,7 +75,7 @@ export default class Say extends Command {
 		});
 
 		try {
-			const text = flags.file ? await Bun.file(flags.file).text() : (args.text ?? "");
+			const text = flags.file ? await bun.file(flags.file).text() : (args.text ?? "");
 			const splitter = new SpeakableStream();
 			const segments = [...splitter.push(text), ...splitter.flush()];
 			if (segments.length === 0) {
@@ -108,7 +109,7 @@ export default class Say extends Command {
 					offset += part.length;
 				}
 				const wav = encodeWav(pcm, sampleRate);
-				await Bun.write(flags.out, wav);
+				await bun.write(flags.out, wav);
 				const durationSec = total / sampleRate;
 				process.stdout.write(
 					`${chalk.green("saved")} ${flags.out} ` +

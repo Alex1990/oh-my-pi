@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 	type MuxConnectResult,
 } from "../src/lsp/mux/protocol";
 import { LspMuxServer } from "../src/lsp/mux/server";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface RpcMessage {
 	jsonrpc: "2.0";
@@ -148,7 +149,7 @@ async function withTimeout<T>(promise: Promise<T>, description: string, timeoutM
 	}
 }
 
-const fixturePath = path.join(import.meta.dir, "fixtures", "fake-lsp-server.ts");
+const fixturePath = path.join(import.meta.dirname, "fixtures", "fake-lsp-server.ts");
 const initializeParams = (processId = 424242, initializationOptions: unknown = {}): Record<string, unknown> => ({
 	processId,
 	rootUri: null,
@@ -177,7 +178,7 @@ async function pollUntil(check: () => Promise<boolean>, description: string): Pr
 	const deadline = Date.now() + 5_000;
 	while (Date.now() < deadline) {
 		if (await check()) return;
-		await Bun.sleep(25);
+		await bun.sleep(25);
 	}
 	throw new Error(`Timed out waiting for ${description}`);
 }
@@ -224,7 +225,7 @@ describe("LspMuxServer", () => {
 	});
 
 	it("terminates a language server that declares an oversized response", async () => {
-		connectParams.args = ["run", path.join(import.meta.dir, "fixtures", "malformed-jsonrpc-peer.ts")];
+		connectParams.args = ["run", path.join(import.meta.dirname, "fixtures", "malformed-jsonrpc-peer.ts")];
 		const { client } = await link();
 		await expect(withTimeout(initialize(client), "invalid server frame")).rejects.toThrow("Mux connection closed");
 		await pollUntil(() => Promise.resolve(server.serverKeys.length === 0), "malformed server exit");

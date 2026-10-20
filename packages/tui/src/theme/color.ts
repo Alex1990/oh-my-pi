@@ -1,6 +1,7 @@
 import { paletteToRgb, rgbToHex } from "@oh-my-pi/pi-utils/color";
 import { detectTerminalId, getTerminalInfo } from "../terminal-capabilities";
 import type { ColorMode, ColorValue } from "./schema";
+import { bun, type ColorFormat } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** SGR reset for the foreground color only, leaving other attributes intact. */
 export const FG_RESET = "\x1b[39m";
@@ -12,7 +13,7 @@ export const BG_RESET = "\x1b[49m";
 // ============================================================================
 
 /** Resolve theme color depth from the shared terminal capability model. */
-export function detectColorMode(env: NodeJS.ProcessEnv = Bun.env): ColorMode {
+export function detectColorMode(env: NodeJS.ProcessEnv = bun.env): ColorMode {
 	if (env.WT_SESSION) return "truecolor";
 	const terminal = getTerminalInfo(detectTerminalId(env), process.platform, env);
 	return terminal.trueColor ? "truecolor" : "256color";
@@ -25,13 +26,33 @@ const ansiColorCaches: Record<ColorMode, Map<string, string>> = {
 	"256color": new Map(),
 };
 
+/**
+ * `bun.color` is typed as the union of every format's result, so a caller that
+ * asked for a textual format still sees numbers and tuples. Narrow to the
+ * string result, returning null for unparsable input or a non-textual format.
+ */
+export function colorToString(input: string, format: ColorFormat): string | null {
+	const result = bun.color(input, format);
+	return typeof result === "string" ? result : null;
+}
+
+/**
+ * Narrow `bun.color(input, "{rgb}")` to its three channels. The Node compat
+ * layer returns a `[r, g, b]` tuple for this format.
+ */
+export function colorToRgb(input: string): { r: number; g: number; b: number } | null {
+	const result = bun.color(input, "{rgb}");
+	if (!Array.isArray(result)) return null;
+	return { r: result[0], g: result[1], b: result[2] };
+}
+
 /** Convert a theme color to foreground SGR at the requested depth; throws for invalid colors. */
 export function colorToAnsi(color: string, mode: ColorMode): string {
 	const cache = color.length <= ANSI_COLOR_CACHE_MAX_LENGTH ? ansiColorCaches[mode] : undefined;
 	const cached = cache?.get(color);
 	if (cached !== undefined) return cached;
 	const format = mode === "truecolor" ? "ansi-16m" : "ansi-256";
-	const ansi = Bun.color(color, format);
+	const ansi = colorToString(color, format);
 	if (ansi === null) {
 		throw new Error(`Invalid color value: ${color}`);
 	}

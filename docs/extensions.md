@@ -941,7 +941,7 @@ explicit typed requests.
 const result = await ctx.ui.openTerminal?.({
   multiplexer: "tmux",
   placement: "pane",
-  command: ["bun", "run", "dev"],
+  command: ["pnpm", "run", "dev"],
   cwd: ctx.cwd,
   target: process.env.TMUX_PANE!,
   focus: false,

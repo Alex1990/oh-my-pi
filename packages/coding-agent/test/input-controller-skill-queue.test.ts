@@ -5,7 +5,7 @@
  * details.__queueChipText. The session derives pending display directly from
  * the agent-core queue; there is no separate display mirror to splice.
  */
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
@@ -25,6 +25,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { Container } from "@oh-my-pi/pi-tui";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type StubEditor = {
 	setText: (text: string) => void;
@@ -32,29 +33,29 @@ type StubEditor = {
 	getText: () => string;
 	getExpandedText: () => string;
 	clearDraft: (historyText?: string) => void;
-	addToHistory: Mock<(...args: unknown[]) => unknown>;
+	addToHistory: (...args: unknown[]) => unknown;
 	onSubmit?: (text: string) => Promise<void>;
 	pendingImages: ImageContent[];
 	pendingImageLinks: (string | undefined)[];
 	imageLinks?: (string | undefined)[];
 };
 
-type PromptCustomMessage = Mock<
-	(
-		message: {
-			customType?: string;
-			content?: string | (TextContent | ImageContent)[];
-			display?: boolean;
-			attribution?: string;
-			details: SkillPromptDetails;
-		},
-		options?: { streamingBehavior?: "steer" | "followUp"; queueChipText?: string; queueOnly?: boolean },
-	) => Promise<void>
->;
+type PromptCustomMessageFn = (
+	message: {
+		customType?: string;
+		content?: string | (TextContent | ImageContent)[];
+		display?: boolean;
+		attribution?: string;
+		details: SkillPromptDetails;
+	},
+	options?: { streamingBehavior?: "steer" | "followUp"; queueChipText?: string; queueOnly?: boolean },
+) => Promise<void>;
+
+type PromptCustomMessage = Mock<PromptCustomMessageFn>;
 
 async function writeSkillFile(dir: string, skillName: string, body: string): Promise<Skill> {
 	const skillPath = path.join(dir, `${skillName}.md`);
-	await Bun.write(skillPath, `---\nname: ${skillName}\n---\n${body}\n`);
+	await bun.write(skillPath, `---\nname: ${skillName}\n---\n${body}\n`);
 	return { name: skillName, description: "", filePath: skillPath, baseDir: dir, source: "test" };
 }
 
@@ -90,7 +91,7 @@ function createStubInputControllerContext(opts: {
 		pendingImages: [] as ImageContent[],
 		pendingImageLinks: [] as (string | undefined)[],
 	};
-	const promptCustomMessage: PromptCustomMessage = vi.fn(async () => {});
+	const promptCustomMessage = vi.fn<PromptCustomMessageFn>(async () => {});
 	const prompt = vi.fn(async (_text: string, _options?: unknown) => {});
 	const handleGoalModeCommand = vi.fn(async (_rest?: string) => {});
 	const updatePendingMessagesDisplay = vi.fn();
@@ -427,7 +428,7 @@ describe("compaction skill re-invocation", () => {
 
 	function createCompactionDrainContext(queuedMessages: CompactionQueuedMessage[], loopModeEnabled = false) {
 		const promptCustomMessageCalled = Promise.withResolvers<void>();
-		const promptCustomMessage: PromptCustomMessage = vi.fn(async () => {
+		const promptCustomMessage = vi.fn<PromptCustomMessageFn>(async () => {
 			promptCustomMessageCalled.resolve();
 		});
 		const prompt = vi.fn(async (_text: string, _options?: { streamingBehavior?: "steer" | "followUp" }) => {});
@@ -866,7 +867,7 @@ describe("UiHelpers / InputController against derived queued custom display", ()
 		const uiHelpers = new UiHelpers(ctx);
 		uiHelpers.updatePendingMessagesDisplay();
 
-		const rendered = Bun.stripANSI(pendingMessagesContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(pendingMessagesContainer.render(120).join("\n"));
 		expect(rendered).toContain("Steering · 1");
 		expect(rendered).toContain("1. /skill:test-skill arg1 arg2");
 		expect(rendered).not.toContain("Steer:");
@@ -904,7 +905,7 @@ describe("UiHelpers / InputController against derived queued custom display", ()
 
 		const main = createStubInteractiveModeContextForUiHelpers(fixture.session, { compactionQueuedMessages });
 		new UiHelpers(main.ctx).updatePendingMessagesDisplay();
-		expect(Bun.stripANSI(main.pendingMessagesContainer.render(120).join("\n"))).toContain("main compaction");
+		expect(bun.stripANSI(main.pendingMessagesContainer.render(120).join("\n"))).toContain("main compaction");
 	});
 
 	it("groups yield follow-ups under one heading", async () => {
@@ -922,7 +923,7 @@ describe("UiHelpers / InputController against derived queued custom display", ()
 		const { ctx, pendingMessagesContainer } = createStubInteractiveModeContextForUiHelpers(session);
 		new UiHelpers(ctx).updatePendingMessagesDisplay();
 
-		const rendered = Bun.stripANSI(pendingMessagesContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(pendingMessagesContainer.render(120).join("\n"));
 		expect(rendered).toContain("After yield · 3");
 		expect(rendered).toContain("1. inspect types");
 		expect(rendered).toContain("2. run tests");

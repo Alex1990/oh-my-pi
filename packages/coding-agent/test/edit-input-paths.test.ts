@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getEditInputPaths } from "@oh-my-pi/pi-tui/tools/edit";
 
 it("keeps apply-patch targets when unchanged source contains a sloppy marker", () => {

@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { canCreateSymlink } from "./helpers/symlink-support";
 import { type } from "@oh-my-pi/omptype";
 import {
 	type AgentEvent,
@@ -45,6 +46,9 @@ import type { TruncationMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import type { TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { AdviseTool } from "../src/advisor/advise-tool";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 function yoloToolContext(): AgentToolContext {
 	return { settings: Settings.isolated({ "tools.approvalMode": "yolo" }) } as AgentToolContext;
@@ -83,6 +87,8 @@ function passthroughRunner(seen: string[] = []): ExtensionRunner {
 	} as unknown as ExtensionRunner;
 }
 
+const symlinkSupported = await canCreateSymlink();
+
 describe("CursorExecHandlers.grep bridge", () => {
 	let cwd: string;
 	let searchTool: GrepTool;
@@ -90,7 +96,7 @@ describe("CursorExecHandlers.grep bridge", () => {
 
 	beforeEach(async () => {
 		cwd = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-exec-test-"));
-		await Bun.write(path.join(cwd, "sample.txt"), "Hello World\nhello world\n");
+		await bun.write(path.join(cwd, "sample.txt"), "Hello World\nhello world\n");
 		searchTool = new GrepTool(createTestSession(cwd));
 		handlers = new CursorExecHandlers({
 			cwd,
@@ -132,7 +138,7 @@ describe("CursorExecHandlers.grep bridge", () => {
 
 	it("uses independent legacy grep context widths and zero defaults instead of session settings", async () => {
 		const target = path.join(cwd, "context.txt");
-		await Bun.write(target, "before two\nbefore one\nneedle\nafter one\nafter two\n");
+		await bun.write(target, "before two\nbefore one\nneedle\nafter one\nafter two\n");
 		const settings = Settings.isolated({ "grep.contextBefore": 2, "grep.contextAfter": 2 });
 		const session = createTestSession(cwd, { settings });
 		const scopedHandlers = new CursorExecHandlers({
@@ -177,7 +183,7 @@ describe("CursorExecHandlers.grep bridge", () => {
 		// The frame's `limit` caps total surfaced matches. The model-facing schema
 		// has no such parameter, so without a per-call tool the cap is dropped and
 		// the search returns everything it found.
-		await Bun.write(path.join(cwd, "many.txt"), Array.from({ length: 10 }, (_, i) => `needle ${i}`).join("\n"));
+		await bun.write(path.join(cwd, "many.txt"), Array.from({ length: 10 }, (_, i) => `needle ${i}`).join("\n"));
 		const scopedHandlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>([["grep", searchTool]]),
@@ -201,7 +207,7 @@ describe("CursorExecHandlers.grep bridge", () => {
 		// `context` has no schema parameter either: the width is read from
 		// settings fixed at tool construction, so the frame's value only lands
 		// through a per-call instance.
-		await Bun.write(path.join(cwd, "ctx.txt"), "before line\nneedle here\nafter line\n");
+		await bun.write(path.join(cwd, "ctx.txt"), "before line\nneedle here\nafter line\n");
 		const scopedHandlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>([["grep", searchTool]]),
@@ -234,7 +240,7 @@ describe("CursorExecHandlers.grep bridge", () => {
 		const spread = path.join(cwd, "spread");
 		await fs.mkdir(spread, { recursive: true });
 		await Promise.all(
-			Array.from({ length: 25 }, (_, i) => Bun.write(path.join(spread, `f${i}.txt`), "needle here\n")),
+			Array.from({ length: 25 }, (_, i) => bun.write(path.join(spread, `f${i}.txt`), "needle here\n")),
 		);
 		const scopedHandlers = new CursorExecHandlers({
 			cwd,
@@ -358,7 +364,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// loop's unadvertised calls, so it stays device-only.)
 
 		const target = path.join(cwd, "sample.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		// Build it exactly as the session does. Both bridge callsites go through
 		// this factory, so a regression in it — the wrong mode, a missing
 		// approval wrapper — fails here rather than passing against a
@@ -377,7 +383,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBeFalsy();
-		expect(await Bun.file(target).text()).toBe("alpha\ngamma\n");
+		expect(await bun.file(target).text()).toBe("alpha\ngamma\n");
 	});
 
 	it("substitutes a replace-mode edit into a granted advisor tool map", async () => {
@@ -386,7 +392,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// `input` string. A `pi_edit` frame's `old_string`/`new_string` args fail
 		// substitution the advisor path applies before constructing handlers.
 		const target = path.join(cwd, "sample.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const session = createTestSession(cwd);
 		const advisorEdit = new EditTool(session);
 		expect(advisorEdit.mode).not.toBe("replace");
@@ -400,7 +406,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBeFalsy();
-		expect(await Bun.file(target).text()).toBe("alpha\ngamma\n");
+		expect(await bun.file(target).text()).toBe("alpha\ngamma\n");
 		// The advisor's own loop must keep the exact instance it was handed.
 		expect(granted.get("edit")).toBe(advisorEdit);
 	});
@@ -412,7 +418,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// schema.
 
 		const target = path.join(cwd, "sample.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const session = createTestSession(cwd);
 		const configuredEdit = new EditTool(session);
 		expect(configuredEdit.mode).not.toBe("replace");
@@ -429,7 +435,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBeFalsy();
-		expect(await Bun.file(target).text()).toBe("alpha\ngamma\n");
+		expect(await bun.file(target).text()).toBe("alpha\ngamma\n");
 	});
 
 	it("still refuses a pi_edit frame when the session granted no edit tool", async () => {
@@ -438,7 +444,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// (issue #5680). Building the instance provider-independently must not
 		// weaken that.
 		const target = path.join(cwd, "sample.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>(),
@@ -450,7 +456,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).text()).toBe("alpha\nbeta\n");
+		expect(await bun.file(target).text()).toBe("alpha\nbeta\n");
 	});
 
 	it("leaves an ungranted tool map without an edit tool", async () => {
@@ -458,7 +464,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// roster that was never granted `edit` would hand a read-only advisor a
 		// mutating tool (issue #5680). The frame must fail instead.
 		const target = path.join(cwd, "sample.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const session = createTestSession(cwd);
 		let built = 0;
 		const withheld = bridgeToolMap(new Map<string, Tool>(), () => {
@@ -475,14 +481,14 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).text()).toBe("alpha\nbeta\n");
+		expect(await bun.file(target).text()).toBe("alpha\nbeta\n");
 	});
 
 	it("refuses a scoped pi_grep when no grep tool was granted", async () => {
 		// The factory builds a fresh tool and `executeTool` prefers that override
 		// over the registry, so a session that withheld `grep` must not install
 		// one — otherwise a frame carrying `context`/`limit` searches anyway.
-		await Bun.write(path.join(cwd, "hit.txt"), "needle\n");
+		await bun.write(path.join(cwd, "hit.txt"), "needle\n");
 		const denied = new CursorExecHandlers({ cwd, tools: new Map<string, Tool>() });
 		const result = await denied.piGrep({
 			toolCallId: "g0",
@@ -499,7 +505,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// context — without it the call fails closed, and a configured `deny`
 		// must still win when the context *is* supplied.
 		const target = path.join(cwd, "denied.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const settings = Settings.isolated({ "tools.approval": { edit: "deny" } });
 		const session = createTestSession(cwd, { settings });
 		const handlers = new CursorExecHandlers({
@@ -516,14 +522,14 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).text()).toBe("alpha\nbeta\n");
+		expect(await bun.file(target).text()).toBe("alpha\nbeta\n");
 	});
 
 	it("denies a scoped pi_grep frame the user's policy blocks", async () => {
 		// Same gate on the other bridge-only tool: the per-call `grep` the
 		// factory builds for a frame carrying `context`/`limit` must answer to
 		// `tools.approval.grep` like every registry call.
-		await Bun.write(path.join(cwd, "hit.txt"), "needle\n");
+		await bun.write(path.join(cwd, "hit.txt"), "needle\n");
 		const settings = Settings.isolated({ "tools.approval": { grep: "deny" } });
 		const session = createTestSession(cwd, { settings });
 		const handlers = new CursorExecHandlers({
@@ -547,7 +553,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// not in the bridge: a raw `new GrepTool(...)` there skips the approval
 		// gate every registry tool goes through. Exercise the shared factory
 		// both callsites use, so a regression in it fails here.
-		await Bun.write(path.join(cwd, "hit.txt"), "needle\n");
+		await bun.write(path.join(cwd, "hit.txt"), "needle\n");
 		const intercepted: string[] = [];
 		const factory = createBridgeGrepFactory(createTestSession(cwd), passthroughRunner(intercepted));
 		const built = factory({ context: 0, totalMatchLimit: 5 });
@@ -592,7 +598,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		} as never);
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).exists()).toBe(false);
+		expect(await bun.file(target).exists()).toBe(false);
 	});
 });
 
@@ -627,7 +633,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 
 	it("edits a file when the server-injected StrReplace name arrives as MCP", async () => {
 		const target = path.join(cwd, "note.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const session = createTestSession(cwd);
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -645,7 +651,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 			rawArgs: {},
 		});
 
-		expect(await Bun.file(target).text()).toBe("alpha\ngamma\n");
+		expect(await bun.file(target).text()).toBe("alpha\ngamma\n");
 		expect(result.content.map(part => (part.type === "text" ? part.text : "")).join("")).not.toMatch(
 			/not found|not available/i,
 		);
@@ -653,7 +659,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 
 	it("runs replace-mode when advertised hashline edit is called with old_string", async () => {
 		const target = path.join(cwd, "note.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const session = createTestSession(cwd);
 		const hashline = new EditTool(session);
 		expect(hashline.mode).not.toBe("replace");
@@ -673,7 +679,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 			rawArgs: {},
 		});
 
-		expect(await Bun.file(target).text()).toBe("alpha\ngamma\n");
+		expect(await bun.file(target).text()).toBe("alpha\ngamma\n");
 		expect(result.content.map(part => (part.type === "text" ? part.text : "")).join("")).not.toMatch(
 			/not found|not available/i,
 		);
@@ -705,7 +711,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 
 	it("still 404s StrReplace when edit was not granted", async () => {
 		const target = path.join(cwd, "note.txt");
-		await Bun.write(target, "alpha\nbeta\n");
+		await bun.write(target, "alpha\nbeta\n");
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>(),
@@ -722,7 +728,7 @@ describe("Cursor MCP StrReplace fallback", () => {
 		});
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).text()).toBe("alpha\nbeta\n");
+		expect(await bun.file(target).text()).toBe("alpha\nbeta\n");
 	});
 });
 
@@ -1300,7 +1306,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			expect(read?.text).toBeUndefined();
 			expect(read?.blob).toBeUndefined();
 			// The file is really there, decoded from base64, under the workspace.
-			expect(await Bun.file(path.join(workspace, "assets/logo.png")).text()).toBe("PNG-BYTES");
+			expect(await bun.file(path.join(workspace, "assets/logo.png")).text()).toBe("PNG-BYTES");
 		} finally {
 			await removeWithRetries(workspace);
 		}
@@ -1333,13 +1339,13 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 				).rejects.toThrow(/outside the workspace/);
 			}
 			// Nothing was written on any of those attempts.
-			expect(await Bun.file(outside).exists()).toBe(false);
+			expect(await bun.file(outside).exists()).toBe(false);
 		} finally {
 			await removeWithRetries(workspace);
 		}
 	});
 
-	it("refuses a download path that escapes through a symlink", async () => {
+	it.skipIf(!symlinkSupported)("refuses a download path that escapes through a symlink", async () => {
 		// A lexical check is not containment. `out/config` is relative and
 		// `..`-free, but with `ws/out` linked outside the workspace the write
 		// lands wherever the link points — as does a write to a dangling link,
@@ -1354,7 +1360,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			await fs.symlink(path.join(outside, "dangling.txt"), path.join(inner, "link.txt"));
 			// A link whose target already exists: the write would overwrite the
 			// real file out there rather than create anything new.
-			await Bun.write(path.join(outside, "existing.txt"), "original");
+			await bun.write(path.join(outside, "existing.txt"), "original");
 			await fs.symlink(path.join(outside, "existing.txt"), path.join(inner, "existing.txt"));
 			// Two hops: the first link stays inside, so resolving one level reads
 			// as contained while the write still follows the chain out.
@@ -1383,13 +1389,13 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 					handlers.readMcpResource({ server: "files", uri: "files://x", downloadPath: escapePath }),
 				).rejects.toThrow(/outside the workspace/);
 			}
-			expect(await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: outside }))).toEqual(["existing.txt"]);
-			expect(await Bun.file(path.join(outside, "existing.txt")).text()).toBe("original");
+			expect(await Array.fromAsync(new Glob("**/*").scan({ cwd: outside }))).toEqual(["existing.txt"]);
+			expect(await bun.file(path.join(outside, "existing.txt")).text()).toBe("original");
 
 			// A real workspace path still downloads: the guard resolves links, it
 			// does not refuse every path whose parents do not exist yet.
 			await handlers.readMcpResource({ server: "files", uri: "files://x", downloadPath: "deep/new/file.txt" });
-			expect(await Bun.file(path.join(inner, "deep/new/file.txt")).text()).toBe("payload");
+			expect(await bun.file(path.join(inner, "deep/new/file.txt")).text()).toBe("payload");
 		} finally {
 			await removeWithRetries(workspace);
 		}
@@ -1397,7 +1403,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 
 	it("overwrites an existing download target in place", async () => {
 		// The download open is `O_NOFOLLOW`, which also drops the plain
-		// `Bun.write` path — so the ordinary case has to keep working: a
+		// `bun.write` path — so the ordinary case has to keep working: a
 		// re-download truncates the previous file rather than failing or
 		// appending to it.
 		const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-mcp-rewrite-"));
@@ -1418,7 +1424,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			payload = "second";
 			await handlers.readMcpResource({ server: "files", uri: "files://x", downloadPath: "out/doc.txt" });
 
-			expect(await Bun.file(path.join(workspace, "out/doc.txt")).text()).toBe("second");
+			expect(await bun.file(path.join(workspace, "out/doc.txt")).text()).toBe("second");
 		} finally {
 			await removeWithRetries(workspace);
 		}
@@ -1436,7 +1442,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			await fs.mkdir(inner);
 			await fs.mkdir(outside);
 			const victim = path.join(outside, "secret.txt");
-			await Bun.write(victim, "SECRET");
+			await bun.write(victim, "SECRET");
 			await fs.link(victim, path.join(inner, "innocent.txt"));
 			const handlers = new CursorExecHandlers({
 				cwd: inner,
@@ -1452,7 +1458,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			await expect(
 				handlers.readMcpResource({ server: "files", uri: "files://x", downloadPath: "innocent.txt" }),
 			).rejects.toThrow(/hard links/);
-			expect(await Bun.file(victim).text()).toBe("SECRET");
+			expect(await bun.file(victim).text()).toBe("SECRET");
 		} finally {
 			await removeWithRetries(workspace);
 		}
@@ -1470,7 +1476,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-mcp-fifo-"));
 			try {
 				const fifo = path.join(workspace, "pipe");
-				const mkfifo = Bun.spawn(["mkfifo", fifo]);
+				const mkfifo = bun.spawn(["mkfifo", fifo]);
 				if ((await mkfifo.exited) !== 0) throw new Error("mkfifo failed");
 				const handlers = new CursorExecHandlers({
 					cwd: workspace,
@@ -1537,7 +1543,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			).rejects.toThrow(/blocked by user policy/);
 
 			expect(reads).toBe(0);
-			expect(await Bun.file(path.join(workspace, "out.txt")).exists()).toBe(false);
+			expect(await bun.file(path.join(workspace, "out.txt")).exists()).toBe(false);
 
 			// A read without `download_path` mutates nothing, so it is unaffected.
 			const read = await ungranted.readMcpResource({ server: "files", uri: "files://x" });
@@ -1727,7 +1733,7 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 
 	it("rejects native delete and preserves the file when allowDirectFileMutation is false", async () => {
 		const target = path.join(cwd, "victim.txt");
-		await Bun.write(target, "keep me");
+		await bun.write(target, "keep me");
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map(),
@@ -1738,12 +1744,12 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.content).toEqual([{ type: "text", text: 'Tool "delete" not available' }]);
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 	});
 
 	it("performs native delete when allowDirectFileMutation is true", async () => {
 		const target = path.join(cwd, "victim.txt");
-		await Bun.write(target, "remove me");
+		await bun.write(target, "remove me");
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map(),
@@ -1754,7 +1760,7 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		const result = await handlers.delete(create(DeleteArgsSchema, { toolCallId: "call-del", path: target }));
 
 		expect(result.isError).toBe(false);
-		expect(await Bun.file(target).exists()).toBe(false);
+		expect(await bun.file(target).exists()).toBe(false);
 	});
 
 	it("returns the deleted file size in details, including zero-byte files", async () => {
@@ -1766,17 +1772,17 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		});
 		for (const content of ["café", ""]) {
 			const target = path.join(cwd, "size.txt");
-			await Bun.write(target, content);
+			await bun.write(target, content);
 			const result = await handlers.delete(create(DeleteArgsSchema, { path: target }));
 			expect(result.isError).toBe(false);
 			expect(result.details).toEqual({ fileSize: Buffer.byteLength(content) });
-			expect(await Bun.file(target).exists()).toBe(false);
+			expect(await bun.file(target).exists()).toBe(false);
 		}
 	});
 
 	it("rechecks a live mutation grant after runtime tool activation", async () => {
 		const target = path.join(cwd, "victim.txt");
-		await Bun.write(target, "remove after upgrade");
+		await bun.write(target, "remove after upgrade");
 		let mutationGranted = false;
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -1787,12 +1793,12 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 
 		const denied = await handlers.delete(create(DeleteArgsSchema, { toolCallId: "call-del-denied", path: target }));
 		expect(denied.isError).toBe(true);
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 
 		mutationGranted = true;
 		const allowed = await handlers.delete(create(DeleteArgsSchema, { toolCallId: "call-del-allowed", path: target }));
 		expect(allowed.isError).toBe(false);
-		expect(await Bun.file(target).exists()).toBe(false);
+		expect(await bun.file(target).exists()).toBe(false);
 	});
 
 	it("resolves native deletes through the live cwd resolver", async () => {
@@ -1800,8 +1806,8 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		await fs.mkdir(movedCwd);
 		const originalTarget = path.join(cwd, "obsolete.txt");
 		const movedTarget = path.join(movedCwd, "obsolete.txt");
-		await Bun.write(originalTarget, "preserve me");
-		await Bun.write(movedTarget, "remove me");
+		await bun.write(originalTarget, "preserve me");
+		await bun.write(movedTarget, "remove me");
 		let currentCwd = cwd;
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -1815,8 +1821,8 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		const result = await handlers.delete(create(DeleteArgsSchema, { toolCallId: "call-del", path: "obsolete.txt" }));
 
 		expect(result.isError).toBe(false);
-		expect(await Bun.file(originalTarget).exists()).toBe(true);
-		expect(await Bun.file(movedTarget).exists()).toBe(false);
+		expect(await bun.file(originalTarget).exists()).toBe(true);
+		expect(await bun.file(movedTarget).exists()).toBe(false);
 	});
 
 	it("refuses a native delete the user's policy blocks", async () => {
@@ -1825,7 +1831,7 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		// instead of running a registry tool, so no approval wrapper sits in
 		// front of it — a configured `deny` still lost the file.
 		const target = path.join(cwd, "protected.txt");
-		await Bun.write(target, "keep me\n");
+		await bun.write(target, "keep me\n");
 		const settings = Settings.isolated({ "tools.approval": { delete: "deny" } });
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -1839,14 +1845,14 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		);
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 	});
 
 	it("refuses a native delete in always-ask mode, which has no prompt channel", async () => {
 		// The exec channel cannot raise an interactive approval, so a mode that
 		// demands one must fail closed rather than silently auto-approving.
 		const target = path.join(cwd, "asked.txt");
-		await Bun.write(target, "keep me\n");
+		await bun.write(target, "keep me\n");
 		const settings = Settings.isolated({ "tools.approvalMode": "always-ask" });
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -1858,12 +1864,12 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 		const result = await handlers.delete(create(DeleteArgsSchema, { toolCallId: "call-ask", path: "asked.txt" }));
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 	});
 
 	it("refuses a native delete when execute-time context is missing", async () => {
 		const target = path.join(cwd, "unwired.txt");
-		await Bun.write(target, "keep me\n");
+		await bun.write(target, "keep me\n");
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map(),
@@ -1876,7 +1882,7 @@ describe("CursorExecHandlers native delete gating (issue #5680)", () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.content.map(c => (c.type === "text" ? c.text : "")).join("")).toContain("requires approval");
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 	});
 });
 
@@ -2111,7 +2117,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 		// content it asked for.
 		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-piread-range-"));
 		try {
-			await Bun.write(
+			await bun.write(
 				path.join(cwd, "n.txt"),
 				`${Array.from({ length: 40 }, (_, i) => `line${i + 1}`).join("\n")}\n`,
 			);
@@ -2137,7 +2143,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 
 	it("returns negative offsets from the end of large files through the real read tool", async () => {
 		const target = path.join(cwd, "long.txt");
-		await Bun.write(target, `${Array.from({ length: 1000 }, (_, i) => `line${i + 1}`).join("\n")}\n`);
+		await bun.write(target, `${Array.from({ length: 1000 }, (_, i) => `line${i + 1}`).join("\n")}\n`);
 		const session = createTestSession(cwd);
 		const handlers = new CursorExecHandlers({
 			cwd,
@@ -2167,7 +2173,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 
 	it("serves the final lines through the native read frame", async () => {
 		const target = path.join(cwd, "native-tail.txt");
-		await Bun.write(target, `${Array.from({ length: 1000 }, (_, i) => `line${i + 1}`).join("\n")}\n`);
+		await bun.write(target, `${Array.from({ length: 1000 }, (_, i) => `line${i + 1}`).join("\n")}\n`);
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>([["read", new ReadTool(createTestSession(cwd))]]),
@@ -2222,7 +2228,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 			"base64",
 		);
 		const target = path.join(cwd, "shot.png");
-		await Bun.write(target, await new Bun.Image(seed).resize(24, 24).png().bytes());
+		await bun.write(target, await new Image(seed).resize(24, 24).png().bytes());
 		const handlers = new CursorExecHandlers({
 			cwd,
 			tools: new Map<string, Tool>([["read", new ReadTool(createTestSession(cwd))]]),
@@ -2277,7 +2283,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 			args: { path: "shot.png", offset: 1, limit: 20 },
 		} as never);
 		// A `;` list splits into nested reads; the image part must keep the flag.
-		await Bun.write(path.join(cwd, "notes.txt"), "notes\n");
+		await bun.write(path.join(cwd, "notes.txt"), "notes\n");
 		const split = await handlers.piRead({
 			toolCallId: "pi-image-split",
 			args: { path: "notes.txt;shot.png" },
@@ -2300,7 +2306,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 	it("routes internal artifact reads through both Cursor frames", async () => {
 		const artifacts = path.join(cwd, "artifacts");
 		await fs.mkdir(artifacts);
-		await Bun.write(path.join(artifacts, "0.read.log"), "cursor-artifact-content\n");
+		await bun.write(path.join(artifacts, "0.read.log"), "cursor-artifact-content\n");
 		const unregister = registerArtifactsDir(artifacts);
 		try {
 			const handlers = new CursorExecHandlers({

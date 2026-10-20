@@ -31,6 +31,7 @@ import {
 } from "../utils/aws-profile";
 import { isLocalOrMetadataHost } from "../utils/proxy";
 import { type AwsCredentials, signRequest } from "./aws-sigv4";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface ResolvedCredentials extends AwsCredentials {
 	/** Absolute expiration timestamp in ms. `undefined` for non-expiring static creds. */
@@ -659,7 +660,7 @@ async function readCredentialProcess(
 	signal: AbortSignal | undefined,
 ): Promise<ResolvedCredentials> {
 	const argv = buildCredentialProcessArgv(profile, command);
-	const child = Bun.spawn(argv, {
+	const child = bun.spawn(argv, {
 		stdin: "ignore",
 		stdout: "pipe",
 		stderr: "pipe",
@@ -715,7 +716,7 @@ async function readCredentialProcess(
 	return out;
 }
 
-/** Resolve the argv for `Bun.spawn`. On Windows we route `.cmd`/`.bat` helpers
+/** Resolve the argv for `bun.spawn`. On Windows we route `.cmd`/`.bat` helpers
  * through `cmd.exe /c` because direct execution refuses batch files (mirrors
  * Node's `execFile` policy and avoids surprise no-ops). */
 function buildCredentialProcessArgv(profile: string, command: string): string[] {
@@ -934,7 +935,7 @@ async function assumeRoleWithWebIdentity(
 ): Promise<ResolvedCredentials> {
 	let token: string;
 	try {
-		token = (await Bun.file(params.tokenFile).text()).trim();
+		token = (await bun.file(params.tokenFile).text()).trim();
 	} catch (err) {
 		throw new AIError.AwsCredentialsError(
 			`Unable to read AWS web identity token file: ${String(err)}`,
@@ -1018,7 +1019,7 @@ async function readContainerCredentials(
 	const authorizationTokenFile = $env.AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE;
 	if (!authorization && authorizationTokenFile) {
 		try {
-			authorization = (await Bun.file(authorizationTokenFile).text()).trim();
+			authorization = (await bun.file(authorizationTokenFile).text()).trim();
 		} catch (err) {
 			throw new AIError.AwsCredentialsError(
 				`Unable to read AWS container authorization token file: ${String(err)}`,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { SSHConnectionTarget } from "../../src/ssh/connection-manager";
 import * as connectionManager from "../../src/ssh/connection-manager";
 import { listRemoteDir, readRemoteFile, statRemotePath, writeRemoteFile } from "../../src/ssh/file-transfer";

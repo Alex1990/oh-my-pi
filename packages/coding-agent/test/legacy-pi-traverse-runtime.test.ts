@@ -1,5 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 interface CacheProbeResult {
 	modules: number;
@@ -7,12 +9,12 @@ interface CacheProbeResult {
 	paths: string[];
 }
 
-const probePath = path.resolve(import.meta.dir, "fixtures", "legacy-pi-babel-cache-probe.ts");
-const positiveControlPath = path.resolve(import.meta.dir, "fixtures", "legacy-pi-babel-cache-positive-control.ts");
+const probePath = path.resolve(import.meta.dirname, "fixtures", "legacy-pi-babel-cache-probe.ts");
+const positiveControlPath = path.resolve(import.meta.dirname, "fixtures", "legacy-pi-babel-cache-positive-control.ts");
 
 async function runProbe(childPath: string): Promise<CacheProbeResult> {
-	const proc = Bun.spawn([process.execPath, childPath], {
-		cwd: path.resolve(import.meta.dir, "../.."),
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), childPath], {
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		stderr: "pipe",
 		stdout: "pipe",
 	});

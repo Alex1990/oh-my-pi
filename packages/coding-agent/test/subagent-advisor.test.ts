@@ -2,7 +2,7 @@
  * Per-agent settings migrations, advisor defaults for spawned sessions, and
  * discovery of nested per-subagent `__advisor.jsonl` transcripts.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

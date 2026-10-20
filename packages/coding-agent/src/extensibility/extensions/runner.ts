@@ -106,6 +106,7 @@ import type {
 } from "./types";
 
 import { cfgExtensionHandlersToolCallTimeoutMs } from "../settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Combined result from all before_agent_start handlers */
 interface BeforeAgentStartCombinedResult {
@@ -290,7 +291,7 @@ function createHandlerContext(
  * Race `work` against a `timeoutMs` budget and optional cancellation signal,
  * clearing the timer and abort listener as soon as one branch settles.
  *
- * We deliberately avoid `Bun.sleep(timeoutMs).then(...)` here: that leaves an
+ * We deliberately avoid `bun.sleep(timeoutMs).then(...)` here: that leaves an
  * uncancellable timer registered with the event loop, so every successful
  * handler race leaks a timer that keeps the process alive until the deadline
  * fires — up to the default 30s cap, which stalls non-interactive CLI exit
@@ -365,7 +366,7 @@ async function raceHandlerWithTimeout<T>(
 					() => undefined,
 					() => undefined,
 				),
-				Bun.sleep(0),
+				bun.sleep(0),
 			]);
 		}
 		return result;
@@ -1639,7 +1640,7 @@ export class ExtensionRunner {
 	}
 
 	async emit<TEvent extends RunnerEmitEvent>(event: TEvent): Promise<RunnerEmitResult<TEvent>> {
-		// Defer the per-event context allocation (and the Promise.race/Bun.sleep
+		// Defer the per-event context allocation (and the Promise.race/bun.sleep
 		// timeout machinery) to the first matching handler. Streaming sessions emit
 		// message_update / tool_execution_* per delta with usually no extension
 		// subscribed; building `ctx` for a zero-handler event is pure waste.
@@ -1777,11 +1778,11 @@ export class ExtensionRunner {
 					replacement.some((block, index) => {
 						const previous = expected[index];
 						if (!block || typeof block !== "object" || block.type !== previous?.type) return true;
-						if (block.type !== "text") return !Bun.deepEquals(block, previous);
+						if (block.type !== "text") return !bun.deepEquals(block, previous);
 						return (
 							typeof block.text !== "string" ||
 							previous?.type !== "text" ||
-							!Bun.deepEquals(textMetadata(block), textMetadata(previous))
+							!bun.deepEquals(textMetadata(block), textMetadata(previous))
 						);
 					})
 				) {
@@ -2076,7 +2077,7 @@ export class ExtensionRunner {
 						const historyIndex = getContextHistoryIndex(previousMessage);
 						if (historyIndex === undefined) continue;
 						setContextHistoryIndex(message, historyIndex);
-						if (!Bun.deepEquals(message, previousMessage)) clearContextHistoryIndex(message);
+						if (!bun.deepEquals(message, previousMessage)) clearContextHistoryIndex(message);
 					}
 					currentMessages = nextMessages;
 				}
@@ -2087,7 +2088,7 @@ export class ExtensionRunner {
 			const historyIndex = getContextHistoryIndex(message);
 			const historyMessage = historyIndex === undefined ? undefined : messages[historyIndex];
 			if (historyMessage && historyIndex !== undefined) setContextHistoryIndex(historyMessage, historyIndex);
-			const unchanged = historyMessage !== undefined && Bun.deepEquals(message, historyMessage);
+			const unchanged = historyMessage !== undefined && bun.deepEquals(message, historyMessage);
 			clearContextHistoryIndex(message);
 			if (historyMessage) clearContextHistoryIndex(historyMessage);
 			if (!unchanged) markPerCallContextMessage(message);

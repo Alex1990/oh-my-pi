@@ -21,6 +21,8 @@
  */
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const chatRequestSchema = type({
 	"messages?": type({ role: "string", "content?": "unknown" }).array(),
@@ -114,7 +116,7 @@ function completionBody(reply: Reply): object {
 const agentDir = process.argv[2];
 if (!agentDir) throw new Error("usage: fake-openai-server.ts <agentDir>");
 
-const server = Bun.serve({
+const server = await serve({
 	hostname: "127.0.0.1",
 	port: 0,
 	async fetch(request) {
@@ -133,7 +135,7 @@ const server = Bun.serve({
 	},
 });
 
-await Bun.write(
+await bun.write(
 	path.join(agentDir, "models.yml"),
 	[
 		"providers:",
@@ -150,7 +152,7 @@ await Bun.write(
 );
 console.log(`READY ${server.port}`);
 
-for await (const _ of Bun.stdin.stream()) {
+for await (const _ of bun.stdin.stream()) {
 	// Serve until the parent closes stdin.
 }
 server.stop(true);

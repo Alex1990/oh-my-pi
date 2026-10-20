@@ -1,8 +1,22 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
+import { vi } from "vitest";
 import { OAuthCallbackFlow } from "@oh-my-pi/pi-ai/registry/oauth/callback-server";
 import type { OAuthAuthInfo, OAuthCredentials } from "@oh-my-pi/pi-ai/registry/oauth/types";
 import { parseHTML } from "@oh-my-pi/pi-utils/dom";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const osState = vi.hoisted(() => ({
+	networkInterfaces: undefined as ReturnType<typeof os.networkInterfaces> | undefined,
+}));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof os>();
+	return {
+		...actual,
+		networkInterfaces: () => osState.networkInterfaces ?? actual.networkInterfaces(),
+	};
+});
 
 class CallbackProbeFlow extends OAuthCallbackFlow {
 	async generateAuthUrl(state: string, redirectUri: string): Promise<{ url: string }> {
@@ -18,14 +32,15 @@ class CallbackProbeFlow extends OAuthCallbackFlow {
 }
 
 /**
- * Whether this host can bind the IPv6 loopback at all. Probed with `Bun.serve`
+ * Whether this host can bind the IPv6 loopback at all. Probed with `serve`
  * rather than the flow's own `os.networkInterfaces()` check, so a broken
  * production probe fails loudly instead of skipping into a false green (same
  * guard as `callback-server-dual-stack.test.ts`).
  */
-const ipv6Loopback = (() => {
+const ipv6Loopback = await (async () => {
 	try {
-		Bun.serve({ hostname: "::1", port: 0, fetch: () => new Response("probe") }).stop(true);
+		const probe = await serve({ hostname: "::1", port: 0, fetch: () => new Response("probe") });
+		await probe.stop(true);
 		return true;
 	} catch {
 		return false;
@@ -52,18 +67,19 @@ async function startFlow(): Promise<{
 	return { info, abort, login };
 }
 
-/** Record every hostname the flow hands to `Bun.serve` while still binding for real. */
+/** Record every hostname the flow hands to `serve` while still binding for real. */
 function recordBoundHostnames(): (string | undefined)[] {
-	const serve = Bun.serve;
+	const realServe = serve;
 	const hostnames: (string | undefined)[] = [];
-	vi.spyOn(Bun, "serve").mockImplementation(options => {
+	vi.spyOn(bun, "serve").mockImplementation(options => {
 		hostnames.push(options.hostname);
-		return serve(options);
+		return realServe(options);
 	});
 	return hostnames;
 }
 
 afterEach(() => {
+	osState.networkInterfaces = undefined;
 	vi.restoreAllMocks();
 });
 
@@ -203,7 +219,7 @@ describe("OAuthCallbackFlow callback security", () => {
 	it("serves IPv4 alone without attempting ::1 when the host has no IPv6 loopback", async () => {
 		// Reproduce an IPv6-disabled kernel (ipv6.disable=1 / disable_ipv6=1): the
 		// loopback interface exposes only 127.0.0.1 (#8814).
-		vi.spyOn(os, "networkInterfaces").mockReturnValue({
+		osState.networkInterfaces = {
 			lo: [
 				{
 					address: "127.0.0.1",
@@ -214,7 +230,7 @@ describe("OAuthCallbackFlow callback security", () => {
 					cidr: "127.0.0.1/8",
 				},
 			],
-		});
+		};
 		const hostnames = recordBoundHostnames();
 
 		const { abort, login } = await startFlow();

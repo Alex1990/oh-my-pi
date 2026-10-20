@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
@@ -15,6 +15,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { cfgInterruptMode } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import { cfgFollowUpMode } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import { cfgSteeringMode } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression guard for #11555: the RPC queue-mode path (`persist: false`)
@@ -74,7 +75,7 @@ describe("AgentSession queue-mode controls are session-scoped by default", () =>
 		expect(cfgFollowUpMode.get(settings)).toBe("one-at-a-time");
 		expect(cfgInterruptMode.get(settings)).toBe("immediate");
 		expect(settings.getGlobalSettings()).toEqual({});
-		expect(await Bun.file(configPath).exists()).toBe(false);
+		expect(await bun.file(configPath).exists()).toBe(false);
 	});
 
 	it("does not leak session-scoped queue modes into later sessions sharing the same Settings", () => {
@@ -116,7 +117,7 @@ describe("AgentSession queue-mode controls are session-scoped by default", () =>
 			followUpMode: "all",
 			interruptMode: "wait",
 		});
-		const onDisk = await Bun.file(configPath).text();
+		const onDisk = await bun.file(configPath).text();
 		expect(onDisk).toContain("steeringMode: all");
 		expect(onDisk).toContain("followUpMode: all");
 		expect(onDisk).toContain("interruptMode: wait");

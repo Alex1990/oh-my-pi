@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +17,9 @@ import { SkillProtocolHandler } from "@oh-my-pi/pi-coding-agent/internal-urls/sk
 import { CombinedAutocompleteProvider } from "@oh-my-pi/pi-tui/autocomplete";
 import { __resetDirsFromEnvForTests, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import { restoreEnvValue } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 const fixturesDir = path.resolve(import.meta.dirname, "fixtures/skills");
 const collisionFixturesDir = path.resolve(import.meta.dirname, "fixtures/skills-collision");
 
@@ -73,10 +76,10 @@ beforeAll(async () => {
 	isolateHomedir();
 	for (const key of ["HOME", "USERPROFILE"] as const) {
 		process.env[key] = isolatedHome;
-		Bun.env[key] = isolatedHome;
+		bun.env[key] = isolatedHome;
 	}
 	delete process.env.CLAUDE_CONFIG_DIR;
-	delete Bun.env.CLAUDE_CONFIG_DIR;
+	delete bun.env.CLAUDE_CONFIG_DIR;
 	setAgentDir(path.join(isolatedHome, ".omp", "agent"));
 });
 
@@ -161,7 +164,7 @@ describe("skills", () => {
 		it("should keep user Claude skills when project .claude/skills is missing", async () => {
 			const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 			delete process.env.CLAUDE_CONFIG_DIR;
-			delete Bun.env.CLAUDE_CONFIG_DIR;
+			delete bun.env.CLAUDE_CONFIG_DIR;
 			const tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-claude-home-"));
 			const tempProjectDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-claude-project-"));
 			enableUserSource("claude");
@@ -303,7 +306,7 @@ describe("skills", () => {
 			// child. Injecting a short deadline preserves that native lifecycle
 			// coverage without paying the production discovery budget.
 			const start = performance.now();
-			const result = runHostProbe([process.execPath, "-e", "await Bun.sleep(60_000)"], 25);
+			const result = runHostProbe([process.execPath, "-e", "await bun.sleep(60_000)"], 25);
 			const elapsed = performance.now() - start;
 			expect(result).toBeUndefined();
 			// Loose bound proves the probe returned via its timeout, not the child.
@@ -665,12 +668,12 @@ describe("collision handling", () => {
 		try {
 			const body = "# Calendar\n\nSame body text for both skills.\n";
 			await fs.mkdir(path.join(dirA, "calendar"), { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(dirA, "calendar", "SKILL.md"),
 				`---\nname: calendar\ndescription: Description A.\n---\n\n${body}`,
 			);
 			await fs.mkdir(path.join(dirB, "calendar"), { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(dirB, "calendar", "SKILL.md"),
 				`---\nname: calendar\ndescription: Description B.\n---\n\n${body}`,
 			);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import {
 } from "@oh-my-pi/pi-tui/autocomplete";
 import { Editor } from "@oh-my-pi/pi-tui/components/editor";
 import { defaultEditorTheme } from "./test-themes";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function onceAutocompleteUpdate(editor: Editor): Promise<void> {
 	const { promise, resolve } = Promise.withResolvers<void>();
@@ -479,7 +480,7 @@ describe("Editor hash autocomplete actions", () => {
 		editor.setAutocompleteProvider(provider);
 
 		editor.handleInput("#");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		editor.handleInput("\r");
 
 		expect(editor.getText()).toBe("");
@@ -495,7 +496,7 @@ describe("Editor slash autocomplete acceptance", () => {
 		);
 
 		editor.handleInput("/");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(editor.isShowingAutocomplete()).toBe(true);
 
 		editor.handleInput("s");
@@ -1481,7 +1482,7 @@ describe("Editor Enter handler sync slash completion", () => {
 		};
 
 		editor.handleInput("/mo");
-		await Bun.sleep(0); // Let async autocomplete resolve and set state
+		await bun.sleep(0); // Let async autocomplete resolve and set state
 		editor.handleInput("\r");
 
 		// When autocomplete shows a slash command, Enter applies the completion
@@ -1501,7 +1502,7 @@ describe("Editor Enter handler sync slash completion", () => {
 		};
 
 		editor.handleInput("  /mo");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(editor.isShowingAutocomplete()).toBe(true);
 
 		editor.handleInput("\r");
@@ -1561,7 +1562,7 @@ class TodoSubcommandProvider implements AutocompleteProvider {
 describe("Editor autocomplete invalidation on destructive edits (issue #4295)", () => {
 	async function primeAutocomplete(editor: Editor) {
 		editor.handleInput("/todo s");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(editor.isShowingAutocomplete()).toBe(true);
 	}
 
@@ -1611,7 +1612,7 @@ describe("Editor autocomplete invalidation on destructive edits (issue #4295)", 
 		editor.handleInput("\x01"); // Ctrl+A: cursor to line start
 		for (const _ of "/todo ") editor.handleInput("\x06"); // Ctrl+F: forward one char
 		editor.handleInput("s"); // trigger autocomplete for "/todo s"
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(editor.isShowingAutocomplete()).toBe(true);
 
 		editor.handleInput("\x1bd"); // Alt+D: delete word forward (consumes remaining "tart")

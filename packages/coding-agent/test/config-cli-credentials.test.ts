@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { runConfigCommand } from "@oh-my-pi/pi-coding-agent/cli/config-cli";
 import { resetSettingsForTest } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -7,6 +7,7 @@ import { getConfigRootDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
 import { all, lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import { getSettingDef } from "@oh-my-pi/pi-tui/overlays/settings-defs";
 import { createSettingsHost } from "../src/config/settings-ui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("credential settings", () => {
 	it("marks every known credential, including those with no settings panel entry", () => {
@@ -106,7 +107,7 @@ describe("config list output", () => {
 	async function humanList(): Promise<string> {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		await runConfigCommand({ action: "list", flags: {} });
-		return log.mock.calls.map(call => Bun.stripANSI(String(call[0] ?? ""))).join("\n");
+		return log.mock.calls.map(call => bun.stripANSI(String(call[0] ?? ""))).join("\n");
 	}
 
 	async function jsonList(): Promise<{ raw: string; parsed: Record<string, Record<string, unknown>> }> {

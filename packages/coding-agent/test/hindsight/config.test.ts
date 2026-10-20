@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { loadHindsightConfig } from "@oh-my-pi/pi-coding-agent/hindsight/config";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOUCHED = [
 	"HINDSIGHT_AUTO_RECALL",
@@ -10,19 +11,19 @@ const TOUCHED = [
 	"HINDSIGHT_RETAIN_EVERY_N_TURNS",
 	"HINDSIGHT_REQUEST_TIMEOUT_MS",
 ] as const;
-const saved = new Map(TOUCHED.map(name => [name, Bun.env[name]]));
+const saved = new Map(TOUCHED.map(name => [name, bun.env[name]]));
 
 function configWith(env: Partial<Record<(typeof TOUCHED)[number], string>>, overrides: Record<string, unknown> = {}) {
-	for (const name of TOUCHED) delete Bun.env[name];
-	Object.assign(Bun.env, env);
+	for (const name of TOUCHED) delete bun.env[name];
+	Object.assign(bun.env, env);
 	return loadHindsightConfig(Settings.isolated(overrides));
 }
 
 describe("loadHindsightConfig HINDSIGHT_* env parsing", () => {
 	afterEach(() => {
 		for (const [name, value] of saved) {
-			if (value === undefined) delete Bun.env[name];
-			else Bun.env[name] = value;
+			if (value === undefined) delete bun.env[name];
+			else bun.env[name] = value;
 		}
 	});
 

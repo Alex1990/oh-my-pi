@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent, Message } from "@oh-my-pi/pi-ai";
 import { getBundledModels } from "@oh-my-pi/pi-catalog/models";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -9,6 +9,7 @@ import { disposeAllKernelSessions, executePython } from "@oh-my-pi/pi-coding-age
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EvalTool } from "@oh-my-pi/pi-coding-agent/tools/eval";
 import { normalizeModelContextMessages } from "@oh-my-pi/pi-coding-agent/utils/image-loading";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const IMAGE_DATA = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64");
 
@@ -67,7 +68,7 @@ describe("eval prelude runtime", () => {
 				"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 				"base64",
 			);
-			const pixels = await new Bun.Image(seed).resize(3840, 2160, { filter: "nearest" }).png().bytes();
+			const pixels = await new Image(seed).resize(3840, 2160, { filter: "nearest" }).png().bytes();
 			const original: ImageContent = {
 				type: "image",
 				mimeType: "image/png",
@@ -112,7 +113,7 @@ describe("eval prelude runtime", () => {
 			const images = message.content.filter((part): part is ImageContent => part.type === "image");
 			expect(images).toHaveLength(4);
 			for (const [index, image] of images.entries()) {
-				const metadata = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+				const metadata = await new Image(Buffer.from(image.data, "base64")).metadata();
 				if (index % 2 === 0) {
 					expect([metadata.width, metadata.height]).toEqual([3840, 2160]);
 					expect(image.detail).toBe("original");

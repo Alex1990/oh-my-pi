@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentMessage, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, FetchImpl, Model, ProviderSessionState, Usage } from "@oh-my-pi/pi-ai";
 import { streamGoogle } from "@oh-my-pi/pi-ai/providers/google";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { ResponseInput, ResponseOutputItem } from "@oh-my-pi/pi-ai/providers/openai-responses-wire";
@@ -15,6 +16,7 @@ import type { AgentSession, AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/
 import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
 
 import { cfgAutolearnEnabled } from "@oh-my-pi/pi-coding-agent/autolearn/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class FakeSession {
 	readonly listeners: Array<(event: AgentSessionEvent) => void> = [];
@@ -464,7 +466,7 @@ describe("isolated auto-learn capture", () => {
 					headers: { "content-type": "text/event-stream" },
 				});
 			};
-			Object.assign(fetchMock, { preconnect: fetch.preconnect });
+			Object.assign(fetchMock, { preconnect: preconnectOf(fetch) });
 			const runCapture = createAutoLearnCaptureRunner({
 				sourceAgent,
 				captureTools: () => [learnTool, captureTool("manage_skill", "Manage skills")],
@@ -481,16 +483,16 @@ describe("isolated auto-learn capture", () => {
 							}),
 					}),
 			});
-			const previousOpenRouterResponses = Bun.env.PI_OPENROUTER_RESPONSES;
-			if (api === "openrouter") Bun.env.PI_OPENROUTER_RESPONSES = "1";
+			const previousOpenRouterResponses = bun.env.PI_OPENROUTER_RESPONSES;
+			if (api === "openrouter") bun.env.PI_OPENROUTER_RESPONSES = "1";
 			try {
 				await runCapture("Record the lesson");
 			} finally {
 				if (api === "openrouter") {
 					if (previousOpenRouterResponses === undefined) {
-						delete Bun.env.PI_OPENROUTER_RESPONSES;
+						delete bun.env.PI_OPENROUTER_RESPONSES;
 					} else {
-						Bun.env.PI_OPENROUTER_RESPONSES = previousOpenRouterResponses;
+						bun.env.PI_OPENROUTER_RESPONSES = previousOpenRouterResponses;
 					}
 				}
 			}
@@ -550,7 +552,7 @@ describe("isolated auto-learn capture", () => {
 			requestBody = String(init?.body ?? "");
 			return interactionsResponse();
 		};
-		Object.assign(fetchMock, { preconnect: fetch.preconnect });
+		Object.assign(fetchMock, { preconnect: preconnectOf(fetch) });
 		let captureMessages: AgentMessage[] = [];
 		let captureProviderState: Map<string, ProviderSessionState> | undefined;
 		let captureSessionId: string | undefined;

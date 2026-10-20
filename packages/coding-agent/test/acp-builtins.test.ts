@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import { cfgBrowserEnabled, cfgBrowserHeadless } from "@oh-my-pi/pi-coding-agent
 import { cfgExtendedContext } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgMemoryBackend } from "@oh-my-pi/pi-coding-agent/memory-backend/settings";
 import { cfgWorktreeCleanSource } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface FakeAcpBuiltinSession {
 	fastMode: boolean;
@@ -235,7 +236,7 @@ function createRuntime() {
 		},
 		async setSessionFile(sessionFile: string) {
 			this._sessionFile = path.resolve(sessionFile);
-			const headerLine = (await Bun.file(this._sessionFile).text()).split("\n", 1)[0] ?? "{}";
+			const headerLine = (await bun.file(this._sessionFile).text()).split("\n", 1)[0] ?? "{}";
 			const header = JSON.parse(headerLine) as { cwd?: string };
 			if (header.cwd) {
 				this._cwd = path.resolve(header.cwd);
@@ -1163,7 +1164,7 @@ describe("wave 3 commands", () => {
 		const originalWorktreeDir = process.env.OMP_WORKTREE_DIR;
 		process.env.OMP_WORKTREE_DIR = worktreeBase;
 		const git = async (...args: string[]) => {
-			const proc = Bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
+			const proc = bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
 			const [stdout, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
 			expect(code).toBe(0);
 			return stdout.trim();
@@ -1173,13 +1174,13 @@ describe("wave 3 commands", () => {
 			await git("init", "-q", "-b", "main");
 			await git("config", "user.email", "t@example.com");
 			await git("config", "user.name", "t");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
-			await Bun.write(path.join(repoDir, ".gitignore"), "build/\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
+			await bun.write(path.join(repoDir, ".gitignore"), "build/\n");
 			await git("add", "-A");
 			await git("commit", "-qm", "init");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "edited\n");
-			await Bun.write(path.join(repoDir, "untracked.txt"), "new\n");
-			await Bun.write(path.join(repoDir, "build/out.txt"), "ignored\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "edited\n");
+			await bun.write(path.join(repoDir, "untracked.txt"), "new\n");
+			await bun.write(path.join(repoDir, "build/out.txt"), "ignored\n");
 			fakeSessionManager._cwd = repoDir;
 
 			const result = await executeAcpBuiltinSlashCommand("/wt feature/x", runtime);
@@ -1189,14 +1190,14 @@ describe("wave 3 commands", () => {
 			expect(movedTo).toBeDefined();
 			expect(movedTo!.startsWith(await fs.realpath(worktreeBase))).toBe(true);
 			expect(output[0]).toContain(`Moved to worktree ${movedTo} on branch feature/x`);
-			expect(await Bun.file(path.join(movedTo!, "tracked.txt")).text()).toBe("edited\n");
-			expect(await Bun.file(path.join(movedTo!, "untracked.txt")).text()).toBe("new\n");
-			const headRef = (await Bun.file(path.join(movedTo!, ".git")).text()).trim();
+			expect(await bun.file(path.join(movedTo!, "tracked.txt")).text()).toBe("edited\n");
+			expect(await bun.file(path.join(movedTo!, "untracked.txt")).text()).toBe("new\n");
+			const headRef = (await bun.file(path.join(movedTo!, ".git")).text()).trim();
 			expect(headRef.startsWith("gitdir: ")).toBe(true);
 			const branches = await git("worktree", "list", "--porcelain");
 			expect(branches).toContain("branch refs/heads/feature/x");
 			// The source checkout is untouched.
-			expect(await Bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("edited\n");
+			expect(await bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("edited\n");
 			expect(await git("symbolic-ref", "HEAD")).toBe("refs/heads/main");
 		} finally {
 			setProjectDir(originalProjectDir);
@@ -1216,7 +1217,7 @@ describe("wave 3 commands", () => {
 		const originalWorktreeDir = process.env.OMP_WORKTREE_DIR;
 		process.env.OMP_WORKTREE_DIR = worktreeBase;
 		const git = async (...args: string[]) => {
-			const proc = Bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
+			const proc = bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
 			const [stdout, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
 			expect(code).toBe(0);
 			return stdout.trim();
@@ -1229,13 +1230,13 @@ describe("wave 3 commands", () => {
 			// The reset source is compared byte-for-byte; Git for Windows'
 			// system `core.autocrlf=true` would restore it as CRLF.
 			await git("config", "core.autocrlf", "false");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
-			await Bun.write(path.join(repoDir, ".gitignore"), "build/\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
+			await bun.write(path.join(repoDir, ".gitignore"), "build/\n");
 			await git("add", "-A");
 			await git("commit", "-qm", "init");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "edited\n");
-			await Bun.write(path.join(repoDir, "untracked.txt"), "new\n");
-			await Bun.write(path.join(repoDir, "build/out.txt"), "ignored\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "edited\n");
+			await bun.write(path.join(repoDir, "untracked.txt"), "new\n");
+			await bun.write(path.join(repoDir, "build/out.txt"), "ignored\n");
 			fakeSessionManager._cwd = repoDir;
 
 			const result = await executeAcpBuiltinSlashCommand("/wt feature/clean", runtime);
@@ -1247,13 +1248,13 @@ describe("wave 3 commands", () => {
 			expect(output[0]).toContain(`Moved to worktree ${movedTo} on branch feature/clean`);
 			expect(output[0]).toContain("uncommitted changes moved, source checkout cleaned");
 			// The worktree carries all uncommitted changes.
-			expect(await Bun.file(path.join(movedTo!, "tracked.txt")).text()).toBe("edited\n");
-			expect(await Bun.file(path.join(movedTo!, "untracked.txt")).text()).toBe("new\n");
+			expect(await bun.file(path.join(movedTo!, "tracked.txt")).text()).toBe("edited\n");
+			expect(await bun.file(path.join(movedTo!, "untracked.txt")).text()).toBe("new\n");
 			// The source checkout was reset and cleaned.
-			expect(await Bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("committed\n");
-			expect(await Bun.file(path.join(repoDir, "untracked.txt")).exists()).toBe(false);
+			expect(await bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("committed\n");
+			expect(await bun.file(path.join(repoDir, "untracked.txt")).exists()).toBe(false);
 			// Ignored files survive in the source checkout.
-			expect(await Bun.file(path.join(repoDir, "build/out.txt")).text()).toBe("ignored\n");
+			expect(await bun.file(path.join(repoDir, "build/out.txt")).text()).toBe("ignored\n");
 			expect(await git("symbolic-ref", "HEAD")).toBe("refs/heads/main");
 			expect(await git("status", "--porcelain")).toBe("");
 		} finally {
@@ -1274,7 +1275,7 @@ describe("wave 3 commands", () => {
 		const originalWorktreeDir = process.env.OMP_WORKTREE_DIR;
 		process.env.OMP_WORKTREE_DIR = worktreeBase;
 		const git = async (...args: string[]) => {
-			const proc = Bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
+			const proc = bun.spawn(["git", ...args], { cwd: repoDir, stdout: "pipe", stderr: "pipe" });
 			const [stdout, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
 			expect(code).toBe(0);
 			return stdout.trim();
@@ -1284,10 +1285,10 @@ describe("wave 3 commands", () => {
 			await git("init", "-q", "-b", "main");
 			await git("config", "user.email", "t@example.com");
 			await git("config", "user.name", "t");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "committed\n");
 			await git("add", "-A");
 			await git("commit", "-qm", "init");
-			await Bun.write(path.join(repoDir, "tracked.txt"), "dirty\n");
+			await bun.write(path.join(repoDir, "tracked.txt"), "dirty\n");
 			fakeSessionManager._cwd = repoDir;
 
 			const result = await executeAcpBuiltinSlashCommand("/wt feature/flush-fail", runtime);
@@ -1295,7 +1296,7 @@ describe("wave 3 commands", () => {
 			expect(result).toEqual({ consumed: true });
 			expect(output[0]).toContain("Failed to save pending settings: disk full");
 			expect(fakeSessionManager._movedTo).toBeUndefined();
-			expect(await Bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("dirty\n");
+			expect(await bun.file(path.join(repoDir, "tracked.txt")).text()).toBe("dirty\n");
 			// Assert aborted BEFORE branch or worktree snapshot creation
 			const branchExists = await git("branch", "--list", "feature/flush-fail");
 			expect(branchExists).toBe("");

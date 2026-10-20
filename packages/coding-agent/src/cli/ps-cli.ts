@@ -32,6 +32,7 @@ import {
 import { runPsTop, type PsTopHost } from "@oh-my-pi/pi-tui/apps/ps-top";
 import { isSharedBrowserDaemonName, restartSharedBrowser } from "../tools/browser/shared-daemon";
 import { collectReports, KILL_GRACE_MS, scopeClient } from "./ps-data";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type PsAction = "list" | "info" | "logs" | "stop" | "kill" | "restart";
 
@@ -202,11 +203,11 @@ function printTable(rows: PsDaemonRow[]): void {
 	const maxWidth = process.stdout.isTTY ? (process.stdout.columns ?? 120) : Number.POSITIVE_INFINITY;
 	const cells = rows.map(tableCells);
 	const widths = TABLE_HEADER.map((title, column) =>
-		Math.max(title.length, ...cells.map(row => Bun.stringWidth(row[column]))),
+		Math.max(title.length, ...cells.map(row => bun.stringWidth(row[column]))),
 	);
 	const render = (row: string[]): string => {
 		const line =
-			`  ${row.map((cell, column) => cell + " ".repeat(Math.max(0, widths[column] - Bun.stringWidth(cell)))).join("  ")}`.trimEnd();
+			`  ${row.map((cell, column) => cell + " ".repeat(Math.max(0, widths[column] - bun.stringWidth(cell)))).join("  ")}`.trimEnd();
 		return Number.isFinite(maxWidth) ? truncateToWidth(line, maxWidth) : line;
 	};
 	console.log(chalk.dim(render([...TABLE_HEADER])));

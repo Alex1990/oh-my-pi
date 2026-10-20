@@ -1578,7 +1578,7 @@ stdin:
 
 `packages/coding-agent/src/modes/rpc/wire` describes every command (parameters,
 success `data`, nullability, timeouts), every unsolicited frame, and every shared
-type as omptype schemas. `bun run gen:rpc` emits:
+type as omptype schemas. `pnpm run gen:rpc` emits:
 
 - `rpc-wire.schema.json`: a JSON Schema 2020-12 bundle plus an `x-rpc` section:
   the command table, the stdout frame union (`serverFrame`: responses, host
@@ -1612,7 +1612,7 @@ host-owned tools and URI schemes. Their READMEs cover the APIs.
 `packages/coding-agent/test/rpc-wire` fails when a committed output is stale, and
 type-checks the generated TypeScript against `rpc-types.ts` and the internal types
 behind it: a new command, command parameter, event, event field, or enum value on
-the server breaks `bun check` until the schema covers it.
+the server breaks `pnpm run check` until the schema covers it.
 
 ### TypeScript helper
 
@@ -1620,7 +1620,7 @@ the server breaks `bun check` until the schema covers it.
 
 Current helper characteristics:
 
-- Spawns `bun <cliPath> --mode rpc` by default (`cliPath` defaults to `dist/cli.js`). A `command` argv prefix receives generated agent arguments; a command builder returns complete argv. A custom `spawn` transport takes precedence.
+- Spawns `node <cliPath> --mode rpc` by default (`cliPath` defaults to `dist/cli.js`). A `command` argv prefix receives generated agent arguments; a command builder returns complete argv. A custom `spawn` transport takes precedence.
 - Correlates responses by generated `req_<n>` ids, negotiates v2, reassembles chunks, and pages message history
 - Dispatches recognized core `AgentEvent` types through `onEvent()` and recognized session events through `onSessionEvent()`; the raw server stream can include additional event types
 - Exposes `onPromptResult()`, `onSessionSettled()`, command-availability and subagent listeners, plus extension UI requests

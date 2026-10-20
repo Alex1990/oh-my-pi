@@ -11,6 +11,7 @@
  */
 import type { TspKind, TspPropNode, TspProps, TspSpan, TspText } from "@oh-my-pi/pi-wire";
 import type { NativeChild, NativeNode } from "./node";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A node of any kind. */
 export function node<K extends TspKind>(k: K, p?: TspProps<K>, c?: readonly NativeChild[], key?: string): NativeNode {
@@ -95,7 +96,7 @@ export function propNode(described: NativeNode): TspPropNode {
 
 /** Stable node key for an arbitrary identity string; keys join into `/` keypaths, so identities are hashed. */
 export function stableKey(identity: string): string {
-	return Bun.hash(identity).toString(36);
+	return bun.hash(identity).toString(36);
 }
 
 /** Drop absent entries (`undefined`, `null`, `false`) from a child list. */

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -38,6 +38,7 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { withEnv, withOfficialAnthropicEndpoint } from "./helpers";
 import { requestBodyText } from "@oh-my-pi/pi-ai/utils/request-body";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ANTHROPIC_MODEL_SPEC: ModelSpec<"anthropic-messages"> = {
 	id: "claude-sonnet-4-5",
@@ -3133,7 +3134,7 @@ describe("cch attestation", () => {
 		// Self-consistency: hashing the body with the placeholder restored must reproduce the embedded cch.
 		const CCH_SEED = 0x4d659218e32a3268n;
 		const withPlaceholder = capturedBody.replace(/cch=[0-9a-f]{5}/, "cch=00000");
-		const h = Bun.hash.xxHash64(new TextEncoder().encode(withPlaceholder), CCH_SEED);
+		const h = bun.hash.xxHash64(new TextEncoder().encode(withPlaceholder), CCH_SEED);
 		expect(m![1]).toBe((h & 0xfffffn).toString(16).padStart(5, "0"));
 	});
 });

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ArtifactManager, writeArtifact } from "@oh-my-pi/pi-coding-agent/session/artifacts";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ArtifactManager write integrity", () => {
 	const dirs: string[] = [];
@@ -21,7 +22,7 @@ describe("ArtifactManager write integrity", () => {
 
 	it("rejects a short write instead of publishing an unreadable artifact id", async () => {
 		const manager = new ArtifactManager(freshDir());
-		vi.spyOn(Bun, "write").mockResolvedValue(1);
+		vi.spyOn(bun, "write").mockResolvedValue(1);
 
 		await expect(manager.save("complete report", "task")).rejects.toThrow(
 			"Artifact write incomplete: wrote 1 of 15 bytes",
@@ -33,9 +34,9 @@ describe("ArtifactManager write integrity", () => {
 		await fs.promises.mkdir(dir, { recursive: true });
 		const destination = path.join(dir, "Worker.md");
 		// Faithfully model a short write: partial bytes land on the staging file,
-		// and Bun.write reports fewer bytes than requested.
-		const realWrite = Bun.write.bind(Bun);
-		vi.spyOn(Bun, "write").mockImplementation(async (target, content) => {
+		// and bun.write reports fewer bytes than requested.
+		const realWrite = bun.write;
+		vi.spyOn(bun, "write").mockImplementation(async (target, content) => {
 			await realWrite(target as string, String(content).slice(0, 3));
 			return 3;
 		});
@@ -53,15 +54,15 @@ describe("ArtifactManager write integrity", () => {
 		const destination = path.join(dir, "Worker.md");
 		await writeArtifact(destination, "original valid report");
 
-		const realWrite = Bun.write.bind(Bun);
-		vi.spyOn(Bun, "write").mockImplementation(async (target, content) => {
+		const realWrite = bun.write;
+		vi.spyOn(bun, "write").mockImplementation(async (target, content) => {
 			await realWrite(target as string, String(content).slice(0, 2));
 			return 2;
 		});
 
 		await expect(writeArtifact(destination, "replacement report")).rejects.toThrow("Artifact write incomplete");
 
-		expect(await Bun.file(destination).text()).toBe("original valid report");
+		expect(await bun.file(destination).text()).toBe("original valid report");
 		expect(await fs.promises.readdir(dir)).toEqual(["Worker.md"]);
 	});
 
@@ -84,7 +85,7 @@ describe("ArtifactManager write integrity", () => {
 		await writeArtifact(destination, "replacement report");
 
 		expect(injected).toBe(true);
-		expect(await Bun.file(destination).text()).toBe("replacement report");
+		expect(await bun.file(destination).text()).toBe("replacement report");
 		expect(await fs.promises.readdir(dir)).toEqual(["Worker.md"]);
 	});
 });

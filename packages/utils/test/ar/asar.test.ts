@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
 import { memoryByteSource } from "../../src/ar/source";
 import type { ArchiveIndexEntry } from "../../src/ar/types";
 import { arFixture } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEMP_ROOTS: string[] = [];
 const encoder = new TextEncoder();
@@ -83,9 +84,9 @@ describe("ASAR fixtures", () => {
 		TEMP_ROOTS.push(root);
 		const archivePath = path.join(root, "bundle.asar");
 		const bytes = await arFixture("asar-unpacked.asar");
-		await Bun.write(archivePath, bytes);
+		await bun.write(archivePath, bytes);
 		await fs.mkdir(`${archivePath}.unpacked`, { recursive: true });
-		await Bun.write(path.join(`${archivePath}.unpacked`, "external.txt"), "short");
+		await bun.write(path.join(`${archivePath}.unpacked`, "external.txt"), "short");
 		const entries = await readAsar(memoryByteSource(bytes), {
 			archivePath,
 			limits: DEFAULT_ARCHIVE_LIMITS,
@@ -111,7 +112,7 @@ test("encodeAsar round-trips nested and zero-length members", async () => {
 
 test("maps links and executable flags and verifies integrity", async () => {
 	const payload = encoder.encode("payload");
-	const hash = Bun.SHA256.hash(payload, "hex");
+	const hash = bun.SHA256.hash(payload, "hex");
 	const bytes = headerFixture(
 		{
 			bin: {

@@ -11,6 +11,7 @@
  */
 import * as path from "node:path";
 import { generateThemeStyles, getTemplate } from "../src/export/html";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const outPath = process.argv[2];
 if (!outPath) {
@@ -18,7 +19,7 @@ if (!outPath) {
 	process.exit(2);
 }
 
-const loaderJs = await Bun.file(new URL("../src/export/html/share-loader.js", import.meta.url).pathname).text();
+const loaderJs = await bun.file(new URL("../src/export/html/share-loader.js", import.meta.url).pathname).text();
 // Public artifacts use the bundled omp web themes rather than TUI themes.
 const themeStyles = await generateThemeStyles("web");
 
@@ -30,5 +31,5 @@ const html = getTemplate()
 if (html.includes("{{SESSION_DATA}}")) throw new Error("session-data placeholder survived substitution");
 if (!html.includes("__OMP_SESSION_DATA__")) throw new Error("share loader not injected");
 
-await Bun.write(outPath, html);
+await bun.write(outPath, html);
 console.log(`Generated ${path.resolve(outPath)} (${(html.length / 1024).toFixed(0)} KB)`);

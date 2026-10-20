@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isProviderRetryableError } from "@oh-my-pi/pi-ai/error";
 
 describe("isProviderRetryableError", () => {

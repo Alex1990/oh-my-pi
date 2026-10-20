@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { registerArtifactsDir, sessionFilesFromDisk } from "@oh-my-pi/pi-coding-agent/internal-urls/registry-helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanups: Array<() => void> = [];
 
@@ -16,8 +17,8 @@ describe("sessionFilesFromDisk", () => {
 		const registered = path.join(tempDir.path(), "registered");
 		// The registered copy is top-level, so its listing lands first; the preferred dir still wins.
 		const deepPreferred = path.join(preferred, "a", "b", "c", "Worker.jsonl");
-		await Bun.write(deepPreferred, "");
-		await Bun.write(path.join(registered, "Worker.jsonl"), "");
+		await bun.write(deepPreferred, "");
+		await bun.write(path.join(registered, "Worker.jsonl"), "");
 		cleanups.push(registerArtifactsDir(registered));
 
 		const found = await sessionFilesFromDisk(preferred);

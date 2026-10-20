@@ -1,6 +1,9 @@
 import * as path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { pathToFileURL } from "node:url";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { colorToAnsi, detectColorMode } from "@oh-my-pi/pi-tui/theme/color";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeEvalArgs } from "./helpers/node-subprocess";
 
 describe("theme color mode", () => {
 	it("emits 256-color SGR for macOS Terminal.app", () => {
@@ -17,30 +20,29 @@ describe("theme color mode", () => {
 	});
 
 	it("emits 256-color session accents for macOS Terminal.app", async () => {
-		const proc = Bun.spawn(
-			[
-				process.execPath,
-				"--eval",
-				'import { getSessionAccentAnsi } from "./packages/tui/src/theme/session-color.ts"; process.stdout.write(getSessionAccentAnsi("#f5e0ac") ?? "undefined");',
-			],
-			{
-				cwd: path.resolve(import.meta.dir, "../../.."),
-				env: {
-					...process.env,
-					KITTY_WINDOW_ID: "",
-					GHOSTTY_RESOURCES_DIR: "",
-					WEZTERM_PANE: "",
-					ITERM_SESSION_ID: "",
-					VSCODE_PID: "",
-					ALACRITTY_WINDOW_ID: "",
-					TERM_PROGRAM: "Apple_Terminal",
-					TERM: "xterm-256color",
-					COLORTERM: "",
-				},
-				stdout: "pipe",
-				stderr: "pipe",
+		// Packaged entry points cannot resolve this package from inside the
+		// workspace, so point the child at the source file directly.
+		const script = `import { getSessionAccentAnsi } from ${JSON.stringify(
+			pathToFileURL(path.resolve(import.meta.dirname, "../src/theme/session-color.ts")).href,
+		)};
+process.stdout.write(getSessionAccentAnsi("#f5e0ac") ?? "undefined");`;
+		const proc = bun.spawn([process.execPath, ...nodeEvalArgs(script)], {
+			cwd: path.resolve(import.meta.dirname, "../../.."),
+			env: {
+				...process.env,
+				KITTY_WINDOW_ID: "",
+				GHOSTTY_RESOURCES_DIR: "",
+				WEZTERM_PANE: "",
+				ITERM_SESSION_ID: "",
+				VSCODE_PID: "",
+				ALACRITTY_WINDOW_ID: "",
+				TERM_PROGRAM: "Apple_Terminal",
+				TERM: "xterm-256color",
+				COLORTERM: "",
 			},
-		);
+			stdout: "pipe",
+			stderr: "pipe",
+		});
 		const [exitCode, stdout, stderr] = await Promise.all([
 			proc.exited,
 			new Response(proc.stdout).text(),

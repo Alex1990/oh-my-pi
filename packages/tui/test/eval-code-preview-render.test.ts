@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { EvalToolDetails } from "@oh-my-pi/pi-tui/tools/eval";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 import { evalToolRenderer } from "@oh-my-pi/pi-tui/tools/eval";
 import { previewWindowRows } from "@oh-my-pi/pi-tui/render/render-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Defends the bounded code-window contract for eval cells: collapsed views cap
@@ -35,7 +36,7 @@ describe("eval renderer: viewport tail window for cell code", () => {
 			{ expanded, isPartial: false, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(120).join("\n"));
+		return bun.stripANSI(component.render(120).join("\n"));
 	}
 
 	it("caps collapsed result code to the tail window with an earlier-lines marker", () => {
@@ -58,7 +59,7 @@ describe("eval renderer: viewport tail window for cell code", () => {
 			{ expanded: false, isPartial: true },
 			theme,
 		);
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		// Newest streamed line stays visible; earliest lines are elided above it.
 		expect(rendered).toContain(lastLine);
 		expect(rendered).toContain("earlier line");
@@ -76,7 +77,7 @@ describe("eval renderer: viewport tail window for cell code", () => {
 			{ expanded: false, isPartial: true, spinnerFrame: 0 },
 			theme,
 		);
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("const ready = 1;");
 		expect(rendered).toContain("second cell");
 	});

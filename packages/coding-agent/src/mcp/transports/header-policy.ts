@@ -108,7 +108,14 @@ export async function mcpFetch(
 	originLocked: boolean,
 ): Promise<Response> {
 	if (!originLocked) {
-		return fetch(url, { ...init, headers: mergeMCPHeaders(sources), timeout: false });
+		// Bun's `fetch` accepted `timeout: false` to disable its socket idle timer.
+		// Node forwards the unknown key untouched; keep it for the Bun runtime.
+		const requestInit: RequestInit & { timeout?: false } = {
+			...init,
+			headers: mergeMCPHeaders(sources),
+			timeout: false,
+		};
+		return fetch(url, requestInit);
 	}
 
 	const configuredOrigin = new URL(url).origin;
@@ -116,7 +123,13 @@ export async function mcpFetch(
 	for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
 		const attachConfigured = new URL(currentUrl).origin === configuredOrigin;
 		const headers = mergeMCPHeaders(attachConfigured ? sources : { generated: sources.generated });
-		const response = await fetch(currentUrl, { ...init, headers, redirect: "manual", timeout: false });
+		const requestInit: RequestInit & { timeout?: false } = {
+			...init,
+			headers,
+			redirect: "manual",
+			timeout: false,
+		};
+		const response = await fetch(currentUrl, requestInit);
 		if (!REDIRECT_STATUSES[response.status]) return response;
 
 		const location = response.headers.get("Location");

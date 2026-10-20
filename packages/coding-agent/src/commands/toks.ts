@@ -9,6 +9,7 @@ import { formatBytes, pluralize } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { toksHelp as commandHelp } from "../cli/command-help";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Display name and served model lines per native encoding; `Record` keeps it exhaustive. */
 const ENCODINGS: Record<natives.Encoding, { name: string; models: string }> = {
@@ -33,7 +34,7 @@ async function resolveInput(input: string): Promise<{ source: Source; text: stri
 	// Unstattable (missing, name too long, invalid chars) means it is text, not a path.
 	const stat = await fs.stat(filePath).catch(() => undefined);
 	if (stat?.isDirectory()) throw new CliUsageError(`${input} is a directory; pass a file or text`);
-	if (stat?.isFile()) return { source: { kind: "file", path: filePath }, text: await Bun.file(filePath).text() };
+	if (stat?.isFile()) return { source: { kind: "file", path: filePath }, text: await bun.file(filePath).text() };
 	return { source: { kind: "text" }, text: input };
 }
 

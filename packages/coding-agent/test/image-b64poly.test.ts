@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 
 describe("Buffer.toBase64", async () => {
 	await import("@oh-my-pi/pi-coding-agent/utils/image-resize");

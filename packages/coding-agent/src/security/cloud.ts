@@ -21,6 +21,7 @@ import {
 } from "./contracts";
 import { exportSecurityBundleToSarif } from "./sarif";
 import type { SecurityStore } from "./store";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * ChatGPT's Codex Security cloud control plane. This authenticated web-app
@@ -479,7 +480,7 @@ function normalizeFinding(
 	const title = requiredString(commit.title ?? raw.title, "finding title");
 	const ruleId =
 		optionalString(commit.rule_id) ??
-		`codex-security:${Bun.SHA256.hash(title.trim().toLowerCase(), "hex").slice(0, 16)}`;
+		`codex-security:${bun.SHA256.hash(title.trim().toLowerCase(), "hex").slice(0, 16)}`;
 	const category = optionalString(commit.category) ?? "codex-security";
 	const cloudId = requiredString(raw.hid ?? raw.id, "finding id");
 	const preliminary = locationsAndEvidence(commit, cloudId);
@@ -644,7 +645,7 @@ export async function pullCodexSecurityCloudResults(
 				displayName: configuration.repositoryUrl,
 				includePaths: [],
 				excludePaths: [],
-				treeDigest: Bun.SHA256.hash(`${configuration.repositoryUrl}\0${revision ?? "unknown"}`, "hex"),
+				treeDigest: bun.SHA256.hash(`${configuration.repositoryUrl}\0${revision ?? "unknown"}`, "hex"),
 			},
 			producer,
 			provenance: {

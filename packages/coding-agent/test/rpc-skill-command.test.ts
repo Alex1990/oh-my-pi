@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,12 +9,13 @@ import {
 } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-prompt-results";
 import { type CustomMessage, SKILL_PROMPT_MESSAGE_TYPE } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { removeWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("tryRunRpcSkillCommand", () => {
 	test("dispatches registered /skill commands as skill prompt messages", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillPath,
 			"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code carefully.\n",
 		);
@@ -52,7 +53,7 @@ describe("tryRunRpcSkillCommand", () => {
 	test("honors the RPC prompt streaming behavior for registered /skill commands", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillPath,
 			"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code carefully.\n",
 		);
@@ -91,7 +92,7 @@ describe("tryRunRpcSkillCommand", () => {
 	test("preserves attached images in skill prompt messages", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillPath,
 			"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code carefully.\n",
 		);
@@ -152,7 +153,7 @@ describe("tryRunRpcSkillCommand", () => {
 	test("does not steal builtin slash-command arguments that mention registered skills", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillPath,
 			"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code carefully.\n",
 		);
@@ -191,7 +192,7 @@ async function settleUntil(condition: () => boolean, timeoutMs = 5000): Promise<
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		if (condition()) return;
-		await Bun.sleep(1);
+		await bun.sleep(1);
 	}
 	if (!condition()) throw new Error("condition not met while settling");
 }
@@ -209,7 +210,7 @@ describe("dispatchRpcSkillPrompt", () => {
 	test("answers the prompt command once admitted, before the skill dispatch completes", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(
+		await bun.write(
 			skillPath,
 			"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code carefully.\n",
 		);
@@ -252,7 +253,7 @@ describe("dispatchRpcSkillPrompt", () => {
 	test("does not answer before admission, unlike the pre-fix immediate ack", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
+		await bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
 
 		const admissionGate = Promise.withResolvers<void>();
 		const promptCustomMessageCalled = Promise.withResolvers<void>();
@@ -315,7 +316,7 @@ describe("dispatchRpcSkillPrompt", () => {
 	test("a late dispatch failure surfaces through onError, not the answer", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
+		await bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
 
 		const errors: Error[] = [];
 		await dispatchRpcSkillPrompt({
@@ -379,7 +380,7 @@ describe("dispatchRpcSkillPrompt", () => {
 	test("emits a non-invoked completion frame when the dispatch bails before the turn starts", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
+		await bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
 
 		const frames: object[] = [];
 		const result = await dispatchRpcSkillPrompt({
@@ -413,7 +414,7 @@ describe("dispatchRpcSkillPrompt", () => {
 	test("forwards attached images to promptCustomMessage", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), `omp-rpc-skill-${Snowflake.next()}-`));
 		const skillPath = path.join(dir, "SKILL.md");
-		await Bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
+		await bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nBody.\n");
 
 		let message: Pick<CustomMessage, "attribution" | "content" | "customType" | "details" | "display"> | undefined;
 		const image = { type: "image" as const, data: "fake-png", mimeType: "image/png" };

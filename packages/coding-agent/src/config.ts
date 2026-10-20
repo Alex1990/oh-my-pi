@@ -25,7 +25,7 @@ const priorityList = [
  * without finding one.
  *
  * Exported for unit-testing the resolution contract from arbitrary start
- * directories (notably the `bun --compile` case where `import.meta.dir`
+ * directories (notably the `bun --compile` case where `import.meta.dirname`
  * resolves to `/$bunfs/root` and no owning package is locatable — issue
  * #1423). Production callers should use {@link getPackageDir} instead.
  */
@@ -44,9 +44,9 @@ export function walkUpForPackageDir(startDir: string): string | undefined {
  * Get the base directory for resolving optional package assets (docs, examples, CHANGELOG.md).
  *
  * Honors the `PI_PACKAGE_DIR` override (useful for Nix/Guix store paths);
- * otherwise walks up from `import.meta.dir` looking for a `package.json`.
+ * otherwise walks up from `import.meta.dirname` looking for a `package.json`.
  * Returns `undefined` when no owning package is locatable — notably inside
- * `bun --compile` binaries where `import.meta.dir` resolves to `/$bunfs/root`
+ * `bun --compile` binaries where `import.meta.dirname` resolves to `/$bunfs/root`
  * and the walk hits the filesystem root with nothing found.
  *
  * Callers MUST treat `undefined` as "no package assets available" and skip the
@@ -59,7 +59,7 @@ export function getPackageDir(): string | undefined {
 	if (envDir) {
 		return expandTilde(envDir);
 	}
-	return walkUpForPackageDir(import.meta.dir);
+	return walkUpForPackageDir(import.meta.dirname);
 }
 
 /**

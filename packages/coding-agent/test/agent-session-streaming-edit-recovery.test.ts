@@ -8,7 +8,7 @@
  * and re-drives the turn so the model can read the file again and correct the
  * patch.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,6 +25,7 @@ import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const emptyUsage = (): AssistantMessage["usage"] => ({
 	input: 0,
@@ -131,7 +132,7 @@ describe("AgentSession streaming edit preview recovery", () => {
 	it("aborts the failed preview, then re-drives the model with the diagnostic", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "streaming-edit-recovery-"));
 		try {
-			await Bun.write(path.join(dir, "sample.txt"), "alpha\n");
+			await bun.write(path.join(dir, "sample.txt"), "alpha\n");
 			const settings = Settings.isolated({
 				"edit.mode": "patch",
 				"edit.streamingAbort": true,

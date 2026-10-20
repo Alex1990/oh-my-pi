@@ -12,13 +12,14 @@
  * extension-registered providers/models appear in the output.
  */
 
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { AuthStorage } from "@oh-my-pi/pi-ai";
 import { runModelsListing } from "@oh-my-pi/pi-coding-agent/cli/models-cli";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { getProjectAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tmp: TempDir;
 let extPath: string;
@@ -60,7 +61,7 @@ beforeAll(async () => {
 		shutdownExtPath,
 		`export default function (pi) {
 	pi.on("session_shutdown", async () => {
-		await Bun.write(${JSON.stringify(shutdownPath)}, "shutdown");
+		await bun.write(${JSON.stringify(shutdownPath)}, "shutdown");
 	});
 }
 `,
@@ -75,7 +76,7 @@ beforeAll(async () => {
 	await fs.mkdir(hookDir, { recursive: true });
 	await fs.writeFile(
 		path.join(hookDir, "models-poison.ts"),
-		`await Bun.write(${JSON.stringify(ambientHookMarkerPath)}, "loaded");
+		`await bun.write(${JSON.stringify(ambientHookMarkerPath)}, "loaded");
 export default function () {}
 `,
 	);
@@ -85,7 +86,7 @@ export default function () {}
 	);
 	await fs.writeFile(
 		tmp.join("explicit-package", "hooks", "pre", "models-poison.ts"),
-		`await Bun.write(${JSON.stringify(configuredHookMarkerPath)}, "loaded");
+		`await bun.write(${JSON.stringify(configuredHookMarkerPath)}, "loaded");
 export default function () {}
 `,
 	);
@@ -192,8 +193,8 @@ test("omp models does not execute ambient hooks while retaining explicit provide
 		const output = captured.join("");
 		expect(output).toContain("explicit-gw");
 		expect(output).toContain("explicit-model");
-		expect(await Bun.file(ambientHookMarkerPath).exists()).toBe(false);
-		expect(await Bun.file(configuredHookMarkerPath).exists()).toBe(false);
+		expect(await bun.file(ambientHookMarkerPath).exists()).toBe(false);
+		expect(await bun.file(configuredHookMarkerPath).exists()).toBe(false);
 	} finally {
 		authStorage.close();
 	}
@@ -212,7 +213,7 @@ test("omp models emits extension shutdown after listing (issue #6297)", async ()
 			disableExtensionDiscovery: true,
 		});
 
-		expect(await Bun.file(shutdownPath).text()).toBe("shutdown");
+		expect(await bun.file(shutdownPath).text()).toBe("shutdown");
 	} finally {
 		authStorage.close();
 	}

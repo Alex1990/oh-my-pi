@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderTreeList } from "@oh-my-pi/pi-tui/render/tree-list";
 import { truncateToWidth, visibleWidth } from "@oh-my-pi/pi-tui";
 

@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import { resolveModelCacheProviderId } from "@oh-my-pi/pi-catalog/provider-model
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("startup model cache header restoration (#5780)", () => {
 	let tempDir: string;
@@ -56,7 +57,7 @@ describe("startup model cache header restoration (#5780)", () => {
 		const modelsPath = path.join(tempDir, "config", "models.json");
 		const cacheDbPath = path.join(tempDir, "data", "models.db");
 		await fs.promises.mkdir(path.dirname(cacheDbPath), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			JSON.stringify({
 				providers: {
@@ -77,8 +78,8 @@ describe("startup model cache header restoration (#5780)", () => {
 		});
 		await primedRegistry.refreshProvider("probe", "online");
 
-		expect(await Bun.file(cacheDbPath).exists()).toBe(true);
-		expect(await Bun.file(path.join(path.dirname(modelsPath), "models.db")).exists()).toBe(false);
+		expect(await bun.file(cacheDbPath).exists()).toBe(true);
+		expect(await bun.file(path.join(path.dirname(modelsPath), "models.db")).exists()).toBe(false);
 
 		const restartedRegistry = new ModelRegistry(authStorage, modelsPath, {
 			cacheDbPath,

@@ -17,7 +17,7 @@
  *   git config alias.mpr '!bun scripts/merge-pr.ts'
  *   git mpr feature-branch
  */
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 
 interface PrMeta {
 	number: number;

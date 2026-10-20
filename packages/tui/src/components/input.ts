@@ -27,6 +27,7 @@ import {
 	sliceWithWidth,
 	visibleWidth,
 } from "../utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const segmenter = getSegmenter();
 
@@ -39,7 +40,7 @@ const segmenter = getSegmenter();
  * gone and tabs are already spaces by the time the C0/DEL strip runs.
  *
  * NFC normalization rationale: macOS Finder drag-drops file paths in NFD
- * (Conjoining Jamo, U+1100..U+11FF). `Bun.stringWidth` counts each
+ * (Conjoining Jamo, U+1100..U+11FF). `bun.stringWidth` counts each
  * conjoining jamo as a separate cell — a Korean syllable like `화` is
  * 1 char and 2 cells in NFC, but 2 chars and 3 cells in NFD (ᄒ=2 cells
  * + ᅪ=1 cell). The terminal renders the NFD sequence as a single

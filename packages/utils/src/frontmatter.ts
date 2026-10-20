@@ -1,4 +1,4 @@
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { truncate } from "./format";
 import * as logger from "./logger";
 

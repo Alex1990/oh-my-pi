@@ -10,6 +10,7 @@ import type { SessionEntry, SessionHeader } from "../session/session-entries";
 import { loadSessionFile } from "../session/session-loader";
 import { resolveSessionFileArg } from "./session-arg";
 import { CliUsageError } from "./usage-error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface AnonymizeCommandArgs {
 	/** Session file path or id prefix (default: most recent for cwd). */
@@ -69,7 +70,7 @@ export async function runAnonymizeCommand(args: AnonymizeCommandArgs): Promise<v
 	if (existing.length > 0) {
 		throw new CliUsageError(`--out ${outDir} is not empty; choose a new or empty directory`);
 	}
-	for (const [name, content] of result.files) await Bun.write(path.join(outDir, name), content);
+	for (const [name, content] of result.files) await bun.write(path.join(outDir, name), content);
 
 	const count = result.files.length;
 	process.stdout.write(`Anonymized ${count} transcript${count === 1 ? "" : "s"} → ${outDir}\n`);

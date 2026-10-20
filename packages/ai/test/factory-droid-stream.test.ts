@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { streamSimple } from "../src/stream";
 import {

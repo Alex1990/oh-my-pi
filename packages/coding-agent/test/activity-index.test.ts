@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { AgentActivityIndex, activityRowsFromProgress } from "../src/activity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function messageEntry(id: string, timestamp: number, message: Record<string, unknown>): string {
 	return JSON.stringify({ type: "message", id, timestamp, message: { timestamp, ...message } });
@@ -12,7 +13,7 @@ describe("AgentActivityIndex", () => {
 	it("normalizes transcript responses and paired tool calls without duplicating terminal rows", async () => {
 		using tempDir = TempDir.createSync("@activity-index-");
 		const sessionFile = path.join(tempDir.path(), "worker.jsonl");
-		await Bun.write(
+		await bun.write(
 			sessionFile,
 			`${[
 				messageEntry("response-1", 1_000, {
@@ -57,8 +58,8 @@ describe("AgentActivityIndex", () => {
 		using tempDir = TempDir.createSync("@activity-index-tail-");
 		const parentFile = path.join(tempDir.path(), "parent.jsonl");
 		const childFile = path.join(tempDir.path(), "child.jsonl");
-		await Bun.write(parentFile, `${messageEntry("p1", 1_000, { role: "assistant", content: "Parent result" })}\n`);
-		await Bun.write(childFile, `${messageEntry("c1", 2_000, { role: "assistant", content: "Child result" })}\n`);
+		await bun.write(parentFile, `${messageEntry("p1", 1_000, { role: "assistant", content: "Parent result" })}\n`);
+		await bun.write(childFile, `${messageEntry("c1", 2_000, { role: "assistant", content: "Child result" })}\n`);
 		const activity = new AgentActivityIndex();
 		await Promise.all([activity.sync("Parent", parentFile), activity.sync("Child", childFile)]);
 		expect(activity.query({ agentIds: new Set(["Parent"]) }).map(row => row.agentId)).toEqual(["Parent"]);
@@ -115,7 +116,7 @@ describe("AgentActivityIndex", () => {
 				}),
 			);
 		}
-		await Bun.write(sessionFile, `${lines.join("\n")}\n`);
+		await bun.write(sessionFile, `${lines.join("\n")}\n`);
 		const activity = new AgentActivityIndex();
 		await activity.sync("Worker", sessionFile);
 		const rows = activity.query({ agentIds: new Set(["Worker"]), limit: 2_000 });
@@ -190,7 +191,7 @@ describe("AgentActivityIndex", () => {
 	it("keeps a long response whose text follows a long run of leading whitespace", async () => {
 		using tempDir = TempDir.createSync("@activity-index-whitespace-");
 		const sessionFile = path.join(tempDir.path(), "worker.jsonl");
-		await Bun.write(
+		await bun.write(
 			sessionFile,
 			`${messageEntry("r1", 1_000, { role: "assistant", content: `${" \n".repeat(5_000)}Visible answer` })}\n`,
 		);
@@ -205,7 +206,7 @@ describe("AgentActivityIndex", () => {
 		const lines = Array.from({ length: 1_000 }, (_, index) =>
 			messageEntry(`r${index}`, 1_000 + index, { role: "assistant", content: `answer ${index}` }),
 		);
-		await Bun.write(sessionFile, `${lines.join("\n")}\n`);
+		await bun.write(sessionFile, `${lines.join("\n")}\n`);
 		const activity = new AgentActivityIndex();
 		await activity.sync("Worker", sessionFile);
 		const rows = activity.query({ agentIds: new Set(["Worker"]), limit: 2_000 });

@@ -1,24 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { loadExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import { loadLegacyPiModule } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import type { BunFile } from "bun";
+import type { BunFile as NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("Extension Loader Graph Read Dedup", () => {
 	let tempDir: TempDir;
 	let reads: Map<string, number>;
-	let fileSpy: Mock<typeof Bun.file>;
+	let fileSpy: Mock<typeof bun.file>;
 
 	beforeEach(() => {
 		tempDir = TempDir.createSync("@pi-ext-dedup-");
 		reads = new Map<string, number>();
 
-		const realBunFile = Bun.file.bind(Bun);
+		const realBunFile = bun.file;
 
-		const spyImpl = (path: string | URL, options?: BlobPropertyBag): BunFile => {
-			const handle = realBunFile(path, options);
+		const spyImpl = (path: string | URL | NodeFile): NodeFile => {
+			const handle = realBunFile(path);
 			if (typeof path === "string") {
 				const key = fs.existsSync(path) ? fs.realpathSync(path) : path;
 				const bump = () => {
@@ -26,7 +27,7 @@ describe("Extension Loader Graph Read Dedup", () => {
 				};
 
 				return new Proxy(handle, {
-					get(target: BunFile, prop: string | symbol, recv: unknown): unknown {
+					get(target: NodeFile, prop: string | symbol, recv: unknown): unknown {
 						if (prop === "text" || prop === "arrayBuffer" || prop === "bytes" || prop === "json") {
 							const original = Reflect.get(target, prop, recv) as ((...a: unknown[]) => unknown) | undefined;
 							if (typeof original === "function") {
@@ -42,7 +43,7 @@ describe("Extension Loader Graph Read Dedup", () => {
 			}
 			return handle;
 		};
-		fileSpy = spyOn(Bun, "file").mockImplementation(spyImpl as typeof Bun.file);
+		fileSpy = spyOn(bun, "file").mockImplementation(spyImpl as typeof bun.file);
 	});
 
 	afterEach(() => {

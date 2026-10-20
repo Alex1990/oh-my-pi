@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { BlobDestinationId } from "../src/blob-broker/destinations";
 import type { RemoteDeleteAction } from "../src/blob-broker/publication";
 import type { DestinationRuntimeConfig, FetchImpl, FetchInput } from "../src/blob-broker/uploader-runtime";

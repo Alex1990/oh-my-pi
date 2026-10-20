@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { shouldSkipHistory } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 
 describe("shouldSkipHistory — security filter for slash command history", () => {

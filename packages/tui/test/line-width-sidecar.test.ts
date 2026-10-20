@@ -5,7 +5,7 @@
  * (b) were computed under the current width configuration — a Hangul
  * Compatibility Jamo width change must invalidate every published width.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	getPublishedLineWidths,
 	getWidthConfigEpoch,

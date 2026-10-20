@@ -43,7 +43,7 @@ export async function raceJobSettlement<C>(
 		return { kind: "steer" };
 	}
 
-	// Cancellable threshold: a bare Bun.sleep(thresholdMs) leaves a live, ref'd
+	// Cancellable threshold: a bare bun.sleep(thresholdMs) leaves a live, ref'd
 	// timer for the full threshold after the job finishes (or abort/steer) wins
 	// the race first — delaying SDK/headless shutdown and accumulating timers
 	// under fast completion rates. Settle a withResolvers promise from

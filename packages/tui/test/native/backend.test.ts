@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { card, md, node } from "@oh-my-pi/pi-tui/native/describe";
 import type { NativeNode, NativeUiEvent } from "@oh-my-pi/pi-tui/native/node";
 import { nativeComponentId } from "@oh-my-pi/pi-tui/native/reconcile";

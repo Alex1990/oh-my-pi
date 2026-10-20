@@ -9,6 +9,9 @@ import {
 	traverse as traverseRegex,
 } from "regexp-tree";
 import type { AstRegExp, Quantifier as RegexQuantifier } from "regexp-tree/ast";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 /**
  * Code mutations for edit benchmark generation.

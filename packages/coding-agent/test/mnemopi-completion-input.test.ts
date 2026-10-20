@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolveMemoryCompletionInput } from "../src/mnemopi/backend";
 import memoryExtractionPrompt from "../src/prompts/system/memory-extraction-system.md" with { type: "text" };
 

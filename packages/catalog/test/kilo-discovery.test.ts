@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { kiloModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 
 async function discoverKiloModels(payload: unknown) {

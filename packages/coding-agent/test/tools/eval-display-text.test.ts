@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as evalIndex from "@oh-my-pi/pi-coding-agent/eval";
 import type { EvalDisplayOutput } from "@oh-my-pi/pi-coding-agent/eval/types";
 import * as pyKernel from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EvalTool } from "@oh-my-pi/pi-coding-agent/tools/eval";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 function makeSession(): ToolSession {
 	return {
@@ -40,7 +41,7 @@ const RED_1X1_PNG_BASE64 =
 
 async function makeRedPng(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
+	const upscaled = await new Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
 	return Buffer.from(upscaled).toString("base64");
 }
 
@@ -143,7 +144,7 @@ describe("EvalTool printed views", () => {
 		const image = result.content.find(c => c.type === "image");
 		if (image?.type !== "image") throw new Error("Expected image content");
 		expect(image.data).not.toBe(base64);
-		const { width, height } = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(image.data, "base64")).metadata();
 		expect(width).toBeLessThanOrEqual(1568);
 		expect(height).toBeLessThanOrEqual(1568);
 		const text = modelText(result);

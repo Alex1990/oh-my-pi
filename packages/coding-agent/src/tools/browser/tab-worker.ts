@@ -235,6 +235,7 @@ import {
 	type WorkerInbound,
 	type WorkerInitPayload,
 } from "./tab-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 declare module "puppeteer-core" {
 	interface Frame {
@@ -2048,7 +2049,7 @@ export class WorkerCore {
 			failure = { error };
 		} finally {
 			runAc.abort(postmortem.markExpectedCleanupError(new ToolAbortError("Browser run ended")));
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			// Detach first: the stop below fails the cancelled requests, and run handlers that see
 			// those events would touch the aborted run's facade.
 			runPage?.detach();
@@ -2250,7 +2251,7 @@ export class WorkerCore {
 				throw new ToolError(`${label} failed fast after ${afterMs}ms${formatSelectorMatchHint(0)}`);
 			}
 			try {
-				await untilAborted(signal, () => Bun.sleep(ZERO_MATCH_POLL_MS));
+				await untilAborted(signal, () => bun.sleep(ZERO_MATCH_POLL_MS));
 			} catch {
 				break;
 			}
@@ -2267,7 +2268,7 @@ export class WorkerCore {
 		try {
 			const handles = await Promise.race([
 				this.#requirePage().$$(normalizeSelector(selector)),
-				Bun.sleep(1_000).then(() => null),
+				bun.sleep(1_000).then(() => null),
 			]);
 			if (!handles) return undefined;
 			for (const handle of handles) void handle.dispose().catch(() => undefined);
@@ -3138,7 +3139,7 @@ export class WorkerCore {
 				)
 			: path.join(os.tmpdir(), `omp-sshots-${Snowflake.next()}.${ext}`);
 		await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-		await Bun.write(dest, savedBuffer);
+		await bun.write(dest, savedBuffer);
 		screenshots.push({
 			dest,
 			mimeType: savedMimeType,
@@ -3184,7 +3185,7 @@ export class WorkerCore {
 			? resolveToCwd(opts.output, session.cwd)
 			: path.join(os.tmpdir(), `omp-screenshot-diff-${Snowflake.next()}.png`);
 		await fs.promises.mkdir(path.dirname(diffPath), { recursive: true });
-		await Bun.write(diffPath, diff.png);
+		await bun.write(diffPath, diff.png);
 		const resized = await resizeImage(
 			{ type: "image", data: diff.png.toBase64(), mimeType: "image/png" },
 			{ maxWidth: 1024, maxHeight: 1024, maxBytes: 150 * 1024, jpegQuality: 70, excludeWebP: session.excludeWebP },

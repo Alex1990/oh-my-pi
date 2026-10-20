@@ -6,6 +6,7 @@ import { Snowflake } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { CDPSession, Page } from "puppeteer-core";
 import { resolveToCwd } from "../path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Options for starting a Chromium performance trace. */
 export interface BrowserTraceStartOptions {
@@ -76,7 +77,7 @@ export class BrowserTracingController {
 		try {
 			const trace = await this.#page.tracing.stop();
 			if (!trace) throw new ToolError("Chromium tracing stopped without producing trace data");
-			await Bun.write(destination, trace);
+			await bun.write(destination, trace);
 			return destination;
 		} finally {
 			this.#traceActive = false;
@@ -107,7 +108,7 @@ export class BrowserTracingController {
 		await fs.promises.mkdir(path.dirname(destination), { recursive: true });
 		try {
 			const { profile } = await session.send("Profiler.stop");
-			await Bun.write(destination, JSON.stringify(profile));
+			await bun.write(destination, JSON.stringify(profile));
 			return destination;
 		} finally {
 			await session.send("Profiler.disable").catch(() => undefined);

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import {
 	rewriteClinePassError,
 	shouldDumpRejectedRequest,
 } from "@oh-my-pi/pi-ai/utils/http-inspector";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class HttpError extends Error {
 	constructor(
@@ -166,7 +167,7 @@ describe("pruneHttpRequestDumps", () => {
 
 	async function writeDump(dir: string, name: string, bytes: number, ageMs: number): Promise<void> {
 		const filePath = path.join(dir, name);
-		await Bun.write(filePath, "x".repeat(bytes));
+		await bun.write(filePath, "x".repeat(bytes));
 		const mtime = new Date(now - ageMs);
 		await fs.utimes(filePath, mtime, mtime);
 	}

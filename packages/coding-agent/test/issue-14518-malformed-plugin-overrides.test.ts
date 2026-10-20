@@ -1,4 +1,4 @@
-import { afterEach, expect, spyOn, test } from "bun:test";
+import { afterEach, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { clearClaudePluginRootsCache } from "@oh-my-pi/pi-coding-agent/discovery
 import { getEnabledPlugins, getPluginSettings } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/loader";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { logger, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Issue #14518: a malformed or unreadable project plugin-overrides.json was
 // swallowed by the loader's loadProjectOverrides, so the file silently acted
@@ -24,7 +25,7 @@ afterEach(async () => {
 });
 
 async function writeJson(filePath: string, value: unknown): Promise<void> {
-	await Bun.write(filePath, `${JSON.stringify(value)}\n`);
+	await bun.write(filePath, `${JSON.stringify(value)}\n`);
 }
 
 /** A plugins home with one declared, loadable plugin, plus a project cwd. */
@@ -54,7 +55,7 @@ async function plantRoot(prefix: string): Promise<{ home: string; cwd: string; p
 async function writeOverrides(cwd: string, contents: string): Promise<string> {
 	const overridesPath = path.join(cwd, ".omp", "plugin-overrides.json");
 	await fs.mkdir(path.join(cwd, ".omp"), { recursive: true });
-	await Bun.write(overridesPath, contents);
+	await bun.write(overridesPath, contents);
 	return overridesPath;
 }
 

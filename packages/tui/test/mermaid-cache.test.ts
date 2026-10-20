@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as mermaidAscii from "@oh-my-pi/pi-utils/mermaid-ascii";
 import { clearMermaidCache, resolveMermaidAscii } from "../src/theme/mermaid-cache";
 

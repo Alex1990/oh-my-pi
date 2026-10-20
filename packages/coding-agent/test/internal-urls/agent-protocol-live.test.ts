@@ -3,7 +3,7 @@
  * id resolves through the same registry `write agent://<id>` messages, so a
  * running agent answers with its status and progress instead of `Not found`.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -15,6 +15,7 @@ import { CURRENT_SESSION_VERSION } from "@oh-my-pi/pi-coding-agent/session/sessi
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: TempDir;
 let rootSessionFile: string;
@@ -140,7 +141,7 @@ describe("agent:// for agents without a published output", () => {
 		const entry = (id: string, parentId: string | null, message: unknown) =>
 			JSON.stringify({ type: "message", id, parentId, timestamp, message });
 		const transcript = path.join(artifactsDir, "Parked.jsonl");
-		await Bun.write(
+		await bun.write(
 			transcript,
 			[
 				JSON.stringify({ type: "session", version: CURRENT_SESSION_VERSION, id: "parked", timestamp, cwd: "/tmp" }),
@@ -168,7 +169,7 @@ describe("agent:// for agents without a published output", () => {
 
 	it("serves the published output over progress once <id>.md exists", async () => {
 		registerSub("Builder", "Main", liveSession([assistantText("still talking")]), "idle");
-		await Bun.write(path.join(artifactsDir, "Builder.md"), "final report");
+		await bun.write(path.join(artifactsDir, "Builder.md"), "final report");
 
 		const resource = await InternalUrlRouter.instance().resolve("agent://Builder", { sessionFile: rootSessionFile });
 
@@ -184,7 +185,7 @@ describe("agent:// for agents without a published output", () => {
 	});
 
 	it("suggests only near ids for an unknown id instead of every output", async () => {
-		for (let i = 0; i < 200; i++) await Bun.write(path.join(artifactsDir, `Unrelated${i}.md`), "x");
+		for (let i = 0; i < 200; i++) await bun.write(path.join(artifactsDir, `Unrelated${i}.md`), "x");
 		registerSub("CodeBuildFolderSources", "Main", liveSession([]));
 
 		const error = await InternalUrlRouter.instance()

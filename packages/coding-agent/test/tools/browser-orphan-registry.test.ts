@@ -12,7 +12,7 @@
  *  - confirmed closures are removed, while transient failures remain durable
  *    and are retried on the next reap.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { daemonRuntimeDir } from "@oh-my-pi/pi-coding-agent/launch/paths";
@@ -25,6 +25,8 @@ import {
 	type SharedTargetScope,
 } from "@oh-my-pi/pi-coding-agent/tools/browser/orphan-registry";
 import type { Browser } from "puppeteer-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 const DAEMON_NAME = "omp.browser.headless";
 
@@ -44,13 +46,13 @@ async function writeOwnershipFile(
 ): Promise<void> {
 	const dir = registryDir(scope);
 	await fs.mkdir(dir, { recursive: true });
-	await Bun.write(path.join(dir, `${record.pid}.json`), JSON.stringify(record));
+	await bun.write(path.join(dir, `${record.pid}.json`), JSON.stringify(record));
 }
 
 /** A pid that has been spawned and reaped, so `kill(pid, 0)` reports ESRCH. */
 async function deadPid(): Promise<number> {
 	// Bun's own executable is the only binary guaranteed on every platform (`true` is absent on Windows).
-	const proc = Bun.spawn([process.execPath, "-e", ""], { stdout: "ignore", stderr: "ignore" });
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", ""], { stdout: "ignore", stderr: "ignore" });
 	await proc.exited;
 	return proc.pid;
 }
@@ -117,7 +119,7 @@ describe("orphan-registry — ownership scan", () => {
 		await recordSharedTarget(scope, "mine-2");
 
 		// Our own file is present on disk...
-		const own = (await Bun.file(path.join(registryDir(scope), `${process.pid}.json`)).json()) as {
+		const own = (await bun.file(path.join(registryDir(scope), `${process.pid}.json`)).json()) as {
 			targets: string[];
 		};
 		expect(own.targets.sort()).toEqual(["mine-1", "mine-2"]);
@@ -132,13 +134,13 @@ describe("orphan-registry — ownership scan", () => {
 		await recordSharedTarget(scope, "a");
 		await recordSharedTarget(scope, "b");
 		await forgetSharedTarget(scope, "a");
-		const after = (await Bun.file(path.join(registryDir(scope), `${process.pid}.json`)).json()) as {
+		const after = (await bun.file(path.join(registryDir(scope), `${process.pid}.json`)).json()) as {
 			targets: string[];
 		};
 		expect(after.targets).toEqual(["b"]);
 
 		await forgetSharedTarget(scope, "b");
-		expect(await Bun.file(path.join(registryDir(scope), `${process.pid}.json`)).exists()).toBe(false);
+		expect(await bun.file(path.join(registryDir(scope), `${process.pid}.json`)).exists()).toBe(false);
 	});
 
 	it("keeps a dead owner's records inside the conservative grace window", async () => {
@@ -184,7 +186,7 @@ describe("orphan-registry — reap", () => {
 
 		expect(count).toBe(2);
 		expect(closed.sort()).toEqual(["orphan-1", "orphan-2"]);
-		expect(await Bun.file(path.join(registryDir(scope), `${dead}.json`)).exists()).toBe(false);
+		expect(await bun.file(path.join(registryDir(scope), `${dead}.json`)).exists()).toBe(false);
 	});
 
 	it("retains transient CDP failures and retries them on the next reap", async () => {
@@ -202,7 +204,7 @@ describe("orphan-registry — reap", () => {
 
 		expect(firstCount).toBe(1);
 		expect(firstClosed).toEqual(["closed-now"]);
-		const retained = (await Bun.file(path.join(registryDir(scope), `${dead}.json`)).json()) as {
+		const retained = (await bun.file(path.join(registryDir(scope), `${dead}.json`)).json()) as {
 			pid: number;
 			updatedAt: number;
 			targets: string[];
@@ -214,6 +216,6 @@ describe("orphan-registry — reap", () => {
 
 		expect(retryCount).toBe(1);
 		expect(retryClosed).toEqual(["retry-later"]);
-		expect(await Bun.file(path.join(registryDir(scope), `${dead}.json`)).exists()).toBe(false);
+		expect(await bun.file(path.join(registryDir(scope), `${dead}.json`)).exists()).toBe(false);
 	});
 });

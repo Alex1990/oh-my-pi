@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import { formatTruncationMetaNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { readToolRenderer } from "@oh-my-pi/pi-tui/tools/read";
 import { writeArchive } from "@oh-my-pi/pi-utils/ar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function textOutput(result: AgentToolResult<ReadToolDetails>): string {
 	return result.content
@@ -67,7 +68,7 @@ describe("read truncation metadata", () => {
 
 	it("keeps byte-limited local content and its continuation without serializing a second truncation body", async () => {
 		const lines = Array.from({ length: 100 }, (_, index) => `${String(index).padStart(4, "0")}${"x".repeat(1020)}`);
-		await Bun.write(path.join(root, "bytes.txt"), lines.join("\n"));
+		await bun.write(path.join(root, "bytes.txt"), lines.join("\n"));
 
 		const result = persistedResult(await tool.execute("local-bytes", { path: "bytes.txt:raw:1-100" }));
 		const expectedBody = lines.slice(0, 49).join("\n");
@@ -94,7 +95,7 @@ describe("read truncation metadata", () => {
 
 	it("does not turn an oversized local first line into an editable partial hashline", async () => {
 		const line = "x".repeat(DEFAULT_MAX_BYTES + 1);
-		await Bun.write(path.join(root, "wide.txt"), `${line}\nlast`);
+		await bun.write(path.join(root, "wide.txt"), `${line}\nlast`);
 		const result = persistedResult(await tool.execute("local-wide", { path: "wide.txt:1-1" }));
 
 		expect(textOutput(result)).toContain("cannot emit an editable numbered preview");
@@ -112,7 +113,7 @@ describe("read truncation metadata", () => {
 
 	it("retains the partial UTF-8 preview and oversized-line warning for streamed artifact reads", async () => {
 		const line = "é".repeat(36_000);
-		await Bun.write(path.join(root, "artifacts", "0.read.log"), `before\n${line}\nafter`);
+		await bun.write(path.join(root, "artifacts", "0.read.log"), `before\n${line}\nafter`);
 		const result = persistedResult(await tool.execute("artifact-line", { path: "artifact://0:raw:2-2" }));
 		const preview = line.slice(0, DEFAULT_MAX_BYTES / 2);
 
@@ -134,7 +135,7 @@ describe("read truncation metadata", () => {
 		const rendered = readToolRenderer
 			.renderResult(result, { expanded: false, isPartial: false }, uiTheme, { path: "artifact://0:raw:2-2" })
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain("First line exceeds");
 		expect(rendered).not.toContain("Showing 0 of");
@@ -185,7 +186,7 @@ describe("read truncation metadata", () => {
 				const current = readToolRenderer.renderResult({ ...result, details }, options, uiTheme, args).render(100);
 				const previous = readToolRenderer.renderResult(legacy, options, uiTheme, args).render(100);
 				expect(current).toEqual(previous);
-				expect(current.map(line => Bun.stripANSI(line)).join("\n")).toContain("row-0001");
+				expect(current.map(line => bun.stripANSI(line)).join("\n")).toContain("row-0001");
 			}
 		}
 	});
@@ -220,7 +221,7 @@ describe("read truncation metadata", () => {
 			let target: string;
 			if (kind === "directory") {
 				target = path.join(root, "listing");
-				for (const name of names) await Bun.write(path.join(target, name), "");
+				for (const name of names) await bun.write(path.join(target, name), "");
 			} else if (kind === "archive") {
 				target = path.join(root, "listing.zip");
 				await writeArchive(

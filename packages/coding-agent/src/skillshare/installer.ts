@@ -39,6 +39,7 @@ import {
 	writeSkillsManifest,
 } from "./manifest";
 import { readTar } from "./tar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** `1.2.3`, `v1.2.3`, `1.2.3-beta.1+build` — an exact version rather than a range or tag. */
 const EXACT_VERSION_RE = /^v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/;
@@ -70,8 +71,8 @@ export function resolveSkillVersion(packument: SkillPackument, request: string):
 		version = packument.distTags[request]!;
 	} else {
 		for (const candidate in packument.versions) {
-			if (packument.versions[candidate]!.yanked || !Bun.semver.satisfies(candidate, request)) continue;
-			if (version === undefined || Bun.semver.order(candidate, version) > 0) version = candidate;
+			if (packument.versions[candidate]!.yanked || !bun.semver.satisfies(candidate, request)) continue;
+			if (version === undefined || bun.semver.order(candidate, version) > 0) version = candidate;
 		}
 		if (version === undefined) throw new Error(`No non-yanked version of ${id} matches "${request}"`);
 	}
@@ -91,7 +92,7 @@ function versionWarnings(id: string, summary: SkillVersionSummary): string[] {
 
 /** SRI `sha512-<base64>` of a tarball. */
 export function computeIntegrity(bytes: Uint8Array): string {
-	return `sha512-${new Bun.CryptoHasher("sha512").update(bytes).digest("base64")}`;
+	return `sha512-${new bun.CryptoHasher("sha512").update(bytes).digest("base64")}`;
 }
 
 /**
@@ -114,7 +115,7 @@ export async function storeSkillVersion(
 	}
 	// readTar rejects absolute, non-normalized, duplicate, and non-regular entries.
 	// Bun's gzip APIs need an ArrayBuffer-backed view; the client's bytes may sit on a SharedArrayBuffer-typed backing.
-	const entries = readTar(Bun.gunzipSync(new Uint8Array(tgz)));
+	const entries = readTar(bun.gunzipSync(new Uint8Array(tgz)));
 	if (entries.some(entry => entry.path === STORE_INTEGRITY_FILE)) {
 		throw new Error(`${label}: archive contains reserved path ${STORE_INTEGRITY_FILE}`);
 	}
@@ -562,7 +563,7 @@ export function formatSkillInfo(
 	for (const tag in packument.distTags) tags.push(`${tag}: ${packument.distTags[tag]}`);
 	if (tags.length > 0) lines.push(`dist-tags: ${tags.join(", ")}`);
 
-	const versions = Object.keys(packument.versions).sort((a, b) => Bun.semver.order(b, a));
+	const versions = Object.keys(packument.versions).sort((a, b) => bun.semver.order(b, a));
 	const versionLabels = versions.slice(0, INFO_VERSION_LIMIT).map(v => {
 		const entry = packument.versions[v]!;
 		const flags = [entry.yanked ? "yanked" : "", entry.deprecated ? "deprecated" : ""].filter(Boolean);

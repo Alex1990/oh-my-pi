@@ -56,6 +56,7 @@ import {
 	retainThoughtSignature,
 	startTextOrThinkingBlock,
 } from "./google-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Thinking level for Gemini 3 models. Re-exported from `google-shared` so existing
@@ -1137,7 +1138,7 @@ function formatSignedDecimalSessionId(value: bigint): string {
 }
 
 function deriveSignedDecimalFromHash(text: string): string {
-	const digest = Bun.SHA256.hash(text);
+	const digest = bun.SHA256.hash(text);
 	let value = 0n;
 	for (let index = 0; index < 8; index += 1) {
 		value = (value << 8n) | BigInt(digest[index] ?? 0);

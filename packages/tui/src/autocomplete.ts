@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fuzzyFind } from "@oh-my-pi/pi-natives";
 import { getProjectDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PATH_DELIMITERS = new Set([" ", "\t", '"', "'", "="]);
 
@@ -771,7 +772,7 @@ export class CombinedAutocompleteProvider implements AutocompleteProvider {
 			if (onPartial) {
 				const settled = await Promise.race([
 					fuzzy.then(() => true),
-					Bun.sleep(AT_PARTIAL_DELAY_MS).then(() => false),
+					bun.sleep(AT_PARTIAL_DELAY_MS).then(() => false),
 				]);
 				if (!settled) {
 					const listing = await this.#getFileSuggestions(atPrefix);

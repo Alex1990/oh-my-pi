@@ -3,7 +3,7 @@
 // caused all projects' stage1 outputs to be merged into whichever project
 // triggered consolidation first.
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	closeMemoryDb,
 	enqueueGlobalWatermark,

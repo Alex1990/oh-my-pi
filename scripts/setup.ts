@@ -1,6 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
- * `bun setup` entrypoint. Chains the four setup steps (install → native
+ * `pnpm run setup` entrypoint. Chains the four setup steps (install → native
  * addon build → coding-agent link → omp link). The native host build uses
  * the local Cargo/N-API backend by default; set
  * `OMP_NATIVE_BUILD_BACKEND=bazel` to opt into bazel. Flags after `--` are
@@ -13,7 +13,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-const repoRoot = path.join(import.meta.dir, "..");
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+const repoRoot = path.join(import.meta.dirname, "..");
 
 const argv = process.argv.slice(2);
 const passthrough: string[] = [];
@@ -35,10 +36,10 @@ interface Step {
 /**
  * Native equivalent of `scripts/link-omp.sh` for Windows, where `sh` is
  * unavailable (issue #12483). Same semantics: verify the wrapper target,
- * resolve Bun's global bin dir (`bun pm -g bin`, then
- * `${BUN_INSTALL:-$HOME/.bun}/bin`), and link `omp` to it — symlink first,
- * plain copy as a fallback when links need privileges the user lacks.
- * Returns a process-like exit code for the shared runner below.
+ * resolve pnpm's global bin dir (`pnpm bin -g`, then `$PNPM_HOME`), and link
+ * `omp` to it — symlink first, plain copy as a fallback when links need
+ * privileges the user lacks. Returns a process-like exit code for the shared
+ * runner below.
  */
 function linkOmpWindows(repoRoot: string): number {
 	const target = path.join(repoRoot, "packages", "coding-agent", "scripts", "omp");
@@ -50,12 +51,12 @@ function linkOmpWindows(repoRoot: string): number {
 	}
 	let globalBin = "";
 	try {
-		const out = Bun.spawnSync(["bun", "pm", "-g", "bin"], { stdout: "pipe", stderr: "ignore" });
+		const out = bun.spawnSync(["pnpm", "bin", "-g"], { stdout: "pipe", stderr: "ignore" });
 		if (out.exitCode === 0) globalBin = Buffer.from(out.stdout).toString().trim();
 	} catch {
 		// fall through to the default below
 	}
-	if (!globalBin) globalBin = path.join(process.env.BUN_INSTALL ?? path.join(os.homedir(), ".bun"), "bin");
+	if (!globalBin) globalBin = process.env.PNPM_HOME ?? path.join(os.homedir(), ".local", "share", "pnpm");
 	const linkPath = path.join(globalBin, "omp");
 	try {
 		fs.mkdirSync(globalBin, { recursive: true });
@@ -81,9 +82,9 @@ function linkOmpWindows(repoRoot: string): number {
 }
 
 const steps: Step[] = [
-	{ label: "bun install", cmd: ["bun", "install"] },
-	{ label: "build:native", cmd: ["bun", "run", "build:native", ...passthrough] },
-	{ label: "coding-agent link", cmd: ["bun", "--cwd=packages/coding-agent", "link"] },
+	{ label: "pnpm install", cmd: ["pnpm", "install"] },
+	{ label: "build:native", cmd: ["pnpm", "run", "build:native", ...passthrough] },
+	{ label: "coding-agent link", cmd: ["pnpm", "--dir", "packages/coding-agent", "link"] },
 	{ label: "link omp", cmd: ["sh", "scripts/link-omp.sh"] },
 ];
 
@@ -97,7 +98,7 @@ for (const step of steps) {
 		}
 		continue;
 	}
-	const proc = Bun.spawn(step.cmd, {
+	const proc = bun.spawn(step.cmd, {
 		cwd: step.cwd ?? repoRoot,
 		env: process.env,
 		stdout: "inherit",

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
@@ -10,6 +10,7 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { postmortem, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression coverage for #12238: when the session store keeps failing, the
 // close-time write fails and dispose() rejects. shutdown() used to swallow the
@@ -91,7 +92,7 @@ describe("InteractiveMode shutdown when the session store keeps failing (#12238)
 		// (temp file, publish lock, append) fails for real, on every platform.
 		sessionDir = path.dirname(materializedFile);
 		await fs.rm(sessionDir, { recursive: true, force: true });
-		await Bun.write(sessionDir, BLOCKER);
+		await bun.write(sessionDir, BLOCKER);
 
 		// Any real full-body rewrite (compaction, branch, entry discard, title
 		// repair) now fails; the manager latches the failure and the close()
@@ -134,7 +135,7 @@ describe("InteractiveMode shutdown when the session store keeps failing (#12238)
 		// The latch is cleared so a second Ctrl+C can re-enter shutdown().
 		expect(mode.isShuttingDown).toBe(false);
 		expect(mode.teardownFailed).toBe(true);
-		expect(await Bun.file(sessionDir).text()).toBe(BLOCKER);
+		expect(await bun.file(sessionDir).text()).toBe(BLOCKER);
 	});
 
 	it("exits without writing the session log on the second attempt", async () => {
@@ -147,7 +148,7 @@ describe("InteractiveMode shutdown when the session store keeps failing (#12238)
 		expect(exitSpy).not.toHaveBeenCalled();
 		expect(disposeSpy).toHaveBeenCalledTimes(1);
 		// "Without writing the session log": the failed store is left as it was.
-		expect(await Bun.file(sessionDir).text()).toBe(BLOCKER);
+		expect(await bun.file(sessionDir).text()).toBe(BLOCKER);
 	});
 
 	it("a single Ctrl+C keypress after the failure reaches the escape hatch", async () => {
@@ -164,7 +165,7 @@ describe("InteractiveMode shutdown when the session store keeps failing (#12238)
 		expect(quitSpy).toHaveBeenCalledTimes(1);
 		expect(exitSpy).not.toHaveBeenCalled();
 		expect(disposeSpy).toHaveBeenCalledTimes(1); // never re-runs the doomed teardown
-		expect(await Bun.file(sessionDir).text()).toBe(BLOCKER);
+		expect(await bun.file(sessionDir).text()).toBe(BLOCKER);
 	});
 
 	it("a failed restart arms the same single-Ctrl+C escape hatch", async () => {
@@ -178,7 +179,7 @@ describe("InteractiveMode shutdown when the session store keeps failing (#12238)
 		expect(quitSpy).toHaveBeenCalledTimes(1);
 		expect(exitSpy).not.toHaveBeenCalled();
 		expect(disposeSpy).toHaveBeenCalledTimes(1);
-		expect(await Bun.file(sessionDir).text()).toBe(BLOCKER);
+		expect(await bun.file(sessionDir).text()).toBe(BLOCKER);
 	});
 
 	it("bypasses a guarded process.exit after cleanup", async () => {

@@ -20,15 +20,17 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { VERSION_STAMP_MAGIC, VERSION_STAMP_SIZE } from "../packages/natives/native/version-sentinel.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const magicBytes = Buffer.from(VERSION_STAMP_MAGIC, "latin1");
 /** Longest version that fits while keeping at least one NUL terminator. */
 export const MAX_STAMP_VERSION_LENGTH = VERSION_STAMP_SIZE - magicBytes.length - 1;
 
 /** `packages/natives/package.json#version` — the version every addon install stamps. */
 export async function nativesPackageVersion(): Promise<string> {
-	const pkg = (await Bun.file(path.join(repoRoot, "packages/natives/package.json")).json()) as { version?: unknown };
+	const pkg = (await bun.file(path.join(repoRoot, "packages/natives/package.json")).json()) as { version?: unknown };
 	if (typeof pkg.version !== "string" || pkg.version.length === 0) {
 		throw new Error("packages/natives/package.json has no string version");
 	}
@@ -111,12 +113,12 @@ function refreshAdhocSignature(bytes: Uint8Array): boolean {
 		const pageSize = 2 ** view.getUint8(cd + 39);
 		for (let page = 0; page < nCodeSlots; page++) {
 			const start = page * pageSize;
-			const digest = Bun.CryptoHasher.hash(
-				hash.algorithm,
-				bytes.subarray(start, Math.min(start + pageSize, codeLimit)),
-			).subarray(0, hash.size);
+			const digest = new bun.CryptoHasher(hash.algorithm)
+				.update(bytes.subarray(start, Math.min(start + pageSize, codeLimit)))
+				.digest()
+				.subarray(0, hash.size);
 			const slot = cd + hashOffset + page * hash.size;
-			if (!digest.equals(bytes.subarray(slot, slot + hash.size))) {
+			if (Buffer.compare(digest, bytes.subarray(slot, slot + hash.size)) !== 0) {
 				bytes.set(digest, slot);
 				refreshed = true;
 			}
@@ -191,7 +193,7 @@ export async function stampNativeVersion(
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const argv = process.argv.slice(2);
 	let version: string | undefined;
 	let sign = true;

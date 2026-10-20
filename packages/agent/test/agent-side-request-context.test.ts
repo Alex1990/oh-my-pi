@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import type { AssistantMessage, Context } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
@@ -6,17 +6,18 @@ import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream"
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Agent } from "../src/agent";
 import type { AgentTool } from "../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function withNativeDialectEnv<T>(fn: () => T | Promise<T>): Promise<T> {
-	const previous = Bun.env.PI_DIALECT;
-	delete Bun.env.PI_DIALECT;
+	const previous = bun.env.PI_DIALECT;
+	delete bun.env.PI_DIALECT;
 	try {
 		return await fn();
 	} finally {
 		if (previous === undefined) {
-			delete Bun.env.PI_DIALECT;
+			delete bun.env.PI_DIALECT;
 		} else {
-			Bun.env.PI_DIALECT = previous;
+			bun.env.PI_DIALECT = previous;
 		}
 	}
 }

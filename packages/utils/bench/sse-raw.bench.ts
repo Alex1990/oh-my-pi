@@ -8,6 +8,7 @@
  * Run: bun packages/utils/bench/sse-raw.bench.ts
  */
 import { readSseEvents } from "../src/stream";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const FRAMES = 20_000;
 const payload = `data: {"id":"chatcmpl-1234567890","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}\n\n`;
@@ -26,7 +27,7 @@ async function run(captureRaw: boolean): Promise<{ ms: number; slices: number }>
 	// Count string-slice-equivalent work deterministically: captureRaw ? 1
 	// slice per line per frame : 0. Wall-clock medians are reported alongside
 	// but the slice count is the stable signal (it is noise-free).
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	let n = 0;
 	let slices = 0;
 	for await (const event of readSseEvents(body(), undefined, captureRaw ? { captureRaw: true } : undefined)) {
@@ -34,7 +35,7 @@ async function run(captureRaw: boolean): Promise<{ ms: number; slices: number }>
 		slices += event.raw.length;
 		if (n < 0) console.log("unreachable");
 	}
-	return { ms: (Bun.nanoseconds() - start) / 1e6, slices };
+	return { ms: (bun.nanoseconds() - start) / 1e6, slices };
 }
 
 await run(false); // warmup

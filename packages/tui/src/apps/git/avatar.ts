@@ -1,4 +1,5 @@
 import { hslToHex } from "@oh-my-pi/pi-utils/color";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Cached author photos supplied by the command host. */
 export interface AvatarSource {
@@ -10,7 +11,7 @@ export interface AvatarSource {
  * 10 columns). Used while an avatar loads and when none exists.
  */
 export function identiconLines(email: string, colorize: (hex: string, text: string) => string): string[] {
-	const bytes = new Bun.CryptoHasher("md5").update(email.trim().toLowerCase()).digest();
+	const bytes = new bun.CryptoHasher("md5").update(email.trim().toLowerCase()).digest();
 	const hue = ((bytes[0] << 8) | bytes[1]) % 360;
 	const hex = hslToHex(hue, 0.55, 0.58);
 	const on = (x: number, y: number): boolean => {

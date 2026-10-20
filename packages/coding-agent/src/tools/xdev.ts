@@ -45,6 +45,8 @@ import type { Tool } from "./index";
 import { renderError, ToolAbortError } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 /**
  * Discoverable built-ins that must stay top-level even when xdev mounting is
  * active: `todo` feeds the todo prelude/prewalk machinery, `ask` is the
@@ -216,12 +218,12 @@ function promptCatalogSummary(inst: Tool, maxBytes?: number): string {
 
 /** Compile the `tools.xdevInlineDevices` allowlist once per render, dropping
  *  non-string entries so malformed user config cannot break prompt builds. */
-function compileInlineGlobs(patterns: readonly string[]): Bun.Glob[] {
+function compileInlineGlobs(patterns: readonly string[]): Glob[] {
 	if (!Array.isArray(patterns)) return [];
-	const globs: Bun.Glob[] = [];
+	const globs: Glob[] = [];
 	for (const pattern of patterns) {
 		if (typeof pattern !== "string" || pattern.length === 0) continue;
-		globs.push(new Bun.Glob(pattern));
+		globs.push(new Glob(pattern));
 	}
 	return globs;
 }
@@ -411,7 +413,7 @@ function shouldInlineXdevTool(
 	state: XdevState,
 	tool: Tool,
 	mode: XdevDocsMode,
-	inlineGlobs: readonly Bun.Glob[],
+	inlineGlobs: readonly Glob[],
 ): boolean {
 	return (
 		mode !== "catalog" &&

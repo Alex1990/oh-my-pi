@@ -56,6 +56,8 @@ import type {
 	ToolDashboardStats,
 } from "./types";
 import { computeUsageWindowStats, fetchUsageData, type UsageDataSnapshot } from "./usage-windows";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker, type WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 const STATS_SYNC_LOCK_RETRY_MS = 25;
 const STATS_SYNC_LOCK_WAIT_MS = 60 * 60 * 1000;
@@ -142,21 +144,21 @@ interface WorkerHandle {
 function createSyncWorker(): Worker {
 	const hostEntry = workerHostEntry();
 	if (hostEntry) {
-		return new Worker(hostEntry, { type: "module", argv: ["__omp_worker_stats_sync"] });
+		return new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: "__omp_worker_stats_sync" } });
 	}
-	return new Worker(new URL("./sync-worker.ts", import.meta.url).href, { type: "module" });
+	return new Worker(new URL("./sync-worker.ts", import.meta.url));
 }
 
 function spawnWorker(): WorkerHandle {
 	const worker = createSyncWorker();
 	const handle: WorkerHandle = { worker, busy: false, resolve: null, reject: null };
-	worker.onmessage = (event: MessageEvent<SyncWorkerResponse>) => {
+	worker.addEventListener("message", event => {
 		const { resolve, reject } = handle;
 		handle.resolve = null;
 		handle.reject = null;
 		handle.busy = false;
 		if (!resolve || !reject) return;
-		const data = event.data;
+		const data = (event as MessageEvent).data as SyncWorkerResponse;
 		if (!data.ok) {
 			reject(new Error(data.error));
 			return;
@@ -166,14 +168,15 @@ function spawnWorker(): WorkerHandle {
 			return;
 		}
 		resolve(data.result);
-	};
-	worker.onerror = (event: ErrorEvent) => {
+	});
+	worker.addEventListener("error", event => {
+		const { error, message } = event as WorkerErrorEvent;
 		const { reject } = handle;
 		handle.resolve = null;
 		handle.reject = null;
 		handle.busy = false;
-		reject?.(event.error instanceof Error ? event.error : new Error(event.message || "worker error"));
-	};
+		reject?.(error instanceof Error ? error : new Error(message || "worker error"));
+	});
 	return handle;
 }
 
@@ -210,8 +213,8 @@ export async function smokeTestSyncWorker({ timeoutMs = 5_000 }: { timeoutMs?: n
 	const worker = createSyncWorker();
 	const { promise, resolve, reject } = Promise.withResolvers<void>();
 	const timer = setTimeout(() => reject(new Error(`sync worker did not pong within ${timeoutMs}ms`)), timeoutMs);
-	worker.onmessage = (event: MessageEvent<SyncWorkerResponse>) => {
-		const data = event.data;
+	worker.addEventListener("message", event => {
+		const data = (event as MessageEvent).data as SyncWorkerResponse;
 		if (!data.ok) {
 			reject(new Error(data.error));
 			return;
@@ -221,10 +224,11 @@ export async function smokeTestSyncWorker({ timeoutMs = 5_000 }: { timeoutMs?: n
 			return;
 		}
 		resolve();
-	};
-	worker.onerror = (event: ErrorEvent) => {
-		reject(event.error instanceof Error ? event.error : new Error(event.message || "worker error"));
-	};
+	});
+	worker.addEventListener("error", event => {
+		const { error, message } = event as WorkerErrorEvent;
+		reject(error instanceof Error ? error : new Error(message || "worker error"));
+	});
 	try {
 		worker.postMessage({ kind: "ping" } satisfies SyncWorkerRequest);
 		await promise;

@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { UsageProvider, UsageReport } from "@oh-my-pi/pi-ai";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { unregisterOAuthProvider } from "@oh-my-pi/pi-ai/oauth";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { ExtensionRuntime, loadExtensionFromFactory } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
@@ -198,7 +199,7 @@ describe("extension provider registration rollback", () => {
 		const tempDir = TempDir.createSync("@extension-usage-provider-");
 		const usageFetch: typeof fetch = Object.assign(
 			async (..._args: Parameters<typeof fetch>) => new Response(null, { status: 500 }),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"), { usageFetch });
 		const provider = "extension-usage-provider";

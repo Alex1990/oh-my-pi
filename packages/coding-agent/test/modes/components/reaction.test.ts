@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
@@ -6,6 +6,7 @@ import { splitReaction } from "@oh-my-pi/pi-tui/chat/reaction";
 import { UserMessageComponent } from "@oh-my-pi/pi-tui/chat/user-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { Container, Text } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const W = 60;
 
@@ -30,7 +31,7 @@ function msg(text: string): AssistantMessage {
 }
 
 function plain(component: { render(width: number): readonly string[] }): string {
-	return Bun.stripANSI(component.render(W).join("\n"))
+	return bun.stripANSI(component.render(W).join("\n"))
 		.split("\n")
 		.map(row => row.trim())
 		.join("\n")
@@ -39,7 +40,7 @@ function plain(component: { render(width: number): readonly string[] }): string 
 
 /** The user bubble's top padding row, ANSI stripped; the badge lands here. */
 function bubbleTopRow(user: UserMessageComponent): string {
-	return Bun.stripANSI(user.render(W)[0]!);
+	return bun.stripANSI(user.render(W)[0]!);
 }
 
 beforeAll(async () => {
@@ -98,7 +99,7 @@ describe("agent reactions in the transcript", () => {
 		reply.markTranscriptBlockFinalized();
 		expect(plain(reply)).toBe("Shipping now.");
 		expect(bubbleTopRow(user)).toEndWith("🚀 ");
-		expect(Bun.stringWidth(bubbleTopRow(user))).toBe(W);
+		expect(bun.stringWidth(bubbleTopRow(user))).toBe(W);
 	});
 
 	it("withholds incomplete emoji sequences while streaming", () => {
@@ -149,7 +150,7 @@ describe("agent reactions in the transcript", () => {
 		reply.pickReactionTarget(transcript.children);
 		expect(bubbleTopRow(user)).toStartWith(" *");
 		expect(bubbleTopRow(user)).toEndWith("👍 ");
-		expect(Bun.stringWidth(bubbleTopRow(user))).toBe(W);
+		expect(bun.stringWidth(bubbleTopRow(user))).toBe(W);
 	});
 
 	it("never reacts past an earlier reply: a post-tool continuation keeps its emoji verbatim", () => {

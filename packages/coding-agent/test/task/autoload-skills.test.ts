@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import type { AgentDefinition } from "@oh-my-pi/pi-coding-agent/task/types";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { createSessionDefaults } from "../helpers/session-defaults";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ describe("autoloadSkills in executor", () => {
 			autoloadSkills: mockSkills,
 		});
 
-		const sendCustomMessage = session.sendCustomMessage as Mock<any>;
+		const sendCustomMessage = session.sendCustomMessage as unknown as Mock<AgentSession["sendCustomMessage"]>;
 		expect(sendCustomMessage).toHaveBeenCalledTimes(2);
 
 		// Verify first skill
@@ -195,7 +196,7 @@ describe("autoloadSkills in executor", () => {
 
 		await runSubprocess(baseOptions);
 
-		const sendCustomMessage = session.sendCustomMessage as Mock<any>;
+		const sendCustomMessage = session.sendCustomMessage as unknown as Mock<AgentSession["sendCustomMessage"]>;
 		expect(sendCustomMessage).not.toHaveBeenCalled();
 	});
 
@@ -215,9 +216,10 @@ describe("autoloadSkills in executor", () => {
 		});
 
 		// Track sendCustomMessage call order
-		(session.sendCustomMessage as Mock<any>).mockImplementation(async () => {
+		const sendCustomMessage = vi.fn(async () => {
 			callOrder.push("sendCustomMessage");
 		});
+		session.sendCustomMessage = sendCustomMessage as unknown as AgentSession["sendCustomMessage"];
 
 		// Track the original prompt to capture order
 		const originalPrompt = session.prompt;
@@ -262,7 +264,7 @@ describe("autoloadSkills through task spawn", () => {
 			const baseDir = path.join(root, "late-skill");
 			const filePath = path.join(baseDir, "SKILL.md");
 			await fs.mkdir(baseDir);
-			await Bun.write(
+			await bun.write(
 				filePath,
 				"---\nname: late-skill\ndescription: Added after startup.\n---\n\nLate skill body.\n",
 			);

@@ -12,6 +12,6 @@
 
 ---
 
-- [ ] `bun check` passes
+- [ ] `pnpm check` passes
 - [ ] Tested locally
 - [ ] CHANGELOG updated with the required attribution (if user-facing; internal issue fixes use issue links, external contributions add the PR link and contributor credit after creation)

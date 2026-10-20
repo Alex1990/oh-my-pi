@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { collectThreads } from "@oh-my-pi/pi-coding-agent/memories";
+import { bun, type NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeFakeSession(sessionDir: string): AgentSession {
 	return {
@@ -28,7 +29,7 @@ describe("collectThreads", () => {
 
 	it("parses header from standard session file", async () => {
 		const filePath = path.join(tempDir, "sess-1.jsonl");
-		await Bun.write(
+		await bun.write(
 			filePath,
 			'{"type":"session","id":"custom-id-1","cwd":"/projects/my-app"}\n{"type":"user","message":"hi"}\n',
 		);
@@ -42,9 +43,9 @@ describe("collectThreads", () => {
 
 	it("filters out the current active thread", async () => {
 		const activeFile = path.join(tempDir, "active.jsonl");
-		await Bun.write(activeFile, '{"type":"session","id":"active-thread","cwd":"/work"}\n');
+		await bun.write(activeFile, '{"type":"session","id":"active-thread","cwd":"/work"}\n');
 		const otherFile = path.join(tempDir, "other.jsonl");
-		await Bun.write(otherFile, '{"type":"session","id":"other-thread","cwd":"/work"}\n');
+		await bun.write(otherFile, '{"type":"session","id":"other-thread","cwd":"/work"}\n');
 
 		const threads = await collectThreads(makeFakeSession(tempDir), "active-thread");
 		expect(threads.length).toBe(1);
@@ -52,9 +53,9 @@ describe("collectThreads", () => {
 	});
 
 	it("ignores non-jsonl files and degrades malformed entries gracefully", async () => {
-		await Bun.write(path.join(tempDir, "notes.txt"), "not a session");
-		await Bun.write(path.join(tempDir, "broken.jsonl"), "{invalid json\n");
-		await Bun.write(path.join(tempDir, "empty.jsonl"), "");
+		await bun.write(path.join(tempDir, "notes.txt"), "not a session");
+		await bun.write(path.join(tempDir, "broken.jsonl"), "{invalid json\n");
+		await bun.write(path.join(tempDir, "empty.jsonl"), "");
 
 		const threads = await collectThreads(makeFakeSession(tempDir));
 		// broken.jsonl should degrade to id from filename ("broken") and cwd=""
@@ -68,7 +69,7 @@ describe("collectThreads", () => {
 		// Pad the title line so the session header starts near ~64 KB and crosses the boundary
 		const longTitle = '{"type":"title","title":"' + "a".repeat(65530) + '"}\n';
 		const sessionHeader = '{"type":"session","id":"boundary-id","cwd":"/boundary/dir"}\n';
-		await Bun.write(filePath, longTitle + sessionHeader + "tail\n");
+		await bun.write(filePath, longTitle + sessionHeader + "tail\n");
 
 		const threads = await collectThreads(makeFakeSession(tempDir));
 		expect(threads.length).toBe(1);
@@ -81,22 +82,20 @@ describe("collectThreads", () => {
 		// Session header line (~70 bytes), then 250 KB of conversation lines
 		const header = '{"type":"session","id":"big-id","cwd":"/big/project"}\n';
 		const bigBody = ('{"type":"assistant","message":"' + "x".repeat(1000) + '"}\n').repeat(250);
-		await Bun.write(filePath, header + bigBody);
+		await bun.write(filePath, header + bigBody);
 
 		let fullTextReads = 0;
-		const originalFile = Bun.file.bind(Bun);
-		const fileSpy = spyOn(Bun, "file").mockImplementation(
-			(arg: string | URL | Uint8Array | ArrayBufferLike | number, options?: BlobPropertyBag) => {
-				const file = originalFile(arg as string, options);
-				if (arg === filePath) {
+		const originalFile = bun.file.bind(bun);
+		const fileSpy = spyOn(bun, "file").mockImplementation((target: string | URL | NodeFile) => {
+				const file = originalFile(target);
+				if (target === filePath) {
 					file.text = async () => {
 						fullTextReads++;
 						throw new Error("full session body read");
 					};
 				}
 				return file;
-			},
-		);
+		});
 
 		try {
 			const threads = await collectThreads(makeFakeSession(tempDir));

@@ -19,7 +19,7 @@
  * "thinking enabled or adaptive" precondition (i.e. neither is sent, and
  * the strategy goes with them).
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import type { Context, Model, Tool } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";

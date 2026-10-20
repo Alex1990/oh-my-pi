@@ -5,7 +5,7 @@
 // undefined. Consumers of `usage-row` then silently drop the TTFT figure and
 // the tok/s figure is computed over an unknown window for every turn that
 // ends in toolUse.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";

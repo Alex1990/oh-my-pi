@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import {
 	type Component,
@@ -11,6 +11,7 @@ import {
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
 import { WidthReplayProvider } from "./width-replay-provider";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class Provider implements TerminalFrameProvider {
 	plan: TerminalFramePlan;
@@ -142,7 +143,7 @@ class FlushProvider implements TerminalFrameProvider {
 }
 
 function plainBuffer(terminal: VirtualTerminal): string[] {
-	return terminal.getScrollBuffer().map(row => Bun.stripANSI(row).trimEnd());
+	return terminal.getScrollBuffer().map(row => bun.stripANSI(row).trimEnd());
 }
 /** Models tmux's preserved clear: a full-screen ED0/ED2 scrolls the live
  *  screen into pane history before blanking, unlike xterm-family discard. */
@@ -172,7 +173,7 @@ class ConptyPendingWrapTerminal extends VirtualTerminal {
 			const beforeMove = data.slice(offset, match.index);
 			super.write(beforeMove);
 			const lastReturn = Math.max(beforeMove.lastIndexOf("\r"), beforeMove.lastIndexOf("\n"));
-			const trailingText = Bun.stripANSI(beforeMove.slice(lastReturn + 1));
+			const trailingText = bun.stripANSI(beforeMove.slice(lastReturn + 1));
 			if (trailingText.length >= this.columns && this.getCursor().row === this.rows - 1) {
 				super.write("\r\n");
 			}
@@ -590,7 +591,7 @@ describe("terminal frame plans", () => {
 	});
 
 	it("rebuilds on a multiplexer height shrink to repair clipped and pushed live rows", async () => {
-		Bun.env.TMUX = "/tmp/tmux-0/default,1,0"; // isInsideTerminalMultiplexer ← authoritative
+		bun.env.TMUX = "/tmp/tmux-0/default,1,0"; // isInsideTerminalMultiplexer ← authoritative
 		try {
 			const terminal = new CountingTerminal(20, 6);
 			const provider = new WidthReplayProvider();
@@ -612,7 +613,7 @@ describe("terminal frame plans", () => {
 			expect(plainBuffer(terminal)).toEqual(["history-one@20", "history-two@20", "editor@20"]);
 			tui.stop();
 		} finally {
-			delete Bun.env.TMUX;
+			delete bun.env.TMUX;
 		}
 	});
 

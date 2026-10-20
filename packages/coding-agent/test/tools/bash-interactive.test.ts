@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import type { AgentToolContext } from "@oh-my-pi/pi-agent-core";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -8,6 +8,7 @@ import { initTheme, type Theme, theme } from "@oh-my-pi/pi-tui/theme";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { VirtualTerminal } from "../../../tui/test/virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type InteractiveUi = Pick<NonNullable<AgentToolContext["ui"]>, "custom">;
 
@@ -27,7 +28,7 @@ function headlessUi(): InteractiveUi {
 	return { custom };
 }
 
-const ptyUnavailable = process.platform === "win32" || Bun.env.PI_NO_PTY === "1" || !fs.existsSync("/bin/bash");
+const ptyUnavailable = process.platform === "win32" || bun.env.PI_NO_PTY === "1" || !fs.existsSync("/bin/bash");
 
 describe("runInteractiveBashPty", () => {
 	let tempDir: TempDir;
@@ -37,14 +38,14 @@ describe("runInteractiveBashPty", () => {
 		tempDir = TempDir.createSync("@omp-bash-pty-env-");
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true, cwd: tempDir.path() });
-		// The spawn env is filtered `Bun.env` plus procmgr's fixed keys. Those keys
+		// The spawn env is filtered `bun.env` plus procmgr's fixed keys. Those keys
 		// and anything set at runtime never reach the native environ the PTY
 		// inherits, so the PTY must be handed them.
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 			shell: "/bin/bash",
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: tempDir.path(),
 				TERM: "dumb",
 				// The spawn env carries CI (unless PI_BASH_NO_CI is set) and may carry

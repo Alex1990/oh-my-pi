@@ -1,11 +1,13 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { resolveCrossBuild } from "../packages/coding-agent/scripts/build-binary";
 import { compileCodingAgent } from "../packages/coding-agent/scripts/compile-binary";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { build } from "@oh-my-pi/pi-utils/node-build";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 
 describe("Windows release binary target", () => {
 	it("builds both Windows architecture release assets with their native runtimes", async () => {
@@ -18,11 +20,11 @@ describe("Windows release binary target", () => {
 
 		expect(output).toContain("Building packages/coding-agent/binaries/omp-windows-x64.exe...");
 		expect(output).toContain(
-			"DRY RUN Bun.build target=bun-windows-x64-baseline outfile=packages/coding-agent/binaries/omp-windows-x64.exe",
+			"DRY RUN build target=bun-windows-x64-baseline outfile=packages/coding-agent/binaries/omp-windows-x64.exe",
 		);
 		expect(output).toContain("Building packages/coding-agent/binaries/omp-windows-arm64.exe...");
 		expect(output).toContain(
-			"DRY RUN Bun.build target=bun-windows-arm64 outfile=packages/coding-agent/binaries/omp-windows-arm64.exe",
+			"DRY RUN build target=bun-windows-arm64 outfile=packages/coding-agent/binaries/omp-windows-arm64.exe",
 		);
 		expect(output).toContain("external=fastembed,onnxruntime-node");
 		expect(output).not.toContain("bun-windows-x64-modern");
@@ -60,7 +62,7 @@ it("runs compiled bytecode containing dependency import.meta.resolve calls", asy
 	using temp = TempDir.createSync("@omp-bytecode-");
 	const entrypoint = temp.join("entry.ts");
 	const outfile = temp.join(process.platform === "win32" ? "probe.exe" : "probe");
-	await Bun.write(entrypoint, 'console.log(import.meta.resolve("node:fs"));\n');
+	await bun.write(entrypoint, 'console.log(import.meta.resolve("node:fs"));\n');
 	await compileCodingAgent({
 		repoRoot: temp.path(),
 		entrypoint,
@@ -79,8 +81,8 @@ it("runs code behind a lazy import() from a split chunk of the compiled binary",
 	const outfile = temp.join(process.platform === "win32" ? "probe.exe" : "probe");
 	// The probe's dynamic import() is the chunk boundary under test: with
 	// `splitting`, lazy.ts compiles into a separate embedded chunk.
-	await Bun.write(temp.join("lazy.ts"), 'export const value = ["lazy", "chunk"].join(" ");\n');
-	await Bun.write(entrypoint, 'const { value } = await import("./lazy.ts");\nconsole.log(value);\n');
+	await bun.write(temp.join("lazy.ts"), 'export const value = ["lazy", "chunk"].join(" ");\n');
+	await bun.write(entrypoint, 'const { value } = await import("./lazy.ts");\nconsole.log(value);\n');
 	await compileCodingAgent({
 		repoRoot: temp.path(),
 		entrypoint,
@@ -94,7 +96,7 @@ it("runs code behind a lazy import() from a split chunk of the compiled binary",
 }, 30_000);
 describe("macOS release binary entitlements", () => {
 	it("allows Xcode MCP automation through Apple Events", async () => {
-		const entitlements = await Bun.file(path.join(repoRoot, "scripts/macos-entitlements.plist")).text();
+		const entitlements = await bun.file(path.join(repoRoot, "scripts/macos-entitlements.plist")).text();
 
 		expect(entitlements).toContain("<key>com.apple.security.automation.apple-events</key>\n\t<true/>");
 	});

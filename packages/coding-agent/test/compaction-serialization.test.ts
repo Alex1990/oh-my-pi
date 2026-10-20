@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { serializeConversation } from "@oh-my-pi/pi-agent-core/compaction/utils";
 import type { Message } from "@oh-my-pi/pi-ai";
 

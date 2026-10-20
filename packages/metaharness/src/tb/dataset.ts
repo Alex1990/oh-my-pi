@@ -1,8 +1,9 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import type { TbTask } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface TaskFilter {
 	include?: string[];
@@ -23,7 +24,7 @@ async function validateTasksDir(tasksDir: string): Promise<string> {
 		const entries = await fs.readdir(absolute, { withFileTypes: true });
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
-			if (await Bun.file(path.join(absolute, entry.name, "task.toml")).exists()) return absolute;
+			if (await bun.file(path.join(absolute, entry.name, "task.toml")).exists()) return absolute;
 		}
 	} catch (error) {
 		if (isEnoent(error)) throw new Error(`Terminal-Bench tasks directory does not exist: ${absolute}`);
@@ -110,13 +111,13 @@ export async function loadTasks(tasksDir: string, filter?: TaskFilter): Promise<
 		const dir = path.join(absoluteTasksDir, entry.name);
 		let taskToml: string;
 		try {
-			taskToml = await Bun.file(path.join(dir, "task.toml")).text();
+			taskToml = await bun.file(path.join(dir, "task.toml")).text();
 		} catch (error) {
 			if (isEnoent(error)) continue;
 			throw error;
 		}
 
-		const parsed = asRecord(Bun.TOML.parse(taskToml));
+		const parsed = asRecord(bun.TOML.parse(taskToml));
 		const environment = asRecord(parsed.environment);
 		const image = environment.docker_image;
 		if (typeof image !== "string" || image.length === 0) continue;
@@ -127,7 +128,7 @@ export async function loadTasks(tasksDir: string, filter?: TaskFilter): Promise<
 		tasks.push({
 			name: entry.name,
 			dir,
-			instruction: await Bun.file(path.join(dir, "instruction.md")).text(),
+			instruction: await bun.file(path.join(dir, "instruction.md")).text(),
 			image,
 			cpus: asNumber(environment.cpus, 0),
 			memoryMb: asNumber(environment.memory_mb, 0),

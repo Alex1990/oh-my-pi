@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
@@ -10,6 +10,7 @@ import { prepareEvalSource } from "../../src/eval/input";
 import { disposeVmContextsByOwner } from "../../src/eval/js/context-manager";
 import type { ToolSession } from "../../src/tools";
 import { EvalTool, type EvalToolParams } from "../../src/tools/eval";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function session(cwd: string): ToolSession {
 	return {
@@ -96,9 +97,9 @@ describe("eval percent commands", () => {
 	it("re-reads quoted script paths on each explicit load", async () => {
 		using tmp = TempDir.createSync("@eval-source-");
 		const file = path.join(tmp.path(), "setup file.ts");
-		await Bun.write(file, "const value = 1;");
+		await bun.write(file, "const value = 1;");
 		const first = await prepareEvalSource({ language: "js", code: '%load "setup file.ts"' }, session(tmp.path()));
-		await Bun.write(file, "const value = 2;");
+		await bun.write(file, "const value = 2;");
 		const second = await prepareEvalSource({ language: "js", code: '%load "setup file.ts"' }, session(tmp.path()));
 		expect(first.code).toBe("const value = 1;");
 		expect(second.code).toBe("const value = 2;");
@@ -108,7 +109,7 @@ describe("eval percent commands", () => {
 	it("loads Python scripts at the host so the runner gets their filename", async () => {
 		using tmp = TempDir.createSync("@eval-source-py-");
 		const file = path.join(tmp.path(), "setup.py");
-		await Bun.write(file, "value = 1");
+		await bun.write(file, "value = 1");
 		expect(await prepareEvalSource({ language: "py", code: "%load setup.py" }, session(tmp.path()))).toEqual({
 			code: "value = 1",
 			filename: file,
@@ -120,7 +121,7 @@ describe("eval percent commands", () => {
 		const context = session(tmp.path());
 		context.getArtifactsDir = () => path.join(tmp.path(), "artifacts");
 		const sourcePath = path.join(tmp.path(), "artifacts", "local", "setup.ts");
-		await Bun.write(sourcePath, "const value = 42;");
+		await bun.write(sourcePath, "const value = 42;");
 		const source = await prepareEvalSource({ language: "js", code: "%load local://setup.ts" }, context);
 		expect(source.code).toBe("const value = 42;");
 		expect(source.filename).toBe(await fs.realpath(sourcePath));
@@ -128,7 +129,7 @@ describe("eval percent commands", () => {
 
 	it("parses package requirements without interpreting shell operators", async () => {
 		const source = await prepareEvalSource(
-			{ language: "js", code: `%bun add "left-pad@^1 || ^2" csv-parse` },
+			{ language: "js", code: `%npm add "left-pad@^1 || ^2" csv-parse` },
 			session(process.cwd()),
 		);
 		expect(source.packages).toEqual(["left-pad@^1 || ^2", "csv-parse"]);
@@ -146,10 +147,10 @@ describe("eval percent commands", () => {
 			/standalone/,
 		);
 		await expect(prepareEvalSource({ language: "js", code: '%load "missing.ts' }, context)).rejects.toThrow(/quote/);
-		await expect(prepareEvalSource({ language: "js", code: "%bun add --global x" }, context)).rejects.toThrow(
+		await expect(prepareEvalSource({ language: "js", code: "%npm add --global x" }, context)).rejects.toThrow(
 			/flags/,
 		);
-		await expect(prepareEvalSource({ language: "js", code: "%pip install pillow" }, context)).rejects.toThrow(/%bun/);
+		await expect(prepareEvalSource({ language: "js", code: "%pip install pillow" }, context)).rejects.toThrow(/%npm/);
 		await expect(
 			prepareEvalSource({ language: "js", code: "%load https://example.com/setup.ts" }, context),
 		).rejects.toThrow(/local/);

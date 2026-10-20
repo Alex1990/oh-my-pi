@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { closeQuietly, type DatabasePath, openDatabase, transaction } from "../db";
 
 export interface Gist {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { createAutoresearchExtension } from "@oh-my-pi/pi-coding-agent/autoresearch";
 import { closeAllAutoresearchStorages } from "@oh-my-pi/pi-coding-agent/autoresearch/storage";
 import type {

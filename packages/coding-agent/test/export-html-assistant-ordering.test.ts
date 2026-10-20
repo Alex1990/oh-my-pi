@@ -1,11 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as vm from "node:vm";
 import { type Document, Element, parseHTML } from "@oh-my-pi/pi-utils/dom";
 import { Marked } from "@oh-my-pi/pi-utils/marked";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const [templateHtml, templateJs] = await Promise.all([
-	Bun.file(new URL("../src/export/html/template.html", import.meta.url)).text(),
-	Bun.file(new URL("../src/export/html/template.js", import.meta.url)).text(),
+	bun.file(new URL("../src/export/html/template.html", import.meta.url)).text(),
+	bun.file(new URL("../src/export/html/template.js", import.meta.url)).text(),
 ]);
 const originalScrollIntoView = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
 

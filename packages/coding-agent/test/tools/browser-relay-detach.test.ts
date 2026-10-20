@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as rewriteImports from "@oh-my-pi/pi-coding-agent/eval/js/shared/rewrite-imports";
 import * as toolBridge from "@oh-my-pi/pi-coding-agent/eval/js/tool-bridge";
@@ -13,6 +13,18 @@ import { ToolAbortError } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 import { isRecord } from "@oh-my-pi/pi-utils";
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { chromiumAvailable } from "./chromium-probe";
+import { workerControl } from "../helpers/worker-mock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+
+// The tab-worker constructor now lives in the compat module; a runtime global
+// no longer exists to patch, so the suite substitutes the module itself.
+vi.mock("@oh-my-pi/pi-utils/worker", async () => {
+	const actual = await vi.importActual<typeof import("@oh-my-pi/pi-utils/worker")>("@oh-my-pi/pi-utils/worker");
+	const { createMockWorker } = await import("../helpers/worker-mock");
+	return { ...actual, Worker: createMockWorker(actual.Worker) };
+});
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const TAB_ID = 1;
@@ -235,7 +247,7 @@ class ChromeBackedExtension {
 
 describe("relay tabs Chrome detaches omp from", () => {
 	let chromium: Browser | undefined;
-	let site: Bun.Server<undefined> | undefined;
+	let site: Server<undefined> | undefined;
 	let relay: RelayServer | undefined;
 	let extension: ChromeBackedExtension | undefined;
 	let page: Page | undefined;
@@ -248,7 +260,7 @@ describe("relay tabs Chrome detaches omp from", () => {
 		const executablePath = await ensureChromiumExecutable();
 		if (!executablePath) throw new Error("Chromium executable missing");
 		chromium = await puppeteer.launch({ executablePath, headless: true, args: ["--no-first-run"] });
-		site = Bun.serve({
+		site = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -287,7 +299,7 @@ describe("relay tabs Chrome detaches omp from", () => {
 		// Puppeteer exposes a target's CDP id only on the private field.
 		const target = page.target() as unknown as { _targetId: string };
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port, group: false });
+		relay = await startRelayServer({ port, group: false });
 		extension = await ChromeBackedExtension.connect(port, chromium.wsEndpoint(), target._targetId, pageUrl);
 		tool = {
 			cwd: "/tmp",
@@ -330,14 +342,11 @@ describe("relay tabs Chrome detaches omp from", () => {
 	 * puts a tab on one; it cannot be re-adopted, so a detach releases the tab.
 	 */
 	async function openInlineRelayTab(): Promise<ChromeBackedExtension> {
-		// `Worker` is typed as a constructor, which a throwing mock implementation does not satisfy.
-		const unavailable = spyOn(globalThis, "Worker").mockImplementation((() => {
-			throw new Error("Worker threads unavailable");
-		}) as never);
+		workerControl.unavailable = true;
 		try {
 			return await openRelayTab();
 		} finally {
-			unavailable.mockRestore();
+			workerControl.unavailable = false;
 			expect(getTab(name)).toMatchObject({ worker: { mode: "inline" } });
 		}
 	}
@@ -440,7 +449,7 @@ describe("relay tabs Chrome detaches omp from", () => {
 			const terminate = tab.worker.terminate.bind(tab.worker);
 			const held = spyOn(tab.worker, "terminate").mockImplementation(async () => {
 				await terminate();
-				await Bun.sleep(budgetMs);
+				await bun.sleep(budgetMs);
 			});
 			try {
 				const reapplying = ext.nextSend("Network.setUserAgentOverride");
@@ -551,8 +560,8 @@ describe("relay tabs Chrome detaches omp from", () => {
 		"releases the tab without re-adopting it when the user cancels Chrome's debugging bar",
 		async () => {
 			const ext = await openRelayTab();
-			const respawn = spyOn(globalThis, "Worker");
-			try {
+			const spawnedBefore = workerControl.instances.length;
+			{
 				const evaluating = ext.hanging();
 				const stalled = invoke({ action: "run", ...HANG }).catch((error: unknown) => error);
 				await evaluating;
@@ -563,9 +572,7 @@ describe("relay tabs Chrome detaches omp from", () => {
 				expect(failure).toContain("navigate it in Chrome, then open it again");
 				expect(failure).not.toContain("password manager");
 				// No new worker was started for a re-adoption the relay cannot grant.
-				expect(respawn).not.toHaveBeenCalled();
-			} finally {
-				respawn.mockRestore();
+				expect(workerControl.instances.length).toBe(spawnedBefore);
 			}
 			const later = String(await invoke(readMark).catch((error: unknown) => error));
 			expect(later).toContain("The user cancelled Chrome's debugging bar");

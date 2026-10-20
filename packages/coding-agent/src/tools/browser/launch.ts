@@ -41,6 +41,7 @@ import stealthCodecsScript from "../puppeteer/12_stealth_codecs.txt" with { type
 import stealthWorkerScript from "../puppeteer/13_stealth_worker.txt" with { type: "text" };
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { withDownload } from "../../downloads/activity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const DEFAULT_VIEWPORT = { width: 1365, height: 768, deviceScaleFactor: 1.25 };
 
@@ -195,7 +196,7 @@ async function loadPuppeteerImport(safeDir: string, prepareSafeDir: boolean): Pr
 	let loading = puppeteerLoadPromise;
 	if (!loading) {
 		loading = (async () => {
-			if (prepareSafeDir) await Bun.write(path.join(safeDir, "package.json"), "{}");
+			if (prepareSafeDir) await bun.write(path.join(safeDir, "package.json"), "{}");
 			return importPuppeteerWithSafeCwd(safeDir);
 		})();
 		puppeteerLoadPromise = loading;
@@ -427,7 +428,7 @@ async function isChromiumExecutable(p: string): Promise<boolean> {
 	if (process.platform !== "linux") return true;
 	try {
 		const probeTimeoutMs = 3000;
-		const proc = Bun.spawn([p, "--version"], {
+		const proc = bun.spawn([p, "--version"], {
 			stdout: "pipe",
 			stderr: "ignore",
 			signal: AbortSignal.timeout(probeTimeoutMs),
@@ -435,7 +436,7 @@ async function isChromiumExecutable(p: string): Promise<boolean> {
 		});
 		const stdout = await Promise.race([
 			new Response(proc.stdout).text(),
-			Bun.sleep(probeTimeoutMs + 500).then(() => null),
+			bun.sleep(probeTimeoutMs + 500).then(() => null),
 		]);
 		if (stdout === null) return false;
 		await proc.exited;
@@ -689,7 +690,7 @@ async function writeOwnedProfilePreferences(file: string): Promise<void> {
 	prefs.profile = profile;
 	const staged = `${file}.omp-${process.pid}`;
 	try {
-		await Bun.write(staged, JSON.stringify(prefs));
+		await bun.write(staged, JSON.stringify(prefs));
 		await fs.promises.rename(staged, file);
 	} catch (error) {
 		await fs.promises.rm(staged, { force: true });
@@ -842,7 +843,7 @@ function resolvePageClient(page: Page): PuppeteerCdpClient | null {
 async function resolveMacOsProductVersion(): Promise<string> {
 	if (os.platform() !== "darwin") return "";
 	try {
-		const plist = await Bun.file("/System/Library/CoreServices/SystemVersion.plist").text();
+		const plist = await bun.file("/System/Library/CoreServices/SystemVersion.plist").text();
 		return plist.match(/<key>ProductVersion<\/key>\s*<string>([^<]+)<\/string>/)?.[1] ?? "";
 	} catch {
 		return "";

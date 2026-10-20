@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderSegmentTrack, resolveSegmentPalette, type TrackSegment } from "@oh-my-pi/pi-tui/chrome/segment-track";
 import { initTheme, type ThemeColor, theme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -36,9 +37,9 @@ describe("resolveSegmentPalette", () => {
 describe("renderSegmentTrack", () => {
 	it("colors each segment by position from the theme palette", () => {
 		const raw = renderSegmentTrack(SEGMENTS, 1);
-		expect(Bun.stripANSI(raw)).toContain("smol");
-		expect(Bun.stripANSI(raw)).toContain("default");
-		expect(Bun.stripANSI(raw)).toContain("slow");
+		expect(bun.stripANSI(raw)).toContain("smol");
+		expect(bun.stripANSI(raw)).toContain("default");
+		expect(bun.stripANSI(raw)).toContain("slow");
 		// Each position carries the escape of its palette slot (modulo wrap).
 		const palette = resolveSegmentPalette(SEGMENTS.length);
 		for (let i = 0; i < SEGMENTS.length; i++) {

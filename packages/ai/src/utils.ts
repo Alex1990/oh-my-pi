@@ -1,6 +1,7 @@
 import { $env } from "@oh-my-pi/pi-utils";
 import type { ResponseInput, ResponseInputItem } from "./providers/openai-responses-wire";
 import { isMalformedToolCallName, redactSensitiveCredentials } from "./providers/transform-messages";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export { normalizeToolCallId } from "./providers/transform-messages";
 import type { CacheRetention, OpenAIResponsesHistoryPayload, ProviderPayload } from "./types";
 import { invalidToolCallArguments } from "./utils/tool-call-arguments";
@@ -48,7 +49,7 @@ export function normalizeResponsesToolCallId(
 		const itemId = id.slice(sep + 1);
 		return { callId, itemId: normalizeResponsesItemId(itemId, itemPrefix) };
 	}
-	const hash = Bun.hash(id).toString(36);
+	const hash = bun.hash(id).toString(36);
 	return { callId: id, itemId: `${itemPrefix}_${hash}` };
 }
 
@@ -64,7 +65,7 @@ function normalizeResponsesItemId(itemId: string, fallbackPrefix: ResponsesToolI
 			: prefix === "fc" || prefix === "fcr"
 		: false;
 	if (!prefix || !isAllowedPrefix) {
-		return `${fallbackPrefix}_${Bun.hash(itemId).toString(36)}`;
+		return `${fallbackPrefix}_${bun.hash(itemId).toString(36)}`;
 	}
 	return truncateResponseItemId(itemId, prefix);
 }
@@ -75,7 +76,7 @@ function normalizeResponsesItemId(itemId: string, fallbackPrefix: ResponsesToolI
  */
 export function truncateResponseItemId(id: string, prefix: string): string {
 	if (id.length <= 64) return id;
-	return `${prefix}_${Bun.hash(id).toString(36)}`;
+	return `${prefix}_${bun.hash(id).toString(36)}`;
 }
 
 interface OpenAIResponsesReplaySanitizeOptions {

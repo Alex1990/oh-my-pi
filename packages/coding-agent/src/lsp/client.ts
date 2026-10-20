@@ -19,6 +19,7 @@ import type {
 	WorkspaceEdit,
 } from "./types";
 import { detectLanguageId, EquivalentUriMap, fileToUri, readTextFromDisk, uriToFile } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // =============================================================================
 // Client State
@@ -871,7 +872,7 @@ async function waitForRustAnalyzerWorkspace(client: LspClient, signal?: AbortSig
 			if (!isRustAnalyzerStatusTimeout(err) || Date.now() >= deadline) {
 				return;
 			}
-			await Bun.sleep(pollMs);
+			await bun.sleep(pollMs);
 			continue;
 		}
 		const ready = typeof status === "string" && !status.startsWith("No workspaces");
@@ -882,7 +883,7 @@ async function waitForRustAnalyzerWorkspace(client: LspClient, signal?: AbortSig
 		if (Date.now() >= deadline) {
 			return;
 		}
-		await Bun.sleep(pollMs);
+		await bun.sleep(pollMs);
 	}
 }
 
@@ -1078,11 +1079,27 @@ export async function getOrCreateClient(
 		if (sharedLspEnabled && command === baseCommand) {
 			proc = await connectSharedLspTransport({ command, args, cwd, env, initializationOptions, signal });
 		}
-		proc ??= ptree.spawn([command, ...args], {
-			cwd,
-			stdin: "pipe",
-			env: env ? { ...Bun.env, ...env } : undefined,
-		});
+		proc ??= (() => {
+			const child = ptree.spawn([command, ...args], {
+				cwd,
+				stdin: "pipe",
+				env: env ? { ...bun.env, ...env } : undefined,
+			});
+			// `ChildProcess.stdin` is typed nullable for non-piped inputs; an LSP
+			// spawn always pipes stdin, so the underlying `Subprocess` sink is the
+			// exact write handle the transport needs.
+			return {
+				stdin: child.proc.stdin,
+				stdout: child.stdout,
+				exited: child.exited,
+				get exitCode() {
+					return child.exitCode;
+				},
+				pid: child.pid,
+				kill: () => child.kill(),
+				peekStderr: () => child.peekStderr(),
+			};
+		})();
 
 		let resolveProjectLoaded!: () => void;
 		const projectLoaded = new Promise<void>(resolve => {
@@ -1242,7 +1259,7 @@ export async function getActiveOrPendingClient(
  * disk contents have diverged (e.g. an external edit) from the server's copy.
  */
 function documentSignature(content: string): number | bigint {
-	return Bun.hash(content);
+	return bun.hash(content);
 }
 
 /**
@@ -1537,7 +1554,7 @@ export async function notifySaved(client: LspClient, filePath: string, signal?: 
 	if (!info) return; // File not open, nothing to notify
 
 	throwIfAborted(signal);
-	const text = saveIncludesText(client) ? await Bun.file(filePath).text() : undefined;
+	const text = saveIncludesText(client) ? await bun.file(filePath).text() : undefined;
 	throwIfAborted(signal);
 	await sendNotification(
 		client,
@@ -1683,7 +1700,7 @@ async function waitForExit(client: LspClient, timeoutMs: number): Promise<boolea
 			() => true,
 			() => true,
 		),
-		Bun.sleep(timeoutMs).then(() => false),
+		bun.sleep(timeoutMs).then(() => false),
 	]);
 }
 

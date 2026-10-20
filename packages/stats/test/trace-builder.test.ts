@@ -5,13 +5,14 @@
  * client-path containment boundary.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { syncAllSessions } from "@oh-my-pi/omp-stats/aggregator";
 import { buildSessionTrace, getTraceEntry, listSessionSummaries, TracePathError } from "@oh-my-pi/omp-stats/trace";
 import { getSessionsDir } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-trace-");
 
@@ -336,9 +337,9 @@ async function writeFixture(): Promise<string> {
 	const rootFile = path.join(projectDir, ROOT_BASE);
 	const childDir = path.join(projectDir, "1700000000000_test");
 	await fs.mkdir(childDir, { recursive: true });
-	await Bun.write(rootFile, ROOT_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
-	await Bun.write(path.join(childDir, "Scout1.jsonl"), CHILD_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
-	await Bun.write(path.join(childDir, "Orphan7.jsonl"), ORPHAN_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
+	await bun.write(rootFile, ROOT_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
+	await bun.write(path.join(childDir, "Scout1.jsonl"), CHILD_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
+	await bun.write(path.join(childDir, "Orphan7.jsonl"), ORPHAN_ENTRIES.map(entry => JSON.stringify(entry)).join("\n"));
 	return rootFile;
 }
 
@@ -451,7 +452,7 @@ describe("buildSessionTrace", () => {
 			...makeJobRun(2, T + 6000, T + 8000),
 		];
 		await fs.mkdir(projectDir, { recursive: true });
-		await Bun.write(rootFile, entries.map(entry => JSON.stringify(entry)).join("\n"));
+		await bun.write(rootFile, entries.map(entry => JSON.stringify(entry)).join("\n"));
 
 		const trace = await buildSessionTrace(rootFile);
 		const backgrounds = trace.tracks[0].spans.filter(span => span.kind === "background");
@@ -510,7 +511,7 @@ describe("buildSessionTrace", () => {
 				},
 			},
 		];
-		await Bun.write(file, entries.map(entry => JSON.stringify(entry)).join("\n"));
+		await bun.write(file, entries.map(entry => JSON.stringify(entry)).join("\n"));
 		const { summary } = await buildSessionTrace(file);
 		expect(summary.requests).toBe(1);
 		expect(summary.totalTokens).toBe(100);
@@ -560,7 +561,7 @@ describe("buildSessionTrace", () => {
 				},
 			},
 		];
-		await Bun.write(file, entries.map(entry => JSON.stringify(entry)).join("\n"));
+		await bun.write(file, entries.map(entry => JSON.stringify(entry)).join("\n"));
 		const { summary } = await buildSessionTrace(file);
 		expect(summary.requests).toBe(2);
 		expect(summary.totalTokens).toBe(100);
@@ -595,7 +596,7 @@ describe("listSessionSummaries", () => {
 		await fs.mkdir(path.dirname(currentFile), { recursive: true });
 		await fs.mkdir(path.dirname(compressedFile), { recursive: true });
 		await fs.mkdir(path.dirname(legacyFile), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			currentFile,
 			[
 				{ type: "title", v: 1, title: "Current title" },
@@ -611,9 +612,9 @@ describe("listSessionSummaries", () => {
 				.map(entry => JSON.stringify(entry))
 				.join("\n"),
 		);
-		await Bun.write(
+		await bun.write(
 			compressedFile,
-			Bun.gzipSync(
+			bun.gzipSync(
 				Buffer.from(
 					[
 						{ type: "title", v: 1, title: "Compressed title" },
@@ -630,7 +631,7 @@ describe("listSessionSummaries", () => {
 				),
 			),
 		);
-		await Bun.write(legacyFile, JSON.stringify({ type: "title", v: 1, title: "Legacy session" }));
+		await bun.write(legacyFile, JSON.stringify({ type: "title", v: 1, title: "Legacy session" }));
 
 		const rows = await listSessionSummaries();
 		expect(rows.find(row => row.file === currentFile)?.folder).toBe("/home/han/project/omp-kit");

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,7 +12,8 @@ import {
 	removeWithRetries,
 	setProfile,
 } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function ctrl(key: string): string {
 	return String.fromCharCode(key.toLowerCase().charCodeAt(0) & 31);
@@ -20,7 +21,7 @@ function ctrl(key: string): string {
 
 async function writeKeybindingsYaml(agentDir: string, config: KeybindingsConfig): Promise<void> {
 	await fs.mkdir(agentDir, { recursive: true });
-	await Bun.write(path.join(agentDir, "keybindings.yml"), YAML.stringify(config, null, 2));
+	await bun.write(path.join(agentDir, "keybindings.yml"), YAML.stringify(config, null, 2));
 }
 
 function restoreEnvValue(key: string, value: string | undefined): void {
@@ -44,7 +45,7 @@ describe("KeybindingsManager.create", () => {
 		const jsonPath = path.join(agentDir, "keybindings.json");
 		const ymlPath = path.join(agentDir, "keybindings.yml");
 
-		await Bun.write(
+		await bun.write(
 			jsonPath,
 			`${JSON.stringify(
 				{
@@ -60,7 +61,7 @@ describe("KeybindingsManager.create", () => {
 
 		try {
 			const manager = KeybindingsManager.create(agentDir);
-			const writtenConfig = YAML.parse(await Bun.file(ymlPath).text());
+			const writtenConfig = YAML.parse(await bun.file(ymlPath).text());
 
 			expect(manager.getKeys("app.session.fork")).toEqual(["ctrl+f"]);
 			expect(manager.getKeys("tui.select.confirm")).toEqual(["enter"]);
@@ -73,7 +74,7 @@ describe("KeybindingsManager.create", () => {
 				"tui.select.confirm": "enter",
 			});
 			expect(writtenConfig).not.toHaveProperty("selectModelTemporary");
-			expect(await Bun.file(jsonPath).exists()).toBe(true);
+			expect(await bun.file(jsonPath).exists()).toBe(true);
 		} finally {
 			await removeWithRetries(agentDir);
 		}
@@ -84,7 +85,7 @@ describe("KeybindingsManager.create", () => {
 		const jsonPath = path.join(agentDir, "keybindings.json");
 		const ymlPath = path.join(agentDir, "keybindings.yml");
 
-		await Bun.write(
+		await bun.write(
 			jsonPath,
 			`{
 	// Legacy config files may contain comments from hand-edited examples.
@@ -98,7 +99,7 @@ describe("KeybindingsManager.create", () => {
 
 		try {
 			const manager = KeybindingsManager.create(agentDir);
-			const writtenConfig = YAML.parse(await Bun.file(ymlPath).text());
+			const writtenConfig = YAML.parse(await bun.file(ymlPath).text());
 
 			expect(manager.getKeys("app.session.fork")).toEqual(["ctrl+f"]);
 			expect(manager.getKeys("tui.select.confirm")).toEqual(["enter"]);
@@ -110,7 +111,7 @@ describe("KeybindingsManager.create", () => {
 				"tui.editor.cursorUp": "ctrl+p",
 				"tui.select.confirm": "enter",
 			});
-			expect(await Bun.file(jsonPath).exists()).toBe(true);
+			expect(await bun.file(jsonPath).exists()).toBe(true);
 		} finally {
 			await removeWithRetries(agentDir);
 		}
@@ -120,7 +121,7 @@ describe("KeybindingsManager.create", () => {
 		const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-keybindings-"));
 		const configPath = path.join(agentDir, "keybindings.yml");
 
-		await Bun.write(
+		await bun.write(
 			configPath,
 			YAML.stringify(
 				{
@@ -147,7 +148,7 @@ describe("KeybindingsManager.create", () => {
 		const yamlPath = path.join(agentDir, "keybindings.yaml");
 		const canonicalPath = path.join(agentDir, "keybindings.yml");
 
-		await Bun.write(
+		await bun.write(
 			yamlPath,
 			YAML.stringify(
 				{
@@ -162,7 +163,7 @@ describe("KeybindingsManager.create", () => {
 			const manager = KeybindingsManager.create(agentDir);
 
 			expect(manager.getKeys("app.plan.toggle")).toEqual(["alt+shift+p"]);
-			expect(await Bun.file(canonicalPath).exists()).toBe(false);
+			expect(await bun.file(canonicalPath).exists()).toBe(false);
 		} finally {
 			await removeWithRetries(agentDir);
 		}
@@ -221,7 +222,7 @@ describe("KeybindingsManager.create", () => {
 		// Legacy JSON in the default dir: loading it with a write-back path would
 		// materialize keybindings.yml there. The inherited load must stay read-only.
 		await fs.mkdir(defaultAgentDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(defaultAgentDir, "keybindings.json"),
 			JSON.stringify({ "app.session.fork": "ctrl+f" }, null, 2),
 		);
@@ -230,7 +231,7 @@ describe("KeybindingsManager.create", () => {
 			const manager = KeybindingsManager.create(profileAgentDir, { inheritedAgentDir: defaultAgentDir });
 
 			expect(manager.getKeys("app.session.fork")).toEqual(["ctrl+f"]);
-			expect(await Bun.file(path.join(defaultAgentDir, "keybindings.yml")).exists()).toBe(false);
+			expect(await bun.file(path.join(defaultAgentDir, "keybindings.yml")).exists()).toBe(false);
 		} finally {
 			await removeWithRetries(rootDir);
 		}

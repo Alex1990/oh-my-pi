@@ -1,12 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type RpcAgentProcess, RpcClient } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 
 describe("RpcClient.start", () => {
 	test("rejects when RPC process exits immediately", async () => {
 		using client = new RpcClient({
-			cliPath: path.join(import.meta.dir, "..", "src", "cli.ts"),
-			cwd: path.join(import.meta.dir, ".."),
+			cliPath: path.join(import.meta.dirname, "..", "src", "cli.ts"),
+			cwd: path.join(import.meta.dirname, ".."),
 			provider: "__missing_provider__",
 			model: "claude-sonnet-4-5",
 			env: { PI_NO_TITLE: "1" },

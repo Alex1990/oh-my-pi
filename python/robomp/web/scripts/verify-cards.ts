@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Robomp Lifecycle Cards Verification Harness.
  * Drives headless Chrome to assert layout, contrast, interactions, and edge cases.
@@ -8,6 +8,7 @@ import * as path from "node:path";
 import type { HTTPRequest } from "puppeteer-core";
 import puppeteer from "puppeteer-core";
 import type { StatusResponse } from "../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const VIEWPORT = { width: 1280, height: 720, deviceScaleFactor: 1 } as const;
 
@@ -20,14 +21,14 @@ interface CheckResult {
 const results: CheckResult[] = [];
 
 // Resolve a Chrome/Chromium binary. Walks the explicit path, PATH lookups via
-// Bun.which, and well-known absolute locations; each candidate is confirmed
+// bun.which, and well-known absolute locations; each candidate is confirmed
 // with fs.stat so a directory or stale entry never wins.
 async function resolveChrome(explicit: string | undefined): Promise<string> {
   const candidates: string[] = [];
   const fromEnv = explicit ?? process.env.PUPPETEER_EXECUTABLE_PATH ?? process.env.CHROME_PATH;
   if (fromEnv) candidates.push(fromEnv);
   for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser", "chrome"]) {
-    const found = Bun.which(name);
+    const found = bun.which(name);
     if (found) candidates.push(found);
   }
   candidates.push(
@@ -282,7 +283,7 @@ const populatedStatus: StatusResponse = {
 };
 
 async function main(): Promise<void> {
-  const outDir = path.resolve(import.meta.dir, "../verify-out/robomp-lifecycle-cards");
+  const outDir = path.resolve(import.meta.dirname, "../verify-out/robomp-lifecycle-cards");
   await fs.mkdir(path.join(outDir, "shots"), { recursive: true });
 
   const chrome = await resolveChrome(undefined);
@@ -328,7 +329,7 @@ async function main(): Promise<void> {
 
     if (url.pathname === "/api/status") {
       if (statusDelayMs > 0) {
-        await Bun.sleep(statusDelayMs);
+        await bun.sleep(statusDelayMs);
       }
       req.respond({
         status: 200,
@@ -405,7 +406,7 @@ async function main(): Promise<void> {
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   
   // Wait a small frame but not full delay
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const skeletonsCount = await page.evaluate(() => document.querySelectorAll(".rmp-card-skeleton").length);
   const cardsCount = await page.evaluate(() => document.querySelectorAll(".rmp-card").length);
   results.push({
@@ -947,7 +948,7 @@ async function main(): Promise<void> {
   statusMock = baseStatus;
   statusDelayMs = 600;
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-  await Bun.sleep(150); // inside the delay window: skeleton still rendered
+  await bun.sleep(150); // inside the delay window: skeleton still rendered
   const reducedSkeleton = await page.evaluate(() => {
     const skeletons = Array.from(document.querySelectorAll(".rmp-card-skeleton"));
     return {
@@ -1008,7 +1009,7 @@ async function main(): Promise<void> {
     const btn = document.querySelector(".rmp-card[data-bucket='failed'] button") as HTMLElement | null;
     btn?.click();
   });
-  await Bun.sleep(100); // wait for request and state update
+  await bun.sleep(100); // wait for request and state update
   const retryReqs = triggeredRequests.filter(
     (r) => r.url.endsWith("/api/trigger") && r.body?.mode === "retry" && r.body?.delivery_id === "fail-del-1",
   );
@@ -1028,7 +1029,7 @@ async function main(): Promise<void> {
     const btn = card?.querySelector("button.danger") as HTMLElement | null;
     btn?.click();
   });
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const cancelReqs = triggeredRequests.filter(
     (r) => r.url.endsWith("/api/cancel") && r.body?.delivery_id === "run-del-2",
   );
@@ -1048,7 +1049,7 @@ async function main(): Promise<void> {
     const btn = card?.querySelector("button.danger") as HTMLElement | null;
     btn?.click();
   });
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const dismissedCancelReqs = triggeredRequests.filter((r) => r.url.endsWith("/api/cancel"));
   results.push({
     name: "interaction-cancel-click-dismissed",
@@ -1065,7 +1066,7 @@ async function main(): Promise<void> {
     const triageBtn = btns.find(b => b.textContent?.trim() === "triage");
     triageBtn?.click();
   });
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const triageReqs = triggeredRequests.filter(
     (r) => r.url.endsWith("/api/trigger") && r.body?.mode === "triage" && r.body?.issue === "octo/widget#5",
   );
@@ -1083,7 +1084,7 @@ async function main(): Promise<void> {
     const retryBtn = btns.find(b => b.textContent?.trim() === "retry latest");
     retryBtn?.click();
   });
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const retryLatestReqs = triggeredRequests.filter(
     (r) => r.url.endsWith("/api/trigger") && r.body?.mode === "retry" && r.body?.issue === "octo/widget#5",
   );
@@ -1098,7 +1099,7 @@ async function main(): Promise<void> {
   triggeredRequests.length = 0;
   await page.focus(".rmp-trigger-bar input");
   await page.keyboard.press("Enter");
-  await Bun.sleep(100);
+  await bun.sleep(100);
   const enterReqs = triggeredRequests.filter(
     (r) => r.url.endsWith("/api/trigger") && r.body?.mode === "triage" && r.body?.issue === "octo/widget#5",
   );
@@ -1124,7 +1125,7 @@ async function main(): Promise<void> {
     ) as HTMLElement | null;
     navBtn?.click();
   });
-  await Bun.sleep(100); // let the view flip to display:flex
+  await bun.sleep(100); // let the view flip to display:flex
   // Click the first retry button in the Activity events table (Events is the
   // only `table.t` consumer, so this is unambiguous).
   await page.evaluate(() => {
@@ -1133,7 +1134,7 @@ async function main(): Promise<void> {
     ) as HTMLElement | null;
     btn?.click();
   });
-  await Bun.sleep(100); // wait for the failed trigger round-trip + state update
+  await bun.sleep(100); // wait for the failed trigger round-trip + state update
   const activityStatus = await page.evaluate(() => {
     const el = document.querySelector(".rmp-activity-status");
     if (!el) return null;

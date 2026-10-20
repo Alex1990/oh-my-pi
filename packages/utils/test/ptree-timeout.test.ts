@@ -1,14 +1,16 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Process, ProcessStatus } from "@oh-my-pi/pi-natives";
 import { createLinuxSubreaperScript, exec, NonZeroExitError, spawn, TimeoutError } from "@oh-my-pi/pi-utils/ptree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function supportsLinuxMountNamespaces(): Promise<boolean> {
 	if (process.platform !== "linux") return false;
 	try {
-		const probe = Bun.spawn(
+		const probe = bun.spawn(
 			[
 				"unshare",
 				"--user",
@@ -31,6 +33,13 @@ async function supportsLinuxMountNamespaces(): Promise<boolean> {
 		return false;
 	}
 }
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 const linuxMountNamespacesAvailable = await supportsLinuxMountNamespaces();
 
@@ -66,7 +75,7 @@ describe("ptree timeout", () => {
 			const testRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-subreaper-race-"));
 			const pidFile = path.join(testRoot, "worker.pid");
 			const launcher = path.join(testRoot, "launcher.sh");
-			await Bun.write(
+			await bun.write(
 				launcher,
 				`#!/bin/sh
 setsid sleep 30 </dev/null >/dev/null 2>&1 &
@@ -91,10 +100,10 @@ sleep 30
 						() => false,
 					);
 				const setupDeadline = Date.now() + 2_000;
-				while (!(await pidFileExists()) && Date.now() < setupDeadline) await Bun.sleep(10);
+				while (!(await pidFileExists()) && Date.now() < setupDeadline) await bun.sleep(10);
 				expect(await pidFileExists(), "the launcher must create its worker").toBe(true);
 
-				const workerPid = Number.parseInt((await Bun.file(pidFile).text()).trim(), 10);
+				const workerPid = Number.parseInt((await bun.file(pidFile).text()).trim(), 10);
 				const subreaper = Process.fromPid(child.pid);
 				const command = subreaper?.children()[0];
 				const worker = Process.fromPid(workerPid);
@@ -158,9 +167,9 @@ sleep 30
 
 	it.skipIf(process.platform !== "linux")("falls back after the first libc soname is unavailable", async () => {
 		const script = createLinuxSubreaperScript(["libc.so.omp-missing", "libc.so.6", "libc.so"]);
-		const child = Bun.spawn([process.execPath, "-e", script], {
+		const child = bun.spawn([process.execPath, "-e", script], {
 			env: {
-				...Bun.env,
+				...bun.env,
 				BUN_BE_BUN: "1",
 				OMP_PTREE_SUBREAPER_COMMAND: JSON.stringify([
 					process.execPath,
@@ -193,7 +202,7 @@ sleep 30
 	it.skipIf(process.platform !== "linux")("preserves caller-supplied BUN_BE_BUN for the command", async () => {
 		const result = await exec(["/bin/sh", "-c", `printf %s "\${BUN_BE_BUN-unset}"`], {
 			subreaper: true,
-			env: { ...Bun.env, BUN_BE_BUN: "1" },
+			env: { ...bun.env, BUN_BE_BUN: "1" },
 		});
 
 		expect(result.stdout).toBe("1");
@@ -201,14 +210,14 @@ sleep 30
 
 	it.skipIf(!linuxMountNamespacesAvailable)("supervises commands without a mounted procfs", async () => {
 		const script = `
-const mountExit = await Bun.spawn(["mount", "-t", "tmpfs", "tmpfs", "/proc"], {
+const mountExit = await bun.spawn(["mount", "-t", "tmpfs", "tmpfs", "/proc"], {
 	stdout: "ignore",
 	stderr: "inherit",
 }).exited;
 if (mountExit !== 0) throw new Error("failed to hide procfs");
 ${createLinuxSubreaperScript()}
 `;
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				"unshare",
 				"--user",
@@ -223,7 +232,7 @@ ${createLinuxSubreaperScript()}
 			{
 				cwd: "/tmp",
 				env: {
-					...Bun.env,
+					...bun.env,
 					BUN_BE_BUN: "1",
 					OMP_PTREE_SUBREAPER_COMMAND: JSON.stringify(["/bin/sh", "-c", "printf procfs-free-ok"]),
 				},
@@ -247,10 +256,10 @@ ${createLinuxSubreaperScript()}
 		// quick command under a 10 s ptree timeout and then must exit on its own;
 		// if the timeout timer were left pending it would hold the probe's event
 		// loop for the full 10 s.
-		const probe = `${import.meta.dir}/fixtures/ptree-timeout-probe.ts`;
+		const probe = `${import.meta.dirname}/fixtures/ptree-timeout-probe.ts`;
 
 		const start = performance.now();
-		const child = spawn([process.execPath, probe], { timeout: 15_000 });
+		const child = spawn([process.execPath, ...nodeTsArgs, probe], { timeout: 15_000 });
 		const text = await child.text();
 		const elapsedMs = performance.now() - start;
 
@@ -342,7 +351,7 @@ ${createLinuxSubreaperScript()}
 				const deadline = Date.now() + 500;
 				let status = Process.fromPid(orphanPid)?.status();
 				while (status === ProcessStatus.Running && Date.now() < deadline) {
-					await Bun.sleep(10);
+					await bun.sleep(10);
 					status = Process.fromPid(orphanPid)?.status();
 				}
 				expect(status).not.toBe(ProcessStatus.Running);
@@ -358,10 +367,10 @@ ${createLinuxSubreaperScript()}
 			// Windows has no process groups. The probe exits after starting a
 			// child that inherits stdout, so the retained root handle must anchor
 			// the Toolhelp tree walk when the command deadline expires.
-			const probe = `${import.meta.dir}/fixtures/ptree-dead-root-probe.ts`;
+			const probe = `${import.meta.dirname}/fixtures/ptree-dead-root-probe.ts`;
 			let descendantPid: number | undefined;
 			try {
-				const result = await exec([process.execPath, probe], {
+				const result = await exec([process.execPath, ...nodeTsArgs, probe], {
 					timeout: 250,
 					allowNonZero: true,
 					allowAbort: true,
@@ -372,7 +381,7 @@ ${createLinuxSubreaperScript()}
 				const deadline = Date.now() + 500;
 				let status = Process.fromPid(descendantPid)?.status();
 				while (status === ProcessStatus.Running && Date.now() < deadline) {
-					await Bun.sleep(10);
+					await bun.sleep(10);
 					status = Process.fromPid(descendantPid)?.status();
 				}
 				expect(status).not.toBe(ProcessStatus.Running);

@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { streamBedrock } from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import { crc32 } from "@oh-my-pi/pi-ai/providers/aws-eventstream";
 import type { Context, FetchImpl, Model, Tool } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const originalSkipAuth = process.env.AWS_BEDROCK_SKIP_AUTH;
 
@@ -100,7 +101,7 @@ function sentinelToolUseFetch(): FetchImpl {
 				status: 200,
 				headers: { "content-type": "application/vnd.amazon.eventstream" },
 			}),
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 

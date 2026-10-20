@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseHTML } from "../src/dom";
 import type { ReadabilityDocument } from "../src/readability";
 import { isProbablyReaderable, Readability } from "../src/readability";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type Golden = {
 	title: string | null;
@@ -14,12 +15,12 @@ type Golden = {
 	content: string;
 };
 
-const fixtureDirectory = `${import.meta.dir}/fixtures/readability`;
+const fixtureDirectory = `${import.meta.dirname}/fixtures/readability`;
 
 async function fixture(name: string): Promise<{ html: string; expected: Golden | null }> {
 	const [html, expected] = await Promise.all([
-		Bun.file(`${fixtureDirectory}/${name}.html`).text(),
-		Bun.file(`${fixtureDirectory}/${name}.expected.json`).json() as Promise<Golden | null>,
+		bun.file(`${fixtureDirectory}/${name}.html`).text(),
+		bun.file(`${fixtureDirectory}/${name}.expected.json`).json() as Promise<Golden | null>,
 	]);
 	return { html, expected };
 }

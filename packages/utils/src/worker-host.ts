@@ -1,7 +1,12 @@
+import { workerData } from "node:worker_threads";
 import { stripWindowsExtendedLengthPathPrefix } from "./path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Prefix reserved for argv selectors dispatched by the shared CLI worker host. */
 export const WORKER_HOST_SELECTOR_PREFIX = "__omp_worker_";
+
+/** `workerData` key that carries the selector into a Node worker thread. */
+export const WORKER_SELECTOR_KEY = "__ompWorkerSelector";
 
 /** Whether an argv value selects a worker hosted by the shared CLI entrypoint. */
 export function isWorkerHostSelector(value: string | undefined): value is string {
@@ -11,16 +16,17 @@ export function isWorkerHostSelector(value: string | undefined): value is string
 /**
  * Main-module path declared by self-dispatching CLI entrypoints — entries
  * whose top-level argv handling routes hidden `__omp_*` worker selectors.
- * Worker spawn sites re-enter this module via `new Worker(entry, { argv })`,
- * so every distribution (source, npm bundle, compiled binary) needs exactly
- * one JavaScript entrypoint. Never set under `bun test`, SDK embedding, or
- * standalone package bins — those hosts load worker modules directly.
+ * Worker spawn sites re-enter this module with `workerData[WORKER_SELECTOR_KEY]`
+ * set (Node's `Worker` has no `argv` option), so every distribution (source,
+ * npm bundle, launcher) needs exactly one JavaScript entrypoint. Never set
+ * under a test runner, SDK embedding, or standalone package bins — those hosts
+ * load worker modules directly.
  */
 let workerHostMain: string | null = null;
 
 /** Called by CLI entrypoints whose main module dispatches worker argv selectors. */
 export function declareWorkerHostEntry(): void {
-	workerHostMain = stripWindowsExtendedLengthPathPrefix(Bun.main);
+	workerHostMain = stripWindowsExtendedLengthPathPrefix(bun.main);
 }
 
 /** Main-module path of the self-dispatching CLI host, or null outside it. */
@@ -29,25 +35,33 @@ export function workerHostEntry(): string | null {
 }
 
 /**
- * Buffers messages a Bun worker thread receives before its real handler is
+ * Selector this process was started for: `workerData` in a worker thread, or
+ * the hidden argv entry when a subprocess re-enters the CLI.
+ */
+export function workerSelector(): string | undefined {
+	const data = workerData;
+	if (data && typeof data === "object" && WORKER_SELECTOR_KEY in data) {
+		const value = (data as Record<string, unknown>)[WORKER_SELECTOR_KEY];
+		return typeof value === "string" ? value : undefined;
+	}
+	return process.argv[2];
+}
+
+/**
+ * Buffers messages a worker thread receives before its real handler is
  * attached, then hands them off once it is.
  *
- * Bun delivers messages the parent posted before the worker spawned exactly
- * once — when the worker entry module's top-level evaluation completes — to the
- * `message` listeners present at that moment. A worker whose handler attaches
- * via a later `await import(...)` therefore misses that flush. The
- * self-dispatching CLI host imports each worker module dynamically from inside
- * its argv dispatch, so the worker's own `parentPort.on("message")` lands after
- * the flush and the parent's synchronously-posted `init` handshake is dropped —
- * every run then stalls until the init timeout fires and silently falls back to
- * the inline worker (issue: eval cells always taking the full timeout).
+ * The self-dispatching CLI host imports each worker module dynamically from
+ * inside its worker-selector dispatch. Node buffers `parentPort` messages until
+ * a listener exists, but a listener installed by the dynamically imported
+ * module still lands after the parent has already posted its synchronous `init`
+ * handshake; buffering here keeps that handshake ordered ahead of the module's
+ * own handler regardless of import timing.
  *
- * The host calls {@link installWorkerInbox} synchronously in the entry's sync
- * prefix (before importing the worker module) so a `parentPort` listener exists
- * at flush time; the worker module then {@link consumeWorkerInbox}es it and
- * binds the real handler, replaying anything buffered. Re-dispatching through
- * `parentPort.emit("message", …)` is not an option — Bun's port is an
- * `EventTarget` whose `emit` throws — so the inbox calls the handler directly.
+ * The host calls {@link installWorkerInbox} in the entry's sync prefix (before
+ * importing the worker module) so a `parentPort` listener exists early; the
+ * worker module then {@link consumeWorkerInbox}es it and binds the real
+ * handler, replaying anything buffered.
  */
 export interface WorkerInbox {
 	/** Route buffered and subsequent messages to `handler`; returns an unbind fn. */

@@ -1,10 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { inflateSync } from "node:zlib";
 import type { AssistantMessage, Message, Model, Usage } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { toModelSpec } from "@oh-my-pi/pi-catalog/provider-models/bundled-references";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import * as snapcompact from "../src";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Small frames keep render time negligible. Legacy 5x8 shape: 320px → 64 cols
 // x 40 rows = 2560 chars. Default (anthropic 8x8r-bw): 40 cols x 20 rows = 800.
@@ -14,13 +16,13 @@ function createUserMessage(content: string): Message {
 	return { role: "user", content, timestamp: 0 };
 }
 
-/** Runs `fn` with `overrides` applied to `Bun.env` (`undefined` deletes), then restores the previous values. */
+/** Runs `fn` with `overrides` applied to `bun.env` (`undefined` deletes), then restores the previous values. */
 function withEnv(overrides: Readonly<Record<string, string | undefined>>, fn: () => void): void {
-	const previous = Object.keys(overrides).map(key => [key, Bun.env[key]] as const);
+	const previous = Object.keys(overrides).map(key => [key, bun.env[key]] as const);
 	const apply = (entries: Iterable<readonly [string, string | undefined]>) => {
 		for (const [key, value] of entries) {
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 	};
 	try {
@@ -209,8 +211,8 @@ function decodePng(png: Uint8Array): DecodedPng {
 		idat.set(part, offset);
 		offset += part.length;
 	}
-	// Strip the zlib envelope (2-byte header + trailing Adler-32).
-	const raw = Bun.inflateSync(idat.subarray(2, idat.length - 4));
+	// `inflateSync` expects the full zlib envelope (header + Adler-32).
+	const raw = inflateSync(idat);
 	const per = 8 / depth;
 	const rowBytes = Math.ceil(width / per);
 	expect(raw.length).toBe(height * (rowBytes + 1));

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, FetchImpl } from "@oh-my-pi/pi-ai";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import {
@@ -87,7 +88,7 @@ describe("legacy pi-ai shim root exports", () => {
 					{ status: 400, headers: { "content-type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const model = buildModel({
 			id: "legacy-anthropic-adapter",
@@ -127,7 +128,7 @@ describe("legacy pi-ai shim root exports", () => {
 					}),
 					{ status: 400, headers: { "content-type": "application/json" } },
 				),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const model = buildModel({
 			id: "legacy-simple-options",

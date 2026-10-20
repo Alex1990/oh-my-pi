@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { deviceCheckGenerateToken } from "../native/index.js";
 
 // A locally built addon can predate the DeviceCheck binding; skip instead of

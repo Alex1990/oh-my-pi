@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -24,6 +24,7 @@ import {
 	writeMarketplacesRegistry,
 } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ── ID helpers ───────────────────────────────────────────────────────
 
@@ -194,7 +195,7 @@ describe("registry file I/O", () => {
 	});
 
 	it("readMarketplacesRegistry returns empty on malformed JSON", async () => {
-		await Bun.write(marketplacesPath, "not json{{{");
+		await bun.write(marketplacesPath, "not json{{{");
 		const reg = await readMarketplacesRegistry(marketplacesPath);
 		expect(reg).toEqual({ version: 1, marketplaces: [] });
 	});
@@ -225,7 +226,7 @@ describe("registry file I/O", () => {
 	});
 
 	it("readInstalledPluginsRegistry returns empty on malformed JSON", async () => {
-		await Bun.write(installedPath, "}{broken");
+		await bun.write(installedPath, "}{broken");
 		const reg = await readInstalledPluginsRegistry(installedPath);
 		expect(reg).toEqual({ version: 2, plugins: {} });
 	});
@@ -272,7 +273,7 @@ describe("registry file I/O", () => {
 				],
 			},
 		};
-		await Bun.write(installedPath, JSON.stringify(data));
+		await bun.write(installedPath, JSON.stringify(data));
 
 		const reg = await readInstalledPluginsRegistry(installedPath);
 		const entries = getInstalledPlugin(reg, "plug@mkt");

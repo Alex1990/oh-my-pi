@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
@@ -12,13 +12,15 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { createSubagentSettings } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 const MODEL_PERF_FLUSH_DELAY_MS = 60_000;
-const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const AGENT_STORAGE_MODULE = path.resolve(import.meta.dir, "../src/session/agent-storage.ts");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const AGENT_STORAGE_MODULE = path.resolve(import.meta.dirname, "../src/session/agent-storage.ts");
 
 async function runProbe(script: string, env: NodeJS.ProcessEnv): Promise<{ exitCode: number; stderr: string }> {
-	const child = Bun.spawn([process.execPath, "--eval", script], {
+	const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 		cwd: REPO_ROOT,
 		env,
 		stdin: "ignore",
@@ -392,7 +394,7 @@ describe("AgentStorage model perf aggregates", () => {
 		};
 		const probe = await runProbe(
 			[
-				'import { Database } from "bun:sqlite";',
+				'import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";',
 				'import * as fs from "node:fs";',
 				'import * as path from "node:path";',
 				'import { getAgentDbPath, getStatsDbPath } from "@oh-my-pi/pi-utils";',
@@ -454,7 +456,7 @@ describe("AgentStorage model perf aggregates", () => {
 		};
 		const exiting = await runProbe(
 			[
-				'import { Database } from "bun:sqlite";',
+				'import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";',
 				'import * as fs from "node:fs";',
 				'import * as path from "node:path";',
 				'import { getStatsDbPath } from "@oh-my-pi/pi-utils";',

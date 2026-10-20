@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import type { AssistantMessage, Context, ImageContent, Model, TextContent, Usage } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
@@ -67,7 +68,7 @@ function abortedSignal(): AbortSignal {
 
 async function makeRedPng(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
+	const upscaled = await new Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
 	return Buffer.from(upscaled).toString("base64");
 }
 
@@ -160,7 +161,7 @@ describe("Anthropic many-image payload resizing", () => {
 		expect(images[1].source.data).toBe(RED_1X1_PNG_BASE64);
 		expect(largeImage.data).toBe(largeData);
 
-		const { width, height } = await new Bun.Image(Buffer.from(images[0].source.data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(images[0].source.data, "base64")).metadata();
 		expect(width).toBeLessThanOrEqual(2000);
 		expect(height).toBeLessThanOrEqual(2000);
 	});
@@ -179,7 +180,7 @@ describe("Anthropic many-image payload resizing", () => {
 		expect(images[0].source.data).not.toBe(tallData);
 		expect(tallImage.data).toBe(tallData);
 
-		const { width, height } = await new Bun.Image(Buffer.from(images[0].source.data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(images[0].source.data, "base64")).metadata();
 		expect(height).toBe(8000);
 		expect(width).toBe(1344);
 	});
@@ -190,7 +191,7 @@ describe("Anthropic many-image payload resizing", () => {
 		// cap, over the byte cap. Trailing bytes after IEND stand in for that
 		// payload so the test does not spend a minute encoding noise.
 		const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-		const canvas = await new Bun.Image(seed).resize(1200, 900, { filter: "nearest" }).png().bytes();
+		const canvas = await new Image(seed).resize(1200, 900, { filter: "nearest" }).png().bytes();
 		const heavyData = Buffer.concat([Buffer.from(canvas), Buffer.alloc(8 * 1024 * 1024, 7)]).toString("base64");
 		expect(heavyData.length).toBeGreaterThan(10 * 1024 * 1024);
 		const heavyImage: ImageContent = { type: "image", data: heavyData, mimeType: "image/png" };
@@ -204,7 +205,7 @@ describe("Anthropic many-image payload resizing", () => {
 		expect(heavyImage.data).toBe(heavyData);
 
 		// Only the payload was over the limit, so the pixels survive intact.
-		const { width, height } = await new Bun.Image(Buffer.from(images[0].source.data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(images[0].source.data, "base64")).metadata();
 		expect(width).toBe(1200);
 		expect(height).toBe(900);
 	});
@@ -247,7 +248,7 @@ describe("Anthropic many-image payload resizing", () => {
 		expect(images).toHaveLength(2);
 		for (const image of images) {
 			expect(image.source.data).not.toBe(tallData);
-			const { height } = await new Bun.Image(Buffer.from(image.source.data, "base64")).metadata();
+			const { height } = await new Image(Buffer.from(image.source.data, "base64")).metadata();
 			expect(height).toBe(8000);
 		}
 		expect(mirrored.url).toBe("https://blobs.test/tall.png");
@@ -283,7 +284,7 @@ describe("Anthropic many-image payload resizing", () => {
 
 		const images = extractToolResultImages(payload);
 		expect(images).toHaveLength(1);
-		const { width, height } = await new Bun.Image(Buffer.from(images[0].source.data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(images[0].source.data, "base64")).metadata();
 		expect(height).toBe(4000);
 		expect(width).toBe(672);
 	});

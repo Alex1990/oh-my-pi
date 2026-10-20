@@ -10,6 +10,10 @@ import lightThemeJson from "./light.json" with { type: "json" };
 import type { ColorMode, ThemeBg, ThemeColor, ThemeJson } from "./schema";
 import { normalizeSpinnerFramesOverride, type SymbolPreset } from "./symbols";
 import { Theme } from "./theme-class";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // ============================================================================
 // Theme Loading
@@ -114,7 +118,7 @@ export async function loadThemeJson(name: string): Promise<ThemeJson> {
 	const customThemesDir = getCustomThemesDir();
 	const themePath = path.join(customThemesDir, `${name}.json`);
 	try {
-		return parseThemeJson(name, await Bun.file(themePath).text());
+		return parseThemeJson(name, await bun.file(themePath).text());
 	} catch (error) {
 		if (isEnoent(error)) throw new Error(`Theme not found: ${name}`);
 		throw error;

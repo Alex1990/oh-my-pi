@@ -4,7 +4,7 @@
  * as `queueChipText` on the queued custom message; the session derives
  * `queuedMessageCount` from the agent-core queue for host and guest UI state.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
 import {
@@ -17,20 +17,21 @@ import {
 import { CollabSocket } from "@oh-my-pi/pi-coding-agent/collab/relay-client";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
+import { type ServerWebSocket, serve } from "@oh-my-pi/pi-utils/node-serve";
 
 interface RelayData {
 	role: "host" | "guest";
 	peerId: number;
 }
 
-type RelaySocket = Bun.ServerWebSocket<RelayData>;
+type RelaySocket = ServerWebSocket<RelayData>;
 
 /** Single-room relay mirroring the omp-collab-relay forwarding contract. */
-function startTestRelay(): { url: string; stop(): void } {
+async function startTestRelay(): Promise<{ url: string; stop(): void }> {
 	let host: RelaySocket | null = null;
 	const guests = new Map<number, RelaySocket>();
 	let nextPeerId = 1;
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		fetch(req, srv): Response | undefined {
 			const role = new URL(req.url).searchParams.get("role") === "host" ? "host" : "guest";
@@ -72,7 +73,12 @@ function startTestRelay(): { url: string; stop(): void } {
 			},
 		},
 	});
-	return { url: `ws://localhost:${server.port}`, stop: () => server.stop(true) };
+	return {
+		url: `ws://localhost:${server.port}`,
+		stop: () => {
+			void server.stop(true);
+		},
+	};
 }
 
 interface CapturedPrompt {
@@ -180,7 +186,7 @@ afterEach(async () => {
 
 describe("collab mid-turn guest prompts", () => {
 	it("registers the steer as a queued message and reports it to guests via state", async () => {
-		const relay = startTestRelay();
+		const relay = await startTestRelay();
 		cleanups.push(relay.stop);
 		const harness = makeStreamingHostContext();
 		const host = new CollabHost(harness.ctx);

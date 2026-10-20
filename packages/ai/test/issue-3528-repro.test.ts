@@ -39,7 +39,7 @@
  *
  * This file pins the wire output across the relevant axes.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderDemotedThinking } from "@oh-my-pi/pi-ai/dialect";
 import { convertMessages } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import {

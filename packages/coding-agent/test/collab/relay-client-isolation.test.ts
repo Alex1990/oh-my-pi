@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type LocalRelay, startLocalRelay } from "../../../collab-web/scripts/local-relay";
 import { generateRoomKey, importRoomKey, seal } from "../../src/collab/crypto";
 import { type CollabFrame, packEnvelope } from "../../src/collab/protocol";
@@ -7,9 +7,9 @@ import { CollabSocket } from "../../src/collab/relay-client";
 let relay: LocalRelay | undefined;
 const sockets: Array<CollabSocket | WebSocket> = [];
 
-afterEach(() => {
+afterEach(async () => {
 	for (const socket of sockets.splice(0)) socket.close();
-	relay?.stop();
+	await relay?.stop();
 	relay = undefined;
 });
 
@@ -26,7 +26,7 @@ async function connect(role: "host" | "guest", key: CryptoKey): Promise<CollabSo
 describe("collab peer isolation", () => {
 	for (const corruption of ["truncated", "wrong-key"] as const) {
 		it(`keeps the room usable after a guest sends a ${corruption} frame`, async () => {
-			relay = startLocalRelay();
+			relay = await startLocalRelay();
 			const key = await importRoomKey(generateRoomKey());
 			const host = await connect("host", key);
 			const guest = await connect("guest", key);
@@ -45,7 +45,7 @@ describe("collab peer isolation", () => {
 					host.send({ t: "error", message: "healthy reply" });
 				}
 			};
-			const sender = new WebSocket(`${relay.url}/r/IsolationRoom_123?role=guest`);
+			const sender = new WebSocket(`${relay!.url}/r/IsolationRoom_123?role=guest`);
 			sockets.push(sender);
 			const opened = Promise.withResolvers<void>();
 			sender.onopen = () => opened.resolve();
@@ -66,7 +66,7 @@ describe("collab peer isolation", () => {
 	}
 
 	it("closes a guest with the wrong room key without retrying", async () => {
-		relay = startLocalRelay();
+		relay = await startLocalRelay();
 		const host = await connect("host", await importRoomKey(generateRoomKey()));
 		const guest = await connect("guest", await importRoomKey(generateRoomKey()));
 		const closed = Promise.withResolvers<{ reason: string; retry: boolean }>();

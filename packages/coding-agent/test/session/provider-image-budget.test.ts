@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Context, ImageContent, ModelSpec, TextContent } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -9,6 +9,7 @@ import {
 	clampProviderContextImageBytes,
 	clampProviderContextImages,
 } from "@oh-my-pi/pi-coding-agent/session/provider-image-budget";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const UMANS_MODEL = buildModel({
 	id: "umans-glm-5.2",
@@ -525,12 +526,12 @@ describe("provider context image budgets", () => {
 			],
 		};
 		const keys = ["ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_FOUNDRY", "FOUNDRY_BASE_URL"] as const;
-		const previous = keys.map(key => [key, Bun.env[key]] as const);
+		const previous = keys.map(key => [key, bun.env[key]] as const);
 		try {
-			for (const key of keys) delete Bun.env[key];
+			for (const key of keys) delete bun.env[key];
 			expect(clampProviderContextImageBytes(context, ANTHROPIC_MODEL)).not.toBe(context);
 			expect(capArchiveFrameBytes(context, ANTHROPIC_MODEL)).toBe(context);
-			Object.assign(Bun.env, reroute);
+			Object.assign(bun.env, reroute);
 			expect(clampProviderContextImageBytes(context, ANTHROPIC_MODEL)).toBe(context);
 			// The proxy's 3 MB frame budget keeps only the newest frame.
 			const capped = capArchiveFrameBytes(context, ANTHROPIC_MODEL);
@@ -541,8 +542,8 @@ describe("provider context image budgets", () => {
 			]);
 		} finally {
 			for (const [key, value] of previous) {
-				if (value === undefined) delete Bun.env[key];
-				else Bun.env[key] = value;
+				if (value === undefined) delete bun.env[key];
+				else bun.env[key] = value;
 			}
 		}
 	});

@@ -40,7 +40,7 @@ export class CollabSocket {
 
 	readonly #opts: CollabSocketOptions;
 	#ws: WebSocket | null = null;
-	#retryTimer: Timer | undefined;
+	#retryTimer: NodeJS.Timeout | undefined;
 	#attempt = 0;
 	/** Terminal state: intentional close or fatal failure. Cleared by connect(). */
 	#closed = false;

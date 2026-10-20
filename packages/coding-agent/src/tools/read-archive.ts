@@ -31,6 +31,7 @@ import { formatBytes } from "@oh-my-pi/pi-tui/render/render-utils";
 import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface ResolvedArchiveReadPath {
 	absolutePath: string;
@@ -69,7 +70,7 @@ const archiveReaderCache = new LRUCache<string, CachedArchiveReader>({
 
 async function openArchiveCached(absolutePath: string): Promise<ArchiveReader> {
 	// A vanished or unreadable archive is reported by the opener, as it always has been.
-	const stat = await Bun.file(absolutePath)
+	const stat = await bun.file(absolutePath)
 		.stat()
 		.catch(() => null);
 	if (!stat) return openArchive(absolutePath);
@@ -112,7 +113,7 @@ export async function resolveArchiveReadPath(
 		let suffixResolution: { from: string; to: string } | undefined;
 
 		try {
-			const stat = await Bun.file(absolutePath).stat();
+			const stat = await bun.file(absolutePath).stat();
 			if (stat.isDirectory()) continue;
 			return {
 				absolutePath,
@@ -126,7 +127,7 @@ export async function resolveArchiveReadPath(
 			if (!suffixMatch) continue;
 
 			try {
-				const retryStat = await Bun.file(suffixMatch.absolutePath).stat();
+				const retryStat = await bun.file(suffixMatch.absolutePath).stat();
 				if (retryStat.isDirectory()) continue;
 
 				absolutePath = suffixMatch.absolutePath;

@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "bun:test";
+import { afterEach, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { buildParams } from "@oh-my-pi/pi-ai/providers/openai-responses";

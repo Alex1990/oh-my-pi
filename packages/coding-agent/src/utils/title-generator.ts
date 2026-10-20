@@ -1,7 +1,7 @@
 /**
  * Generate session titles using a smol, fast model.
  */
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType, ptr } from "@oh-my-pi/pi-utils/ffi";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";

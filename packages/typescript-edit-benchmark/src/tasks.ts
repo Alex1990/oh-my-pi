@@ -8,6 +8,7 @@
 /// <reference types="./bun-imports.d.ts" />
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface EditTask {
 	id: string;
@@ -73,7 +74,7 @@ export async function loadTasksFromDir(fixturesDir: string): Promise<EditTask[]>
 		const expectedDir = path.join(challengeDir, "expected");
 		const metadataPath = path.join(challengeDir, "metadata.json");
 
-		const promptFile = Bun.file(promptPath);
+		const promptFile = bun.file(promptPath);
 		if (!(await promptFile.exists())) {
 			throw new Error(`Missing prompt.md for ${entry.name}`);
 		}
@@ -124,7 +125,7 @@ export async function validateFixturesFromDir(fixturesPath: string): Promise<Fix
 		const expectedDir = path.join(challengeDir, "expected");
 		const metadataPath = path.join(challengeDir, "metadata.json");
 
-		const promptFile = Bun.file(promptPath);
+		const promptFile = bun.file(promptPath);
 		if (!(await promptFile.exists())) {
 			issues.push({ taskId, message: "prompt.md is missing" });
 		} else if ((await promptFile.text()).trim().length === 0) {
@@ -151,19 +152,19 @@ export async function validateFixturesFromDir(fixturesPath: string): Promise<Fix
 		}
 
 		for (const file of inputFiles) {
-			const content = await Bun.file(path.join(inputDir, file)).text();
+			const content = await bun.file(path.join(inputDir, file)).text();
 			if (content.length === 0) {
 				issues.push({ taskId, message: `input/${file} is empty` });
 			}
 		}
 		for (const file of expectedFiles) {
-			const content = await Bun.file(path.join(expectedDir, file)).text();
+			const content = await bun.file(path.join(expectedDir, file)).text();
 			if (content.length === 0) {
 				issues.push({ taskId, message: `expected/${file} is empty` });
 			}
 		}
 
-		const metadataFile = Bun.file(metadataPath);
+		const metadataFile = bun.file(metadataPath);
 		if (!(await metadataFile.exists())) {
 			issues.push({ taskId, message: "metadata.json is missing" });
 			continue;
@@ -200,7 +201,7 @@ export async function validateFixturesFromDir(fixturesPath: string): Promise<Fix
 }
 
 async function loadMetadata(metadataPath: string): Promise<TaskMetadata | undefined> {
-	const metadataFile = Bun.file(metadataPath);
+	const metadataFile = bun.file(metadataPath);
 	const exists = await metadataFile.exists();
 	if (!exists) {
 		return undefined;

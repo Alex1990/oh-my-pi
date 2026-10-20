@@ -4,7 +4,7 @@
  * User-scope marketplace plugins are additionally opt-in (`enabledProviders`);
  * the hard switch wins over the opt-in.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,7 @@ import { clearClaudePluginRootsCache } from "@oh-my-pi/pi-coding-agent/discovery
 import { discoverAgents } from "@oh-my-pi/pi-coding-agent/task/discovery";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { restoreEnvValue } from "../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 const PLUGIN_AGENT_MD = [
 	"---",
 	"name: simplifier",
@@ -36,7 +37,7 @@ describe("discoverAgents — claude-plugins disabled provider", () => {
 	beforeEach(() => {
 		originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 		delete process.env.CLAUDE_CONFIG_DIR;
-		delete Bun.env.CLAUDE_CONFIG_DIR;
+		delete bun.env.CLAUDE_CONFIG_DIR;
 		tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "pi-agent-disco-home-"));
 
 		// Build a fake Claude plugin install with an agents/ subdirectory.

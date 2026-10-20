@@ -1,4 +1,5 @@
 import * as AIError from "../../error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEVICE_FLOW_CANCEL_MESSAGE = "Login cancelled";
 const DEVICE_FLOW_TIMEOUT_MESSAGE = "Device flow timed out";
@@ -29,7 +30,7 @@ export interface OAuthDeviceCodeFlowOptions<T> {
 
 async function abortableDeviceFlowSleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
 	if (!signal) {
-		await Bun.sleep(ms);
+		await bun.sleep(ms);
 		return;
 	}
 	if (signal.aborted) {

@@ -8,7 +8,7 @@
  * - Custom messages render as one-liners (`[irc] from → me: …`).
  * - No system prompt / tool catalog sections.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatSessionHistoryMarkdown } from "@oh-my-pi/pi-coding-agent/session/session-history-format";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 

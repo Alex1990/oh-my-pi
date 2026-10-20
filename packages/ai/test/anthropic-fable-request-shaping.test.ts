@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
 import type { AssistantMessage, Context, Model, ModelSpec } from "@oh-my-pi/pi-ai/types";

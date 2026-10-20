@@ -3,6 +3,9 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { type GeneratedProvider, getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Harbor benchmark runner for the local `omp` build.
  *
@@ -19,13 +22,14 @@ import { type GeneratedProvider, getBundledModel } from "@oh-my-pi/pi-catalog/mo
  *   metaharness harbor --agent oracle --tasks 2        # cheap pipeline smoke
  *   metaharness harbor --help
  */
-import type { Server } from "bun";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
 import { defaultJobName, harborRunnerArgs, type LaunchRequest } from "./launch-args";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ────────────────────────────────────────────────────────────────────── config
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..");
-const PKG_DIR = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
+const PKG_DIR = path.resolve(import.meta.dirname, "..");
 const AGENT_DIR = path.join(PKG_DIR, "agent");
 const CODING_AGENT_DIR = path.join(REPO_ROOT, "packages", "coding-agent");
 const AGENT_IMPORT_PATH = "omp_local:OmpLocal";
@@ -1089,7 +1093,7 @@ function workspacePackageDirs(): string[] {
 	} | null;
 	const dirs = new Set<string>();
 	for (const pattern of raw?.workspaces?.packages ?? []) {
-		for (const match of new Bun.Glob(`${pattern}/package.json`).scanSync({ cwd: REPO_ROOT })) {
+		for (const match of new Glob(`${pattern}/package.json`).scanSync({ cwd: REPO_ROOT })) {
 			dirs.add(path.dirname(match));
 		}
 	}
@@ -1109,7 +1113,7 @@ function sourceManifestFiles(pkgDirs: string[]): string[] {
 }
 
 function sourceDepsStamp(manifests: string[], bunVersion: string): string {
-	const h = new Bun.CryptoHasher("sha256");
+	const h = new bun.CryptoHasher("sha256");
 	h.update(`bun@${bunVersion}\0source-deps-v1\0`);
 	for (const rel of manifests) {
 		h.update(rel);
@@ -1336,12 +1340,12 @@ function startVmnetGatewayForward(cfg: Config): { stop(): void } | null {
 	if (url.hostname !== VMNET_HOST_IP) return null;
 	const port = Number(url.port || "80");
 	let server: Server<undefined> | null = null;
-	let timer: Timer | undefined;
+	let timer: NodeJS.Timeout | undefined;
 	let stopped = false;
-	const bind = (): void => {
+	const bind = async (): Promise<void> => {
 		if (stopped) return;
 		try {
-			server = Bun.serve({
+			server = await serve({
 				hostname: VMNET_HOST_IP,
 				port,
 				idleTimeout: 0,
@@ -1353,15 +1357,15 @@ function startVmnetGatewayForward(cfg: Config): { stop(): void } | null {
 			});
 			process.stdout.write(dim(`gateway forward: ${VMNET_HOST_IP}:${port} → 127.0.0.1:${port}\n`));
 		} catch {
-			timer = setTimeout(bind, 2000);
+			timer = setTimeout(() => void bind(), 2000);
 		}
 	};
-	bind();
+	void bind();
 	return {
 		stop(): void {
 			stopped = true;
 			clearTimeout(timer);
-			server?.stop(true);
+			void server?.stop(true);
 		},
 	};
 }
@@ -1704,7 +1708,7 @@ async function runBenchmark(cfg: Config): Promise<BenchmarkRun> {
 	const gatewayForward = startVmnetGatewayForward(cfg);
 	process.stdout.write(dim(`launching harbor → ${logPath}\n`));
 	const logFd = fs.openSync(logPath, "a");
-	const proc = Bun.spawn(["harbor", ...harborArgs], {
+	const proc = bun.spawn(["harbor", ...harborArgs], {
 		env: harborEnv,
 		stdout: logFd,
 		stderr: logFd,
@@ -1738,7 +1742,7 @@ async function runBenchmark(cfg: Config): Promise<BenchmarkRun> {
 		while (!finished) {
 			render(st);
 			st.tick++;
-			await Bun.sleep(isTTY ? 700 : 10000);
+			await bun.sleep(isTTY ? 700 : 10000);
 		}
 		render(st); // final frame
 	} finally {
@@ -1789,7 +1793,7 @@ async function main(): Promise<void> {
 	process.exit(exitCode);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	main().catch((err: unknown) => {
 		if (isTTY) process.stdout.write(`${ESC}?25h${ESC}?1049l`);
 		process.stderr.write(red(`\nerror: ${err instanceof Error ? err.message : String(err)}\n`));

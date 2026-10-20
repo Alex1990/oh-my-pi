@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA,
 	googleAntigravityProjectHook,
 } from "../src/registry/oauth/google-antigravity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const CLOUD_CODE_ASSIST_ENDPOINT = "https://daily-cloudcode-pa.googleapis.com";
 const LOAD_CODE_ASSIST_URL = `${CLOUD_CODE_ASSIST_ENDPOINT}/v1internal:loadCodeAssist`;
@@ -42,7 +44,7 @@ describe("Antigravity OAuth project discovery", () => {
 		};
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
-			.mockImplementation(Object.assign(async () => jsonResponse(payload), { preconnect: fetch.preconnect }));
+			.mockImplementation(Object.assign(async () => jsonResponse(payload), { preconnect: preconnectOf(fetch) }));
 
 		const credentials = await discoverAntigravityProject();
 
@@ -85,7 +87,7 @@ describe("Antigravity OAuth project discovery", () => {
 					if (!payload) throw new Error("Unexpected Cloud Code Assist request");
 					return jsonResponse(payload);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 
@@ -129,7 +131,7 @@ describe("Antigravity OAuth project discovery", () => {
 					if (!payload) throw new Error("Unexpected Cloud Code Assist request");
 					return jsonResponse(payload);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 
@@ -147,7 +149,7 @@ describe("Antigravity OAuth project discovery", () => {
 	});
 
 	it("polls a pending onboarding operation with GET after one second", async () => {
-		const sleepSpy = vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		const sleepSpy = vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 		const responses = [
 			{ allowedTiers: [{ id: "free-tier" }] },
 			{ name: "operations/onboard-123" },
@@ -172,7 +174,7 @@ describe("Antigravity OAuth project discovery", () => {
 					if (!payload) throw new Error("Unexpected Cloud Code Assist request");
 					return jsonResponse(payload);
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 

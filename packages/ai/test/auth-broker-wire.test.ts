@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,6 +18,8 @@ import {
 import * as oauthUtils from "@oh-my-pi/pi-ai/registry/oauth";
 import { logger } from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "../../utils/src/temp";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const ANTHROPIC_ENV = ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"] as const;
 const savedEnv: Partial<Record<(typeof ANTHROPIC_ENV)[number], string | undefined>> = {};
@@ -40,7 +42,7 @@ function fetchWithoutAuthBrokerCapabilities(): typeof fetch {
 			headers.delete(AUTH_BROKER_CAPABILITIES_HEADER);
 			return fetch(input, { ...init, headers });
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 
@@ -76,7 +78,7 @@ describe("auth-broker wire surface", () => {
 		await store.saveOAuth("anthropic", mintOAuthCredential("a", Date.now() + 60_000));
 		storage = new AuthStorage(store);
 		await storage.credentials.reload();
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -198,6 +200,17 @@ describe("auth-broker wire surface", () => {
 
 	test("GET /v1/usage outlives the base timeout for a serialized account batch", async () => {
 		vi.useFakeTimers();
+		// `AbortSignal.timeout` runs on an internal Node timer that fake timers do
+		// not drive. Bind it to `setTimeout` so the base budget and the extended
+		// one share the test's clock; the assertions then probe real ordering.
+		const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockImplementation(ms => {
+			const controller = new AbortController();
+			setTimeout(
+				() => controller.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+				ms,
+			);
+			return controller.signal;
+		});
 		const response = Promise.withResolvers<Response>();
 		let usageSignal: AbortSignal | undefined;
 		const fetchImpl: typeof fetch = Object.assign(
@@ -206,7 +219,7 @@ describe("auth-broker wire surface", () => {
 				if (signal) usageSignal = signal;
 				return response.promise;
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const client = new AuthBrokerClient({
 			url: "http://broker.invalid",
@@ -228,6 +241,7 @@ describe("auth-broker wire surface", () => {
 			response.resolve(Response.json({ generatedAt, reports: [] }));
 			expect(await usage).toEqual({ generatedAt, reports: [] });
 		} finally {
+			timeoutSpy.mockRestore();
 			vi.useRealTimers();
 		}
 	});
@@ -251,7 +265,7 @@ describe("auth-broker wire surface", () => {
 				observedCapabilities.push(new Headers(init?.headers).get(AUTH_BROKER_CAPABILITIES_HEADER));
 				return fetch(input, init);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const client = new AuthBrokerClient({ url: handle!.url, token, fetchImpl });
 		const unchanged = await client.fetchSnapshot({ ifGenerationGt: body.generation, waitMs: 10 });
@@ -376,7 +390,7 @@ describe("auth-broker wire surface", () => {
 			},
 		]);
 
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage: storage!,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -702,7 +716,7 @@ describe("auth-broker wire surface", () => {
 	});
 
 	test("logs the forwarded peer when trustProxyHeaders is set", async () => {
-		const proxied = startAuthBroker({
+		const proxied = await startAuthBroker({
 			storage: storage!,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -923,7 +937,7 @@ describe("auth-broker wire surface", () => {
 		const localStorage = new AuthStorage(localStore);
 		await localStorage.credentials.reload();
 		const localToken = "keepalive-bearer";
-		const localHandle = startAuthBroker({
+		const localHandle = await startAuthBroker({
 			storage: localStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [localToken],
@@ -968,7 +982,7 @@ describe("auth-broker wire surface", () => {
 	});
 
 	test("openSnapshotStream throws AuthBrokerStreamUnsupportedError on 404", async () => {
-		const dummy = Bun.serve({
+		const dummy = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => new Response("Not Found", { status: 404 }),
@@ -983,7 +997,7 @@ describe("auth-broker wire surface", () => {
 	});
 
 	test("openSnapshotStream rejects 200 responses that are not SSE", async () => {
-		const dummy = Bun.serve({
+		const dummy = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }),
@@ -998,7 +1012,7 @@ describe("auth-broker wire surface", () => {
 	});
 
 	test("openSnapshotStream rejects SSE responses without an initial snapshot", async () => {
-		const dummy = Bun.serve({
+		const dummy = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>

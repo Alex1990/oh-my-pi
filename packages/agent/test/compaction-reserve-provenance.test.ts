@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { CompactionSettings } from "@oh-my-pi/pi-agent-core/compaction/compaction";
 import {
 	DEFAULT_COMPACTION_SETTINGS,

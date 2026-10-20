@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatPythonForDisplay } from "@oh-my-pi/pi-tui/tools/eval-format/python";
 
 const compact =

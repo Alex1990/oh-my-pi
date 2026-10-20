@@ -7,10 +7,11 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getAgentDir, getProjectDir, isEnoent } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import { loadBundledAgents } from "../task/agents";
 import type { AgentDefinition } from "../task/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type AgentsAction = "unpack";
 
@@ -95,7 +96,7 @@ async function unpackBundledAgents(flags: AgentsCommandArgs["flags"]): Promise<U
 			}
 		}
 
-		await Bun.write(filePath, serializeAgent(agent));
+		await bun.write(filePath, serializeAgent(agent));
 		written.push(filePath);
 	}
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const RUST_AFFECTING_FILE_NAMES = [
 	"Cargo.toml",
@@ -77,7 +78,7 @@ const TASK_COMMANDS = {
 
 type RustTaskName = keyof typeof TASK_COMMANDS;
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const cargoBinary = await resolveCargoBinary();
 const taskName = process.argv[2];
 
@@ -103,7 +104,7 @@ function isRustTaskName(value: string | undefined): value is RustTaskName {
 }
 
 function isCI(): boolean {
-	const value = Bun.env.CI;
+	const value = bun.env.CI;
 	if (!value) return false;
 	const normalized = value.trim().toLowerCase();
 	return normalized !== "" && normalized !== "0" && normalized !== "false";
@@ -185,7 +186,7 @@ async function runCommand(command: readonly string[]): Promise<number> {
 		const currentPath = env.PATH ?? env.Path ?? "";
 		env.PATH = currentPath === "" ? toolchainBin : `${toolchainBin}${pathSep}${currentPath}`;
 	}
-	const proc = Bun.spawn(argv, {
+	const proc = bun.spawn(argv, {
 		cwd: repoRoot,
 		env,
 		stdin: "inherit",

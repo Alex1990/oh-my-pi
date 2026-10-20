@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspPrefsProps } from "@oh-my-pi/pi-wire";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "@oh-my-pi/pi-tui/native/node";
 import type { PluginSettingsHost } from "@oh-my-pi/pi-tui/overlays/plugin-settings";
 import type { SettingsDisplayEntry, SettingsHost } from "@oh-my-pi/pi-tui/overlays/settings-defs";
 import { SettingsSelectorComponent } from "@oh-my-pi/pi-tui/overlays/settings-selector";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ENTER = "\n";
 const DOWN = "\x1b[B";
@@ -270,16 +271,16 @@ describe("settings as a native prefs page", () => {
 		send(selector, { type: "action", key: "", act: "page", value: "providers", mods: [] });
 		const control = row(prefs(selector).props, "providers.tokens").control;
 		expect(JSON.stringify(control)).not.toContain("private-token");
-		expect(Bun.stripANSI(selector.render(120).join("\n"))).not.toContain("private-token");
+		expect(bun.stripANSI(selector.render(120).join("\n"))).not.toContain("private-token");
 
 		send(selector, { type: "activate", key: "", item: "providers.tokens" });
 		expect(prefs(selector).props.editing?.draft).toMatch(/^•+$/);
-		expect(Bun.stripANSI(selector.render(120).join("\n"))).not.toContain("private-token");
+		expect(bun.stripANSI(selector.render(120).join("\n"))).not.toContain("private-token");
 		selector.handleInput("\x01");
 		selector.handleInput("\x0b");
 		for (const character of '["replacement-token"]') selector.handleInput(character);
 		expect(prefs(selector).props.editing?.draft).toMatch(/^•+$/);
-		expect(Bun.stripANSI(selector.render(120).join("\n"))).not.toContain("replacement-token");
+		expect(bun.stripANSI(selector.render(120).join("\n"))).not.toContain("replacement-token");
 		selector.handleInput(ENTER);
 		expect(values.get("providers.tokens")).toEqual(["replacement-token"]);
 	});
@@ -321,7 +322,7 @@ describe("settings as a native prefs page", () => {
 		// from silently dropping the toggle and letting the row catch up.
 		const openRows = selector
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.filter(line => /[0-9]\. [AC]|·  B/.test(line));
 		expect(openRows.length).toBe(3);
 		expect(openRows.some(line => line.includes("1. A"))).toBe(true);

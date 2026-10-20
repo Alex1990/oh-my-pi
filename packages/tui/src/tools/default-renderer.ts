@@ -20,6 +20,7 @@ import {
 	renderJsonTreeLines,
 } from "./json-tree";
 import { formatExpandHint } from "../render/render-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Inputs rendered by the fallback card used when a tool has no bespoke renderer. */
 export interface DefaultToolRenderInput {
@@ -74,7 +75,7 @@ function buildDefaultToolBody(input: DefaultToolRenderInput, uiTheme: Theme, con
 	const body: string[] = [];
 	const args = isRecord(input.args) ? input.args : undefined;
 	if (!options.expanded && args && Object.keys(args).length > 0) {
-		const inlineBudget = Math.max(20, contentWidth - Bun.stringWidth(uiTheme.tree.last) - 2);
+		const inlineBudget = Math.max(20, contentWidth - bun.stringWidth(uiTheme.tree.last) - 2);
 		const preview = formatArgsInline(args, inlineBudget);
 		if (preview) {
 			body.push(` ${uiTheme.fg("dim", uiTheme.tree.last)} ${uiTheme.fg("dim", preview)}`);

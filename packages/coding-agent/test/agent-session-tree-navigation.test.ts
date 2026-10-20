@@ -8,7 +8,7 @@
  * - Summary attachment at correct position in tree
  * - Abort handling during summarization
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ExtensionRunner } from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
 import { createTestSession, e2eApiKey, type TestSessionContext } from "./utilities";
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -15,6 +15,10 @@ import {
 	type WriteTextAtomicOptions,
 } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { type SessionTitleUpdate, serializeTitleSlot } from "@oh-my-pi/pi-coding-agent/session/session-title-slot";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
+vi.mock("node:fs/promises", { spy: true });
 
 class ControlledTitleUpdateBackend implements SessionStorageBackend {
 	readonly #sessionPath: string;
@@ -307,7 +311,7 @@ describe("FileSessionStorage.deleteSessionWithArtifacts", () => {
 
 	async function createSessionFile(name: string): Promise<string> {
 		const sessionPath = path.join(tempDir, `${name}.jsonl`);
-		await Bun.write(
+		await bun.write(
 			sessionPath,
 			`${JSON.stringify({ type: "session", id: "session-id", timestamp: "2025-01-01T00:00:00Z", cwd: tempDir })}\n`,
 		);
@@ -330,7 +334,7 @@ describe("FileSessionStorage.deleteSessionWithArtifacts", () => {
 		const sessionPath = await createSessionFile("cleanup-failure");
 		const artifactsDir = sessionPath.slice(0, -6);
 		await fsp.mkdir(artifactsDir, { recursive: true });
-		await Bun.write(path.join(artifactsDir, "artifact.txt"), "artifact payload");
+		await bun.write(path.join(artifactsDir, "artifact.txt"), "artifact payload");
 
 		const rmError = new Error("permission denied");
 		const rmSpy = vi.spyOn(fsp, "rm").mockRejectedValueOnce(rmError);
@@ -365,7 +369,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 		const second = fs.statSync(sessionPath);
 
 		expect(second.ino).not.toBe(first.ino);
-		expect(await Bun.file(sessionPath).text()).toBe("second\n");
+		expect(await bun.file(sessionPath).text()).toBe("second\n");
 	});
 
 	it("keeps open readers on the old file when replacement initially fails with EPERM", async () => {
@@ -387,7 +391,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 			storage.writeTextSync(sessionPath, "replacement snapshot\n");
 			expect(fs.readFileSync(reader, "utf8")).toBe("original snapshot\n");
 			expect(fs.statSync(sessionPath).ino).not.toBe(original.ino);
-			expect(await Bun.file(sessionPath).text()).toBe("replacement snapshot\n");
+			expect(await bun.file(sessionPath).text()).toBe("replacement snapshot\n");
 			expect((await fsp.readdir(tempDir)).filter(file => file !== ".session.jsonl.lock.os")).toEqual([
 				"session.jsonl",
 			]);
@@ -416,7 +420,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 		try {
 			expect(() => storage.writeTextSync(sessionPath, "replacement\n")).toThrow("retry failed");
 			expect(fs.statSync(sessionPath).ino).toBe(original.ino);
-			expect(await Bun.file(sessionPath).text()).toBe("original\n");
+			expect(await bun.file(sessionPath).text()).toBe("original\n");
 			expect((await fsp.readdir(tempDir)).filter(file => file !== ".session.jsonl.lock.os")).toEqual([
 				"session.jsonl",
 			]);
@@ -440,7 +444,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 		try {
 			expect(() => storage.writeTextSync(sessionPath, "replacement\n")).toThrow("staging denied");
 			expect(fs.statSync(sessionPath).ino).toBe(original.ino);
-			expect(await Bun.file(sessionPath).text()).toBe("original\n");
+			expect(await bun.file(sessionPath).text()).toBe("original\n");
 			expect((await fsp.readdir(tempDir)).filter(file => file !== ".session.jsonl.lock.os")).toEqual([
 				"session.jsonl",
 			]);
@@ -463,7 +467,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 			const appendSync = writer.appendSync?.bind(writer);
 			if (!appendSync) throw new Error("File writer must expose appendSync");
 			appendSync("appended\n");
-			expect(await Bun.file(sessionPath).text()).toBe("rewritten\nappended\n");
+			expect(await bun.file(sessionPath).text()).toBe("rewritten\nappended\n");
 			const files = await fsp.readdir(tempDir);
 			expect(files).not.toContain(".session.jsonl.lock");
 			expect(files.some(file => file.endsWith(".tmp"))).toBe(false);
@@ -484,7 +488,7 @@ describe("FileSessionStorage.writeTextSync", () => {
 		try {
 			await expect(storage.writeTextAtomic(sessionPath, "replacement\n")).rejects.toBeInstanceOf(SessionLockError);
 			expect(() => storage.writeTextSync(sessionPath, "replacement\n")).toThrow(SessionLockError);
-			expect(await Bun.file(sessionPath).text()).toBe("original\n");
+			expect(await bun.file(sessionPath).text()).toBe("original\n");
 		} finally {
 			fs.unlinkSync(lockPath);
 		}
@@ -642,7 +646,7 @@ describe("FileSessionStorage.updateSessionTitle", () => {
 
 		await storage.updateSessionTitle(sessionPath, { title: "New", source: "user", updatedAt: "t2" });
 
-		const content = await Bun.file(sessionPath).text();
+		const content = await bun.file(sessionPath).text();
 		const [slotLine, ...rest] = content.split("\n");
 		expect(JSON.parse(slotLine)).toMatchObject({ type: "title", title: "New", source: "user", updatedAt: "t2" });
 		expect(`${rest.join("\n")}`).toBe(tail);

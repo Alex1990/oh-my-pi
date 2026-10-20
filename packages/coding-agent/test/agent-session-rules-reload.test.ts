@@ -7,7 +7,7 @@
  * the next prompt observe the current file — otherwise the rule set stays frozen
  * at session creation until the process restarts (issue #10940).
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Api, Model, ModelSpec } from "@oh-my-pi/pi-ai";
@@ -19,6 +19,7 @@ import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-sessi
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { getConfigRootDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function buildLocalModel(api: string): Model<Api> {
 	return buildModel({
@@ -50,7 +51,7 @@ function restoreAgentDir(): void {
 }
 
 async function createReloadSession(tempDir: TempDir): Promise<{ session: AgentSession; authStorage: AuthStorage }> {
-	const marker = Bun.nanoseconds().toString(36);
+	const marker = bun.nanoseconds().toString(36);
 	const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
 	authStorage.keys.setRuntime("managed-primary", "test-key");
 	const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
@@ -79,7 +80,7 @@ async function expectStickyRuleReload(
 	opts: { seedInitial: boolean; scope: "user" | "project" },
 ): Promise<void> {
 	using tempDir = TempDir.createSync("@pi-rules-reload-");
-	const marker = Bun.nanoseconds().toString(36);
+	const marker = bun.nanoseconds().toString(36);
 	const original = `ORIGINAL_STICKY_${marker}`;
 	const updated = `UPDATED_STICKY_${marker}`;
 	// User scope: `<agentDir>/RULES.md` via the process-global getAgentDir().
@@ -149,7 +150,7 @@ describe("AgentSession session-local rule snapshot reload on session reset", () 
 
 	it("resolves rule://<name> for a rulebook rule created after startup once the context resets", async () => {
 		using tempDir = TempDir.createSync("@pi-rules-reload-book-");
-		const marker = Bun.nanoseconds().toString(36);
+		const marker = bun.nanoseconds().toString(36);
 		const body = `RULEBOOK_BODY_${marker}`;
 		const ruleName = `reload-book-${marker}`;
 		// Empty `.omp/rules/` keeps the project config scope present without any rulebook rule yet.

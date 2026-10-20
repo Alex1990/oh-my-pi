@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test, vi } from "bun:test";
+import { beforeAll, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";

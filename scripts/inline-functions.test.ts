@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { IndentationText, Project } from "ts-morph";
 import { inlineFile, type Options } from "./inline-functions";
 

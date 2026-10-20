@@ -1,14 +1,15 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { HindsightApi } from "@oh-my-pi/pi-coding-agent/hindsight/client";
 
 function captureRequestBodies(): string[] {
 	const bodies: string[] = [];
 	const fetchMock: typeof globalThis.fetch = Object.assign(
-		async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+		async (_input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 			bodies.push(String(init?.body ?? ""));
 			return new Response("{}", { status: 200 });
 		},
-		{ preconnect: globalThis.fetch.preconnect },
+		{ preconnect: preconnectOf(globalThis.fetch) },
 	);
 	vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 	return bodies;
@@ -72,7 +73,7 @@ function serveMentalModels(count: number, { reportTotal }: { reportTotal: boolea
 			const items = models.slice(offset, offset + limit);
 			return Response.json(reportTotal ? { items, total: count, limit, offset } : { items });
 		},
-		{ preconnect: globalThis.fetch.preconnect },
+		{ preconnect: preconnectOf(globalThis.fetch) },
 	);
 	vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 	return urls;

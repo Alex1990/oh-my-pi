@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { StatsLive } from "@oh-my-pi/omp-stats/live";
 import type { LiveStatus } from "@oh-my-pi/omp-stats/shared-types";
 import { getStatsDbPath } from "@oh-my-pi/pi-utils";

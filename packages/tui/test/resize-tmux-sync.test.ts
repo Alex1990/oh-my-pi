@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,10 +8,11 @@ import { tmuxMultiplexer } from "@oh-my-pi/pi-tui/multiplexers/tmux";
 import type { PrivateModeReportHandler } from "@oh-my-pi/pi-tui/terminal";
 import * as capabilities from "@oh-my-pi/pi-tui/terminal-capabilities";
 import * as multiplexer from "@oh-my-pi/pi-tui/terminal-multiplexer";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
 import { WidthReplayProvider } from "./width-replay-provider";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ALT_ENTER = "\x1b[?1049h";
 const ALT_EXIT = "\x1b[?1049l";
@@ -423,16 +424,16 @@ describe("tmux synchronized rebuild", () => {
 	// PI_TEST_TMUX_SYNC=1 bun test packages/tui/test/resize-tmux-sync.test.ts
 	// A detached capture-pane alone cannot catch intermediate frames: attach a
 	// real PTY client and inspect everything tmux actually sends it during replay.
-	it.skipIf(Bun.env.PI_TEST_TMUX_SYNC !== "1")(
+	it.skipIf(bun.env.PI_TEST_TMUX_SYNC !== "1")(
 		"keeps the real Composer at the bottom through rapid height growth and later oscillation",
 		async () => {
-			const tmux = Bun.which("tmux");
+			const tmux = bun.which("tmux");
 			if (!tmux) throw new Error("PI_TEST_TMUX_SYNC requires tmux");
 			const args = ["-L", `tui-height-${process.pid}-${Date.now()}`, "-f", "/dev/null"];
 			await $`${tmux} ${args} new-session -d -s probe -x 100 -y 70 sleep 60`.quiet();
 			try {
 				await $`${tmux} ${args} set-option -g history-limit 10000`.quiet();
-				await $`${tmux} ${args} split-window -v -l 30 -t probe:0.0 ${process.execPath} ${path.join(import.meta.dir, "fixtures/tmux-resize-composer.ts")}`.quiet();
+				await $`${tmux} ${args} split-window -v -l 30 -t probe:0.0 ${process.execPath} ${path.join(import.meta.dirname, "fixtures/tmux-resize-composer.ts")}`.quiet();
 				const verify = async (height: number, resets?: number): Promise<void> => {
 					const deadline = performance.now() + 5000;
 					while (true) {
@@ -444,7 +445,7 @@ describe("tmux synchronized rebuild", () => {
 							if (state.height === height && (resets === undefined || state.resets === resets)) break;
 						}
 						if (performance.now() > deadline) throw new Error(`Unsettled height ${height}: ${title}`);
-						await Bun.sleep(20);
+						await bun.sleep(20);
 					}
 					const visible = await $`${tmux} ${args} capture-pane -p -t probe:0.1`.quiet().text();
 					expect(visible.split("\n").slice(0, height).at(-1)?.trim()).toBe("EDITOR-BOTTOM");
@@ -457,10 +458,10 @@ describe("tmux synchronized rebuild", () => {
 				// Let the initial PTY-size throttle expire. The first grow must
 				// reach the app immediately, while subsequent grows race its CPR
 				// inside tmux's 250 ms SIGWINCH throttle window.
-				await Bun.sleep(300);
+				await bun.sleep(300);
 				for (const height of [35, 45, 55, 65]) {
 					await $`${tmux} ${args} resize-pane -y ${height} -t probe:0.1`.quiet();
-					await Bun.sleep(35);
+					await bun.sleep(35);
 				}
 				await verify(65, 0);
 				await $`${tmux} ${args} resize-pane -y 20 -t probe:0.1`.quiet();
@@ -473,7 +474,7 @@ describe("tmux synchronized rebuild", () => {
 				await verify(45);
 				for (const height of [12, 40, 16, 55]) {
 					await $`${tmux} ${args} resize-pane -y ${height} -t probe:0.1`.quiet();
-					await Bun.sleep(35);
+					await bun.sleep(35);
 				}
 				await verify(55);
 			} finally {
@@ -483,10 +484,10 @@ describe("tmux synchronized rebuild", () => {
 		15000,
 	);
 
-	it.skipIf(Bun.env.PI_TEST_TMUX_SYNC !== "1")(
+	it.skipIf(bun.env.PI_TEST_TMUX_SYNC !== "1")(
 		"shows only the final history tail to an attached tmux client across slow zoom/unzoom rebuilds",
 		async () => {
-			const tmux = Bun.which("tmux");
+			const tmux = bun.which("tmux");
 			if (!tmux) throw new Error("PI_TEST_TMUX_SYNC requires tmux");
 			const directory = await fs.mkdtemp(path.join(os.tmpdir(), "tui-tmux-sync-"));
 			const socket = `tui-sync-${process.pid}-${Date.now()}`;
@@ -500,7 +501,7 @@ describe("tmux synchronized rebuild", () => {
 			try {
 				await $`${tmux} ${args} set-option -g status off`.quiet();
 				await $`${tmux} ${args} set-option -g history-limit 20000`.quiet();
-				await $`${tmux} ${args} split-window -h -l 49 -t probe:0.0 ${process.execPath} ${path.join(import.meta.dir, "fixtures/tmux-slow-output.ts")} ${directory}`.quiet();
+				await $`${tmux} ${args} split-window -h -l 49 -t probe:0.0 ${process.execPath} ${path.join(import.meta.dirname, "fixtures/tmux-slow-output.ts")} ${directory}`.quiet();
 				const attached = client.startArgv(
 					{
 						application: tmux,
@@ -517,19 +518,19 @@ describe("tmux synchronized rebuild", () => {
 					},
 				);
 				try {
-					await Bun.sleep(300);
+					await bun.sleep(300);
 					// Answer startup queries like the outer terminal. Leaving DA
 					// unanswered causes a capability-timeout redraw mid-replay.
 					client.write("\x1b[?1;2c\x1b[>0;0;0c\x1b[?2026;2$y");
-					await Bun.sleep(100);
+					await bun.sleep(100);
 					let frame = 0;
 					const sendFrame = async (data: string): Promise<number> => {
 						const started = performance.now();
-						await Bun.write(`${directory}/${frame}.pending`, data);
+						await bun.write(`${directory}/${frame}.pending`, data);
 						await fs.rename(`${directory}/${frame}.pending`, `${directory}/${frame}.frame`);
-						while (!(await Bun.file(`${directory}/${frame}.done`).exists())) {
+						while (!(await bun.file(`${directory}/${frame}.done`).exists())) {
 							if (performance.now() - started > 10000) throw new Error("tmux replay timed out");
-							await Bun.sleep(20);
+							await bun.sleep(20);
 						}
 						frame++;
 						return performance.now() - started;
@@ -550,12 +551,12 @@ describe("tmux synchronized rebuild", () => {
 								// The drag writes nothing; let tmux finish the native layout
 								// redraw before the settled replay, as in the real debounce.
 								expect(terminal.written).toEqual([]);
-								await Bun.sleep(80);
+								await bun.sleep(80);
 								await scheduler.advance(terminal, 80);
 								output = "";
 								const elapsed = await sendFrame(terminal.written.join(""));
 								if (count === 10000) expect(elapsed).toBeGreaterThan(1000);
-								await Bun.sleep(200);
+								await bun.sleep(200);
 								expect(screen.getViewport().join("\n")).not.toContain(REBUILDING);
 								const observed = [...output.matchAll(/ROW(\d{5})/g)].map(match => Number(match[1]));
 								expect(observed.length).toBeGreaterThan(0);

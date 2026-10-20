@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, type OAuthCredential, type ResetCreditTarget } from "@oh-my-pi/pi-ai/auth-storage";
 import { claudeUsageProvider } from "@oh-my-pi/pi-ai/usage/claude";
 import { isRecord } from "@oh-my-pi/pi-ai/utils";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 interface ResetPost {
 	path: string;
@@ -51,7 +52,7 @@ async function fixture(): Promise<ResetFixture> {
 	};
 	const posts: ResetPost[] = [];
 	const usageRequests: string[] = [];
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		hostname: "127.0.0.1",
 		async fetch(request) {

@@ -1,19 +1,20 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { completeSimple } from "@oh-my-pi/pi-ai";
 import { resolveOpenAIRequestSetup } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const COREWEAVE_ENV_KEYS = ["COREWEAVE_PROJECT", "WANDB_INFERENCE_PROJECT", "WANDB_ENTITY", "WANDB_PROJECT"] as const;
-const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, Bun.env[key]]));
+const ORIGINAL_ENV = new Map(COREWEAVE_ENV_KEYS.map(key => [key, bun.env[key]]));
 
 function restoreCoreWeaveEnv(): void {
 	for (const key of COREWEAVE_ENV_KEYS) {
 		const value = ORIGINAL_ENV.get(key);
 		if (value === undefined) {
-			delete Bun.env[key];
+			delete bun.env[key];
 		} else {
-			Bun.env[key] = value;
+			bun.env[key] = value;
 		}
 	}
 }
@@ -46,10 +47,10 @@ describe("CoreWeave Serverless Inference project header", () => {
 	};
 
 	test("adds OpenAI-Project from COREWEAVE_PROJECT", () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		delete Bun.env.WANDB_ENTITY;
-		delete Bun.env.WANDB_PROJECT;
+		bun.env.COREWEAVE_PROJECT = "team/project";
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		delete bun.env.WANDB_ENTITY;
+		delete bun.env.WANDB_PROJECT;
 
 		const setup = resolveOpenAIRequestSetup(coreWeaveModel, {
 			apiKey: "coreweave-key",
@@ -60,10 +61,10 @@ describe("CoreWeave Serverless Inference project header", () => {
 	});
 
 	test("builds OpenAI-Project from W&B entity and project fallbacks", () => {
-		delete Bun.env.COREWEAVE_PROJECT;
-		delete Bun.env.WANDB_INFERENCE_PROJECT;
-		Bun.env.WANDB_ENTITY = "wandb-team";
-		Bun.env.WANDB_PROJECT = "inference-project";
+		delete bun.env.COREWEAVE_PROJECT;
+		delete bun.env.WANDB_INFERENCE_PROJECT;
+		bun.env.WANDB_ENTITY = "wandb-team";
+		bun.env.WANDB_PROJECT = "inference-project";
 
 		const setup = resolveOpenAIRequestSetup(coreWeaveModel, {
 			apiKey: "coreweave-key",
@@ -74,7 +75,7 @@ describe("CoreWeave Serverless Inference project header", () => {
 	});
 
 	test("preserves an explicit request project header", () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
+		bun.env.COREWEAVE_PROJECT = "team/project";
 
 		const setup = resolveOpenAIRequestSetup(coreWeaveModel, {
 			apiKey: "coreweave-key",
@@ -87,7 +88,7 @@ describe("CoreWeave Serverless Inference project header", () => {
 	});
 
 	test("uses COREWEAVE_PROJECT when an explicit blank project header is present", () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
+		bun.env.COREWEAVE_PROJECT = "team/project";
 
 		const setup = resolveOpenAIRequestSetup(coreWeaveModel, {
 			apiKey: "coreweave-key",
@@ -100,7 +101,7 @@ describe("CoreWeave Serverless Inference project header", () => {
 	});
 
 	test("sends one OpenAI-Project header on chat-completions requests when a blank override is present", async () => {
-		Bun.env.COREWEAVE_PROJECT = "team/project";
+		bun.env.COREWEAVE_PROJECT = "team/project";
 		const requestHeaders: Headers[] = [];
 		const fetchMock: FetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
 			requestHeaders.push(new Headers(init?.headers));

@@ -5,7 +5,7 @@
  * from both `~/.omp/agent/RULES.md` (user) and the nearest `.omp/RULES.md`
  * (project, walked up from cwd to repoRoot).
  */
-import { afterEach, beforeEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -33,6 +33,7 @@ import {
 	cfgCompactionModelThresholdsEnabled,
 } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("createAgentSession deferred model pattern resolution", () => {
 	let tempDir: string;
@@ -687,7 +688,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		const authStorage = createInMemoryAuthStorage();
 		authStoragesToClose.push(authStorage);
 		const modelsPath = path.join(tempDir, "disabled-first-models.yml");
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			JSON.stringify({
 				providers: {
@@ -1106,12 +1107,12 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		const authStorage = createInMemoryAuthStorage();
 		authStoragesToClose.push(authStorage);
 		const modelRegistry = new ModelRegistry(authStorage, path.join(tempDir, "alias-fallback-models.yml"));
-		const originalXaiApiKey = Bun.env.XAI_API_KEY;
-		const originalXaiOauthToken = Bun.env.XAI_OAUTH_TOKEN;
+		const originalXaiApiKey = bun.env.XAI_API_KEY;
+		const originalXaiOauthToken = bun.env.XAI_OAUTH_TOKEN;
 		// XAI_API_KEY authenticates `xai-oauth` requests through an alias, but
 		// default availability ignores that alias and offers `xai` instead.
-		Bun.env.XAI_API_KEY = "xai-env-key";
-		delete Bun.env.XAI_OAUTH_TOKEN;
+		bun.env.XAI_API_KEY = "xai-env-key";
+		delete bun.env.XAI_OAUTH_TOKEN;
 		try {
 			const { session, modelFallbackMessage } = await createAgentSession({
 				cwd: tempDir,
@@ -1140,10 +1141,10 @@ describe("createAgentSession deferred model pattern resolution", () => {
 				await session.dispose();
 			}
 		} finally {
-			if (originalXaiApiKey === undefined) delete Bun.env.XAI_API_KEY;
-			else Bun.env.XAI_API_KEY = originalXaiApiKey;
-			if (originalXaiOauthToken === undefined) delete Bun.env.XAI_OAUTH_TOKEN;
-			else Bun.env.XAI_OAUTH_TOKEN = originalXaiOauthToken;
+			if (originalXaiApiKey === undefined) delete bun.env.XAI_API_KEY;
+			else bun.env.XAI_API_KEY = originalXaiApiKey;
+			if (originalXaiOauthToken === undefined) delete bun.env.XAI_OAUTH_TOKEN;
+			else bun.env.XAI_OAUTH_TOKEN = originalXaiOauthToken;
 		}
 	});
 
@@ -1531,7 +1532,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 
 		const targetSessionFile = path.join(tempDir, "resume-saved-model.jsonl");
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			targetSessionFile,
 			`${[
 				{ type: "session", version: 3, id: "resume-saved", timestamp, cwd: tempDir },
@@ -1706,7 +1707,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 	async function writeSavedModelSession(model: string): Promise<string> {
 		const sessionFile = path.join(tempDir, `saved-${Snowflake.next()}.jsonl`);
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			sessionFile,
 			`${[
 				{ type: "session", version: 3, id: `saved-${Snowflake.next()}`, timestamp, cwd: tempDir },
@@ -1849,7 +1850,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		authStorage.keys.setRuntime(defaultModel.provider, "test-key");
 
 		const modelsPath = path.join(tempDir, "models.yml");
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			JSON.stringify({
 				providers: {
@@ -1889,7 +1890,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 
 		const targetSessionFile = path.join(tempDir, "resume-discovery-model.jsonl");
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			targetSessionFile,
 			`${[
 				{ type: "session", version: 3, id: "resume-discovery", timestamp, cwd: tempDir },
@@ -2156,7 +2157,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 	});
 
 	test("loads model overrides from the supplied agent directory", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, "models.yml"),
 			[
 				"providers:",
@@ -2211,7 +2212,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 
 		const targetSessionFile = path.join(tempDir, "resume-extension.jsonl");
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			targetSessionFile,
 			`${[
 				{ type: "session", version: 3, id: "resume-ext", timestamp, cwd: tempDir },
@@ -2283,7 +2284,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		// only resolvable once provider registrations are processed.
 		const targetSessionFile = path.join(tempDir, "resume-extension-default-missing.jsonl");
 		const timestamp = "2026-06-01T00:00:00.000Z";
-		await Bun.write(
+		await bun.write(
 			targetSessionFile,
 			`${[
 				{ type: "session", version: 3, id: "resume-ext-no-default", timestamp, cwd: tempDir },

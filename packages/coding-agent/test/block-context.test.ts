@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildLineEntriesWithBlockContext, findBlockContextLines } from "../src/utils/block-context";
 
 describe("block context for partial reads", () => {

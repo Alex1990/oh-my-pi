@@ -1,5 +1,5 @@
 import type { ImageContent } from "@oh-my-pi/pi-ai";
-import { afterEach, beforeAll, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { HookEditorComponent } from "@oh-my-pi/pi-tui/overlays/hook-editor";
 import type { DescribeContext } from "@oh-my-pi/pi-tui/native/node";
@@ -7,6 +7,7 @@ import { ExtensionUiController } from "@oh-my-pi/pi-coding-agent/modes/controlle
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { CURSOR_MARKER, isFocusable, setKeybindings, type TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("dark");
@@ -32,11 +33,11 @@ function createTui(): TUI {
 }
 
 function renderText(component: HookEditorComponent, width = 120): string {
-	return Bun.stripANSI(component.render(width).join("\n"));
+	return bun.stripANSI(component.render(width).join("\n"));
 }
 
 function renderLines(component: HookEditorComponent, width = 120): string[] {
-	return Bun.stripANSI(component.render(width).join("\n")).split("\n");
+	return bun.stripANSI(component.render(width).join("\n")).split("\n");
 }
 
 function largePasteText(): string {
@@ -237,7 +238,7 @@ describe("HookEditorComponent prompt-style mode", () => {
 		const tui = createTui();
 		// The external edit ends by restarting the TUI and requesting a render; await that.
 		const rendered = Promise.withResolvers<void>();
-		(tui.requestRender as Mock<TUI["requestRender"]>).mockImplementation(() => rendered.resolve());
+		vi.mocked(tui.requestRender).mockImplementation(() => rendered.resolve());
 		const externalEditor = vi.fn(async (text: string) => `${text} edited`);
 		const onExternalSubmit = vi.fn();
 		const external = new HookEditorComponent(tui, "Prompt", "draft", onExternalSubmit, vi.fn(), { externalEditor });
@@ -601,7 +602,7 @@ describe("HookEditorComponent prompt-style mode", () => {
 		// First title line insets into the top border row.
 		expect(lines[0]).toContain("Other (type your own)");
 		// Remaining title lines, gutter, and hint are body rows.
-		const content = component.renderContent(80).map(line => Bun.stripANSI(line));
+		const content = component.renderContent(80).map(line => bun.stripANSI(line));
 		expect(content.some(line => line.startsWith("Enter your response:"))).toBe(true);
 		expect(content.some(line => line.startsWith("> "))).toBe(true);
 	});
@@ -627,14 +628,14 @@ describe("ExtensionUiController hook editor abort", () => {
 		expect(ctx.hookEditor).toBeDefined();
 
 		abortController.abort();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		expect(editorContainer.children).toEqual([editor]);
 		expect(ctx.hookEditor).toBeUndefined();
 		expect(ui.setFocus).toHaveBeenLastCalledWith(editor);
 
 		const pending = Symbol("pending");
-		const result = await Promise.race([promise, Bun.sleep(20).then(() => pending)]);
+		const result = await Promise.race([promise, bun.sleep(20).then(() => pending)]);
 		expect(result).toBeUndefined();
 	});
 
@@ -701,7 +702,7 @@ describe("ExtensionUiController dialog serialization", () => {
 
 		// Resolving A hands the surface to the queued B.
 		abortA.abort();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(await promiseA).toBeUndefined();
 		const componentB = ctx.hookSelector;
 		expect(componentB).toBeDefined();
@@ -710,7 +711,7 @@ describe("ExtensionUiController dialog serialization", () => {
 
 		// Resolving B restores the core editor.
 		abortB.abort();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(await promiseB).toBeUndefined();
 		expect(ctx.hookSelector).toBeUndefined();
 		expect(editorContainer.children).toEqual([editor]);
@@ -736,7 +737,7 @@ describe("ExtensionUiController dialog serialization", () => {
 
 		// When A resolves, the skipped B must not be shown — surface returns to editor.
 		abortA.abort();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(await promiseA).toBeUndefined();
 		expect(ctx.hookSelector).toBeUndefined();
 		expect(editorContainer.children).toEqual([editor]);

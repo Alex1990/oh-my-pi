@@ -8,13 +8,15 @@
  * code the caller passes to `postmortem.quit`.
  */
 import * as path from "node:path";
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { postmortem, TempDir } from "@oh-my-pi/pi-utils";
 import { Settings } from "../../src/config/settings";
 import { runPrintMode } from "../../src/modes/print-mode";
 import type { AgentSession } from "../../src/session/agent-session";
 import * as telemetryExport from "../../src/telemetry-export";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 describe("print mode disposes the session before terminating", () => {
 	it("disposes on the assistant-error path before returning exit code 1", async () => {
@@ -83,14 +85,14 @@ describe("print mode disposes the session before terminating", () => {
 	it.skipIf(process.platform === "win32")("disposes an active print session before SIGTERM exits", async () => {
 		using tempDir = TempDir.createSync("@omp-print-signal-");
 		const marker = tempDir.join("disposed");
-		const fixture = path.join(import.meta.dir, "..", "fixtures", "print-mode-signal.js");
-		const child = Bun.spawn([process.execPath, fixture, marker], {
+		const fixture = path.join(import.meta.dirname, "..", "fixtures", "print-mode-signal.js");
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), fixture, marker], {
 			stdout: "pipe",
 			stderr: "pipe",
 		});
 		const exitCode = await child.exited;
 		const stderr = await new Response(child.stderr).text();
-		const markerFile = Bun.file(marker);
+		const markerFile = bun.file(marker);
 
 		if (!(await markerFile.exists())) {
 			throw new Error(`Print session was not disposed before signal exit ${exitCode}: ${stderr}`);

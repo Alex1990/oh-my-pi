@@ -9,7 +9,7 @@
  * Asserted at the CLI boundary: exit status, the stderr line naming the path,
  * and that no session file is materialized for a missing path.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
@@ -17,6 +17,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createSessionManager, runRootCommand } from "@oh-my-pi/pi-coding-agent/main";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class ProcessExitSignal extends Error {
 	constructor(readonly code: number) {
@@ -27,7 +28,7 @@ class ProcessExitSignal extends Error {
 
 async function makeSessionFile(cwd: string, id: string): Promise<string> {
 	const file = path.join(cwd, `${id}.jsonl`);
-	await Bun.write(
+	await bun.write(
 		file,
 		[
 			JSON.stringify({

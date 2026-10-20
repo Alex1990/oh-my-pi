@@ -10,7 +10,7 @@
  *
  * Drives the production `CollabHost` over the in-memory relay.
  */
-import { afterEach, expect, it, spyOn } from "bun:test";
+import { afterEach, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
 import { COLLAB_PROTO, type CollabFrame, parseCollabLink } from "@oh-my-pi/pi-coding-agent/collab/protocol";
@@ -24,6 +24,7 @@ import {
 	makeSnapshot,
 	waitFor,
 } from "./helpers/throttled-host";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {
@@ -87,7 +88,7 @@ it("discards a departed guest's queued snapshot instead of stalling the next gue
 	try {
 		await Promise.race([
 			rejoinerDone.promise,
-			Bun.sleep(5_000).then(() => {
+			bun.sleep(5_000).then(() => {
 				throw new Error("rejoining guest never received the final snapshot chunk");
 			}),
 		]);
@@ -139,7 +140,7 @@ it("settles an outstanding guest ask when the room is recreated", async () => {
 	await waitFor(() => probe.hostSocket().readyState === FakeWebSocket.OPEN, "host never reconnected", 8_000);
 
 	// Bounded, so a hang fails an assertion instead of the runner's timeout.
-	const settled = await Promise.race([asked, Bun.sleep(1_000).then(() => "still-waiting" as const)]);
+	const settled = await Promise.race([asked, bun.sleep(1_000).then(() => "still-waiting" as const)]);
 	expect(settled).toEqual({ kind: "unavailable" });
 
 	// And the question is not re-posed to whoever joins the new room next.
@@ -150,7 +151,7 @@ it("settles an outstanding guest ask when the room is recreated", async () => {
 	latecomer.onOpen = () => latecomer.send({ t: "hello", proto: COLLAB_PROTO, name: "latecomer", writeToken });
 	latecomer.connect();
 	await waitFor(() => joins() >= 2, "host never handled the latecomer");
-	await Bun.sleep(100);
+	await bun.sleep(100);
 	expect(received.filter(frame => frame.t === "ui-request")).toEqual([]);
 }, 30_000);
 
@@ -194,7 +195,7 @@ it("does not let a reissued peer id inherit write permission", async () => {
 	// the room; keep it out so the reissued id is taken by the viewer alone.
 	writer.close();
 	await waitFor(() => probe.hostSocket().readyState === FakeWebSocket.OPEN, "host never reconnected", 8_000);
-	await Bun.sleep(50);
+	await bun.sleep(50);
 
 	// A client holding only the view link takes the reissued id and, without ever
 	// sending hello, tries to drive the session.
@@ -202,7 +203,7 @@ it("does not let a reissued peer id inherit write permission", async () => {
 	cleanups.push(() => viewer.close());
 	viewer.onOpen = () => viewer.send({ t: "prompt", text: "unauthenticated command" });
 	viewer.connect();
-	await Bun.sleep(200);
+	await bun.sleep(200);
 
 	expect(prompted).toEqual([]);
 	expect(joins()).toBe(1);
@@ -254,7 +255,7 @@ it("ignores a hello that finishes decrypting after its sender's peer-left", asyn
 	);
 
 	held.resolve();
-	await Bun.sleep(50);
+	await bun.sleep(50);
 
 	expect(seen.notices.filter(notice => notice.includes("joined the collab session"))).toEqual([]);
 	// A ghost peer would show as a second participant and draw a whole snapshot.

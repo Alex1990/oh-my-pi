@@ -10,13 +10,13 @@
  * exists:
  * - `write` targets a NEW file inside a directory chmod'd `0o500` (no write
  *   bit). Creating a file needs write permission on the *directory*, so this
- *   raises a real EACCES on `Bun.write`.
+ *   raises a real EACCES on `bun.write`.
  * - `edit` overwrites an EXISTING file chmod'd `0o400` (no write bit). Bun
  *   opens the existing inode directly for the rewrite, so a locked
  *   *directory* alone does NOT block it (verified empirically) — only a
  *   locked *file* does.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -34,6 +34,7 @@ import { type CreateAgentSessionOptions, createAgentSession, discoverAuthStorage
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import type { FileWriteFallbackRequest } from "@oh-my-pi/pi-coding-agent/tools/file-write-fallback";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Drives `ExtensionRunner.initialize` with no-op stubs, mirroring what a mode

@@ -63,6 +63,7 @@ import { cfgDisabledExtensions, cfgSkills, type SkillsSettings } from "../extens
 import { cfgExternalThinking, cfgIncludeModelInPrompt, cfgInlineToolDescriptors, cfgSkillful } from "./settings";
 import { cfgStartupQuiet } from "../modes/settings";
 import { cfgToolsApproval, cfgToolsApprovalMode, cfgToolsXdevDocs, cfgToolsXdevInlineDevices } from "../tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Capabilities borrowed from the owning AgentSession. */
 export interface SessionToolsHost {
@@ -232,7 +233,7 @@ const SYSTEM_PROMPT_DIGEST_CUSTOM_TYPE = "system-prompt-digest";
 /** Equal digests mean equal prompt blocks. */
 function systemPromptDigest(blocks: readonly string[]): string {
 	let hash = BigInt(blocks.length);
-	for (const block of blocks) hash = Bun.hash.wyhash(block, hash);
+	for (const block of blocks) hash = bun.hash.wyhash(block, hash);
 	return hash.toString(16);
 }
 

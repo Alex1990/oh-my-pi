@@ -18,7 +18,7 @@
  * result instead of falling back to the LLM summarizer.
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { effectiveReserveTokens, prepareCompaction, resolveThresholdTokens } from "@oh-my-pi/pi-agent-core/compaction";
 import { base64ImageSize } from "@oh-my-pi/pi-agent-core/image-tokens";

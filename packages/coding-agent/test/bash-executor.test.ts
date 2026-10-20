@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,9 @@ import * as piNatives from "@oh-my-pi/pi-natives";
 import { $which, removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgBashDirenvLoadTimeoutMs, cfgShellPath } from "@oh-my-pi/pi-coding-agent/exec/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 // Matches the schema default for `tools.artifactHeadBytes` (20 KB) used by
 // OutputSink when bash-executor pulls settings via resolveOutputSinkHeadBytes.
@@ -49,7 +52,7 @@ function configureBashUserShell(homeDir: string): boolean {
 		shell: "/bin/bash",
 		args: ["-c"],
 		env: {
-			PATH: Bun.env.PATH ?? "",
+			PATH: bun.env.PATH ?? "",
 			HOME: homeDir,
 			SHELL: "/bin/bash",
 		},
@@ -61,7 +64,7 @@ function configureBashUserShell(homeDir: string): boolean {
 /** Resolve once `predicate()` holds or `deadlineMs` passes, polling every 2ms. */
 async function pollUntil(predicate: () => boolean, deadlineMs: number): Promise<void> {
 	while (!predicate() && Date.now() < deadlineMs) {
-		await Bun.sleep(2);
+		await bun.sleep(2);
 	}
 }
 
@@ -81,9 +84,9 @@ function releaseGuardedWrite(marker: string, release: string, started?: string):
  * it more than one poll interval to write. A killed command never writes `marker`.
  */
 async function expectMarkerNeverWritten(marker: string, release: string): Promise<void> {
-	await Bun.sleep(KILL_SETTLE_MS);
+	await bun.sleep(KILL_SETTLE_MS);
 	fs.writeFileSync(release, "");
-	await Bun.sleep(KILL_REACT_MS);
+	await bun.sleep(KILL_REACT_MS);
 	expect(fs.existsSync(marker)).toBe(false);
 }
 
@@ -295,7 +298,7 @@ exit 64
 			shell: fakeShell,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: tempDir,
 			},
 			prefix: undefined,
@@ -346,7 +349,7 @@ exit 64
 			shell: fakeShell,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: tempDir,
 			},
 			prefix: undefined,
@@ -405,7 +408,7 @@ exit 64
 			return;
 		}
 
-		const originalShell = Bun.env.SHELL;
+		const originalShell = bun.env.SHELL;
 		const shellDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-env-shell-"));
 		const marker = path.join(shellDir, "env-shell-ran");
 		const markerEscaped = marker.replace(/'/g, "'\\''");
@@ -425,13 +428,13 @@ exit 64
 `,
 		);
 		fs.chmodSync(fakeShell, 0o755);
-		Bun.env.SHELL = fakeShell;
+		bun.env.SHELL = fakeShell;
 
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 			shell: "/bin/bash",
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: tempDir,
 				SHELL: "/bin/bash",
 			},
@@ -455,9 +458,9 @@ exit 64
 			expect(fs.readFileSync(marker, "utf8")).not.toContain("-l");
 		} finally {
 			if (originalShell === undefined) {
-				delete Bun.env.SHELL;
+				delete bun.env.SHELL;
 			} else {
-				Bun.env.SHELL = originalShell;
+				bun.env.SHELL = originalShell;
 			}
 			removeSyncWithRetries(shellDir);
 		}
@@ -483,7 +486,7 @@ exit 64
 			shell: zshPath,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: shellDir,
 				// zsh reads `.zshrc` from `$ZDOTDIR` when set; terminal integrations
 				// export their own, which would bypass the fixture rc.
@@ -542,7 +545,7 @@ exit 64
 			shell: fishPath,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: shellDir,
 			},
 			prefix: undefined,
@@ -568,7 +571,7 @@ exit 64
 	});
 
 	it("runs zsh shortcut commands on a headless PTY with a color-capable TTY", async () => {
-		if (process.platform === "win32" || Bun.env.PI_NO_PTY === "1") {
+		if (process.platform === "win32" || bun.env.PI_NO_PTY === "1") {
 			return;
 		}
 		const zshPath = ["/bin/zsh", "/usr/bin/zsh", "/usr/local/bin/zsh", "/opt/homebrew/bin/zsh"].find(candidate =>
@@ -586,7 +589,7 @@ exit 64
 			shell: zshPath,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: shellDir,
 				ZDOTDIR: shellDir,
 				SHELL_SESSIONS_DISABLE: "1",
@@ -660,12 +663,11 @@ exit 64
 		// runs longer than that compressed window, so the success result proves
 		// timeout:0 left the execution deadline disabled without a 1.2s sleep.
 		const realSetTimeout = globalThis.setTimeout;
-		vi.spyOn(globalThis, "setTimeout").mockImplementation(((handler: () => void, ms?: number, ...rest: unknown[]) =>
-			realSetTimeout(
-				handler,
-				typeof ms === "number" && ms >= 1000 ? 5 : ms,
-				...rest,
-			)) as typeof globalThis.setTimeout);
+		vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+			handler: (...callbackArgs: unknown[]) => void,
+			ms?: number,
+			...rest: unknown[]
+		) => realSetTimeout(handler, typeof ms === "number" && ms >= 1000 ? 5 : ms, ...rest)) as typeof globalThis.setTimeout);
 		const result = await executeBash("sleep 0.03; echo done", { cwd: tempDir, timeout: 0 });
 		expect(result.cancelled).toBe(false);
 		expect(result.output.trim()).toBe("done");
@@ -702,7 +704,7 @@ exit 64
 
 		const raced = await Promise.race([
 			promise.then(result => ({ type: "result" as const, result })),
-			Bun.sleep(750).then(() => ({ type: "timeout" as const })),
+			bun.sleep(750).then(() => ({ type: "timeout" as const })),
 		]);
 
 		expect(raced.type).toBe("result");
@@ -747,7 +749,7 @@ exit 64
 		await promise;
 
 		nativeResult.resolve({ exitCode: undefined, cancelled: true, timedOut: false });
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		vi.restoreAllMocks();
 
 		await executeBash("export PI_AFTER_ABORT=still_persistent", {
@@ -769,12 +771,11 @@ exit 64
 		// timers are shrunk — fs/subprocess setup keeps real scheduling — and the
 		// reported "1 seconds" derives from the configured timeout, not the timer.
 		const realSetTimeout = globalThis.setTimeout;
-		vi.spyOn(globalThis, "setTimeout").mockImplementation(((handler: () => void, ms?: number, ...rest: unknown[]) =>
-			realSetTimeout(
-				handler,
-				typeof ms === "number" && ms >= 1000 ? 5 : ms,
-				...rest,
-			)) as typeof globalThis.setTimeout);
+		vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+			handler: (...callbackArgs: unknown[]) => void,
+			ms?: number,
+			...rest: unknown[]
+		) => realSetTimeout(handler, typeof ms === "number" && ms >= 1000 ? 5 : ms, ...rest)) as typeof globalThis.setTimeout);
 
 		let nativeSignal: AbortSignal | undefined;
 		vi.spyOn(piNatives.Shell.prototype, "run").mockImplementation((options, onChunk) => {
@@ -804,12 +805,11 @@ exit 64
 
 	it("explicitly aborts an overlapping one-shot shell when timeout cleanup stalls", async () => {
 		const realSetTimeout = globalThis.setTimeout;
-		vi.spyOn(globalThis, "setTimeout").mockImplementation(((handler: () => void, ms?: number, ...rest: unknown[]) =>
-			realSetTimeout(
-				handler,
-				typeof ms === "number" && ms >= 1000 ? 5 : ms,
-				...rest,
-			)) as typeof globalThis.setTimeout);
+		vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+			handler: (...callbackArgs: unknown[]) => void,
+			ms?: number,
+			...rest: unknown[]
+		) => realSetTimeout(handler, typeof ms === "number" && ms >= 1000 ? 5 : ms, ...rest)) as typeof globalThis.setTimeout);
 
 		const ownerResult = Promise.withResolvers<ShellRunResult>();
 		const isolatedResult = Promise.withResolvers<ShellRunResult>();
@@ -892,7 +892,7 @@ exit 64
 		});
 		const startDeadline = Date.now() + 4000;
 		while (!fs.existsSync(startMarker) && Date.now() < startDeadline) {
-			await Bun.sleep(2);
+			await bun.sleep(2);
 		}
 		controller.abort();
 		const aborted = await abortPromise;
@@ -948,7 +948,7 @@ exit 64
 			overlapPassed = true;
 		} finally {
 			try {
-				await Bun.write(release, "");
+				await bun.write(release, "");
 				if (overlapPassed) await pollUntil(() => ownerSettled, Date.now() + 4000);
 			} finally {
 				controller.abort();
@@ -1082,7 +1082,7 @@ exit 64
 		if (process.platform === "win32") {
 			return;
 		}
-		const bashPath = Bun.env.SHELL?.includes("bash") ? Bun.env.SHELL : "/bin/bash";
+		const bashPath = bun.env.SHELL?.includes("bash") ? bun.env.SHELL : "/bin/bash";
 		if (!fs.existsSync(bashPath)) {
 			return;
 		}
@@ -1092,8 +1092,8 @@ exit 64
 			shell: bashPath,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
-				HOME: Bun.env.HOME ?? tempDir,
+				PATH: bun.env.PATH ?? "",
+				HOME: bun.env.HOME ?? tempDir,
 			},
 			prefix: undefined,
 		});
@@ -1108,7 +1108,7 @@ exit 64
 		if (process.platform === "win32") {
 			return;
 		}
-		const realBashPath = Bun.env.SHELL?.includes("bash") ? Bun.env.SHELL : "/bin/bash";
+		const realBashPath = bun.env.SHELL?.includes("bash") ? bun.env.SHELL : "/bin/bash";
 		if (!fs.existsSync(realBashPath)) {
 			return;
 		}
@@ -1123,14 +1123,14 @@ exit 64
 			shell: bashPath,
 			args: ["-l", "-c"],
 			env: {
-				PATH: Bun.env.PATH ?? "",
+				PATH: bun.env.PATH ?? "",
 				HOME: tempDir,
 			},
 			prefix: undefined,
 		});
 
 		const snapshotPath = await shellSnapshot.getOrCreateSnapshot(bashPath, {
-			PATH: Bun.env.PATH ?? "",
+			PATH: bun.env.PATH ?? "",
 			HOME: tempDir,
 		});
 		const snapshot = fs.readFileSync(snapshotPath!, "utf8");
@@ -1148,7 +1148,7 @@ exit 64
 
 	it("survives compound aliases from the user's shell snapshot (issue #3234)", async () => {
 		if (process.platform === "win32") return;
-		const bashPath = Bun.env.SHELL?.includes("bash") ? Bun.env.SHELL : "/bin/bash";
+		const bashPath = bun.env.SHELL?.includes("bash") ? bun.env.SHELL : "/bin/bash";
 		if (!fs.existsSync(bashPath)) return;
 
 		// Pre-seed a snapshot that mirrors Fedora's default `which` alias.
@@ -1176,7 +1176,7 @@ exit 64
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 			shell: bashPath,
 			args: ["-l", "-c"],
-			env: { PATH: Bun.env.PATH ?? "", HOME: Bun.env.HOME ?? tempDir },
+			env: { PATH: bun.env.PATH ?? "", HOME: bun.env.HOME ?? tempDir },
 			prefix: undefined,
 		});
 		vi.spyOn(shellSnapshot, "getOrCreateSnapshot").mockResolvedValue(snapshotPath);
@@ -1211,7 +1211,7 @@ exit 64
 		});
 		const timed = await Promise.race([
 			runPromise.then(result => ({ type: "result" as const, result })),
-			Bun.sleep(BACKGROUND_COMPLETION_RACE_MS).then(() => ({ type: "timeout" as const })),
+			bun.sleep(BACKGROUND_COMPLETION_RACE_MS).then(() => ({ type: "timeout" as const })),
 		]);
 
 		expect(timed.type).toBe("result");
@@ -1307,12 +1307,11 @@ exit 64
 	});
 	it("waits for native timeout teardown to flush piped output", async () => {
 		const realSetTimeout = globalThis.setTimeout;
-		vi.spyOn(globalThis, "setTimeout").mockImplementation(((handler: () => void, ms?: number, ...rest: unknown[]) =>
-			realSetTimeout(
-				handler,
-				ms === 1000 ? 5 : typeof ms === "number" && ms > 1000 ? 50 : ms,
-				...rest,
-			)) as typeof globalThis.setTimeout);
+		vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+			handler: (...callbackArgs: unknown[]) => void,
+			ms?: number,
+			...rest: unknown[]
+		) => realSetTimeout(handler, ms === 1000 ? 5 : typeof ms === "number" && ms > 1000 ? 50 : ms, ...rest)) as typeof globalThis.setTimeout);
 
 		let nativeSignal: AbortSignal | undefined;
 		vi.spyOn(piNatives.Shell.prototype, "run").mockImplementation((options, onChunk) => {

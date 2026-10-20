@@ -1,5 +1,6 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { LRUCache } from "../src/lru";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("LRUCache", () => {
 	test("matches recency, eviction, deletion, and dispose ordering", () => {
@@ -70,7 +71,7 @@ describe("LRUCache", () => {
 		});
 		cache.set("a", 1);
 		// Integration against the cache's performance-based clock requires real elapsed time.
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		const has = cache.has("a");
 		const peek = cache.peek("a");
 		const sizeBeforeGet = cache.size;

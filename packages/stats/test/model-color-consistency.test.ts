@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModelColorLookup, SERIES_COLORS } from "../src/client/data/colors";
 
 type ModelRequestRecord = Readonly<{

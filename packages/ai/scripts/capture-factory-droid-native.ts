@@ -46,7 +46,7 @@ const { values } = parseArgs({
 		only: { type: "string", multiple: true },
 		out: {
 			type: "string",
-			default: path.join(import.meta.dir, "../test/fixtures/factory-droid-native-requests.json"),
+			default: path.join(import.meta.dirname, "../test/fixtures/factory-droid-native-requests.json"),
 		},
 	},
 });
@@ -82,7 +82,7 @@ let current: NativeCase | undefined;
 let projectHistory = false;
 let requests: Recorded[] = [];
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	idleTimeout: 255,
 	async fetch(request) {
@@ -130,7 +130,7 @@ const server = Bun.serve({
 });
 
 async function run(args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
-	const child = Bun.spawn([droid, "exec", ...args], {
+	const child = bun.spawn([droid, "exec", ...args], {
 		cwd,
 		env: {
 			...process.env,
@@ -184,9 +184,9 @@ async function capture(testCase: NativeCase, workdir: string): Promise<NativeReq
 const label = (testCase: NativeCase) =>
 	`${testCase.model}@${testCase.upstream} ${testCase.effort}${testCase.prime ? ` after ${testCase.prime}` : ""}`;
 
-const previous: NativeCapture[] = values.only ? await Bun.file(values.out).json() : [];
+const previous: NativeCapture[] = values.only ? await bun.file(values.out).json() : [];
 const workdir = await fs.mkdtemp(path.join(os.tmpdir(), "droid-native-capture-"));
-await Bun.write(path.join(workdir, "probe.txt"), `${NONCE}\n`);
+await bun.write(path.join(workdir, "probe.txt"), `${NONCE}\n`);
 const captures: NativeCapture[] = [];
 const failed: string[] = [];
 try {
@@ -220,5 +220,7 @@ if (failed.length > 0) {
 	console.error(`not writing ${values.out}: ${failed.length} case(s) failed: ${failed.join(", ")}`);
 	process.exit(1);
 }
-await Bun.write(values.out, `${JSON.stringify(captures, null, "\t")}\n`);
+await bun.write(values.out, `${JSON.stringify(captures, null, "\t")}\n`);
 console.error(`wrote ${captures.length}/${NATIVE_CASES.length} cases to ${values.out}`);
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";

@@ -23,7 +23,7 @@
  * Both latches are written from the turn's success path, so a 400 that meant
  * something else costs one request rather than a session of lost caching.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isCacheControlUnsupported } from "@oh-my-pi/pi-ai/error";
 import {
 	buildAnthropicClientOptions,

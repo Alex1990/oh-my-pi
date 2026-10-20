@@ -12,6 +12,7 @@ import { buildChangedFrameContactSheetPng, requireMediaBinary, runFfmpeg } from 
 import { resolveToCwd } from "../path-utils";
 import { readPageViewport } from "./launch";
 import type { RunOutput } from "./run-output";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_FPS = 30;
 const DEFAULT_QUALITY = 80;
@@ -390,7 +391,7 @@ async function encodeRecording(active: ActiveRecording, durationMs: number, sign
 	}
 	concatLines.push(`file '${concatPath(path.resolve(frames.at(-1)!.path))}'`);
 	const concatFile = active.spool.join("frames.concat");
-	await Bun.write(concatFile, `${concatLines.join("\n")}\n`);
+	await bun.write(concatFile, `${concatLines.join("\n")}\n`);
 	const absoluteConcatFile = path.resolve(concatFile);
 	await fs.mkdir(path.dirname(active.path), { recursive: true });
 	const quality = active.options.quality;
@@ -509,7 +510,7 @@ export class RecordingController {
 				const index = active.nextFrame++;
 				const framePath = active.spool.join(`frame-${String(index).padStart(9, "0")}.jpg`);
 				active.frames.push({ path: framePath, timestampMs: frame.timestampMs });
-				const write: Promise<void> = Bun.write(framePath, frame.data)
+				const write: Promise<void> = bun.write(framePath, frame.data)
 					.then(() => undefined)
 					.catch(error => {
 						active.writeError ??= error;
@@ -560,7 +561,7 @@ export class RecordingController {
 			if (active.frames.length === 0) {
 				const fallback = active.spool.join("frame-000000000.jpg");
 				const bytes = await active.source.captureFrame(active.options.quality, context.signal);
-				await Bun.write(fallback, bytes);
+				await bun.write(fallback, bytes);
 				active.frames.push({ path: fallback, timestampMs: 0 });
 			}
 			await encodeRecording(active, durationMs, context.signal);

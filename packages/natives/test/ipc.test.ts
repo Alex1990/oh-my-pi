@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import {
 	IpcServer,
 	ipcEndpoint,
 } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const isWindows = process.platform === "win32";
 const cleanups: (() => Promise<void> | void)[] = [];
@@ -99,7 +100,7 @@ async function acceptingServer(endpoint: string, options: IpcListenOptions) {
 
 /** Leave a socket file with no listener behind by SIGKILLing its owner. */
 async function staleSocket(endpoint: string): Promise<void> {
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			process.execPath,
 			"-e",
@@ -319,13 +320,13 @@ describe("native IPC", () => {
 		expect(stat.mode & 0o777).toBe(0o600);
 		await server.close();
 		await server.close();
-		expect(await fs.exists(endpoint)).toBe(false);
+		expect(await fs.access(endpoint).then(() => true, () => false)).toBe(false);
 	});
 
 	test("an unref'd idle client does not keep the process alive", async () => {
 		const endpoint = await endpointIn();
 		const { accepted } = await acceptingServer(endpoint, { framing: "lines" });
-		const nativeModule = path.join(import.meta.dir, "../native/index.js");
+		const nativeModule = path.join(import.meta.dirname, "../native/index.js");
 		const script = `
 			const { IpcConnection } = require(${JSON.stringify(nativeModule)});
 			IpcConnection.connect(${JSON.stringify(endpoint)}, { framing: "lines" }).then(connection => {
@@ -334,11 +335,11 @@ describe("native IPC", () => {
 				console.log("connected");
 			});
 		`;
-		const child = Bun.spawn([process.execPath, "-e", script], { stdout: "pipe", stderr: "inherit" });
+		const child = bun.spawn([process.execPath, "-e", script], { stdout: "pipe", stderr: "inherit" });
 		const peer = record(await accepted);
 		// Real time is the subject here: a leaked loop ref means the child never
 		// exits, so the only observable failure is the deadline expiring.
-		const exited = await Promise.race([child.exited, Bun.sleep(10_000).then(() => "timeout" as const)]);
+		const exited = await Promise.race([child.exited, bun.sleep(10_000).then(() => "timeout" as const)]);
 		if (exited === "timeout") child.kill();
 		expect(exited).toBe(0);
 		expect(await new Response(child.stdout).text()).toContain("connected");

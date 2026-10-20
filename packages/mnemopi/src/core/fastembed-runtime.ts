@@ -101,7 +101,7 @@ export async function prepareWindowsFastembedRuntime({
 	if (!ortEntry) {
 		throw new Error(`Cannot find module onnxruntime-node beside ${fastembedEntry}`);
 	}
-	const dllGlob = new Bun.Glob(`bin/napi-*/win32/${arch}/onnxruntime.dll`);
+	const dllGlob = new Glob(`bin/napi-*/win32/${arch}/onnxruntime.dll`);
 	let dllDir: string | undefined;
 	for await (const dll of dllGlob.scan({ cwd: ortPackageDir, absolute: true, onlyFiles: true })) {
 		dllDir = path.dirname(dll);
@@ -181,3 +181,5 @@ function isRecoverableFastembedLoadError(error: unknown): boolean {
 	if (code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND" || code === "ERR_DLOPEN_FAILED") return true;
 	return typeof message === "string" && /cannot find (module|package)/i.test(message);
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";

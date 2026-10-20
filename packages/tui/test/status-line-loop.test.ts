@@ -1,7 +1,8 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { SegmentContext } from "../src/status-line/segments";
 import { renderSegment } from "../src/status-line/segments";
 import { initTheme, theme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -66,7 +67,7 @@ describe("status line loop mode segment", () => {
 			createContext({ state: "waiting", limit: { kind: "iterations", initial: 10, remaining: 10 } }),
 		);
 
-		expect(Bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop: next prompt repeats 10/10"));
+		expect(bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop: next prompt repeats 10/10"));
 	});
 
 	it("shows the live remaining duration while a loop is running", () => {
@@ -80,14 +81,14 @@ describe("status line loop mode segment", () => {
 			}),
 		);
 
-		expect(Bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop running 1m30s left"));
+		expect(bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop running 1m30s left"));
 	});
 
 	it("distinguishes a paused loop from an active loop", () => {
 		const rendered = renderSegment("mode", createContext({ state: "paused" }));
 		const icon = theme.icon.pause || theme.icon.loop;
 
-		expect(Bun.stripANSI(rendered.content)).toBe(withIcon(icon, "Loop paused"));
+		expect(bun.stripANSI(rendered.content)).toBe(withIcon(icon, "Loop paused"));
 		expect(rendered.content).toBe(theme.fg("warning", withIcon(icon, "Loop paused")));
 	});
 
@@ -101,7 +102,7 @@ describe("status line loop mode segment", () => {
 			}),
 		);
 
-		expect(Bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop running 3/3 until: bun test"));
+		expect(bun.stripANSI(rendered.content)).toBe(withIcon(theme.icon.loop, "Loop running 3/3 until: bun test"));
 	});
 
 	// The command is arbitrary user input; an unbounded one would push every
@@ -114,7 +115,7 @@ describe("status line loop mode segment", () => {
 				condition: { command: `bun test ${"x".repeat(200)}`, until: false },
 			}),
 		);
-		const content = Bun.stripANSI(rendered.content);
+		const content = bun.stripANSI(rendered.content);
 
 		expect(content.startsWith(withIcon(theme.icon.loop, "Loop running while: bun test x"))).toBe(true);
 		expect(content.length).toBeLessThan(60);

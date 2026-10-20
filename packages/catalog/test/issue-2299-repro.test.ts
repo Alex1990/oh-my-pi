@@ -16,7 +16,7 @@
  * route NVIDIA-hosted qwen models to `thinkingFormat: "qwen-chat-template"`
  * so the wire body carries `chat_template_kwargs.enable_thinking` instead.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context } from "@oh-my-pi/pi-ai/types";
 import { resolveModelPolicy } from "@oh-my-pi/pi-catalog/compat/resolve";

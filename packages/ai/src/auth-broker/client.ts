@@ -214,7 +214,9 @@ export class AuthBrokerClient {
 		}
 		const contentType = response.headers.get("content-type")?.toLowerCase();
 		if (contentType?.split(";", 1)[0].trim() !== "text/event-stream") {
-			await response.body.cancel().catch(() => {});
+			// Node/undici can leave `cancel()` unsettled after a clone; discarding the
+			// body must never block the caller.
+			void response.body.cancel().catch(() => {});
 			throw new AuthBrokerError("Auth broker stream returned non-SSE response", {
 				status: response.status,
 				body: contentType ?? "",

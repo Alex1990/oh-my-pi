@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { Text } from "@oh-my-pi/pi-tui";
 import { getThemeByName, type Theme } from "@oh-my-pi/pi-tui/theme";
@@ -7,6 +7,7 @@ import { ExtensionRunner } from "../src/extensibility/extensions/runner";
 import type { ToolRenderResultOptions } from "../src/extensibility/extensions/types";
 import { wrapRegisteredTools } from "../src/extensibility/extensions/wrapper";
 import { EventBus } from "../src/utils/event-bus";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const okResult = { content: [{ type: "text" as const, text: "ok" }] };
 
@@ -74,7 +75,7 @@ async function renderToolCall(
 	if (!tool?.renderCall) throw new Error("renderCall missing on wrapped tool");
 	const rendered = tool.renderCall(args, options, uiTheme);
 	if (!isComponent(rendered)) throw new Error("renderer returned no component");
-	return Bun.stripANSI(rendered.render(80).join("\n"));
+	return bun.stripANSI(rendered.render(80).join("\n"));
 }
 
 // Issue #13081: omp invokes renderers as `renderCall(args, options, theme)`

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -9,6 +9,7 @@ import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { __resetDirsFromEnvForTests, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalEnv = {
 	PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
@@ -98,7 +99,7 @@ describe("createAgentSession with agentDir", () => {
 		},
 		{ lane: "RULES.md", file: "RULES.md", body: (marker: string) => `${marker}\n` },
 	])("loads user rules from its agentDir's $lane, not the default agent dir", async ({ file, body }) => {
-		const marker = Bun.nanoseconds().toString(36);
+		const marker = bun.nanoseconds().toString(36);
 		const scopedRule = `SCOPED_RULE_${marker}`;
 		const defaultRule = `DEFAULT_RULE_${marker}`;
 		const agentDir = tempDir.join("scoped-agent");

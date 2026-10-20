@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AsyncJobManager } from "../../src/async";
 import { runEvalWait } from "../../src/eval/handle-bridge";
 import type { ToolSession } from "../../src/tools";

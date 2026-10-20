@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let counter = 0;
 function makeUserNode(text: string, parentId: string | null = null): SessionTreeNode {
@@ -39,7 +40,7 @@ function renderSelector(tree: SessionTreeNode, leafId: string, width: number): s
 		() => {},
 		() => {},
 	);
-	return selector.renderContent(width).map(line => Bun.stripANSI(line));
+	return selector.renderContent(width).map(line => bun.stripANSI(line));
 }
 
 describe("TreeSelectorComponent deep branching overflow", () => {
@@ -54,7 +55,7 @@ describe("TreeSelectorComponent deep branching overflow", () => {
 
 		// Every rendered row must fit the viewport — never wider than `width` display cols.
 		for (const line of rendered) {
-			expect(Bun.stringWidth(line, { countAnsiEscapeCodes: false })).toBeLessThanOrEqual(width);
+			expect(bun.stringWidth(line, { countAnsiEscapeCodes: false })).toBeLessThanOrEqual(width);
 		}
 
 		// The selected row (marked with the `›` cursor) must still show the entry text

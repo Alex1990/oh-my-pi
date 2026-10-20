@@ -1,5 +1,5 @@
 import { agentTranscriptSource } from "@oh-my-pi/pi-coding-agent/modes/agent-hub-runtime";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/se
 import { ToolChoiceQueue } from "@oh-my-pi/pi-coding-agent/session/tool-choice-queue";
 import { createTools, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createTestSession(cwd: string, overrides: Partial<ToolSession> = {}): ToolSession {
 	return {
@@ -43,32 +44,32 @@ async function createSearchFixture(rootDir: string): Promise<void> {
 	await fs.mkdir(path.join(rootDir, "other"), { recursive: true });
 	await fs.mkdir(path.join(rootDir, "folder with spaces"), { recursive: true });
 
-	await Bun.write(path.join(rootDir, "apps", "grep.txt"), "shared-needle apps\n");
-	await Bun.write(path.join(rootDir, "packages", "grep.txt"), "shared-needle packages\n");
-	await Bun.write(path.join(rootDir, "phases", "grep.txt"), "shared-needle phases\n");
-	await Bun.write(path.join(rootDir, "other", "grep.txt"), "shared-needle other\n");
-	await Bun.write(path.join(rootDir, "folder with spaces", "note.txt"), "space-needle\n");
+	await bun.write(path.join(rootDir, "apps", "grep.txt"), "shared-needle apps\n");
+	await bun.write(path.join(rootDir, "packages", "grep.txt"), "shared-needle packages\n");
+	await bun.write(path.join(rootDir, "phases", "grep.txt"), "shared-needle phases\n");
+	await bun.write(path.join(rootDir, "other", "grep.txt"), "shared-needle other\n");
+	await bun.write(path.join(rootDir, "folder with spaces", "note.txt"), "space-needle\n");
 
-	await Bun.write(
+	await bun.write(
 		path.join(rootDir, "apps", "ast.ts"),
 		"const providerOptions = {};\nlegacyWrap(appsValue, appsArg);\n",
 	);
-	await Bun.write(
+	await bun.write(
 		path.join(rootDir, "packages", "ast.ts"),
 		"const providerOptions = {};\nlegacyWrap(packagesValue, packagesArg);\n",
 	);
-	await Bun.write(
+	await bun.write(
 		path.join(rootDir, "phases", "ast.ts"),
 		"const providerOptions = {};\nlegacyWrap(phasesValue, phasesArg);\n",
 	);
-	await Bun.write(
+	await bun.write(
 		path.join(rootDir, "other", "ast.ts"),
 		"const providerOptions = {};\nlegacyWrap(otherValue, otherArg);\n",
 	);
 }
 async function makeJsonlSessionFile(dirPath: string, entries: object[]): Promise<string> {
 	const filePath = path.join(dirPath, "session.jsonl");
-	await Bun.write(filePath, `${entries.map(entry => JSON.stringify(entry)).join("\n")}\n`);
+	await bun.write(filePath, `${entries.map(entry => JSON.stringify(entry)).join("\n")}\n`);
 	return filePath;
 }
 
@@ -102,7 +103,7 @@ function renderTree(tree: SessionTreeNode[], currentLeafId: string): string {
 		() => {},
 		() => {},
 	);
-	return Bun.stripANSI(selector.render(120).join("\n"));
+	return bun.stripANSI(selector.render(120).join("\n"));
 }
 
 describe("tool path arrays", () => {
@@ -275,7 +276,7 @@ describe("tool path arrays", () => {
 		// the glob interpretation, otherwise the lookup returns no matches.
 		const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "search-path-lists-"));
 		await fs.mkdir(path.join(tmp, "apps", "[id]"), { recursive: true });
-		await Bun.write(path.join(tmp, "apps", "[id]", "page.tsx"), "bracket-needle\n");
+		await bun.write(path.join(tmp, "apps", "[id]", "page.tsx"), "bracket-needle\n");
 
 		const tools = await createTools(createTestSession(tmp));
 		const tool = tools.find(entry => entry.name === "grep");
@@ -370,7 +371,7 @@ describe("tool path arrays", () => {
 			onClose: () => {},
 			onHubClose: () => {},
 		});
-		const rendered = Bun.stripANSI(viewer.render(120).join("\n"));
+		const rendered = bun.stripANSI(viewer.render(120).join("\n"));
 		viewer.dispose();
 
 		// The hub chat now renders through grepToolRenderer.renderCall; the
@@ -485,7 +486,7 @@ describe("tool path arrays", () => {
 
 		expect(text).toContain("Successfully wrote 8 bytes to written.txt");
 		expect(text).not.toContain(tmp);
-		expect(await Bun.file(absoluteTarget).text()).toBe("written\n");
+		expect(await bun.file(absoluteTarget).text()).toBe("written\n");
 		await removeWithRetries(tmp);
 	});
 
@@ -541,7 +542,7 @@ describe("tool path arrays", () => {
 		const decoyRoot = path.join(tempDir, "decoy");
 		const decoyPath = path.join(decoyRoot, "apps", "grep.txt; packages", "grep.txt");
 		await fs.mkdir(path.dirname(decoyPath), { recursive: true });
-		await Bun.write(decoyPath, "fuzzy-decoy\n");
+		await bun.write(decoyPath, "fuzzy-decoy\n");
 
 		try {
 			const tools = await createTools(createTestSession(tempDir));
@@ -686,12 +687,12 @@ describe("tool path arrays", () => {
 		if (!invoker) throw new Error("Expected pending resolve invoker");
 		await invoker({ action: "apply", reason: "apply multi-path ast edit" });
 
-		expect(await Bun.file(path.join(tmp, "apps", "ast.ts")).text()).toContain("modernWrap(appsValue, appsArg)");
-		expect(await Bun.file(path.join(tmp, "packages", "ast.ts")).text()).toContain(
+		expect(await bun.file(path.join(tmp, "apps", "ast.ts")).text()).toContain("modernWrap(appsValue, appsArg)");
+		expect(await bun.file(path.join(tmp, "packages", "ast.ts")).text()).toContain(
 			"modernWrap(packagesValue, packagesArg)",
 		);
-		expect(await Bun.file(path.join(tmp, "phases", "ast.ts")).text()).toContain("modernWrap(phasesValue, phasesArg)");
-		expect(await Bun.file(path.join(tmp, "other", "ast.ts")).text()).toContain("legacyWrap(otherValue, otherArg)");
+		expect(await bun.file(path.join(tmp, "phases", "ast.ts")).text()).toContain("modernWrap(phasesValue, phasesArg)");
+		expect(await bun.file(path.join(tmp, "other", "ast.ts")).text()).toContain("legacyWrap(otherValue, otherArg)");
 		await removeWithRetries(tmp);
 	});
 
@@ -812,7 +813,7 @@ describe("tool path arrays", () => {
 	it("find keeps paths outside cwd absolute", async () => {
 		const outsideDir = await fs.mkdtemp(path.join(path.dirname(tempDir), "find-outside-"));
 		try {
-			await Bun.write(path.join(outsideDir, "outside.txt"), "outside\n");
+			await bun.write(path.join(outsideDir, "outside.txt"), "outside\n");
 			const tools = await createTools(createTestSession(tempDir));
 			const tool = tools.find(entry => entry.name === "glob");
 			expect(tool).toBeDefined();
@@ -859,10 +860,10 @@ describe("tool path arrays", () => {
 	it("grep keeps explicit files exact", async () => {
 		const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "search-path-lists-"));
 		await fs.mkdir(path.join(tmp, "nested"), { recursive: true });
-		await Bun.write(path.join(tmp, "alpha.txt"), "exact-needle alpha\n");
-		await Bun.write(path.join(tmp, "beta.txt"), "exact-needle beta\n");
-		await Bun.write(path.join(tmp, "nested", "alpha.txt"), "exact-needle nested alpha\n");
-		await Bun.write(path.join(tmp, "nested", "beta.txt"), "exact-needle nested beta\n");
+		await bun.write(path.join(tmp, "alpha.txt"), "exact-needle alpha\n");
+		await bun.write(path.join(tmp, "beta.txt"), "exact-needle beta\n");
+		await bun.write(path.join(tmp, "nested", "alpha.txt"), "exact-needle nested alpha\n");
+		await bun.write(path.join(tmp, "nested", "beta.txt"), "exact-needle nested beta\n");
 
 		const tools = await createTools(createTestSession(tmp));
 		const tool = tools.find(entry => entry.name === "grep");
@@ -888,12 +889,12 @@ describe("tool path arrays", () => {
 
 	it("grep keeps directory-prefixed globs out of subdirectories", async () => {
 		const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "search-path-lists-"));
-		await Bun.write(path.join(tmp, "root.go"), "depth-needle root\n");
-		await Bun.write(path.join(tmp, "internal", "awsapi", "client.go"), "depth-needle awsapi-root\n");
-		await Bun.write(path.join(tmp, "internal", "awsapi", "svc", "nested.go"), "depth-needle awsapi-nested\n");
-		await Bun.write(path.join(tmp, "internal", "crypto_util.go"), "depth-needle crypto-root\n");
-		await Bun.write(path.join(tmp, "internal", "services", "kms", "crypto_kms.go"), "depth-needle kms\n");
-		await Bun.write(path.join(tmp, "internal", "roles.go"), "depth-needle roles\n");
+		await bun.write(path.join(tmp, "root.go"), "depth-needle root\n");
+		await bun.write(path.join(tmp, "internal", "awsapi", "client.go"), "depth-needle awsapi-root\n");
+		await bun.write(path.join(tmp, "internal", "awsapi", "svc", "nested.go"), "depth-needle awsapi-nested\n");
+		await bun.write(path.join(tmp, "internal", "crypto_util.go"), "depth-needle crypto-root\n");
+		await bun.write(path.join(tmp, "internal", "services", "kms", "crypto_kms.go"), "depth-needle kms\n");
+		await bun.write(path.join(tmp, "internal", "roles.go"), "depth-needle roles\n");
 
 		const tools = await createTools(createTestSession(tmp));
 		const tool = tools.find(entry => entry.name === "grep");
@@ -975,7 +976,7 @@ describe("tool path arrays", () => {
 
 	it("grep explains match and context gutters with new format", async () => {
 		const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "search-path-lists-"));
-		await Bun.write(path.join(tmp, "context.txt"), "#if FLAG\nneedle\n#endif\n");
+		await bun.write(path.join(tmp, "context.txt"), "#if FLAG\nneedle\n#endif\n");
 
 		const tools = await createTools(
 			createTestSession(tmp, {

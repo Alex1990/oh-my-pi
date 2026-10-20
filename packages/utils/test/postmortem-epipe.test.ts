@@ -1,8 +1,16 @@
-import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { postmortem } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 const uncaughtIpcChildFlag = "--uncaught-ipc-epipe-child";
 const stdoutDisconnectChildFlag = "--stdout-disconnect-child";
@@ -34,7 +42,7 @@ if (process.argv.includes(unrelatedUncaughtChildFlag)) {
 		throw Object.assign(new Error("broken pipe"), { code: "EPIPE", syscall: "send" });
 	});
 	setImmediate(async () => {
-		await Bun.write(marker, "survived uncaught worker IPC EPIPE");
+		await bun.write(marker, "survived uncaught worker IPC EPIPE");
 		process.exit(0);
 	});
 	await Promise.withResolvers<void>().promise;
@@ -43,7 +51,7 @@ if (process.argv.includes(unrelatedUncaughtChildFlag)) {
 	if (!marker) throw new Error("Missing cleanup marker path");
 	postmortem.registerStdioDisconnectHandling();
 	postmortem.register("stdio-disconnect-test", async () => {
-		await Bun.write(marker, "cleanup complete");
+		await bun.write(marker, "cleanup complete");
 	});
 	// A real write to a stdout whose consumer already closed the pipe surfaces on
 	// process.stdout's own `error` event, driving graceful runQuit(0) + cleanup.
@@ -67,7 +75,7 @@ if (process.argv.includes(unrelatedUncaughtChildFlag)) {
 	// listener (SIGHUP/exit-129) on an interactive launch. Attaching the listener
 	// already suppresses Node's default throw, so the process survives.
 	process.stdout.emit("error", Object.assign(new Error("EIO"), { code: "EIO", syscall: "write" }));
-	await Bun.write(marker, "survived non-epipe stdout error");
+	await bun.write(marker, "survived non-epipe stdout error");
 	process.exit(0);
 } else if (process.argv.includes(socketClosedChildFlag)) {
 	const err = Object.assign(new Error("Socket is closed"), { code: "ERR_SOCKET_CLOSED" });
@@ -76,7 +84,13 @@ if (process.argv.includes(unrelatedUncaughtChildFlag)) {
 	process.stdout.write("survived\n");
 }
 
-if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
+const isChildProcess = CHILD_FLAGS.some(flag => process.argv.includes(flag));
+// Child probes execute this file directly, outside Vitest; importing its API
+// there throws before the probe can reproduce the postmortem behavior.
+const testApi = isChildProcess ? undefined : await import("@oh-my-pi/pi-utils/test-runtime");
+
+if (!isChildProcess && testApi) {
+	const { describe, expect, it } = testApi;
 	describe("postmortem broken-pipe handling", () => {
 		function makeErr(props: { code?: string; syscall?: string; message?: string }): Error {
 			const err = new Error(props.message ?? "broken pipe");
@@ -100,11 +114,14 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 
 		it("keeps the process alive when Bun surfaces worker IPC EPIPE as an uncaught exception", async () => {
 			const marker = path.join(os.tmpdir(), `omp-postmortem-uncaught-ipc-${process.pid}-${Date.now()}`);
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, uncaughtIpcChildFlag, marker], {
-				stdin: "ignore",
-				stdout: "pipe",
-				stderr: "pipe",
-			});
+			const child = bun.spawn(
+				[process.execPath, ...nodeTsArgs, import.meta.filename, uncaughtIpcChildFlag, marker],
+				{
+					stdin: "ignore",
+					stdout: "pipe",
+					stderr: "pipe",
+				},
+			);
 			try {
 				const [exitCode, stdout, stderr] = await Promise.all([
 					child.exited,
@@ -114,7 +131,7 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 				expect(exitCode, stderr).toBe(0);
 				expect(stdout).toBe("");
 				expect(stderr).toBe("");
-				expect(await Bun.file(marker).text()).toBe("survived uncaught worker IPC EPIPE");
+				expect(await bun.file(marker).text()).toBe("survived uncaught worker IPC EPIPE");
 			} finally {
 				child.kill();
 				await child.exited;
@@ -123,7 +140,7 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 		});
 
 		it("keeps unrelated uncaught exceptions fatal", async () => {
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, unrelatedUncaughtChildFlag], {
+			const child = bun.spawn([process.execPath, ...nodeTsArgs, import.meta.filename, unrelatedUncaughtChildFlag], {
 				stdin: "ignore",
 				stdout: "pipe",
 				stderr: "pipe",
@@ -138,7 +155,7 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 		// the guard against masking an unrelated failure (closed subprocess stdin,
 		// socket) as a clean exit while stdout-disconnect handling is registered.
 		it("keeps a non-stdout write EPIPE fatal while stdio-disconnect handling is registered", async () => {
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, attributionChildFlag], {
+			const child = bun.spawn([process.execPath, ...nodeTsArgs, import.meta.filename, attributionChildFlag], {
 				stdin: "ignore",
 				stdout: "pipe",
 				stderr: "pipe",
@@ -155,17 +172,20 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 		// would preempt the terminal disconnect path (SIGHUP/exit-129).
 		it("defers a non-EPIPE stdout error instead of forcing a fatal exit", async () => {
 			const marker = path.join(os.tmpdir(), `omp-postmortem-defer-${process.pid}-${Date.now()}`);
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, deferNonEpipeChildFlag, marker], {
-				stdin: "ignore",
-				stdout: "pipe",
-				stderr: "pipe",
-			});
+			const child = bun.spawn(
+				[process.execPath, ...nodeTsArgs, import.meta.filename, deferNonEpipeChildFlag, marker],
+				{
+					stdin: "ignore",
+					stdout: "pipe",
+					stderr: "pipe",
+				},
+			);
 			try {
 				const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
 				expect(exitCode, stderr).toBe(0);
 				expect(stderr).not.toContain("[Stdout Error]");
 				expect(stderr).not.toContain("[Uncaught Exception]");
-				expect(await Bun.file(marker).text()).toBe("survived non-epipe stdout error");
+				expect(await bun.file(marker).text()).toBe("survived non-epipe stdout error");
 			} finally {
 				child.kill();
 				await child.exited;
@@ -184,8 +204,17 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 				const marker = path.join(tmpDir, "cleanup");
 				const errPath = path.join(tmpDir, "child.err");
 				try {
-					const script = `"${process.execPath}" run "${import.meta.path}" "${stdoutDisconnectChildFlag}" "${marker}" 2>"${errPath}" | true; echo "\${PIPESTATUS[0]}"`;
-					const proc = Bun.spawn(["bash", "-c", script], {
+					const childArgs = [
+						process.execPath,
+						...nodeTsArgs,
+						import.meta.filename,
+						stdoutDisconnectChildFlag,
+						marker,
+					]
+						.map(arg => `"${arg}"`)
+						.join(" ");
+					const script = `${childArgs} 2>"${errPath}" | true; echo "\${PIPESTATUS[0]}"`;
+					const proc = bun.spawn(["bash", "-c", script], {
 						stdout: "pipe",
 						stderr: "pipe",
 						stdin: "ignore",
@@ -212,7 +241,7 @@ if (!CHILD_FLAGS.some(flag => process.argv.includes(flag))) {
 		}
 
 		it("keeps the process alive for Bun's async node:net close error", async () => {
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, socketClosedChildFlag], {
+			const child = bun.spawn([process.execPath, ...nodeTsArgs, import.meta.filename, socketClosedChildFlag], {
 				stdout: "pipe",
 				stderr: "pipe",
 			});

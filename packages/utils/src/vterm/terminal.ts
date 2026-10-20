@@ -7,6 +7,7 @@ import {
 	DEFAULT_CELL_ATTRIBUTES,
 	sharedBlankCell,
 } from "./buffer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const segmenter = new Intl.Segmenter();
 
@@ -442,7 +443,7 @@ export class Terminal {
 	}
 
 	#print(grapheme: string): void {
-		const width = Bun.stringWidth(grapheme);
+		const width = bun.stringWidth(grapheme);
 		if (width === 0) {
 			this.#appendCombining(grapheme);
 			return;

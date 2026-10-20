@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import { type AssistantMessageEventStream, clearCustomApis, getCustomApi } from "@oh-my-pi/pi-ai";
 import { getOAuthProvider } from "@oh-my-pi/pi-ai/oauth";
@@ -8,6 +8,7 @@ import { resolveModelCacheProviderId, resolveOllamaModelCacheProviderId } from "
 import { ModelRegistry, type ProviderConfigInput } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ModelRegistry runtime source cleanup", () => {
 	let authStorage: AuthStorage;
@@ -167,7 +168,7 @@ describe("ModelRegistry runtime source cleanup", () => {
 			contextWindow: 128_000,
 			maxTokens: 16_384,
 		});
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			JSON.stringify({
 				providers: {
@@ -204,7 +205,7 @@ describe("ModelRegistry runtime source cleanup", () => {
 			sourceId,
 		);
 
-		await Bun.write(modelsPath, JSON.stringify({ providers: {} }));
+		await bun.write(modelsPath, JSON.stringify({ providers: {} }));
 		registry.clearSourceRegistrations(sourceId);
 
 		expect(registry.find(provider, discoveredModel.id)).toBeUndefined();
@@ -230,7 +231,7 @@ describe("ModelRegistry runtime source cleanup", () => {
 			maxTokens: 16_384,
 		});
 		const writeConfig = (modelOverrides: Record<string, unknown> | undefined) =>
-			Bun.write(
+			bun.write(
 				modelsPath,
 				JSON.stringify({
 					providers: {

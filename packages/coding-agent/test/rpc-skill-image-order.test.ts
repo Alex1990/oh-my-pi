@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { RpcClient } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import type { RpcPromptResultFrame } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-types";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { ONE_PIXEL_PNG as PNG, waitForFile } from "./helpers/skill-image-vision";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function submissionOrder(messages: AgentMessage[]): string[] {
 	return messages.flatMap(message => {
@@ -26,7 +27,7 @@ let directory: string;
 beforeEach(async () => {
 	directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-skill-image-"));
 	client = new RpcClient({
-		command: [process.execPath, path.join(import.meta.dir, "fixtures", "skill-image-rpc-agent.ts")],
+		command: [process.execPath, path.join(import.meta.dirname, "fixtures", "skill-image-rpc-agent.ts")],
 		cwd: directory,
 		env: { PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1" },
 	});
@@ -61,7 +62,7 @@ test("a later prompt does not overtake an idle image skill while its image is de
 		const second = client.prompt("second", undefined, "followUp");
 		// get_state runs on the serial queue after the second prompt was accepted and handed to the input gate.
 		await client.getState();
-		await Bun.write(path.join(directory, "vision-release"), "");
+		await bun.write(path.join(directory, "vision-release"), "");
 		await Promise.all([skill, second]);
 		await bothSettled.promise;
 	} finally {

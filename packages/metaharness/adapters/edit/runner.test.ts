@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
@@ -7,6 +7,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { generateReport } from "./report";
 import { buildBenchmarkResult, type TaskRunResult, writeConversationDump } from "./runner";
 import type { EditTask } from "@oh-my-pi/typescript-edit-benchmark/tasks";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: TempDir[] = [];
 
@@ -401,11 +402,11 @@ describe("writeConversationDump", () => {
 
 		expect(dumpPath).toBe(path.join(dumpRoot.absolute(), "task_weird", "run-1.md"));
 
-		const dumpText = await Bun.file(dumpPath).text();
+		const dumpText = await bun.file(dumpPath).text();
 		const expectedBody = formatSessionDumpText({ messages: [userMessage] });
 		expect(dumpText.trim()).toBe(expectedBody.trim());
 
 		const copiedArtifactPath = path.join(dumpPath.slice(0, -3), path.basename(sourceArtifactPath));
-		expect(await Bun.file(copiedArtifactPath).text()).toBe("artifact contents");
+		expect(await bun.file(copiedArtifactPath).text()).toBe("artifact contents");
 	});
 });

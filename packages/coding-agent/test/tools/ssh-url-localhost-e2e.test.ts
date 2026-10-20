@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as capability from "@oh-my-pi/pi-coding-agent/capability";
 import type { SSHHost } from "@oh-my-pi/pi-coding-agent/capability/ssh";
@@ -11,6 +11,8 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { GrepTool } from "@oh-my-pi/pi-coding-agent/tools/grep";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 
 // Live integration against `ssh localhost`. Skips automatically where key-based
 // localhost SSH is unavailable (CI without sshd). Capability lookup is mocked
@@ -18,7 +20,7 @@ import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 // exercising the real connection-manager + file-transfer over a real ssh process.
 const SSH_OK = (() => {
 	try {
-		const r = Bun.spawnSync(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "localhost", "true"]);
+		const r = bun.spawnSync(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "localhost", "true"]);
 		return r.exitCode === 0;
 	} catch {
 		return false;
@@ -35,7 +37,7 @@ function mockEmptyHosts(): void {
 }
 
 const sh = async (script: string) => {
-	await Bun.$`ssh -o BatchMode=yes localhost ${script}`.quiet();
+	await $`ssh -o BatchMode=yes localhost ${script}`.quiet();
 };
 
 describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
@@ -47,7 +49,7 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 	});
 
 	afterAll(async () => {
-		await Bun.$`ssh -o BatchMode=yes localhost rm -rf ${TMP}`.nothrow().quiet();
+		await $`ssh -o BatchMode=yes localhost rm -rf ${TMP}`.nothrow().quiet();
 	});
 
 	afterEach(() => {
@@ -67,7 +69,7 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 		// `-oProxyCommand=touch …` would execute locally if it reached ssh's argv.
 		const url = parseInternalUrl(`ssh://-oProxyCommand=touch%20${encodeURIComponent(`${TMP}/PWNED`)}/etc/hostname`);
 		await expect(handler.resolve(url)).rejects.toThrow(/must not begin with/);
-		const pwned = await Bun.$`ssh -o BatchMode=yes localhost test -e ${TMP}/PWNED && echo yes || echo no`.text();
+		const pwned = await $`ssh -o BatchMode=yes localhost test -e ${TMP}/PWNED && echo yes || echo no`.text();
 		expect(pwned.trim()).toBe("no");
 	});
 
@@ -87,7 +89,7 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 		const back = await handler.resolve(parseInternalUrl(`ssh://localhost${dest}`));
 		expect(back.content).toBe("hi\n\t!\n");
 		// The uniquely-named temp must have been renamed away (no leftovers).
-		const leftovers = await Bun.$`ssh -o BatchMode=yes localhost ls ${TMP} | grep -c omp-tmp || true`.text();
+		const leftovers = await $`ssh -o BatchMode=yes localhost ls ${TMP} | grep -c omp-tmp || true`.text();
 		expect(leftovers.trim()).toBe("0");
 	});
 
@@ -104,7 +106,7 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 		await expect(handler.write(parseInternalUrl(`ssh://localhost${TMP}/newdir/`), "x\n")).rejects.toThrow(
 			/directory path|trailing/,
 		);
-		const exists = await Bun.$`ssh -o BatchMode=yes localhost test -d ${TMP}/newdir && echo yes || echo no`.text();
+		const exists = await $`ssh -o BatchMode=yes localhost test -d ${TMP}/newdir && echo yes || echo no`.text();
 		expect(exists.trim()).toBe("no");
 	});
 
@@ -113,7 +115,7 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 		await sh(`sh -c 'printf orig > ${TMP}/sym-target; ln -sf ${TMP}/sym-target ${TMP}/sym-link'`);
 		await handler.write(parseInternalUrl(`ssh://localhost${TMP}/sym-link`), "replaced\n");
 		const isLink =
-			await Bun.$`ssh -o BatchMode=yes localhost test -L ${TMP}/sym-link && echo link || echo regular`.text();
+			await $`ssh -o BatchMode=yes localhost test -L ${TMP}/sym-link && echo link || echo regular`.text();
 		expect(isLink.trim()).toBe("regular");
 		const back = await handler.resolve(parseInternalUrl(`ssh://localhost${TMP}/sym-link`));
 		expect(back.content).toBe("replaced\n");
@@ -138,11 +140,11 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 		mockEmptyHosts();
 		await sh(`mkdir -p ${TMP}/wdir`);
 		await expect(handler.write(parseInternalUrl(`ssh://localhost${TMP}/wdir`), "x")).rejects.toThrow();
-		const kind = await Bun.$`ssh -o BatchMode=yes localhost test -d ${TMP}/wdir && echo dir || echo notdir`.text();
+		const kind = await $`ssh -o BatchMode=yes localhost test -d ${TMP}/wdir && echo dir || echo notdir`.text();
 		expect(kind.trim()).toBe("dir"); // directory intact, not clobbered into a file
 		// The dir-error path must remove the temp it created beside the destination.
 		const leftovers =
-			await Bun.$`ssh -o BatchMode=yes localhost ls -A ${TMP} | grep -c "wdir.omp-tmp" || true`.text();
+			await $`ssh -o BatchMode=yes localhost ls -A ${TMP} | grep -c "wdir.omp-tmp" || true`.text();
 		expect(leftovers.trim()).toBe("0");
 	});
 
@@ -156,10 +158,10 @@ describe.skipIf(!SSH_OK)("ssh:// handler against a real localhost ssh", () => {
 			mockEmptyHosts();
 			const dest = `${TMP}/perm.txt`;
 			await sh(`printf orig > ${dest}; chmod 600 ${dest}`);
-			const inode = async () => (await Bun.$`ssh -o BatchMode=yes localhost stat -c %i ${dest}`.text()).trim();
+			const inode = async () => (await $`ssh -o BatchMode=yes localhost stat -c %i ${dest}`.text()).trim();
 			const inodeBefore = await inode();
 			await handler.write(parseInternalUrl(`ssh://localhost${dest}`), "new\n");
-			const mode = (await Bun.$`ssh -o BatchMode=yes localhost stat -c %a ${dest}`.text()).trim();
+			const mode = (await $`ssh -o BatchMode=yes localhost stat -c %a ${dest}`.text()).trim();
 			expect(mode).toBe("600");
 			expect(await inode()).toBe(inodeBefore);
 			const back = await handler.resolve(parseInternalUrl(`ssh://localhost${dest}`));
@@ -197,7 +199,7 @@ describe.skipIf(!SSH_OK)("ssh:// through the real read/grep/write tools (localho
 	});
 
 	afterAll(async () => {
-		await Bun.$`ssh -o BatchMode=yes localhost rm -rf ${TMP}`.nothrow().quiet();
+		await $`ssh -o BatchMode=yes localhost rm -rf ${TMP}`.nothrow().quiet();
 	});
 
 	afterEach(() => {
@@ -236,7 +238,7 @@ describe.skipIf(!SSH_OK)("ssh:// through the real read/grep/write tools (localho
 		mockEmptyHosts();
 		const dest = `ssh://localhost${TMP}/wtool.txt`;
 		await new WriteTool(createSession()).execute("w", { path: dest, content: "hi\n\t!\n" });
-		const onDisk = await Bun.$`ssh -o BatchMode=yes localhost cat ${TMP}/wtool.txt`.text();
+		const onDisk = await $`ssh -o BatchMode=yes localhost cat ${TMP}/wtool.txt`.text();
 		expect(onDisk).toBe("hi\n\t!\n");
 		const back = textOf(await new ReadTool(createSession()).execute("rb", { path: dest }));
 		expect(back).toContain("hi");
@@ -249,7 +251,7 @@ describe.skipIf(!SSH_OK)("ssh:// through the real read/grep/write tools (localho
 			new WriteTool(createSession()).execute("wf", { path: `ssh://localhost${TMP}/fifo`, content: "x" }),
 		).rejects.toThrow(/special file/i);
 		const kind = (
-			await Bun.$`ssh -o BatchMode=yes localhost test -p ${TMP}/fifo && echo fifo || echo other`.text()
+			await $`ssh -o BatchMode=yes localhost test -p ${TMP}/fifo && echo fifo || echo other`.text()
 		).trim();
 		expect(kind).toBe("fifo");
 	});

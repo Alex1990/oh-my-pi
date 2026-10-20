@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const CLI_ENTRY = path.join(import.meta.dir, "..", "src", "cli.ts");
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "resources-no-templates-mcp.ts");
+const CLI_ENTRY = path.join(import.meta.dirname, "..", "src", "cli.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "resources-no-templates-mcp.ts");
 
 describe("omp read MCP resources", () => {
 	let root: string;
@@ -20,13 +22,13 @@ describe("omp read MCP resources", () => {
 		agentDir = path.join(root, "agent");
 		const localSkillDir = path.join(projectDir, ".omp", "skills", "local-skill");
 		await Promise.all([fs.mkdir(localSkillDir, { recursive: true }), fs.mkdir(agentDir)]);
-		await Bun.write(
+		await bun.write(
 			path.join(localSkillDir, "SKILL.md"),
 			"---\nname: local-skill\ndescription: Local skill next to MCP skills.\n---\n\n# Local Skill\n",
 		);
-		await Bun.write(path.join(localSkillDir, "ref.md"), "local skill ref\n");
-		await Bun.write(path.join(projectDir, "notes.md"), "project notes\n");
-		await Bun.write(
+		await bun.write(path.join(localSkillDir, "ref.md"), "local skill ref\n");
+		await bun.write(path.join(projectDir, "notes.md"), "project notes\n");
+		await bun.write(
 			path.join(projectDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {
@@ -39,7 +41,7 @@ describe("omp read MCP resources", () => {
 			}),
 		);
 		probePath = path.join(root, "probe.ts");
-		await Bun.write(
+		await bun.write(
 			probePath,
 			[
 				`import { runCli } from ${JSON.stringify(url.pathToFileURL(CLI_ENTRY).href)};`,
@@ -59,7 +61,7 @@ describe("omp read MCP resources", () => {
 	});
 
 	async function runReadProbe(): Promise<{ exitCode: number; output: string; error: string }> {
-		const proc = Bun.spawn([process.execPath, probePath], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 			cwd: projectDir,
 			stdout: "pipe",
 			stderr: "pipe",

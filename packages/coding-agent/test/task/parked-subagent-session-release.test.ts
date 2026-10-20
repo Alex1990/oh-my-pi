@@ -6,7 +6,7 @@
  * reviver that pins the disposed session leaks one full session graph per
  * spawned subagent.
  */
-import { afterEach, beforeEach, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,9 @@ import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-sessi
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { __resetDirsFromEnvForTests, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const AGENT_ID = "ParkedRelease";
 const MOCK_API_SOURCE = "test/parked-subagent-session-release";
@@ -40,11 +43,11 @@ let root: string;
 function restoreEnvValue(key: string, value: string | undefined): void {
 	if (value === undefined) {
 		delete process.env[key];
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
 	process.env[key] = value;
-	Bun.env[key] = value;
+	bun.env[key] = value;
 }
 
 beforeEach(async () => {
@@ -84,10 +87,10 @@ function weakRefToLiveSession(id: string): WeakRef<AgentSession> {
 async function collected(ref: WeakRef<object>, deadlineMs: number): Promise<boolean> {
 	const deadline = Date.now() + deadlineMs;
 	for (;;) {
-		Bun.gc(true);
+		bun.gc(true);
 		if (ref.deref() === undefined) return true;
 		if (Date.now() > deadline) return false;
-		await Bun.sleep(100);
+		await bun.sleep(100);
 	}
 }
 

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
 import { renderStatusLine } from "@oh-my-pi/pi-tui/render";
 import { sanitizeText } from "@oh-my-pi/pi-utils";

@@ -29,11 +29,12 @@ smoke_cli() {
    XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --version
    XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --help >/dev/null
    XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" stats --summary >/dev/null
-   # Spawns bundled workers and serves the stats dashboard once. Regression
+   # Spawns embedded workers and serves the stats dashboard once. Regression
    # probe for #1011/#1027 worker loading and for npm/compiled distributions
    # missing the dashboard assets that `stats --summary` never touches.
    XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --smoke-test
-   bun "$ROOT_DIR/scripts/install-tests/settings-session.ts" "$omp_bin"
+   node --experimental-transform-types --import "$ROOT_DIR/scripts/node-runtime-loader.mjs" \
+      "$ROOT_DIR/scripts/install-tests/settings-session.ts" "$omp_bin"
 }
 
 find_tarball() {
@@ -65,7 +66,7 @@ align_native_manifest() {
       exit 1
    fi
    for addon in "${candidates[@]}"; do
-      candidate_version="$(bun "$ROOT_DIR/scripts/install-tests/native-version.ts" "$addon")" || exit 1
+      candidate_version="$(node --experimental-transform-types --import "$ROOT_DIR/scripts/node-runtime-loader.mjs" "$ROOT_DIR/scripts/install-tests/native-version.ts" "$addon")" || exit 1
       if [ -z "$addon_version" ]; then
          addon_version="$candidate_version"
       elif [ "$addon_version" != "$candidate_version" ]; then
@@ -84,40 +85,47 @@ align_native_manifest() {
 }
 section "Binary install smoke"
 if [ "${OMP_INSTALL_TEST_SKIP_NATIVE_BUILD:-0}" != "1" ]; then
-   bun --cwd=packages/natives run build
+   pnpm --dir packages/natives run build
 fi
 align_native_manifest
-bun --cwd=packages/coding-agent run build
+pnpm --dir packages/coding-agent run build
 
 BINARY_DIR="$WORK_DIR/binary-bin"
 mkdir -p "$BINARY_DIR"
 cp packages/coding-agent/dist/omp "$BINARY_DIR/omp"
+cp packages/coding-agent/dist/cli.js "$BINARY_DIR/cli.js"
+# cli.js keeps the native addon external and resolves it from node_modules next
+# to the payload; provide the workspace tree beside the copied launcher.
+ln -s "$ROOT_DIR/node_modules" "$BINARY_DIR/node_modules"
 smoke_cli "$BINARY_DIR/omp"
 
 section "Source install smoke"
-SOURCE_BUN_HOME="$WORK_DIR/bun-source"
+SOURCE_PNPM_HOME="$WORK_DIR/pnpm-source"
 (
-   export BUN_INSTALL="$SOURCE_BUN_HOME"
-   export PATH="$BUN_INSTALL/bin:$PATH"
-   bun --cwd="$ROOT_DIR/packages/coding-agent" link
-   smoke_cli "$BUN_INSTALL/bin/omp"
+   export PNPM_HOME="$SOURCE_PNPM_HOME"
+   export PATH="$PNPM_HOME:$PATH"
+   # The repository manifest points `bin.omp` at the TypeScript entrypoint, so
+   # the linked command needs Node's type transform and the repo loader.
+   export NODE_OPTIONS="--experimental-transform-types --import $ROOT_DIR/scripts/node-runtime-loader.mjs"
+   pnpm --dir "$ROOT_DIR/packages/coding-agent" link --global
+   smoke_cli "$(pnpm bin -g)/omp"
 )
 
 section "Tarball install smoke"
 TARBALL_DIR="$WORK_DIR/tarballs"
 mkdir -p "$TARBALL_DIR"
-host_tag="$(bun -e "process.stdout.write(\`\${process.platform}-\${process.arch}\`)")"
+host_tag="$(node -e 'process.stdout.write(`${process.platform}-${process.arch}`)')"
 
 # Native addon split: the published core ships only the loader (no `.node`); the
 # prebuilt binary lives in a per-platform leaf package pulled in as an optional
 # dependency. Reproduce that exact published topology so this smoke proves the
-# installed core resolves its addon through the leaf, not a bundled binary.
+# installed core resolves its addon through the leaf, not an embedded binary.
 
 # 1. Generate + pack the host-platform leaf (carries the built `.node`).
-bun --cwd=packages/natives run gen:npm --tag "$host_tag" >/dev/null
+pnpm --dir packages/natives run gen:npm --tag "$host_tag" >/dev/null
 (
    cd "$ROOT_DIR/packages/natives/npm/$host_tag"
-   bun pm pack --destination "$TARBALL_DIR" --quiet >/dev/null
+   pnpm pack --pack-destination "$TARBALL_DIR" --silent >/dev/null
 )
 
 # 2. Pack the core with its *published* manifest: the same rewrite release uses
@@ -125,10 +133,15 @@ bun --cwd=packages/natives run gen:npm --tag "$host_tag" >/dev/null
 #    restore the working-tree manifest so local runs aren't left mutated.
 natives_pkg_backup="$WORK_DIR/natives-package.json.orig"
 cp "$ROOT_DIR/packages/natives/package.json" "$natives_pkg_backup"
+prepare_natives_script="$WORK_DIR/prepare-native-core.mts"
+cat > "$prepare_natives_script" <<EOF
+import { prepareNativeCorePackage } from "$ROOT_DIR/scripts/ci-release-publish.ts";
+await prepareNativeCorePackage("packages/natives", true);
+EOF
 core_rc=0
 {
-   bun -e 'import { prepareNativeCorePackage } from "./scripts/ci-release-publish.ts"; await prepareNativeCorePackage("packages/natives", true);' &&
-      (cd "$ROOT_DIR/packages/natives" && bun pm pack --destination "$TARBALL_DIR" --quiet >/dev/null)
+   node --experimental-transform-types --import "$ROOT_DIR/scripts/node-runtime-loader.mjs" "$prepare_natives_script" &&
+      (cd "$ROOT_DIR/packages/natives" && pnpm pack --pack-destination "$TARBALL_DIR" --silent >/dev/null)
 } || core_rc=$?
 cp "$natives_pkg_backup" "$ROOT_DIR/packages/natives/package.json"
 [ "$core_rc" -eq 0 ] || exit "$core_rc"
@@ -139,22 +152,27 @@ cp "$natives_pkg_backup" "$ROOT_DIR/packages/natives/package.json"
 for pkg in utils wire omptype catalog ai mnemopi snapcompact agent tui stats collab-web; do
    (
       cd "$ROOT_DIR/packages/$pkg"
-      bun pm pack --destination "$TARBALL_DIR" --quiet >/dev/null
+      pnpm pack --pack-destination "$TARBALL_DIR" --silent >/dev/null
    )
 done
 
 # 4. Pack the coding agent with its *published* manifest: release swaps
-#    `bin.omp` from `src/cli.ts` to the prepack bundle `dist/cli.js`. The repo
-#    manifest keeps pointing at source so `bun link`/`install.sh --source`
+#    `bin.omp` from `src/cli.ts` to the prepack payload `dist/cli.js`. The repo
+#    manifest keeps pointing at source so `pnpm link`/`install.sh --source`
 #    work without a build, so the swap must be reproduced here for the smoke
-#    to exercise the bundled worker-host entry the published package ships.
+#    to exercise the embedded worker-host entry the published package ships.
 #    Always restore the working-tree manifest.
 agent_pkg_backup="$WORK_DIR/coding-agent-package.json.orig"
 cp "$ROOT_DIR/packages/coding-agent/package.json" "$agent_pkg_backup"
+prepare_agent_script="$WORK_DIR/apply-publish-bin.mts"
+cat > "$prepare_agent_script" <<EOF
+import { applyPublishBin } from "$ROOT_DIR/scripts/ci-release-publish.ts";
+await applyPublishBin("packages/coding-agent", true);
+EOF
 agent_rc=0
 {
-   bun -e 'import { applyPublishBin } from "./scripts/ci-release-publish.ts"; await applyPublishBin("packages/coding-agent", true);' &&
-      (cd "$ROOT_DIR/packages/coding-agent" && bun pm pack --destination "$TARBALL_DIR" --quiet >/dev/null)
+   node --experimental-transform-types --import "$ROOT_DIR/scripts/node-runtime-loader.mjs" "$prepare_agent_script" &&
+      (cd "$ROOT_DIR/packages/coding-agent" && pnpm pack --pack-destination "$TARBALL_DIR" --silent >/dev/null)
 } || agent_rc=$?
 cp "$agent_pkg_backup" "$ROOT_DIR/packages/coding-agent/package.json"
 [ "$agent_rc" -eq 0 ] || exit "$agent_rc"
@@ -178,32 +196,33 @@ TARBALL_APP_DIR="$WORK_DIR/tarball-install"
 mkdir -p "$TARBALL_APP_DIR"
 (
    cd "$TARBALL_APP_DIR"
-   bun init -y >/dev/null
+   # A minimal manifest: `pnpm init` probes the registry for the latest pnpm
+   # and pins it via packageManager, which would escape the repo's pinned
+   # release (and fail offline).
+   node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'omp-install-smoke', private: true, version: '0.0.0' }, null, 2))"
 
-   # Write overrides so bun resolves inter-package deps from tarballs, not the registry
-   # (the version under test has not necessarily been published yet).
-   node -e "
-		const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
-		pkg.overrides = {
-			'@oh-my-pi/pi-utils': '$utils_tgz',
-			'@oh-my-pi/pi-wire': '$wire_tgz',
-			'@oh-my-pi/omptype': '$omptype_tgz',
-			'@oh-my-pi/pi-natives': '$natives_tgz',
-			'@oh-my-pi/pi-natives-$host_tag': '$natives_leaf_tgz',
-			'@oh-my-pi/pi-ai': '$ai_tgz',
-			'@oh-my-pi/pi-catalog': '$catalog_tgz',
-			'@oh-my-pi/pi-mnemopi': '$mnemopi_tgz',
-			'@oh-my-pi/snapcompact': '$snapcompact_tgz',
-			'@oh-my-pi/pi-agent-core': '$agent_tgz',
-			'@oh-my-pi/pi-tui': '$tui_tgz',
-			'@oh-my-pi/omp-stats': '$stats_tgz',
-			'@oh-my-pi/pi-coding-agent': '$coding_agent_tgz',
-			'@oh-my-pi/collab-web': '$collab_web_tgz'
-		};
-		require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-	"
+   # Point inter-package deps at the tarballs so nothing resolves from the
+   # registry (the version under test has not necessarily been published yet).
+   # pnpm 10 reads overrides from pnpm-workspace.yaml, not package.json.
+   cat > pnpm-workspace.yaml <<EOF
+overrides:
+  '@oh-my-pi/pi-utils': 'file:$utils_tgz'
+  '@oh-my-pi/pi-wire': 'file:$wire_tgz'
+  '@oh-my-pi/omptype': 'file:$omptype_tgz'
+  '@oh-my-pi/pi-natives': 'file:$natives_tgz'
+  '@oh-my-pi/pi-natives-$host_tag': 'file:$natives_leaf_tgz'
+  '@oh-my-pi/pi-ai': 'file:$ai_tgz'
+  '@oh-my-pi/pi-catalog': 'file:$catalog_tgz'
+  '@oh-my-pi/pi-mnemopi': 'file:$mnemopi_tgz'
+  '@oh-my-pi/snapcompact': 'file:$snapcompact_tgz'
+  '@oh-my-pi/pi-agent-core': 'file:$agent_tgz'
+  '@oh-my-pi/pi-tui': 'file:$tui_tgz'
+  '@oh-my-pi/omp-stats': 'file:$stats_tgz'
+  '@oh-my-pi/pi-coding-agent': 'file:$coding_agent_tgz'
+  '@oh-my-pi/collab-web': 'file:$collab_web_tgz'
+EOF
 
-   bun add "$utils_tgz" "$wire_tgz" "$omptype_tgz" "$natives_tgz" "$catalog_tgz" "$ai_tgz" "$mnemopi_tgz" "$snapcompact_tgz" "$agent_tgz" "$tui_tgz" "$stats_tgz" "$coding_agent_tgz" "$collab_web_tgz"
+   pnpm add "$utils_tgz" "$wire_tgz" "$omptype_tgz" "$natives_tgz" "$catalog_tgz" "$ai_tgz" "$mnemopi_tgz" "$snapcompact_tgz" "$agent_tgz" "$tui_tgz" "$stats_tgz" "$coding_agent_tgz" "$collab_web_tgz"
    # The platform leaf must arrive through the core's optionalDependencies +
    # override, not as a direct dependency — assert it landed before smoking so a
    # resolution regression is distinguishable from a runtime loader bug.
@@ -212,18 +231,23 @@ mkdir -p "$TARBALL_APP_DIR"
       echo "Platform leaf package not installed: $leaf_dir"
       exit 1
    }
-   wire_proto="$(bun -e 'import { COLLAB_PROTO } from "@oh-my-pi/pi-wire"; process.stdout.write(String(COLLAB_PROTO));')"
+   cat > wire-probe.mts <<'PROBE'
+import { COLLAB_PROTO } from "@oh-my-pi/pi-wire";
+process.stdout.write(String(COLLAB_PROTO));
+PROBE
+   wire_proto="$(node --experimental-transform-types wire-probe.mts)"
    [ "$wire_proto" = "3" ] || {
       echo "Unexpected @oh-my-pi/pi-wire COLLAB_PROTO: $wire_proto"
       exit 1
    }
-   omptype_probe="$(bun -e '
-      import { type } from "@oh-my-pi/omptype";
-      import { Type } from "@oh-my-pi/omptype/typebox";
-      const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "omp" });
-      const typebox = Type.Object({ name: Type.String() }).assert({ name: "tb" });
-      process.stdout.write(`${root.name}:${root.enabled}:${typebox.name}`);
-   ')"
+   cat > omptype-probe.mts <<'PROBE'
+import { type } from "@oh-my-pi/omptype";
+import { Type } from "@oh-my-pi/omptype/typebox";
+const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "omp" });
+const typebox = Type.Object({ name: Type.String() }).assert({ name: "tb" });
+process.stdout.write(`${root.name}:${root.enabled}:${typebox.name}`);
+PROBE
+   omptype_probe="$(node --experimental-transform-types omptype-probe.mts)"
    [ "$omptype_probe" = "omp:false:tb" ] || {
       echo "Unexpected @oh-my-pi/omptype probe result: $omptype_probe"
       exit 1

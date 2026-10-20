@@ -15,7 +15,7 @@
  * is still unresolved and discoverable providers exist, before accepting the
  * bundled-provider fallback.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

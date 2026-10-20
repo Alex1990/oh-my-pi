@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import {
 import type { Component } from "@oh-my-pi/pi-tui";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { globToolRenderer } from "@oh-my-pi/pi-tui/tools/glob";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let uiTheme: Theme;
 
@@ -29,7 +30,7 @@ const renderOptions: RenderResultOptions = {
 };
 
 function renderText(component: Component): string {
-	return Bun.stripANSI(component.render(160).join("\n"));
+	return bun.stripANSI(component.render(160).join("\n"));
 }
 
 describe("delimited path expansion", () => {
@@ -41,9 +42,9 @@ describe("delimited path expansion", () => {
 		await fs.mkdir(path.join(tempDir, "packages"), { recursive: true });
 		await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
 		await fs.mkdir(path.join(tempDir, "folder with spaces"), { recursive: true });
-		await Bun.write(path.join(tempDir, "apps", "a.txt"), "apps\n");
-		await Bun.write(path.join(tempDir, "packages", "b.txt"), "packages\n");
-		await Bun.write(path.join(tempDir, "folder with spaces", "file.txt"), "spaces\n");
+		await bun.write(path.join(tempDir, "apps", "a.txt"), "apps\n");
+		await bun.write(path.join(tempDir, "packages", "b.txt"), "packages\n");
+		await bun.write(path.join(tempDir, "folder with spaces", "file.txt"), "spaces\n");
 	});
 
 	afterEach(async () => {
@@ -116,7 +117,7 @@ describe("delimited path expansion", () => {
 		const names: string[] = [];
 		for (let i = 0; i < 20; i++) {
 			const name = `enametoolong-probe-${String(i).padStart(2, "0")}.txt`;
-			await Bun.write(path.join(tempDir, name), "needle\n");
+			await bun.write(path.join(tempDir, name), "needle\n");
 			names.push(name);
 		}
 		const joined = names.join("; ");

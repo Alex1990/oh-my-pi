@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SessionSelectorComponent } from "@oh-my-pi/pi-tui/overlays/session-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { SessionInfo } from "@oh-my-pi/pi-coding-agent/session/session-listing";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -51,7 +52,7 @@ describe("SessionSelectorComponent scope toggle", () => {
 		expect(selector.render(120).join("\n")).not.toContain("other-project");
 
 		selector.handleInput(TAB);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		const rendered = selector.render(120).join("\n");
 		expect(rendered).toContain("(all projects)");
@@ -60,13 +61,13 @@ describe("SessionSelectorComponent scope toggle", () => {
 
 		// Toggling back returns to folder scope without reloading.
 		selector.handleInput(TAB);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(selector.render(120).join("\n")).toContain("(current folder)");
 		expect(loads).toBe(1);
 
 		// Re-entering all scope reuses the cached global list.
 		selector.handleInput(TAB);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(loads).toBe(1);
 	});
 
@@ -111,7 +112,7 @@ describe("SessionSelectorComponent scope toggle", () => {
 		);
 
 		selector.handleInput(TAB);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		selector.handleInput("\n");
 
 		expect(selected).toHaveLength(1);

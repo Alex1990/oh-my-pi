@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
@@ -18,6 +18,7 @@ import { isNativeRendering, setNativeRendering } from "@oh-my-pi/pi-tui/native/s
 import { JobsSheet } from "@oh-my-pi/pi-tui/overlays/jobs-panel";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WIDTH = 60;
 
@@ -36,7 +37,7 @@ async function renderFullJobs(running: AsyncJobSnapshotItem[]): Promise<string[]
 	await new CommandController(ctx).handleJobsCommand({ full: true });
 	return reportContainer
 		.render(WIDTH)
-		.map(line => Bun.stripANSI(line))
+		.map(line => bun.stripANSI(line))
 		.filter(line => line.startsWith("│"))
 		.map(line => line.slice(2, -2).trimEnd());
 }
@@ -124,7 +125,7 @@ describe("/jobs in the native terminal", () => {
 		const sheet = mode.ui.overlayStack.at(-1)?.component;
 		expect(sheet).toBeInstanceOf(JobsSheet);
 		expect(mode.ui.getFocused()).toBe(sheet ?? null);
-		expect(Bun.stripANSI(sheet?.render(100).join("\n") ?? "")).toContain("cargo test --workspace");
+		expect(bun.stripANSI(sheet?.render(100).join("\n") ?? "")).toContain("cargo test --workspace");
 		expect(mode.chatContainer.children).toEqual(transcript);
 
 		sheet?.handleInput?.("\x1b");
@@ -219,7 +220,7 @@ describe("/jobs in the native terminal", () => {
 			await mode.handleJobsCommand();
 			const sheet = mode.ui.overlayStack.at(-1)?.component;
 			expect(sheet).toBeInstanceOf(JobsSheet);
-			const listed = Bun.stripANSI(sheet?.render(100).join("\n") ?? "");
+			const listed = bun.stripANSI(sheet?.render(100).join("\n") ?? "");
 			expect(listed).toContain("worker cargo test");
 			expect(listed).not.toContain("main-only build");
 			sheet?.handleInput?.("x");
@@ -229,7 +230,7 @@ describe("/jobs in the native terminal", () => {
 
 			setNativeRendering(false);
 			await mode.handleJobsCommand({ full: true });
-			const report = Bun.stripANSI(mode.reportContainer.render(100).join("\n"));
+			const report = bun.stripANSI(mode.reportContainer.render(100).join("\n"));
 			expect(report).toContain("worker cargo test");
 			expect(report).not.toContain("main-only build");
 		} finally {
@@ -252,7 +253,7 @@ describe("/jobs in the native terminal", () => {
 		try {
 			setNativeRendering(false);
 			await mode.handleJobsCommand({ full: true });
-			const report = Bun.stripANSI(mode.reportContainer.render(120).join("\n"))
+			const report = bun.stripANSI(mode.reportContainer.render(120).join("\n"))
 				.split("\n")
 				.map(line => line.replace(/^│ ?|\s*│$/g, "").trimEnd())
 				.filter(line => /\S/.test(line));
@@ -272,7 +273,7 @@ describe("/jobs in the native terminal", () => {
 			const sheet = mode.ui.overlayStack.at(-1)?.component;
 			expect(sheet).toBeInstanceOf(JobsSheet);
 			sheet?.handleInput?.("\x1b[B");
-			expect(Bun.stripANSI(sheet?.render(120).join("\n") ?? "")).toMatch(/> .*running {2}bash .* deep probe/);
+			expect(bun.stripANSI(sheet?.render(120).join("\n") ?? "")).toMatch(/> .*running {2}bash .* deep probe/);
 			expect(session.inspectAsyncJob(deepId)).toMatchObject({ pids: [] });
 			sheet?.handleInput?.("\x1b");
 		} finally {

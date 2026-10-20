@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AuthStorage, FetchImpl } from "@oh-my-pi/pi-ai";
 import { PerplexityProvider, searchPerplexity } from "@oh-my-pi/pi-coding-agent/web/search/providers/perplexity";
 import { getAvailableAuthMethods } from "@oh-my-pi/pi-coding-agent/web/search/providers/perplexity-auth";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const API_URL = "https://api.perplexity.ai/chat/completions";
 const RESPONSES_URL = "https://api.perplexity.ai/v1/responses";
@@ -698,21 +699,21 @@ describe("Perplexity OpenRouter auto-chain admission (issue #3251)", () => {
 });
 
 describe("Perplexity Authentication order", () => {
-	const savedCookies = Bun.env.PERPLEXITY_COOKIES || process.env.PERPLEXITY_COOKIES;
+	const savedCookies = bun.env.PERPLEXITY_COOKIES || process.env.PERPLEXITY_COOKIES;
 
 	beforeEach(() => {
 		process.env.PERPLEXITY_COOKIES = "user-browser-cookies";
-		Bun.env.PERPLEXITY_COOKIES = "user-browser-cookies";
+		bun.env.PERPLEXITY_COOKIES = "user-browser-cookies";
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
 		if (savedCookies === undefined) {
 			delete process.env.PERPLEXITY_COOKIES;
-			delete Bun.env.PERPLEXITY_COOKIES;
+			delete bun.env.PERPLEXITY_COOKIES;
 		} else {
 			process.env.PERPLEXITY_COOKIES = savedCookies;
-			Bun.env.PERPLEXITY_COOKIES = savedCookies;
+			bun.env.PERPLEXITY_COOKIES = savedCookies;
 		}
 	});
 
@@ -742,7 +743,7 @@ describe("Perplexity Authentication order", () => {
 
 	it("prefers OAuth over API key in getAvailableAuthMethods (for token command)", async () => {
 		delete process.env.PERPLEXITY_COOKIES;
-		delete Bun.env.PERPLEXITY_COOKIES;
+		delete bun.env.PERPLEXITY_COOKIES;
 
 		const oauthAndApiKeyAuthStorage = {
 			oauth: { access: async () => ({ accessToken: "oauth-token" }) },

@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { RpcClient, RpcCommandError } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import type { BtwHistoryRecord } from "@oh-my-pi/pi-coding-agent/session/btw-history";
 import { isRecord, readJsonl, removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 /** Settle a request before `expect` sees it (see rpc-goal.test.ts). */
 async function rejectionOf(request: Promise<unknown>): Promise<Error> {
@@ -28,7 +30,7 @@ describe("RPC /btw", () => {
 	async function start() {
 		directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-btw-"));
 		const rpc = new RpcClient({
-			command: [process.execPath, path.join(import.meta.dir, "fixtures", "btw-rpc-agent.ts")],
+			command: [process.execPath, path.join(import.meta.dirname, "fixtures", "btw-rpc-agent.ts")],
 			cwd: directory,
 			env: { PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1" },
 		});
@@ -113,7 +115,7 @@ describe("RPC /btw", () => {
 		expect(await settled(slow.id)).toMatchObject({ status: "cancelled", answer: "Thinking" });
 		expect(await rpc.cancelBtw()).toBe(false);
 		// The turn was really aborted, and its late chunk never reached the host.
-		expect(await Bun.file(path.join(directory!, "btw-aborted")).exists()).toBe(true);
+		expect(await bun.file(path.join(directory!, "btw-aborted")).exists()).toBe(true);
 		expect(deltas).toEqual(["Thinking"]);
 
 		// The slot is free again; a cancelled topic accepts follow-ups.
@@ -197,7 +199,7 @@ describe("RPC /btw", () => {
 		await fs.rm(entry, { recursive: true });
 		await fs.writeFile(entry, running);
 		expect((await rpc.newSession()).cancelled).toBe(false);
-		expect(await Bun.file(entry).json()).toMatchObject({ status: "cancelled", answer: "Thinking" });
+		expect(await bun.file(entry).json()).toMatchObject({ status: "cancelled", answer: "Thinking" });
 	}, 30_000);
 
 	test("a checkpoint whose topic was removed on disk is reported lost and no longer blocks session changes", async () => {
@@ -225,7 +227,7 @@ describe("RPC /btw", () => {
 
 	test("over raw stdio: the response precedes the turn's frames, and EOF saves a running question", async () => {
 		directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-rpc-btw-"));
-		const child = Bun.spawn([process.execPath, path.join(import.meta.dir, "fixtures", "btw-rpc-agent.ts")], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), path.join(import.meta.dirname, "fixtures", "btw-rpc-agent.ts")], {
 			cwd: directory,
 			env: { ...process.env, PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1" },
 			stdin: "pipe",
@@ -282,6 +284,6 @@ describe("RPC /btw", () => {
 			"btw-history",
 			`entry-${String(at(started, "data", "record", "id"))}.json`,
 		);
-		expect(await Bun.file(entry).json()).toMatchObject({ status: "cancelled", answer: "Thinking" });
+		expect(await bun.file(entry).json()).toMatchObject({ status: "cancelled", answer: "Thinking" });
 	}, 30_000);
 });

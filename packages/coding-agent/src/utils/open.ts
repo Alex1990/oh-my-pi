@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
 import { $which, isWsl, logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 
 const URL_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -18,7 +20,7 @@ function getExistingWslLocalPath(urlOrPath: string): string | undefined {
 				: path.resolve(urlOrPath);
 		if (!localPath || !fs.existsSync(localPath)) return undefined;
 
-		const result = Bun.spawnSync(["wslpath", "-w", localPath], { stdout: "pipe", stderr: "ignore" });
+		const result = bun.spawnSync(["wslpath", "-w", localPath], { stdout: "pipe", stderr: "ignore" });
 		if (result.exitCode !== 0) return undefined;
 
 		return result.stdout.toString().trim() || undefined;
@@ -50,7 +52,7 @@ function getExistingWslLocalPath(urlOrPath: string): string | undefined {
  * PowerShell is anchored to `%SystemRoot%\System32` for the same reason the
  * previous revision anchored `rundll32`: machine PATHs that dropped
  * `System32` are a real-world occurrence, and bare names throw
- * `Executable not found in $PATH` from `Bun.spawn`. A bare-name fallback
+ * `Executable not found in $PATH` from `bun.spawn`. A bare-name fallback
  * remains for exotic SystemRoot layouts.
  */
 function windowsOpenerCommand(target: string): string[] {
@@ -85,9 +87,9 @@ export function openPath(urlOrPath: string): void {
 			break;
 		}
 	}
-	let child: Bun.Subprocess | undefined;
+	let child: Subprocess | undefined;
 	try {
-		child = Bun.spawn(cmd, {
+		child = bun.spawn(cmd, {
 			stdin: "ignore",
 			stdout: "ignore",
 			stderr: "ignore",

@@ -20,15 +20,16 @@
  * by packages/natives/test/native.test.ts for executeShell. No /proc
  * dependency, so both oracles discriminate on every non-Windows platform.
  */
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Process, ProcessStatus } from "@oh-my-pi/pi-natives";
 import { runShellCommand } from "../src/config/resolve-config-value";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const resolverUrl = pathToFileURL(path.join(import.meta.dir, "../src/config/resolve-config-value.ts")).href;
+const resolverUrl = pathToFileURL(path.join(import.meta.dirname, "../src/config/resolve-config-value.ts")).href;
 
 /**
  * Budget for the descendant-escape oracles below. The command must outlive it
@@ -56,7 +57,7 @@ const DEATH_GRACE_MS = 2000;
 async function expectDescendantDead(escaped: Process | null, pid: number, label: string): Promise<void> {
 	const deadline = Date.now() + DEATH_GRACE_MS;
 	while (Date.now() < deadline && escaped?.status() === ProcessStatus.Running) {
-		await Bun.sleep(25);
+		await bun.sleep(25);
 	}
 	expect(escaped?.status(), `${label} descendant ${pid} survived the timeout`).not.toBe(ProcessStatus.Running);
 }
@@ -92,7 +93,7 @@ console.log(control === "positive-control-ok" ? "CONTROL-OK" : "CONTROL-BAD:" + 
 const value = await resolveConfigValue("!${spyPath}");
 console.log(value === undefined ? "RESOLVED-UNDEFINED" : "LEAKED:" + value);
 `;
-			const proc = Bun.spawn({
+			const proc = bun.spawn({
 				cmd: [process.execPath, "--eval", script],
 				cwd: process.cwd(),
 				stdio: ["ignore", "pipe", "pipe", canary.fd],
@@ -128,7 +129,7 @@ test.skipIf(process.platform === "win32")("a timed-out !command kills the descen
 		// The kill is the contract. Comparing its latency against a write the
 		// descendant performs after a delay only measured how fast the runner
 		// was, and failed a working tree-kill whenever it lost that race.
-		const pid = Number.parseInt((await Bun.file(pidFile).text()).trim(), 10);
+		const pid = Number.parseInt((await bun.file(pidFile).text()).trim(), 10);
 		descendant = Process.fromPid(pid);
 		await expectDescendantDead(descendant, pid, "backgrounded");
 	} finally {
@@ -157,7 +158,7 @@ test.skipIf(process.platform === "win32")(
 			const result = await runShellCommand(command, ESCAPE_TIMEOUT_MS);
 			expect(result).toBeUndefined();
 
-			const pid = Number.parseInt((await Bun.file(pidFile).text()).trim(), 10);
+			const pid = Number.parseInt((await bun.file(pidFile).text()).trim(), 10);
 			escaped = Process.fromPid(pid);
 			await expectDescendantDead(escaped, pid, "reparented");
 		} finally {
@@ -185,7 +186,7 @@ test.skipIf(process.platform !== "linux")(
 			const result = await runShellCommand(command, ESCAPE_TIMEOUT_MS);
 			expect(result).toBeUndefined();
 
-			const pid = Number.parseInt((await Bun.file(pidFile).text()).trim(), 10);
+			const pid = Number.parseInt((await bun.file(pidFile).text()).trim(), 10);
 			escaped = Process.fromPid(pid);
 			await expectDescendantDead(escaped, pid, "session-escaping");
 		} finally {
@@ -217,7 +218,7 @@ test.skipIf(process.platform === "win32")(
 			const result = await runShellCommand(command, ESCAPE_TIMEOUT_MS);
 			expect(result).toBeUndefined();
 
-			const pid = Number.parseInt((await Bun.file(pidFile).text()).trim(), 10);
+			const pid = Number.parseInt((await bun.file(pidFile).text()).trim(), 10);
 			descendant = Process.fromPid(pid);
 			await expectDescendantDead(descendant, pid, "SIGTERM-ignoring");
 		} finally {
@@ -235,10 +236,10 @@ const value = await runShellCommand("echo pathless-ok", 5_000);
 console.log(value === "pathless-ok" ? "PATHLESS-OK" : "PATHLESS-BAD:" + value);`;
 	const emptyPathDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-no-sh-in-path-"));
 	roots.push(emptyPathDir);
-	const proc = Bun.spawn({
+	const proc = bun.spawn({
 		cmd: [process.execPath, "--eval", script],
 		cwd: process.cwd(),
-		env: { ...Bun.env, PATH: emptyPathDir },
+		env: { ...bun.env, PATH: emptyPathDir },
 		stdio: ["ignore", "pipe", "pipe"],
 		timeout: 15_000,
 	});

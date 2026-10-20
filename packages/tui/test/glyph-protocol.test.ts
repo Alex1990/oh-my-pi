@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	encodeBundledGlyphRegistrations,
 	encodeGlyphCoverageQuery,
@@ -11,6 +11,7 @@ import {
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { setTerminalGlyphProtocol, TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SUPPORT_QUERY = "\x1b_25a1;s\x1b\\";
 const DA1_REPLY = "\x1b[?1;2c";
@@ -95,9 +96,9 @@ describe("glyph bundle", () => {
 const stdinIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 const stdoutIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 const stdinSetRawModeDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "setRawMode");
-const originalProbeEnv = Bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE;
-const originalKillSwitch = Bun.env.PI_NO_GLYPH_PROTOCOL;
-const originalTmux = Bun.env.TMUX;
+const originalProbeEnv = bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE;
+const originalKillSwitch = bun.env.PI_NO_GLYPH_PROTOCOL;
+const originalTmux = bun.env.TMUX;
 
 function restoreProperty(target: object, key: string, descriptor: PropertyDescriptor | undefined): void {
 	if (descriptor) {
@@ -109,10 +110,10 @@ function restoreProperty(target: object, key: string, descriptor: PropertyDescri
 
 function restoreEnv(key: string, original: string | undefined): void {
 	if (original === undefined) {
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
-	Bun.env[key] = original;
+	bun.env[key] = original;
 }
 
 function setupProcessTerminal() {
@@ -147,9 +148,9 @@ describe("glyph protocol probe", () => {
 	beforeEach(() => {
 		setTerminalGlyphProtocol(false);
 		previousHeadless = setTerminalHeadless(false);
-		Bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE = "1";
-		delete Bun.env.PI_NO_GLYPH_PROTOCOL;
-		delete Bun.env.TMUX;
+		bun.env.PI_TUI_GLYPH_PROTOCOL_PROBE = "1";
+		delete bun.env.PI_NO_GLYPH_PROTOCOL;
+		delete bun.env.TMUX;
 	});
 
 	afterEach(() => {
@@ -279,7 +280,7 @@ describe("glyph protocol probe", () => {
 	});
 
 	it("skips the probe under a multiplexer and under the kill switch", () => {
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
 		const tmux = setupProcessTerminal();
 		try {
 			expect(tmux.writes.some(w => w.includes(SUPPORT_QUERY))).toBe(false);
@@ -288,8 +289,8 @@ describe("glyph protocol probe", () => {
 			vi.restoreAllMocks();
 		}
 
-		delete Bun.env.TMUX;
-		Bun.env.PI_NO_GLYPH_PROTOCOL = "1";
+		delete bun.env.TMUX;
+		bun.env.PI_NO_GLYPH_PROTOCOL = "1";
 		const killed = setupProcessTerminal();
 		try {
 			expect(killed.writes.some(w => w.includes(SUPPORT_QUERY))).toBe(false);

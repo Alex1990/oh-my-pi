@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, CompactionCancelledError, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, UserMessage } from "@oh-my-pi/pi-ai";
@@ -645,7 +645,9 @@ describe("experimental context management", () => {
 	});
 
 	it("skips built-in remote memory recall during local rollover while preserving the boundary", async () => {
-		const recallSpy = vi.spyOn(mnemopiBackend, "preCompactionContext").mockResolvedValue("recalled context");
+		const originalRecall = mnemopiBackend.preCompactionContext;
+		const recallSpy = vi.fn(async () => "recalled context");
+		mnemopiBackend.preCompactionContext = recallSpy;
 		try {
 			const model = getBundledModel("anthropic", "claude-sonnet-4-5");
 			if (!model) throw new Error("Expected bundled model");
@@ -676,7 +678,7 @@ describe("experimental context management", () => {
 			expect(recallSpy).not.toHaveBeenCalled();
 			expect(manager.getEntries().filter(candidate => candidate.type === "compaction")).toHaveLength(1);
 		} finally {
-			recallSpy.mockRestore();
+			mnemopiBackend.preCompactionContext = originalRecall;
 		}
 	});
 

@@ -5,7 +5,7 @@
  * instead, and can emit invalid JSON once truncated at 4k), and any result
  * carrying data must advertise the `agent://<id>` handle (PR #10625 review).
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import type { AsyncJobRunResult } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import { IrcBus } from "@oh-my-pi/pi-coding-agent/irc/bus";

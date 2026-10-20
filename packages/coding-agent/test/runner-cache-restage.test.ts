@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { stageRunnerScript } from "../src/eval/runner-cache";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // stageRunnerScript memoizes the staged path per cache directory, but the warm
 // path must re-validate with fs.existsSync so a tmpdir sweep (macOS periodic
@@ -51,7 +52,7 @@ describe("stageRunnerScript re-validation", () => {
 		const second = await stageRunnerScript(dirName, "py", script);
 		expect(second).toBe(first);
 		expect(fs.existsSync(second)).toBe(true);
-		expect(await Bun.file(second).text()).toBe(script);
+		expect(await bun.file(second).text()).toBe(script);
 	});
 
 	it("reuses the memoized path while the file still exists", async () => {
@@ -80,7 +81,7 @@ describe("stageRunnerScript re-validation", () => {
 			const staged = await stageRunnerScript(dirName, "py", "print('ok')\n");
 
 			expect(path.dirname(staged)).not.toBe(shared);
-			expect(await Bun.file(staged).text()).toBe("print('ok')\n");
+			expect(await bun.file(staged).text()).toBe("print('ok')\n");
 			expect(fs.statSync(path.dirname(staged)).mode & 0o777).toBe(0o700);
 		},
 	);
@@ -92,7 +93,7 @@ describe("stageRunnerScript re-validation", () => {
 		const dirName = uniqueDir();
 		const script = "print('ours')\n";
 		const decoy = path.join(os.tmpdir(), `${dirName}-decoy`);
-		const planted = path.join(decoy, `runner-${Bun.hash(script).toString(36)}.py`);
+		const planted = path.join(decoy, `runner-${bun.hash(script).toString(36)}.py`);
 		fs.mkdirSync(decoy, { mode: 0o777 });
 		fs.writeFileSync(planted, "print('planted')\n");
 		fs.symlinkSync(decoy, stagingDir(dirName));
@@ -100,7 +101,7 @@ describe("stageRunnerScript re-validation", () => {
 		const staged = await stageRunnerScript(dirName, "py", script);
 
 		expect(fs.realpathSync(staged)).not.toBe(fs.realpathSync(planted));
-		expect(await Bun.file(staged).text()).toBe(script);
+		expect(await bun.file(staged).text()).toBe(script);
 		expect(fs.statSync(path.dirname(staged)).mode & 0o777).toBe(0o700);
 	});
 
@@ -121,7 +122,7 @@ describe("stageRunnerScript re-validation", () => {
 		const second = await stageRunnerScript(dirName, "py", script);
 
 		expect(second).not.toBe(first);
-		expect(await Bun.file(second).text()).toBe(script);
+		expect(await bun.file(second).text()).toBe(script);
 		expect(fs.statSync(path.dirname(second)).mode & 0o777).toBe(0o700);
 	});
 
@@ -132,6 +133,6 @@ describe("stageRunnerScript re-validation", () => {
 
 		const staged = await stageRunnerScript(dirName, "py", "print('ok')\n");
 
-		expect(await Bun.file(staged).text()).toBe("print('ok')\n");
+		expect(await bun.file(staged).text()).toBe("print('ok')\n");
 	});
 });

@@ -51,40 +51,40 @@ Upstream uses different package scopes. Replace them consistently.
 - Some upstream packages publish under the `@earendil-works/*` scope instead of `@mariozechner/*`. Map it the same way (`@earendil-works/pi-coding-agent` → `@oh-my-pi/pi-coding-agent`, and so on).
 - The bare `typebox` package is not an `@oh-my-pi/*` scope; do not rewrite it as one. See the Extensions divergence in section 15 for how tool-parameter schemas map.
 
-## 4) Use Bun APIs where they improve on Node
+## 4) Use the runtime compatibility layer where it improves on raw Node
 
-We run on Bun, but the current source intentionally mixes Bun APIs with small Node standard-library APIs. Replace Node APIs only when Bun provides a clearer, safer, or simpler implementation; do not mechanically rewrite every Node import.
+We run on Node.js. Former Bun runtime APIs are available through `@oh-my-pi/pi-utils/node-runtime`, so new code can keep their shapes while running on Node built-ins. Replace raw Node APIs only when the compatibility layer provides a clearer, safer, or simpler implementation; do not mechanically rewrite every Node import.
 
 **Prefer replacing when porting new code:**
 
-- Process spawning: prefer Bun Shell `$` for simple commands; use `Bun.spawn`/`Bun.spawnSync` for streaming or process control. Keep existing `child_process` only where its exact semantics are needed.
+- Process spawning: prefer the `$` shell helper (`@oh-my-pi/pi-utils/shell`) for simple commands; use the `bun.spawn`/`bun.spawnSync` shim for streaming or process control. Keep existing `child_process` only where its exact semantics are needed.
 - HTTP clients: `node-fetch`, `axios` → native `fetch`
-- SQLite: `better-sqlite3` → `bun:sqlite`
-- Env loading: `dotenv` → Bun loads `.env` automatically
-- Runtime text/assets: prefer Bun imports such as `with { type: "text" }` or `Bun.file()` over copy steps or bundled fallback file reads.
+- SQLite: `better-sqlite3` → `node:sqlite` (via `@oh-my-pi/pi-utils/sqlite-compat`)
+- Env loading: `dotenv` → the helpers in `@oh-my-pi/pi-utils/env`
+- Runtime text/assets: prefer bundler text imports such as `with { type: "text" }` or the `bun.file()` shim over copy steps or bundled fallback file reads.
 
-**DO NOT replace (these work fine in Bun):**
+**DO NOT replace (these work fine in Node.js):**
 
-- `os.homedir()` — do NOT replace with `Bun.env.HOME` or literal `"~"`
-- `os.tmpdir()` — do NOT replace with `Bun.env.TMPDIR || "/tmp"` or hardcoded paths
+- `os.homedir()` — do NOT replace with `process.env.HOME` or literal `"~"`
+- `os.tmpdir()` — do NOT replace with `process.env.TMPDIR || "/tmp"` or hardcoded paths
 - `fs.mkdtempSync()` — do NOT replace with manual path construction
 - `path.join()`, `path.resolve()`, etc. — these are fine
 
 **Import style:** Use the `node:` prefix for Node standard-library imports. Namespace imports are common, but named imports are acceptable where the surrounding code already uses them.
 
-**Additional Bun conventions:**
+**Additional runtime conventions:**
 
-- Prefer Bun Shell `$` for short, non-streaming commands; use `Bun.spawn` only when you need streaming I/O or process control.
-- Use `Bun.file()`/`Bun.write()` for simple files and `node:fs/promises` for directory-oriented operations. Existing synchronous `node:fs` calls are acceptable when the calling flow is intentionally synchronous.
-- Avoid `Bun.file().exists()` checks; use `isEnoent` handling in try/catch.
-- Prefer `Bun.sleep(ms)` over `setTimeout` wrappers.
+- Prefer the `$` shell helper for short, non-streaming commands; use the `bun.spawn` shim only when you need streaming I/O or process control.
+- Use the `bun.file()`/`bun.write()` shims for simple files and `node:fs/promises` for directory-oriented operations. Existing synchronous `node:fs` calls are acceptable when the calling flow is intentionally synchronous.
+- Avoid `bun.file().exists()` checks; use `isEnoent` handling in try/catch.
+- Prefer the `bun.sleep(ms)` shim over `setTimeout` wrappers.
 
 **Wrong:**
 
 ```typescript
 // BROKEN: env vars may be undefined, "~" is not expanded
-const home = Bun.env.HOME || "~";
-const tmp = Bun.env.TMPDIR || "/tmp";
+const home = process.env.HOME || "~";
+const tmp = process.env.TMPDIR || "/tmp";
 ```
 
 **Correct:**
@@ -98,16 +98,16 @@ const configDir = path.join(os.homedir(), ".config", "myapp");
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "myapp-"));
 ```
 
-## 5) Prefer Bun embeds (no copying)
+## 5) Prefer bundler embeds (no copying)
 
-Do not add new runtime asset copy steps. Keep assets in repo and prefer Bun embeds/imports; preserve existing explicit generation workflows such as `packages/coding-agent/src/export/html/tool-views.generated.js` (built from collab-web sources via `bun run gen:tool-views`).
+Do not add new runtime asset copy steps. Keep assets in repo and prefer bundler imports; preserve existing explicit generation workflows such as `packages/coding-agent/src/export/html/tool-views.generated.js` (built from collab-web sources via `pnpm run gen:tool-views`).
 
-- If upstream copies assets into a dist folder, replace with Bun-friendly embeds.
-- Prompts are static `.md` files; use Bun text imports (`with { type: "text" }`) and Handlebars instead of inline prompt strings.
-- Use `import.meta.dir` + `Bun.file` to load adjacent non-text resources.
+- If upstream copies assets into a dist folder, replace with bundler-friendly imports.
+- Prompts are static `.md` files; use text imports (`with { type: "text" }`) and Handlebars instead of inline prompt strings.
+- Use `import.meta.dirname` + the `bun.file()` shim to load adjacent non-text resources.
 - Keep assets in-repo and let the bundler include them.
 - Eliminate copy scripts unless the user explicitly requests them or the package already has an intentional generation step.
-- If upstream reads a bundled fallback file at runtime, replace filesystem reads with a Bun text embed import unless the current package already uses a generated asset pipeline.
+- If upstream reads a bundled fallback file at runtime, replace filesystem reads with a text import unless the current package already uses a generated asset pipeline.
   - Example (Codex instructions fallback):
     - `const FALLBACK_PROMPT_PATH = join(import.meta.dir, "codex-instructions.md");` -> removed
     - `import FALLBACK_INSTRUCTIONS from "./codex-instructions.md" with { type: "text" };`
@@ -118,7 +118,7 @@ Do not add new runtime asset copy steps. Keep assets in repo and prefer Bun embe
 Treat `package.json` as a contract. Merge intentionally.
 
 - Keep existing `name`, `version`, `type`, `exports`, and `bin` unless the port requires changes.
-- Replace npm/node scripts with Bun equivalents (e.g., `bun check`, `bun test`).
+- Replace upstream npm/node scripts with pnpm equivalents (e.g., `pnpm run check`, `pnpm exec vitest run`).
 - Ensure dependencies use the correct scope.
 - Do not downgrade dependencies to fix type errors; upgrade instead.
 - Validate workspace package links and `peerDependencies`.
@@ -133,14 +133,14 @@ Treat `package.json` as a contract. Merge intentionally.
 - Use `Promise.withResolvers()` instead of `new Promise((resolve, reject) => ...)`.
 - Prefer ES `#` private fields for new encapsulated state. Constructor parameter properties already exist in current code and are acceptable; do not churn unrelated access modifiers while porting.
 - Prefer existing helpers and utilities over new ad-hoc code.
-  Preserve Bun-first infrastructure changes already made in this repo:
-  - Runtime is Bun (no Node entry points for the main CLI).
-  - Package manager is Bun (no npm lockfiles).
-  - Heavy Node APIs should not be introduced casually; current source still uses selected Node APIs (`node:crypto`, `node:readline`, synchronous `node:fs`, and `child_process`) where they fit provider, CLI, or process-control semantics.
+  Preserve the Node.js infrastructure already in this repo:
+  - Runtime is Node.js; the main CLI has no alternate runtime entry point.
+  - Package manager is pnpm (`pnpm-lock.yaml`, `pnpm-workspace.yaml`; no npm lockfiles).
+  - Heavy Node APIs are used where they fit provider, CLI, or process-control semantics (`node:crypto`, `node:readline`, synchronous `node:fs`, and `child_process`).
   - Lightweight Node APIs (`os.homedir`, `os.tmpdir`, `fs.mkdtempSync`, `path.*`) are kept.
-  - CLI shebangs use `bun` (not `node`, not `tsx`).
+  - CLI entry points run through Node (`node --experimental-transform-types` for source, `dist/cli.js` for the bundle); shebangs use `node`, not `bun` or `tsx`.
   - TypeScript packages generally use source files directly; `@oh-my-pi/pi-natives` exports generated native bindings from `packages/natives/native`.
-  - CI workflows run Bun for install/check/test.
+  - CI workflows run pnpm for install/check/test.
 
 ## 8) Remove old compatibility layers
 
@@ -153,19 +153,19 @@ Do not add parallel implementations for APIs replaced by the native architecture
 ## 9) Update docs and references
 
 - Replace pi-mono repo links where appropriate.
-- Update examples to use Bun and correct package scopes.
+- Update examples to use Node.js/pnpm and correct package scopes.
 - Ensure README instructions still match the current repo behavior.
 
 ## 10) Validate the port
 
 Run the checks that cover the port after changes:
 
-- `bun check`
-- Run the focused Bun test or smoke scenario that exercises the changed behavior.
-- If dependencies changed, run `bun install --frozen-lockfile` after updating `bun.lock`.
+- `pnpm run check`
+- Run the focused Vitest test or smoke scenario that exercises the changed behavior.
+- If dependencies changed, run `pnpm install --frozen-lockfile` after updating `pnpm-lock.yaml`.
 
 If the repo already has failing checks unrelated to your changes, call that out.
-Tests use Bun's runner (not Vitest), but do not substitute an indiscriminate project-wide `bun test` for targeted behavioral verification.
+Tests run on Vitest, but do not substitute an indiscriminate project-wide `pnpm exec vitest run` for targeted behavioral verification.
 
 ## 11) Protect improved features (regression trap list)
 
@@ -246,10 +246,10 @@ Use this as a final pass before you finish:
 - [ ] Import extensions follow the local package convention (no blanket `.js` stripping)
 - [ ] No newly introduced Node-only APIs unless they match an existing justified pattern
 - [ ] All package scopes updated
-- [ ] `package.json` scripts use Bun
+- [ ] `package.json` scripts use pnpm/Node.js
 - [ ] Prompts are `.md` text imports (no inline prompt strings)
 - [ ] No internal/runtime `console.*` in coding-agent; CLI user-facing output is intentional
-- [ ] Assets load via Bun embed/import patterns, or through an existing intentional generation pipeline
+- [ ] Assets load via bundler import patterns, or through an existing intentional generation pipeline
 - [ ] Tests or checks run (or explicitly noted as blocked)
 - [ ] No functionality regressions (see sections 11-12)
 
@@ -339,7 +339,7 @@ Our fork has architectural decisions that differ from upstream. **Do not port th
 
 | Upstream                  | Our Fork                      |
 | ------------------------- | ----------------------------- |
-| `vitest` with `vi.mock()` | `bun:test` (`vi`, `mock`, `spyOn`, and assertions from `bun:test`) |
+| `vitest` with `vi.mock()` | `vitest` (`vi`, `mock`, `spyOn`, and Vitest assertions) |
 | `node:test` assertions    | `expect()` matchers           |
 
 ### Tool Architecture
@@ -348,13 +348,13 @@ Our fork has architectural decisions that differ from upstream. **Do not port th
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | `createTool(cwd: string, options?)` | `await createTools(session: ToolSession, toolNames?)` via `BUILTIN_TOOLS`/`HIDDEN_TOOLS` | Factories accept `ToolSession` and return `Tool`, `null`, or a promise |
 | Per-tool `*Operations` interfaces   | Only current per-tool override interfaces remain (for example `GlobOperations` in `tools/glob.ts`); `FindOperations` survives only in the legacy shim (`src/extensibility/legacy-pi-coding-agent-shim.ts`) after the find→glob rename | Used for SSH/remote overrides where present               |
-| Node.js `fs/promises` everywhere    | Bun file APIs for simple file writes/reads, `node:fs/promises` for dirs, selected sync `node:fs` where needed | Prefer Bun APIs when they simplify                        |
+| Node.js `fs/promises` everywhere    | `bun.file()`/`bun.write()` shims for simple file reads/writes, `node:fs/promises` for dirs, selected sync `node:fs` where needed | Prefer the shims when they simplify                       |
 
 ### Auth Storage
 
 | Upstream                        | Our Fork                                    | Notes                                        |
 | ------------------------------- | ------------------------------------------- | -------------------------------------------- |
-| `proper-lockfile` + `auth.json` | Local `agent.db` (`bun:sqlite`) or `RemoteAuthCredentialStore` | Broker mode replaces local credential storage; runtime/config/env keys remain separate |
+| `proper-lockfile` + `auth.json` | Local `agent.db` (`node:sqlite`) or `RemoteAuthCredentialStore` | Broker mode replaces local credential storage; runtime/config/env keys remain separate |
 | Single credential per provider  | Usage-aware multi-account selection with priority/reserve policy | Preserve session affinity, plan/model access checks, blocks, and refresh single-flight/leases |
 
 Native auth callers use namespaces on `AuthStorage`: `credentials`, `keys`,
@@ -367,7 +367,7 @@ them. Do not port upstream flat methods over this facade. See
 
 | Upstream                                                               | Our Fork                                                                                                                                                                                                                                                                                     |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `jiti` for TypeScript loading                                          | Bun loading through the existing `loadLegacyPiModule()` adapter (including legacy specifier rewriting)                                                                                                                                                                                                                                                                        |
+| `jiti` for TypeScript loading                                          | Node.js loading through the existing `loadLegacyPiModule()` adapter (including legacy specifier rewriting)                                                                                                                                                                                                                                                                        |
 | `pkg.pi` manifest field                                                | `pkg.omp` preferred; fallback to `pkg.pi` remains                                                                                                                                                                                                                                            |
 | `StringEnum` from `pi-ai`                                              | `Type.Enum` from `pi.typebox`, or `pi.arktype.enumerated(...)`; `pi-ai` no longer exports `StringEnum`                                                                                                                                                                                       |
 | `formatSize` from `pi-coding-agent`                                    | `formatBytes` from `@oh-my-pi/pi-utils`                                                                                                                                                                                                                                                      |
@@ -381,7 +381,7 @@ When porting, **skip** these files/features entirely:
 - `footer-data-provider.ts` — we use StatusLineComponent
 - `clipboard-image.ts` — image clipboard support is exposed through `packages/coding-agent/src/utils/clipboard.ts` backed by `@oh-my-pi/pi-natives`
 - GitHub workflow files — we have our own CI
-- `models.generated.ts` — regenerate the local `packages/catalog/src/models.json` via `bun run gen:models`; provider/model/auth policy is authored in `packages/catalog/src/compat/rules/**/*.kdl`
+- `models.generated.ts` — regenerate the local `packages/catalog/src/models.json` via `pnpm run gen:models`; provider/model/auth policy is authored in `packages/catalog/src/compat/rules/**/*.kdl`
 
 ### Features We Added (Preserve These)
 

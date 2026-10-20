@@ -9,7 +9,7 @@
  * so an unreachable broker stays fatal — the fix is the recovery guidance, not
  * a silent fallback to local credentials.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthBrokerError } from "@oh-my-pi/pi-ai/auth-broker";
 import { MissingApiKeyError } from "@oh-my-pi/pi-ai/error";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";

@@ -5,6 +5,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { $env, $which, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Returns the user's preferred editor command, or a platform default.
@@ -67,10 +68,10 @@ export async function openInEditor(
 	const tmpFile = path.join(os.tmpdir(), `omp-editor-${Snowflake.next()}${ext}`);
 
 	try {
-		await Bun.write(tmpFile, content);
+		await bun.write(tmpFile, content);
 		const exitCode = await openEditorOnPath(editorCmd, tmpFile);
 		if (exitCode === 0) {
-			const text = await Bun.file(tmpFile).text();
+			const text = await bun.file(tmpFile).text();
 			if (options?.trimTrailingNewline === false) {
 				return text;
 			}
@@ -97,7 +98,7 @@ export async function openEditorOnPath(editorCmd: string, filePath: string): Pro
 	const spawnCommand = resolveEditorSpawnCommand(editorCmd, filePath);
 	// Inherit the real pane pty so terminal editors (including emacsclient,
 	// which resolves the device via ttyname) render into the visible pane.
-	const child = Bun.spawn(spawnCommand.cmd, {
+	const child = bun.spawn(spawnCommand.cmd, {
 		stdin: "inherit",
 		stdout: "inherit",
 		stderr: "inherit",

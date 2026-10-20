@@ -1,5 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", `'\\''`)}'`;
@@ -30,7 +32,7 @@ const EXIT_WITH_LAUNCHER = `if (process.platform === "win32") {
  *
  * POSIX gets an `exec` shell launcher, so signals reach the script itself.
  * Windows cannot run shebang scripts and gets `<name>.cmd` instead, which both
- * `Bun.spawn` and `Bun.which` resolve. Bun refuses to pass arguments holding
+ * `bun.spawn` and `bun.which` resolve. Bun refuses to pass arguments holding
  * cmd.exe metacharacters (`%`, `&`, ...) to a `.cmd`; use
  * {@link compileFakeExecutable} when the caller under test sends those.
  */
@@ -60,7 +62,7 @@ export async function compileFakeExecutable(dir: string, name: string, source: s
 	const script = path.join(dir, `${name}.fake.js`);
 	const executable = path.join(dir, `${name}.exe`);
 	fs.writeFileSync(script, source);
-	const build = Bun.spawn([process.execPath, "build", "--compile", script, "--outfile", executable], {
+	const build = bun.spawn([process.execPath, ...nodeSourceFlags(), "build", "--compile", script, "--outfile", executable], {
 		stdin: "ignore",
 		stdout: "ignore",
 		stderr: "pipe",

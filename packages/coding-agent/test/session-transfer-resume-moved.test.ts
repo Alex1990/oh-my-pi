@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -16,6 +16,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/session/session-transfer";
 import { getConfigRootDir, setAgentDir } from "@oh-my-pi/pi-utils";
 import { makeAssistantMessage } from "./session-manager/helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("resuming a session that moved away", () => {
 	let root: string;
@@ -55,7 +56,7 @@ describe("resuming a session that moved away", () => {
 
 	it("forks the stale copy with a visible notice instead of continuing it", async () => {
 		const { file, id } = await movedSession();
-		const staleBefore = await Bun.file(file).text();
+		const staleBefore = await bun.file(file).text();
 
 		const manager = await createSessionManager(parseArgs(["--resume", file]), cwd, Settings.isolated({}));
 		if (!manager) throw new Error("no session manager");
@@ -72,7 +73,7 @@ describe("resuming a session that moved away", () => {
 		expect(notice.display).toBe(true);
 		expect(notice.details).toEqual({ kind: "forked", source: file, to: "cloud" });
 		// The stale copy is left exactly as it was.
-		expect(await Bun.file(file).text()).toBe(staleBefore);
+		expect(await bun.file(file).text()).toBe(staleBefore);
 		expect(lastSessionTransfer(await loadEntriesFromFile(file))?.kind).toBe("departed");
 	});
 

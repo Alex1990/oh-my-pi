@@ -4,7 +4,8 @@
  */
 import * as os from "node:os";
 import { $env } from "@oh-my-pi/pi-utils";
-import { $, Cookie, CookieMap } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { Cookie, CookieMap } from "@oh-my-pi/pi-utils/cookie";
 import * as AIError from "../../error";
 import type { OAuthController, OAuthCredentials } from "./types";
 

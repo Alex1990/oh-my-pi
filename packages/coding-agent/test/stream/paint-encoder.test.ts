@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { StreamPaintEncoder } from "@oh-my-pi/pi-coding-agent/stream/paint-encoder";
 import { StreamRedactor } from "@oh-my-pi/pi-coding-agent/stream/redactor";
 

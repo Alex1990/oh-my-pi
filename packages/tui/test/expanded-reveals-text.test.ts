@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, initTheme, type Theme } from "../src/theme";
 import { loadTheme } from "../src/theme/loader";
 import { debugToolRenderer } from "../src/tools/debug";
@@ -9,6 +9,7 @@ import { renderResult as renderTaskResult } from "../src/tools/task";
 import { webSearchToolRenderer } from "../src/tools/web-search";
 import { yieldToolRenderer } from "../src/tools/yield";
 import type { Component } from "../src/tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Ctrl+O (#15824): an expanded result must show every character of a long row,
 // wrapped to the frame, instead of re-clipping it to a fixed column budget.
@@ -22,7 +23,7 @@ beforeAll(async () => {
 	theme = (await getThemeByName("dark"))!;
 });
 
-const plain = (component: Component) => Bun.stripANSI(component.render(width).join("\n"));
+const plain = (component: Component) => bun.stripANSI(component.render(width).join("\n"));
 const marks = (component: Component) => plain(component).split(MARK).length - 1;
 
 describe("expanded tool results reveal clipped rows", () => {
@@ -123,7 +124,7 @@ describe("expanded tool results reveal clipped rows", () => {
 			expect(marks(build(false))).toBe(0);
 			const expanded = build(true);
 			expect(marks(expanded)).toBe(expectedMarks);
-			expect(expanded.render(width).every(row => Bun.stringWidth(row) <= width)).toBe(true);
+			expect(expanded.render(width).every(row => bun.stringWidth(row) <= width)).toBe(true);
 		});
 	}
 });
@@ -163,7 +164,7 @@ describe("expanded lsp detail rows", () => {
 		const text = `2 error(s)\nsrc/a.ts:3:5 [error] [ts] ${long} (1)\nsrc/b.ts:9:1 [error] [ts] short (2)`;
 		const rows = renderLspResult({ content: [{ type: "text", text }] }, { expanded: true, isPartial: false }, ascii)
 			.render(70)
-			.map(row => Bun.stripANSI(row));
+			.map(row => bun.stripANSI(row));
 		const first = rows.findIndex(row => row.includes("[ts] wide-content"));
 		const last = rows.findIndex(row => row.includes(MARK));
 		expect(last).toBeGreaterThan(first);

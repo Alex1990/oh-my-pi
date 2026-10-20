@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -12,6 +12,7 @@ import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Embedded hosts share one Settings (pinned to a host directory) across sessions
 // for several projects; memory injection must follow the session's project.
@@ -46,8 +47,8 @@ describe("local memory injection scope", () => {
 		const agentDir = tempDir.join("agent");
 		const hostCwd = tempDir.join("host");
 		const projectCwd = tempDir.join("project");
-		await Bun.write(path.join(getMemoryRoot(agentDir, projectCwd), "memory_summary.md"), "PROJECT_SCOPE_SUMMARY\n");
-		await Bun.write(path.join(getMemoryRoot(agentDir, hostCwd), "learned.md"), "- HOST_SCOPE_LESSON\n");
+		await bun.write(path.join(getMemoryRoot(agentDir, projectCwd), "memory_summary.md"), "PROJECT_SCOPE_SUMMARY\n");
+		await bun.write(path.join(getMemoryRoot(agentDir, hostCwd), "learned.md"), "- HOST_SCOPE_LESSON\n");
 
 		const settings = Settings.isolated({ "async.enabled": false, "memory.backend": "local" });
 		await settings.reloadForCwd(hostCwd);

@@ -1,11 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { PluginRuntimeConfig } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 
 function emptyStream(): ReadableStream<Uint8Array> {
 	const body = new Response("").body;
@@ -44,7 +46,7 @@ interface PluginFixture {
 async function writePluginPackage(pluginsNodeModules: string, name: string, fixture: PluginFixture): Promise<string> {
 	const installedDir = path.join(pluginsNodeModules, name);
 	await fs.mkdir(path.join(installedDir, "dist"), { recursive: true });
-	await Bun.write(
+	await bun.write(
 		path.join(installedDir, "package.json"),
 		JSON.stringify(
 			{
@@ -57,7 +59,7 @@ async function writePluginPackage(pluginsNodeModules: string, name: string, fixt
 			2,
 		),
 	);
-	await Bun.write(path.join(installedDir, "dist", "extension.ts"), fixture.source);
+	await bun.write(path.join(installedDir, "dist", "extension.ts"), fixture.source);
 	return installedDir;
 }
 
@@ -88,11 +90,11 @@ describe("PluginManager.install load validation", () => {
 	});
 
 	test("installs npm protocol specs with the resolved package name", async () => {
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "npm:pi-figma-remote-auth"]);
 
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{
@@ -117,7 +119,7 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		const result = await new PluginManager(tmpRoot).install("npm:pi-figma-remote-auth");
 
@@ -133,10 +135,10 @@ describe("PluginManager.install load validation", () => {
 	// including a version pin — must survive unchanged.
 	test("bypasses bun's manifest cache for npm installs so new versions resolve", async () => {
 		let recordedCmd: string[] | undefined;
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			recordedCmd = cmd;
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{ name: "omp-plugins", private: true, dependencies: { "welcome-plugin": "0.1.9" } },
@@ -155,7 +157,7 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		const result = await new PluginManager(tmpRoot).install("welcome-plugin@0.1.9");
 
@@ -174,19 +176,19 @@ describe("PluginManager.install load validation", () => {
 			private: true,
 			dependencies: { [name]: "^1.0.3" },
 		});
-		await Bun.write(pluginsPkgJson, packageJson);
+		await bun.write(pluginsPkgJson, packageJson);
 		let recordedCmd: string[] | undefined;
 		let recordedCwd: string | undefined;
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[], options?: { cwd?: string }) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[], options?: { cwd?: string }) => {
 			recordedCmd = cmd;
 			recordedCwd = options?.cwd;
 			// Faithful `bun install <pkg>` semantics: the manager prunes the stale
 			// edge first, and bun writes the resolved edge back on success.
 			const prepare = (async () => {
-				const current = (await Bun.file(pluginsPkgJson).json()) as {
+				const current = (await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()) as {
 					dependencies?: Record<string, string>;
 				};
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify({ ...current, dependencies: { ...current.dependencies, [name]: "^1.0.3" } }, null, 2),
 				);
@@ -197,22 +199,22 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		const result = await new PluginManager(tmpRoot).install(name, { force: true });
 		expect(recordedCmd).toEqual([process.execPath, "install", "--no-cache", "--force", name]);
 		expect(recordedCwd).toBe(pluginsDir);
 
 		expect(result.version).toBe("1.0.3");
-		expect((await Bun.file(pluginsPkgJson).json()).dependencies).toEqual({ [name]: "^1.0.3" });
+		expect((await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()).dependencies).toEqual({ [name]: "^1.0.3" });
 	});
 
 	test("rejects and rolls back an install when the extension factory throws", async () => {
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "factory-failure-plugin"]);
 
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{
@@ -236,25 +238,25 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("factory-failure-plugin")).rejects.toThrow(
 			/factory-time failure/,
 		);
 
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies ?? {}).toEqual({});
-		expect(await Bun.file(path.join(pluginsNodeModules, "factory-failure-plugin", "package.json")).exists()).toBe(
+		expect(await bun.file(path.join(pluginsNodeModules, "factory-failure-plugin", "package.json")).exists()).toBe(
 			false,
 		);
 	});
 
 	test("rejects an install whose extension entry cannot resolve its dependencies", async () => {
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "broken-plugin"]);
 
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{ name: "omp-plugins", private: true, dependencies: { "broken-plugin": "1.0.0" } },
@@ -276,22 +278,22 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("broken-plugin")).rejects.toThrow(/missing-peer/);
 
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies ?? {}).toEqual({});
-		expect(await Bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).exists()).toBe(false);
-		expect(await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
 	});
 
 	test("restores the previous package tree when reinstall validation fails", async () => {
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: { "broken-plugin": "1.0.0" } }, null, 2),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(tmpRoot, "omp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "broken-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
@@ -304,11 +306,11 @@ describe("PluginManager.install load validation", () => {
 			source: 'export default function(pi) { pi.registerCommand("old-ok", { handler: async () => {} }); }\n',
 		});
 
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "broken-plugin"]);
 
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{ name: "omp-plugins", private: true, dependencies: { "broken-plugin": "2.0.0" } },
@@ -330,25 +332,25 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("broken-plugin")).rejects.toThrow(/missing-peer/);
 
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "broken-plugin": "1.0.0" });
-		const restoredPackage = await Bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).json();
+		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
-		const restoredExtension = await Bun.file(
+		const restoredExtension = await bun.file(
 			path.join(pluginsNodeModules, "broken-plugin", "dist", "extension.ts"),
 		).text();
 		expect(restoredExtension).toContain("old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
-		const lock = await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json();
+		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["broken-plugin"]).toEqual({ version: "1.0.0", enabledFeatures: null, enabled: true });
 	});
 
 	test("restores the previous git plugin tree when reinstalling a different ref fails validation", async () => {
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify(
 				{ name: "omp-plugins", private: true, dependencies: { "git-plugin": "github:org/plugin#v1" } },
@@ -356,7 +358,7 @@ describe("PluginManager.install load validation", () => {
 				2,
 			),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(tmpRoot, "omp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "git-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
@@ -369,12 +371,12 @@ describe("PluginManager.install load validation", () => {
 			source: 'export default function(pi) { pi.registerCommand("git-old-ok", { handler: async () => {} }); }\n',
 		});
 
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			if (cmd[1] === "install") {
 				expect(cmd).toEqual([process.execPath, "install", "github:org/plugin#v2"]);
 
 				const prepare = (async () => {
-					await Bun.write(
+					await bun.write(
 						pluginsPkgJson,
 						JSON.stringify(
 							{ name: "omp-plugins", private: true, dependencies: { "git-plugin": "github:org/plugin#v2" } },
@@ -408,29 +410,29 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: Promise.resolve(0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("github:org/plugin#v2")).rejects.toThrow(/missing-peer/);
 
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "git-plugin": "github:org/plugin#v1" });
-		const restoredPackage = await Bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json();
+		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
-		const restoredExtension = await Bun.file(
+		const restoredExtension = await bun.file(
 			path.join(pluginsNodeModules, "git-plugin", "dist", "extension.ts"),
 		).text();
 		expect(restoredExtension).toContain("git-old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
-		const lock = await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json();
+		const lock = await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).json<PluginRuntimeConfig>();
 		expect(lock.plugins["git-plugin"]).toEqual({ version: "1.0.0", enabledFeatures: null, enabled: true });
 	});
 
 	test("rejects an install whose manifest declares a missing extension entry", async () => {
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "partial-plugin"]);
 
 			const prepare = (async () => {
-				await Bun.write(
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{ name: "omp-plugins", private: true, dependencies: { "partial-plugin": "1.0.0" } },
@@ -440,7 +442,7 @@ describe("PluginManager.install load validation", () => {
 				);
 				const installedDir = path.join(pluginsNodeModules, "partial-plugin");
 				await fs.mkdir(path.join(installedDir, "dist"), { recursive: true });
-				await Bun.write(
+				await bun.write(
 					path.join(installedDir, "package.json"),
 					JSON.stringify(
 						{
@@ -452,7 +454,7 @@ describe("PluginManager.install load validation", () => {
 						2,
 					),
 				);
-				await Bun.write(
+				await bun.write(
 					path.join(installedDir, "dist", "valid.ts"),
 					'export default function(pi) { pi.registerCommand("valid-ext", { handler: async () => {} }); }\n',
 				);
@@ -464,14 +466,14 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("partial-plugin")).rejects.toThrow(/dist\/missing\.ts/);
 
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies ?? {}).toEqual({});
-		expect(await Bun.file(path.join(pluginsNodeModules, "partial-plugin", "package.json")).exists()).toBe(false);
-		expect(await Bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(pluginsNodeModules, "partial-plugin", "package.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmpRoot, "omp-plugins.lock.json")).exists()).toBe(false);
 	});
 
 	test("restores bun.lock when a git reinstall fails validation (#3069 follow-up)", async () => {
@@ -481,7 +483,7 @@ describe("PluginManager.install load validation", () => {
 		// the reviewer flagged: bun update mutates bun.lock before validation).
 		// Extension validation then fails and the rollback must restore the
 		// ORIGINAL pin — not the install-time pin, not the update-time pin.
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify(
 				{ name: "omp-plugins", private: true, dependencies: { "git-plugin": "github:org/plugin#v1" } },
@@ -491,8 +493,8 @@ describe("PluginManager.install load validation", () => {
 		);
 		const bunLockPath = path.join(pluginsDir, "bun.lock");
 		const ORIGINAL_LOCK = '# bun.lock\n"git-plugin": "github:org/plugin#sha-v1"\n';
-		await Bun.write(bunLockPath, ORIGINAL_LOCK);
-		await Bun.write(
+		await bun.write(bunLockPath, ORIGINAL_LOCK);
+		await bun.write(
 			path.join(tmpRoot, "omp-plugins.lock.json"),
 			JSON.stringify(
 				{ plugins: { "git-plugin": { version: "1.0.0", enabledFeatures: null, enabled: true } }, settings: {} },
@@ -505,13 +507,13 @@ describe("PluginManager.install load validation", () => {
 			source: 'export default function(pi) { pi.registerCommand("git-old-ok", { handler: async () => {} }); }\n',
 		});
 
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			if (cmd[1] === "install") {
 				const prepare = (async () => {
 					// bun install rewrites the lockfile to a stale-but-different pin
 					// and stages the broken v2 tree.
-					await Bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-install"\n');
-					await Bun.write(
+					await bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-install"\n');
+					await bun.write(
 						pluginsPkgJson,
 						JSON.stringify(
 							{ name: "omp-plugins", private: true, dependencies: { "git-plugin": "github:org/plugin" } },
@@ -539,7 +541,7 @@ describe("PluginManager.install load validation", () => {
 				// bun update re-resolves the ref and rewrites the lockfile pin
 				// AGAIN. Without bun.lock snapshotting this pin would survive
 				// the validation failure below.
-				await Bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-update"\n');
+				await bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-update"\n');
 			})();
 			return {
 				pid: 2,
@@ -547,14 +549,14 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("github:org/plugin")).rejects.toThrow(/missing-peer/);
 
-		expect(await Bun.file(bunLockPath).text()).toBe(ORIGINAL_LOCK);
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		expect(await bun.file(bunLockPath).text()).toBe(ORIGINAL_LOCK);
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "git-plugin": "github:org/plugin#v1" });
-		const restoredPackage = await Bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json();
+		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
 	});
 
@@ -563,13 +565,13 @@ describe("PluginManager.install load validation", () => {
 		// extension validation fails, rollback must remove the newly-created
 		// lockfile so the next install starts clean.
 		const bunLockPath = path.join(pluginsDir, "bun.lock");
-		expect(await Bun.file(bunLockPath).exists()).toBe(false);
+		expect(await bun.file(bunLockPath).exists()).toBe(false);
 
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			expect(cmd).toEqual([process.execPath, "install", "--no-cache", "broken-plugin"]);
 			const prepare = (async () => {
-				await Bun.write(bunLockPath, '# bun.lock\n"broken-plugin": "1.0.0"\n');
-				await Bun.write(
+				await bun.write(bunLockPath, '# bun.lock\n"broken-plugin": "1.0.0"\n');
+				await bun.write(
 					pluginsPkgJson,
 					JSON.stringify(
 						{ name: "omp-plugins", private: true, dependencies: { "broken-plugin": "1.0.0" } },
@@ -590,11 +592,11 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("broken-plugin")).rejects.toThrow(/missing-peer/);
 
-		expect(await Bun.file(bunLockPath).exists()).toBe(false);
+		expect(await bun.file(bunLockPath).exists()).toBe(false);
 	});
 
 	test("rolls back when an unknown feature is requested after a git reinstall", async () => {
@@ -602,7 +604,7 @@ describe("PluginManager.install load validation", () => {
 		// validation. Pre-#3069-followup it threw outside the rollback block,
 		// so an unknown feature would leave the rejected commit + lockfile pin
 		// in place. Now it must roll back everything.
-		await Bun.write(
+		await bun.write(
 			pluginsPkgJson,
 			JSON.stringify(
 				{ name: "omp-plugins", private: true, dependencies: { "git-plugin": "github:org/plugin" } },
@@ -612,14 +614,14 @@ describe("PluginManager.install load validation", () => {
 		);
 		const bunLockPath = path.join(pluginsDir, "bun.lock");
 		const ORIGINAL_LOCK = '# bun.lock\n"git-plugin": "github:org/plugin#sha-v1"\n';
-		await Bun.write(bunLockPath, ORIGINAL_LOCK);
+		await bun.write(bunLockPath, ORIGINAL_LOCK);
 		await writePluginPackage(pluginsNodeModules, "git-plugin", {
 			version: "1.0.0",
 			source: 'export default function(pi) { pi.registerCommand("git-old-ok", { handler: async () => {} }); }\n',
 		});
 		// The seeded manifest declares one feature `keep`; user will request
 		// the unknown feature `ghost` instead.
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsNodeModules, "git-plugin", "package.json"),
 			JSON.stringify(
 				{
@@ -635,10 +637,10 @@ describe("PluginManager.install load validation", () => {
 			),
 		);
 
-		vi.spyOn(Bun, "spawn").mockImplementation(((cmd: string[]) => {
+		vi.spyOn(bun, "spawn").mockImplementation(((cmd: string[]) => {
 			if (cmd[1] === "install") {
 				const prepare = (async () => {
-					await Bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-install"\n');
+					await bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-install"\n');
 				})();
 				return {
 					pid: 1,
@@ -650,7 +652,7 @@ describe("PluginManager.install load validation", () => {
 			if (cmd[1] === "pm") return pmCacheSubprocess(tmpRoot, cmd);
 			expect(cmd).toEqual([process.execPath, "update", "git-plugin"]);
 			const prepare = (async () => {
-				await Bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-update"\n');
+				await bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-update"\n');
 			})();
 			return {
 				pid: 2,
@@ -658,12 +660,12 @@ describe("PluginManager.install load validation", () => {
 				stderr: emptyStream(),
 				exited: prepare.then(() => 0),
 			} as Subprocess;
-		}) as typeof Bun.spawn);
+		}) as typeof bun.spawn);
 
 		await expect(new PluginManager(tmpRoot).install("github:org/plugin[ghost]")).rejects.toThrow(/Unknown feature/);
 
-		expect(await Bun.file(bunLockPath).text()).toBe(ORIGINAL_LOCK);
-		const pluginsPackage = await Bun.file(pluginsPkgJson).json();
+		expect(await bun.file(bunLockPath).text()).toBe(ORIGINAL_LOCK);
+		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "git-plugin": "github:org/plugin" });
 	});
 });

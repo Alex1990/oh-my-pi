@@ -15,6 +15,7 @@ import { appendSharpshooterDelta } from "./queue";
 import type { SharpshooterDelta, SharpshooterDeltaKind, SharpshooterDeltaSource, SharpshooterFriction } from "./types";
 
 import { cfgSharpshooterMinPromptLength, cfgSharpshooterModel } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SHARPSHOOTER_DELTA_KINDS = {
 	architecture_decision: true,
@@ -67,7 +68,7 @@ interface ExtractionHost extends AgentSession {
 export async function flushSharpshooterExtraction(session: AgentSession, timeoutMs = 5_000): Promise<void> {
 	const pending = (session as ExtractionHost)[kExtractionInFlight];
 	if (!pending) return;
-	await Promise.race([pending, Bun.sleep(Math.max(0, timeoutMs))]);
+	await Promise.race([pending, bun.sleep(Math.max(0, timeoutMs))]);
 }
 
 export interface SharpshooterEnvelope {

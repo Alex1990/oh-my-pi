@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { extractPrintableText } from "@oh-my-pi/pi-tui/keys";
 import { ProcessTerminal, type TerminalStartOptions } from "@oh-my-pi/pi-tui/terminal";
 import {
@@ -10,6 +10,7 @@ import {
 	setTerminalBackgroundColor,
 } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const stdinIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 const stdoutIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
@@ -17,12 +18,12 @@ const processPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "plat
 const stdoutColumnsDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "columns");
 const stdoutRowsDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "rows");
 const stdinSetRawModeDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "setRawMode");
-const originalWslDistroName = Bun.env.WSL_DISTRO_NAME;
-const originalWslInterop = Bun.env.WSL_INTEROP;
-const originalWtSession = Bun.env.WT_SESSION;
-const originalTermProgram = Bun.env.TERM_PROGRAM;
-const originalTmux = Bun.env.TMUX;
-const originalTerm = Bun.env.TERM;
+const originalWslDistroName = bun.env.WSL_DISTRO_NAME;
+const originalWslInterop = bun.env.WSL_INTEROP;
+const originalWtSession = bun.env.WT_SESSION;
+const originalTermProgram = bun.env.TERM_PROGRAM;
+const originalTmux = bun.env.TMUX;
+const originalTerm = bun.env.TERM;
 
 // These suites drive the real ProcessTerminal start()/probe pipeline, so they
 // opt out of the test-default headless suppression and restore it per case.
@@ -38,10 +39,10 @@ function restoreProperty(target: object, key: string, descriptor: PropertyDescri
 
 function restoreEnv(key: string, original: string | undefined): void {
 	if (original === undefined) {
-		delete Bun.env[key];
+		delete bun.env[key];
 		return;
 	}
-	Bun.env[key] = original;
+	bun.env[key] = original;
 }
 
 describe("ProcessTerminal OSC 11 appearance detection", () => {
@@ -49,15 +50,18 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	let originalZellij: string | undefined;
 
 	beforeEach(() => {
-		originalColorFgbg = Bun.env.COLORFGBG;
-		originalZellij = Bun.env.ZELLIJ;
+		originalColorFgbg = bun.env.COLORFGBG;
+		originalZellij = bun.env.ZELLIJ;
 		Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
 		Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
 		Object.defineProperty(process.stdin, "setRawMode", { value: vi.fn(), configurable: true });
 		previousHeadless = setTerminalHeadless(false);
 		setTerminalBackgroundColor(undefined);
-		delete Bun.env.TMUX;
-		delete Bun.env.ZELLIJ;
+		delete bun.env.TMUX;
+		delete bun.env.ZELLIJ;
+		// A Windows Terminal host the suite is running inside would arm the
+		// OSC 11 polling interval and add timers/writes the assertions do not model.
+		delete bun.env.WT_SESSION;
 	});
 
 	afterEach(() => {
@@ -278,7 +282,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	});
 
 	it("drops the previous session's RGB on stop and restart without an OSC 11 response", () => {
-		Bun.env.COLORFGBG = "15;0";
+		bun.env.COLORFGBG = "15;0";
 		const { terminal, received } = setupTerminal();
 		try {
 			process.stdin.emit("data", "\x1b]11;rgb:1111/2222/3333\x07");
@@ -305,7 +309,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	});
 
 	it("resets stale RGB before a deferred-input prepaint and accepts the fresh reply", () => {
-		Bun.env.COLORFGBG = "15;0";
+		bun.env.COLORFGBG = "15;0";
 		setTerminalBackgroundColor(0x112233);
 		const { terminal, queryCount, writes } = setupTerminal({ startOptions: { deferInput: true } });
 		try {
@@ -326,7 +330,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	});
 
 	it("does not let an old terminal's stop erase the current owner's RGB", () => {
-		Bun.env.COLORFGBG = "15;0";
+		bun.env.COLORFGBG = "15;0";
 		const { terminal: oldTerminal } = setupTerminal();
 		const terminal = new ProcessTerminal({ conpty: false });
 		try {
@@ -462,8 +466,8 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	it("periodically re-queries OSC 11 under native Windows Terminal when Mode 2031 is unavailable (#5091)", () => {
 		vi.useFakeTimers();
 		Object.defineProperty(process, "platform", { value: "win32", configurable: true });
-		Bun.env.WT_SESSION = "test-wt-session";
-		Bun.env.TERM_PROGRAM = "Windows_Terminal";
+		bun.env.WT_SESSION = "test-wt-session";
+		bun.env.TERM_PROGRAM = "Windows_Terminal";
 		const { terminal, queryCount } = setupTerminal();
 
 		process.stdin.emit("data", "\x1b]11;rgb:0000/0000/0000\x07");
@@ -513,7 +517,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	});
 
 	it("passes an explicit appearance refresh through tmux without changing the startup probe", () => {
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
 		const { terminal, writes } = setupTerminal();
 
 		expect(writes).toContain("\x1b]11;?\x07");
@@ -534,9 +538,9 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 		["tmux nested inside a Herdr pane", "/tmp/tmux-1000/default,1234,0", true],
 		["a Herdr pane without tmux", undefined, false],
 	] as const)("routes an explicit refresh inside %s by the caching session", (_label, tmux, passthrough) => {
-		const originalHerdrPane = Bun.env.HERDR_PANE_ID;
-		Bun.env.HERDR_PANE_ID = "w1:p1";
-		if (tmux !== undefined) Bun.env.TMUX = tmux;
+		const originalHerdrPane = bun.env.HERDR_PANE_ID;
+		bun.env.HERDR_PANE_ID = "w1:p1";
+		if (tmux !== undefined) bun.env.TMUX = tmux;
 		try {
 			const { terminal, writes, queryCount } = setupTerminal();
 			process.stdin.emit("data", "\x1b]11;rgb:ffff/ffff/ffff\x07");
@@ -549,14 +553,14 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 			// A cache refresh defers its direct read; a direct refresh queries now.
 			expect(queryCount()).toBe(passthrough ? before : before + 1);
 		} finally {
-			if (originalHerdrPane === undefined) delete Bun.env.HERDR_PANE_ID;
-			else Bun.env.HERDR_PANE_ID = originalHerdrPane;
+			if (originalHerdrPane === undefined) delete bun.env.HERDR_PANE_ID;
+			else bun.env.HERDR_PANE_ID = originalHerdrPane;
 		}
 	});
 
 	it("reads tmux's refreshed cache without passing a DA1 reply through tmux", () => {
 		vi.useFakeTimers();
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
 		const { terminal, received, queryCount } = setupTerminal();
 
 		process.stdin.emit("data", "\x1b]11;rgb:0000/0000/0000\x07");
@@ -589,7 +593,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 
 	it("cancels a pending tmux appearance cache read during teardown", () => {
 		vi.useFakeTimers();
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
 		const { terminal, queryCount, sentinelCount } = setupTerminal();
 
 		process.stdin.emit("data", "\x1b]11;rgb:0000/0000/0000\x07");
@@ -651,7 +655,7 @@ describe("ProcessTerminal OSC 11 appearance detection", () => {
 	it("does not periodically re-query OSC 11 under WSL either (#3297)", () => {
 		vi.useFakeTimers();
 		Object.defineProperty(process, "platform", { value: "linux", configurable: true });
-		Bun.env.WSL_INTEROP = "/run/WSL/1_interop";
+		bun.env.WSL_INTEROP = "/run/WSL/1_interop";
 		const { terminal, queryCount } = setupTerminal();
 
 		process.stdin.emit("data", "\x1b]11;rgb:ffff/ffff/ffff\x07");
@@ -890,8 +894,8 @@ describe("ProcessTerminal DECRQM + in-band resize (DEC 2026/2048)", () => {
 		Object.defineProperty(process.stdin, "setRawMode", { value: vi.fn(), configurable: true });
 		originalCellDims = { ...getCellDimensions() };
 		previousHeadless = setTerminalHeadless(false);
-		delete Bun.env.TMUX;
-		delete Bun.env.TERM;
+		delete bun.env.TMUX;
+		delete bun.env.TERM;
 	});
 
 	afterEach(() => {
@@ -1029,8 +1033,8 @@ describe("ProcessTerminal DECRQM + in-band resize (DEC 2026/2048)", () => {
 		it(`rearms bracketed paste inside tmux via ${name} without DECRQM 2004 (#15596)`, () => {
 			// tmux <= 3.5a answers the DA1 sentinel but not `CSI ? 2004 $ p`, and it
 			// drops paste markers whenever the pane's own 2004 flag was cleared.
-			if (session) Bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
-			else Bun.env.TERM = "tmux-256color";
+			if (session) bun.env.TMUX = "/tmp/tmux-1000/default,1234,0";
+			else bun.env.TERM = "tmux-256color";
 			const { terminal, writes, reports } = setup();
 			// Answer exactly the DA1 sentinels startup sent; DECRQM 2004 stays unanswered.
 			const sentinels = writes.join("").split("\x1b[c").length - 1;

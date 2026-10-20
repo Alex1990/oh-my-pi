@@ -55,6 +55,7 @@ import {
 } from "../session/auth-broker-config";
 import { runAuthGatewayStdio } from "./auth-gateway-stdio";
 import { generateToken, readTokenFile, writeTokenFile } from "./token-file";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type AuthGatewayAction = "serve" | "stdio" | "token" | "status" | "check";
 
@@ -183,7 +184,7 @@ export function createAuthGatewayClientsReloader(
 	let inFlight: Promise<void> | undefined;
 	const reload = async (): Promise<void> => {
 		try {
-			const text = await Bun.file(filePath).text();
+			const text = await bun.file(filePath).text();
 			if (text === applied) return;
 			setClients(parseAuthGatewayClients(text));
 			applied = text;
@@ -335,7 +336,7 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	let clients: AuthGatewayClient[] | undefined;
 	if (clientsPath !== undefined) {
 		try {
-			clientsText = await Bun.file(clientsPath).text();
+			clientsText = await bun.file(clientsPath).text();
 			clients = parseAuthGatewayClients(clientsText);
 		} catch (error) {
 			throw new Error(
@@ -399,7 +400,7 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	});
 	await rebuildCatalog();
 
-	const handle = startAuthGateway({
+	const handle = await startAuthGateway({
 		storage,
 		bind,
 		bearerTokens: gatewayToken ? [gatewayToken] : [],

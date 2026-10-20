@@ -1,7 +1,7 @@
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType, ptr } from "@oh-my-pi/pi-utils/ffi";
 import * as fs from "node:fs";
 import { TtyWriter } from "@oh-my-pi/pi-natives";
-import { $env, isBunTestRuntime, isTerminalHeadless, isWsl } from "@oh-my-pi/pi-utils/env";
+import { $env, isTestRuntime, isTerminalHeadless, isWsl } from "@oh-my-pi/pi-utils/env";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 import { popLoopPhase, pushLoopPhase } from "@oh-my-pi/pi-utils/loop-phase";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
@@ -36,6 +36,7 @@ import { setTmuxPaneApcTitles, tmuxSessionSpeaksTsp } from "./tmux";
 import { setHangulCompatibilityJamoWidth } from "./utils";
 import { translateWindowsAltGrSequence } from "./windows-altgr";
 import { Win32InputModeDecoder, Win32PasteMarkerNormalizer } from "./windows-input-mode";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { writeTerminalSequence, writeThroughActiveTerminal } from "./active-terminal";
 
@@ -100,7 +101,7 @@ function completeTspInput(buffered: string): string | undefined {
 	return `${TSP_PREFIX}${buffered.slice(TSP_OSC_PREFIX.length, -terminator)}\x1b\\`;
 }
 
-function shouldPollWindowsTerminalAppearance(env: NodeJS.ProcessEnv = Bun.env): boolean {
+function shouldPollWindowsTerminalAppearance(env: NodeJS.ProcessEnv = bun.env): boolean {
 	if (process.platform !== "win32") return false;
 	if (!env.WT_SESSION) return false;
 	return !env.TERM_PROGRAM || env.TERM_PROGRAM.toLowerCase() === "windows_terminal";
@@ -1135,7 +1136,7 @@ export class ProcessTerminal implements Terminal {
 		// prebuilt natives module without the export falls back to direct writes.
 		// Test suites spy on `process.stdout.write` with a faked isTTY, so the
 		// pump stays off under `bun test` — same philosophy as isTerminalHeadless.
-		if (process.platform !== "win32" && process.stdout.isTTY && !isBunTestRuntime() && !this.#outputPump) {
+		if (process.platform !== "win32" && process.stdout.isTTY && !isTestRuntime() && !this.#outputPump) {
 			try {
 				this.#outputPump = new TtyWriter(1);
 				this.#pumpBacklogBound = 0;
@@ -1839,7 +1840,7 @@ export class ProcessTerminal implements Terminal {
 		// single-line OSC 99 form until confirmation, and delivery still uses the
 		// passthrough/BEL path (#3395).
 		if (isInsideTerminalMultiplexer($env)) return false;
-		return !isBunTestRuntime() || $env.PI_TUI_OSC99_PROBE === "1";
+		return !isTestRuntime() || $env.PI_TUI_OSC99_PROBE === "1";
 	}
 
 	#queryOsc99Support(): void {
@@ -1885,7 +1886,7 @@ export class ProcessTerminal implements Terminal {
 		// Same multiplexer rule as the OSC 99 probe: tmux/screen cannot route the
 		// APC reply back to the sending pane, so it would leak as literal text.
 		if (isInsideTerminalMultiplexer($env)) return false;
-		return !isBunTestRuntime() || $env.PI_TUI_GLYPH_PROTOCOL_PROBE === "1";
+		return !isTestRuntime() || $env.PI_TUI_GLYPH_PROTOCOL_PROBE === "1";
 	}
 
 	#queryGlyphProtocolSupport(): void {
@@ -1949,7 +1950,7 @@ export class ProcessTerminal implements Terminal {
 		// The reply could never arrive.
 		const blocker = tspPathBlocker($env);
 		if (blocker !== null) return blocker;
-		return isBunTestRuntime() && $env.PI_TUI_TSP_PROBE !== "1" ? "bun test runtime" : null;
+		return isTestRuntime() && $env.PI_TUI_TSP_PROBE !== "1" ? "bun test runtime" : null;
 	}
 
 	/** A Tern pane that ends up on the classic renderer says why in the log, once. */
@@ -2633,7 +2634,7 @@ export class ProcessTerminal implements Terminal {
 
 	get columns(): number {
 		if (this.#inBandResizeActive && this.#reportedColumns) return this.#reportedColumns;
-		return process.stdout.columns || Number(Bun.env.COLUMNS) || 80;
+		return process.stdout.columns || Number(bun.env.COLUMNS) || 80;
 	}
 	/**
 	 * With the output pump, a backlog bound at or below
@@ -2703,7 +2704,7 @@ export class ProcessTerminal implements Terminal {
 
 	get rows(): number {
 		if (this.#inBandResizeActive && this.#reportedRows) return this.#reportedRows;
-		return process.stdout.rows || Number(Bun.env.LINES) || 24;
+		return process.stdout.rows || Number(bun.env.LINES) || 24;
 	}
 
 	moveBy(lines: number): void {

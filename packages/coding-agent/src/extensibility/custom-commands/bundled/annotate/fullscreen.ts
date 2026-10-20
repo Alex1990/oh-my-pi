@@ -11,6 +11,7 @@ import type {
 } from "@oh-my-pi/pi-tui/overlays/annotation-types";
 import type { ResolvedReviewTarget } from "../review/target";
 import { getEditorCommand, openEditorOnPath, openInEditor } from "../../../../utils/external-editor";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** What the overlay host reads: the UI surface plus the live session cwd for editor paths. */
 export type AnnotationOverlayContext = Pick<CustomCommandContext, "ui" | "cwd" | "sessionManager">;
@@ -63,7 +64,7 @@ async function editTextSource(
 	try {
 		if (provenance.kind === "file") {
 			exitCode = await openEditorOnPath(editor, provenance.path);
-			next = await Bun.file(provenance.path).text();
+			next = await bun.file(provenance.path).text();
 		} else {
 			next = await openInEditor(editor, current, { extension: ".txt", trimTrailingNewline: false });
 		}
@@ -91,7 +92,7 @@ async function editReviewedFile(tui: TUI, ctx: AnnotationOverlayContext, overlay
 	// Diff paths are repository-relative and exact, so resolve them from the repo root, not the session cwd.
 	const cwd = ctx.sessionManager.getCwd?.() ?? ctx.cwd;
 	const absolute = path.resolve(vcs.repo(cwd)?.root() ?? cwd, relative);
-	if (!(await Bun.file(absolute).exists())) {
+	if (!(await bun.file(absolute).exists())) {
 		throw new Error(`${relative} is not on disk. The review still uses the frozen diff.`);
 	}
 	tui.stop();

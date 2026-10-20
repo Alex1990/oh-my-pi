@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
@@ -109,6 +109,9 @@ function createContext(): {
 	const hasActiveCleanse = vi.fn(() => false);
 	const updatePendingMessagesDisplay = vi.fn();
 	const prompt = vi.fn();
+	const clearEditor = vi.fn();
+	const flushSync = vi.fn();
+	const shutdown = vi.fn(async () => {});
 	const startPendingSubmission = vi.fn(
 		(input: { text: string; images?: ImageContent[]; imageLinks?: (string | undefined)[] }) => {
 			ensureLoadingAnimation();
@@ -186,7 +189,7 @@ function createContext(): {
 		} as unknown as InteractiveModeContext["viewSession"],
 		sessionManager: {
 			getSessionName: () => "existing session",
-			flushSync: vi.fn(),
+			flushSync,
 		} as unknown as InteractiveModeContext["sessionManager"],
 		keybindings: {
 			getKeys: () => [],
@@ -227,8 +230,8 @@ function createContext(): {
 		showTreeSelector: vi.fn(),
 		showUserMessageSelector: vi.fn(),
 		showSessionSelector: vi.fn(),
-		shutdown: vi.fn(async () => {}),
-		clearEditor: vi.fn(),
+		shutdown,
+		clearEditor,
 		showStatus,
 	} as unknown as InteractiveModeContext;
 
@@ -243,10 +246,10 @@ function createContext(): {
 			addMessageToChat,
 			cancelPendingSubmission,
 			clearQueue,
-			clearEditor: ctx.clearEditor as Spy,
+			clearEditor,
 			getQueuedMessages,
 			ensureLoadingAnimation,
-			flushSync: ctx.sessionManager.flushSync as Spy,
+			flushSync,
 			handleBtwCommand,
 			handleBtwEscape,
 			hasActiveBtw,
@@ -257,7 +260,7 @@ function createContext(): {
 			requestRender,
 			resetDisplay,
 			showStatus,
-			shutdown: ctx.shutdown as Spy,
+			shutdown,
 			startPendingSubmission,
 			updatePendingMessagesDisplay,
 		},
@@ -858,8 +861,8 @@ describe("InputController double-tap ← gesture", () => {
 		controller.setupKeyHandlers();
 		return {
 			ctx,
-			showAgentHub: ctx.showAgentHub as Spy,
-			unfocusSession: ctx.unfocusSession as Spy,
+			showAgentHub: vi.mocked(ctx.showAgentHub),
+			unfocusSession: vi.mocked(ctx.unfocusSession),
 			tap: () => editor.onLeftAtStart?.(),
 		};
 	}

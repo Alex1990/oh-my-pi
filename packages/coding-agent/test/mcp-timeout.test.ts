@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { createMCPTimeout, isMCPTimeoutEnabled, resolveMCPTimeoutMs } from "@oh-my-pi/pi-coding-agent/mcp/timeout";
 import { logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ORIGINAL_TIMEOUT = process.env.OMP_MCP_TIMEOUT_MS;
 
@@ -72,7 +73,7 @@ describe("createMCPTimeout abort-source tracking", () => {
 			expect(op.signal).toBeDefined();
 			expect(op.timedOut()).toBe(false);
 			// Wait for the timer to fire
-			await Bun.sleep(60);
+			await bun.sleep(60);
 			expect(op.timedOut()).toBe(true);
 			expect(op.isTimeoutAbort(new DOMException("aborted", "AbortError"))).toBe(true);
 		} finally {
@@ -83,7 +84,7 @@ describe("createMCPTimeout abort-source tracking", () => {
 		const caller = new AbortController();
 		const op = createMCPTimeout(50, caller.signal);
 		try {
-			await Bun.sleep(60);
+			await bun.sleep(60);
 			// Timer fired, caller hasn't aborted yet
 			expect(op.timedOut()).toBe(true);
 			// Now the caller aborts — simulating the race where the caller's
@@ -144,7 +145,7 @@ describe("createMCPTimeout abort-source tracking", () => {
 			expect(op.isTimeoutAbort(new DOMException("aborted", "AbortError"))).toBe(false);
 			// Even if we wait past the timeoutMs, the timer was cancelled and
 			// must not fire
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			expect(op.timedOut()).toBe(false);
 		} finally {
 			op.clear();

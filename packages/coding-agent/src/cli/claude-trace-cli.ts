@@ -11,6 +11,7 @@ import * as tls from "node:tls";
 import * as zlib from "node:zlib";
 import { PtySession } from "@oh-my-pi/pi-natives";
 import xterm from "@oh-my-pi/pi-utils/vterm";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_PROXY_HOST = "127.0.0.1";
 const DEFAULT_PROXY_PORT = 8080;
@@ -700,7 +701,7 @@ async function shutdownPty(session: PtySession, runPromise: Promise<unknown>): P
 	try {
 		session.write("\x03");
 	} catch {}
-	await Bun.sleep(100);
+	await bun.sleep(100);
 	try {
 		session.kill();
 	} catch {}
@@ -759,7 +760,7 @@ export async function runClaudeMessagesCapture(args: ClaudeTraceCommandArgs = {}
 	try {
 		const outputSuffix = () => (ptyOutput.trim() ? `\n\nClaude output:\n${ptyOutput}` : "");
 		void (async () => {
-			await Bun.sleep(args.inputDelayMs ?? DEFAULT_INPUT_DELAY_MS);
+			await bun.sleep(args.inputDelayMs ?? DEFAULT_INPUT_DELAY_MS);
 			try {
 				session.write(`${message}\r`);
 			} catch (error) {
@@ -782,7 +783,7 @@ export async function runClaudeMessagesCapture(args: ClaudeTraceCommandArgs = {}
 		if (first.kind === "capture-error") {
 			throw new Error(`${errorMessage(first.error)}${outputSuffix()}`);
 		}
-		const late = await Promise.race([captureRace, Bun.sleep(250).then(() => ({ kind: "late-timeout" as const }))]);
+		const late = await Promise.race([captureRace, bun.sleep(250).then(() => ({ kind: "late-timeout" as const }))]);
 		if (late.kind === "capture") {
 			await shutdownPty(session, runPromise);
 			return late.exchange;

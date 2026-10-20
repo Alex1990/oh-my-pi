@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	convertAnthropicMessages,
 	streamAnthropic,
@@ -8,6 +8,7 @@ import type { AssistantMessage, Context, Model, ModelSpec, UserMessage } from "@
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { withEnv, withOfficialAnthropicEndpoint } from "./helpers";
 import { requestBodyText } from "@oh-my-pi/pi-ai/utils/request-body";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const spec: ModelSpec<"anthropic-messages"> = {
 	id: "claude-fable-5",
@@ -93,7 +94,7 @@ async function captureRequest(
 				},
 			);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	const message = await streamAnthropic(
 		requestModel,
@@ -315,7 +316,7 @@ describe("Anthropic on-demand compaction response", () => {
 				requests++;
 				return sseResponse(mockEvents("compaction"));
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamAnthropic(model, context, {
 			apiKey: "sk-ant-test",
@@ -339,7 +340,7 @@ describe("Anthropic on-demand compaction response", () => {
 
 	it("does not publish a block if the response stopped for another reason", async () => {
 		const fetchMock: typeof fetch = Object.assign(async () => sseResponse(mockEvents("end_turn")), {
-			preconnect: fetch.preconnect,
+			preconnect: preconnectOf(fetch),
 		});
 		const result = await streamAnthropic(model, context, {
 			apiKey: "sk-ant-test",
@@ -370,7 +371,7 @@ describe("Anthropic on-demand compaction response", () => {
 				}
 				return sseResponse(mockEvents("compaction"));
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamAnthropic(model, context, {
 			apiKey: "sk-ant-test",
@@ -398,7 +399,7 @@ describe("Anthropic on-demand compaction response", () => {
 					{ status: 400, headers: { "Content-Type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamAnthropic(model, context, {
 			apiKey: "sk-ant-test",

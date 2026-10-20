@@ -1,4 +1,4 @@
-import { afterAll, afterEach, expect, it } from "bun:test";
+import { afterAll, afterEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";

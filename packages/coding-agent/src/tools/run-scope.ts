@@ -3,6 +3,7 @@ import { untilAborted } from "@oh-my-pi/pi-utils/abortable";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
 import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const browserRunRejections = new WeakMap<object, object>();
 
@@ -348,7 +349,7 @@ export function waitForRun(
 	const promise = (async (): Promise<unknown> => {
 		throwIfAborted(signal);
 		if (typeof msOrPredicate === "number") {
-			await untilAborted(signal, async () => await Bun.sleep(msOrPredicate));
+			await untilAborted(signal, async () => await bun.sleep(msOrPredicate));
 			throwIfAborted(signal);
 			return undefined;
 		}
@@ -368,7 +369,7 @@ export function waitForRun(
 			if (Date.now() + interval > deadline) {
 				throw new ToolError(`wait(predicate) timed out after ${timeout}ms — predicate never returned truthy`);
 			}
-			await untilAborted(signal, async () => await Bun.sleep(interval));
+			await untilAborted(signal, async () => await bun.sleep(interval));
 		}
 	})();
 	return trackBrowserRunPromise(promise);

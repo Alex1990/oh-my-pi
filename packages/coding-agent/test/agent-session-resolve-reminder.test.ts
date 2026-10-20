@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { dispatchResolutionDevice, queueResolveHandler } from "@oh-my-pi/pi-coding-agent/tools/resolve";
 import { buildNamedToolChoice } from "@oh-my-pi/pi-coding-agent/utils/tool-choice";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("AgentSession resolve reminder", () => {
 	let session: AgentSession;
@@ -85,7 +86,7 @@ describe("AgentSession resolve reminder", () => {
 		}
 		const targetId = `target-${Snowflake.next()}`;
 		const targetPath = path.join(tempDir, `${targetId}.jsonl`);
-		await Bun.write(
+		await bun.write(
 			targetPath,
 			`${JSON.stringify({
 				type: "session",

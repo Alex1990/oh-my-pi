@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as terminalCapabilities from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { VERSION } from "@oh-my-pi/pi-utils/dirs";
@@ -17,9 +17,10 @@ import type {
 import { createWarpEventBridgeExtension, createWarpEventEmitter } from "../../src/modes/warp-events";
 import { SILENT_ABORT_MARKER, SKILL_PROMPT_MESSAGE_TYPE, USER_INTERRUPT_LABEL } from "../../src/session/messages";
 import { type ActiveTerminalHarness, startActiveTerminal } from "../helpers/active-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalTerminalId = terminalCapabilities.TERMINAL.id;
-const originalTmux = Bun.env.TMUX;
+const originalTmux = bun.env.TMUX;
 const originalProtocolVersion = process.env.WARP_CLI_AGENT_PROTOCOL_VERSION;
 const project = path.basename(process.cwd());
 const OSC_PREFIX = "\x1b]777;notify;warp://cli-agent;";
@@ -41,13 +42,13 @@ function restoreProtocolEnvironment(): void {
 }
 
 function setTmuxSession(active: boolean): void {
-	if (active) Bun.env.TMUX = "/tmp/tmux-test/default,1,0";
-	else delete Bun.env.TMUX;
+	if (active) bun.env.TMUX = "/tmp/tmux-test/default,1,0";
+	else delete bun.env.TMUX;
 }
 
 function restoreTmuxEnvironment(): void {
-	if (originalTmux === undefined) delete Bun.env.TMUX;
-	else Bun.env.TMUX = originalTmux;
+	if (originalTmux === undefined) delete bun.env.TMUX;
+	else bun.env.TMUX = originalTmux;
 }
 
 function createHandlers(): Map<string, RegisteredHandler> {
@@ -104,7 +105,7 @@ function bridgeContext(sessionId = "session-123", cwd = process.cwd()): Extensio
 }
 
 beforeEach(() => {
-	delete Bun.env.TMUX;
+	delete bun.env.TMUX;
 });
 
 afterEach(() => {

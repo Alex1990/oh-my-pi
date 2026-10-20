@@ -3,7 +3,7 @@
  * detector drops cache rows for state-mutating `gh issue|pr` ops while
  * leaving unrelated commands and read-only `gh` calls alone.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { invalidateGithubCacheForBashCommand } from "@oh-my-pi/pi-coding-agent/tools/gh-cache-invalidation";
 import {
 	clearAll,

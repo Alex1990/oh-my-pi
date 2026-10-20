@@ -35,6 +35,7 @@ import type {
 	SchemeSpec,
 	UrlCompletion,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** No loaded skill owns the URL's name; the only miss an MCP server may fill. */
 class UnknownSkillError extends Error {}
@@ -185,7 +186,7 @@ export class SkillProtocolHandler implements ProtocolHandler {
 			throw new Error(`skill:// URL must resolve to a file or directory: ${url.href}`);
 		}
 
-		const content = await Bun.file(targetPath).text();
+		const content = await bun.file(targetPath).text();
 		return {
 			url: url.href,
 			content,

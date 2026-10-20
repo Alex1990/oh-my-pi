@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { bumpVersion, packSkill } from "../../src/skillshare/pack";
 import { readTar } from "../../src/skillshare/tar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: TempDir;
 
@@ -30,7 +31,7 @@ async function writeFiles(files: Record<string, string>): Promise<void> {
 	for (const relPath in files) {
 		const absolute = tempDir.join(relPath);
 		await fs.mkdir(path.dirname(absolute), { recursive: true });
-		await Bun.write(absolute, files[relPath]);
+		await bun.write(absolute, files[relPath]);
 	}
 }
 
@@ -78,10 +79,10 @@ describe("packSkill", () => {
 		expect(pack.hasScripts).toBe(true);
 		expect(pack.secrets).toEqual([]);
 
-		const entries = readTar(Bun.gunzipSync(pack.tgz));
+		const entries = readTar(bun.gunzipSync(pack.tgz));
 		expect(entries.map(entry => entry.path)).toEqual(pack.files.map(file => file.path));
 		expect(new TextDecoder().decode(entries[0].content)).toBe(SKILL_MD);
-		expect(pack.integrity).toBe(`sha512-${new Bun.CryptoHasher("sha512").update(pack.tgz).digest("base64")}`);
+		expect(pack.integrity).toBe(`sha512-${new bun.CryptoHasher("sha512").update(pack.tgz).digest("base64")}`);
 
 		const again = await packSkill(tempDir.path());
 		expect(again.integrity).toBe(pack.integrity);
@@ -97,12 +98,12 @@ describe("packSkill", () => {
 		await writeFiles({ "SKILL.md": SKILL_MD });
 		const longDir = tempDir.join("a".repeat(100), "b".repeat(100));
 		await fs.mkdir(longDir, { recursive: true });
-		await Bun.write(path.join(longDir, "c".repeat(60)), "x");
+		await bun.write(path.join(longDir, "c".repeat(60)), "x");
 		await expect(packSkill(tempDir.path())).rejects.toThrow(/path exceeds 255 bytes/);
 
 		await fs.rm(tempDir.join("a".repeat(100)), { recursive: true });
 		await fs.mkdir(tempDir.join("many"));
-		await Promise.all(Array.from({ length: 1000 }, (_, i) => Bun.write(tempDir.join("many", `${i}.txt`), "x")));
+		await Promise.all(Array.from({ length: 1000 }, (_, i) => bun.write(tempDir.join("many", `${i}.txt`), "x")));
 		await expect(packSkill(tempDir.path())).rejects.toThrow(/exceeds 1000 files/);
 	});
 
@@ -128,7 +129,7 @@ describe("packSkill", () => {
 			],
 		];
 		for (const [frontmatter, error] of cases) {
-			await Bun.write(tempDir.join("SKILL.md"), skillMd(frontmatter));
+			await bun.write(tempDir.join("SKILL.md"), skillMd(frontmatter));
 			await expect(packSkill(tempDir.path())).rejects.toThrow(error);
 		}
 	});
@@ -167,9 +168,9 @@ describe("bumpVersion", () => {
 	].join("\r\n");
 
 	test("rewrites only the metadata version line", async () => {
-		await Bun.write(tempDir.join("SKILL.md"), original);
+		await bun.write(tempDir.join("SKILL.md"), original);
 		expect(await bumpVersion(tempDir.path(), "minor")).toBe("1.3.0");
-		expect(await Bun.file(tempDir.join("SKILL.md")).text()).toBe(
+		expect(await bun.file(tempDir.join("SKILL.md")).text()).toBe(
 			original.replace('    version: "1.2.3" # keep me', '    version: "1.3.0" # keep me'),
 		);
 	});
@@ -186,28 +187,28 @@ describe("bumpVersion", () => {
 			["1.2.3", "2.0.0-beta.1", "2.0.0-beta.1"],
 		];
 		for (const [from, kind, to] of cases) {
-			await Bun.write(tempDir.join("SKILL.md"), withVersion(from));
+			await bun.write(tempDir.join("SKILL.md"), withVersion(from));
 			expect(await bumpVersion(tempDir.path(), kind)).toBe(to);
-			expect(await Bun.file(tempDir.join("SKILL.md")).text()).toBe(withVersion(to));
+			expect(await bun.file(tempDir.join("SKILL.md")).text()).toBe(withVersion(to));
 		}
 
-		await Bun.write(tempDir.join("SKILL.md"), withVersion("1.2.3"));
+		await bun.write(tempDir.join("SKILL.md"), withVersion("1.2.3"));
 		await expect(bumpVersion(tempDir.path(), "1.2.0")).rejects.toThrow(/must be greater/);
 		await expect(bumpVersion(tempDir.path(), "banana")).rejects.toThrow(/expected patch, minor, major/);
 	});
 
 	test("inserts the version when metadata or its version is missing", async () => {
 		const bare = "---\nname: pdf-tools\ndescription: d\n---\nbody\n";
-		await Bun.write(tempDir.join("SKILL.md"), bare);
+		await bun.write(tempDir.join("SKILL.md"), bare);
 		expect(await bumpVersion(tempDir.path(), "patch")).toBe("0.0.1");
-		expect(await Bun.file(tempDir.join("SKILL.md")).text()).toBe(
+		expect(await bun.file(tempDir.join("SKILL.md")).text()).toBe(
 			"---\nname: pdf-tools\ndescription: d\nmetadata:\n  version: 0.0.1\n---\nbody\n",
 		);
 
 		const noVersion = "---\nname: pdf-tools\nmetadata:\n   keywords: pdf\ndescription: d\n---\nbody\n";
-		await Bun.write(tempDir.join("SKILL.md"), noVersion);
+		await bun.write(tempDir.join("SKILL.md"), noVersion);
 		expect(await bumpVersion(tempDir.path(), "1.0.0")).toBe("1.0.0");
-		expect(await Bun.file(tempDir.join("SKILL.md")).text()).toBe(
+		expect(await bun.file(tempDir.join("SKILL.md")).text()).toBe(
 			"---\nname: pdf-tools\nmetadata:\n   version: 1.0.0\n   keywords: pdf\ndescription: d\n---\nbody\n",
 		);
 	});

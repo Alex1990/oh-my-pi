@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { postmortem } from "@oh-my-pi/pi-utils";
 import { createSessionTeardown } from "../../src/modes/session-teardown";
 

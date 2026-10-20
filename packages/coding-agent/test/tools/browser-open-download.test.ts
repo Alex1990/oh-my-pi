@@ -8,7 +8,7 @@
  * Installation delay is controlled; the Eval regression drives real Chromium.
  */
 
-import { afterAll, afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
@@ -19,6 +19,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { ToolAbortError } from "@oh-my-pi/pi-coding-agent/tools/tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const DOWNLOAD_FAILED = "sentinel: Chromium install finished after the open timeout";
@@ -92,7 +93,7 @@ await tab.close();`,
 					throw new Error(`Eval finished before browser installation: ${JSON.stringify(result)}`);
 				}),
 			]);
-			await Bun.sleep(1_100);
+			await bun.sleep(1_100);
 			download.resolve(executable);
 			const result = await resultPromise;
 			expect(result.details?.cells?.[0]?.status).toBe("complete");

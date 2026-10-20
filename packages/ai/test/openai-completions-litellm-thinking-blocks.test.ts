@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { AssistantMessage, FetchImpl, Message, ModelSpec } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 // LiteLLM serving Anthropic with thinking streams `thinking_blocks` (plus a
 // `provider_specific_fields` mirror) and requires them back verbatim on the
@@ -57,7 +58,7 @@ function createFetch(firstTurn: Record<string, unknown>[], payloads: unknown[]):
 		if (requestIndex++ === 0) return sse(firstTurn, "tool_calls");
 		return sse([{ role: "assistant", content: "done" }], "stop");
 	}
-	return Object.assign(mockFetch, { preconnect: fetch.preconnect });
+	return Object.assign(mockFetch, { preconnect: preconnectOf(fetch) });
 }
 
 /** Streams the tool-call turn, then sends the continuation to `replayModel` and returns its assistant turn. */

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ServiceTierByFamily } from "@oh-my-pi/pi-ai";
@@ -10,7 +10,7 @@ import {
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { getProjectAgentDir, TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
 
 import {
@@ -20,6 +20,7 @@ import {
 	cfgTierOpenai,
 	cfgTierSubagent,
 } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function requiredBundledModel(provider: "openai-codex" | "anthropic" | "google", id: string) {
 	const model = getBundledModel(provider, id);
@@ -59,7 +60,7 @@ describe("serviceTier → tier.* settings migration", () => {
 	});
 
 	async function loadWith(raw: Record<string, unknown>): Promise<Settings> {
-		await Bun.write(path.join(agentDir, "config.yml"), YAML.stringify(raw, null, 2));
+		await bun.write(path.join(agentDir, "config.yml"), YAML.stringify(raw, null, 2));
 		resetSettingsForTest();
 		return Settings.init({ cwd: projectDir, agentDir });
 	}

@@ -1,7 +1,21 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
+import { vi } from "vitest";
+
+const osState = vi.hoisted(() => ({
+	networkInterfaces: undefined as ReturnType<typeof os.networkInterfaces> | undefined,
+}));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof os>();
+	return {
+		...actual,
+		networkInterfaces: () => osState.networkInterfaces ?? actual.networkInterfaces(),
+	};
+});
 import { OAuthCallbackFlow } from "@oh-my-pi/pi-ai/registry/oauth/callback-server";
 import type { OAuthCredentials } from "@oh-my-pi/pi-ai/registry/oauth/types";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Callback flow that records what `login()` advertised, so a test can assert on
@@ -23,9 +37,10 @@ class TestCallbackFlow extends OAuthCallbackFlow {
 }
 
 /** Whether this host can bind the IPv6 loopback at all. */
-const ipv6Loopback = (() => {
+const ipv6Loopback = await (async () => {
 	try {
-		Bun.serve({ hostname: "::1", port: 0, fetch: () => new Response("probe") }).stop(true);
+		const probe = await serve({ hostname: "::1", port: 0, fetch: () => new Response("probe") });
+		await probe.stop(true);
 		return true;
 	} catch {
 		return false;
@@ -37,34 +52,35 @@ const ipv6Loopback = (() => {
  * process holding that exact loopback address. The squatter answers 500 so a
  * response from it is unmistakable in an assertion.
  */
-function occupy(hostname: string): { port: number; release: () => void } {
-	const server = Bun.serve({ hostname, port: 0, fetch: () => new Response("squatter", { status: 500 }) });
+async function occupy(hostname: string): Promise<{ port: number; release: () => void }> {
+	const server = await serve({ hostname, port: 0, fetch: () => new Response("squatter", { status: 500 }) });
 	const port = server.port;
 	if (typeof port !== "number") {
 		server.stop(true);
-		throw new Error("Bun.serve({ port: 0 }) did not assign a numeric port");
+		throw new Error("serve({ port: 0 }) did not assign a numeric port");
 	}
 	return { port, release: () => server.stop(true) };
 }
 
 /** Claim and immediately release a port, so a test can pin a known-free one. */
-function freeLoopbackPort(): number {
-	const probe = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("probe") });
+async function freeLoopbackPort(): Promise<number> {
+	const probe = await serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("probe") });
 	const port = probe.port;
 	probe.stop(true);
 	if (typeof port !== "number") {
-		throw new Error("Bun.serve({ port: 0 }) did not assign a numeric port");
+		throw new Error("serve({ port: 0 }) did not assign a numeric port");
 	}
 	return port;
 }
 
 afterEach(() => {
+	osState.networkInterfaces = undefined;
 	vi.restoreAllMocks();
 });
 
 describe("OAuthCallbackFlow loopback address families", () => {
 	it.skipIf(!ipv6Loopback)("falls back when the IPv6 loopback address itself is taken", async () => {
-		const squatter = occupy("::1");
+		const squatter = await occupy("::1");
 		const progress: string[] = [];
 		// Cancel as soon as the flow publishes its redirect URI: the port it
 		// advertised is the whole assertion, and aborting on that signal keeps this
@@ -92,15 +108,15 @@ describe("OAuthCallbackFlow loopback address families", () => {
 	});
 
 	it("keeps the preferred port when the host cannot bind ::1", async () => {
-		const realServe = Bun.serve.bind(Bun) as typeof Bun.serve;
-		vi.spyOn(Bun, "serve").mockImplementation(((options: { hostname?: string }) => {
+		const realServe = serve;
+		vi.spyOn(bun, "serve").mockImplementation(((options: { hostname?: string }) => {
 			if (options.hostname === "::1") {
 				throw Object.assign(new Error("address family not supported by protocol"), { code: "EAFNOSUPPORT" });
 			}
-			return realServe(options as Parameters<typeof Bun.serve>[0]);
-		}) as typeof Bun.serve);
+			return realServe(options as Parameters<typeof serve>[0]);
+		}) as typeof serve);
 
-		const port = freeLoopbackPort();
+		const port = await freeLoopbackPort();
 		const progress: string[] = [];
 		const cancel = new AbortController();
 		const flow = new TestCallbackFlow(
@@ -122,7 +138,7 @@ describe("OAuthCallbackFlow loopback address families", () => {
 	it("keeps a pinned port when IPv6 is disabled and the companion bind reports a misleading in-use error", async () => {
 		// Reproduce a host with IPv6 disabled at the kernel (ipv6.disable=1): the
 		// loopback interface exposes only 127.0.0.1, no ::1 (issue #8814).
-		vi.spyOn(os, "networkInterfaces").mockReturnValue({
+		osState.networkInterfaces = {
 			lo: [
 				{
 					address: "127.0.0.1",
@@ -133,21 +149,21 @@ describe("OAuthCallbackFlow loopback address families", () => {
 					cidr: "127.0.0.1/8",
 				},
 			],
-		});
+		};
 		// Bun surfaces the IPv6-unavailable companion failure with the same
 		// generic "Is port X in use?" message it uses for a real collision
 		// (oven-sh/bun#7187), so the in-use message regex cannot tell them apart.
-		const realServe = Bun.serve.bind(Bun) as typeof Bun.serve;
-		vi.spyOn(Bun, "serve").mockImplementation(((options: { hostname?: string; port?: number }) => {
+		const realServe = serve;
+		vi.spyOn(bun, "serve").mockImplementation(((options: { hostname?: string; port?: number }) => {
 			if (options.hostname === "::1") {
 				throw Object.assign(new Error(`Failed to start server. Is port ${options.port} in use?`), {
 					code: "EADDRINUSE",
 				});
 			}
-			return realServe(options as Parameters<typeof Bun.serve>[0]);
-		}) as typeof Bun.serve);
+			return realServe(options as Parameters<typeof serve>[0]);
+		}) as typeof serve);
 
-		const port = freeLoopbackPort();
+		const port = await freeLoopbackPort();
 		const progress: string[] = [];
 		const cancel = new AbortController();
 		const flow = new TestCallbackFlow(

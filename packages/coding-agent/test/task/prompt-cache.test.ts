@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Model, ProviderSessionState, SimpleStreamOptions } from "@oh-my-pi/pi-ai";
 import { buildRequest as buildGeminiRequest } from "@oh-my-pi/pi-ai/providers/google-gemini-cli";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
@@ -17,6 +17,7 @@ import * as settingsStream from "@oh-my-pi/pi-coding-agent/session/settings-stre
 import type { TaskTool } from "@oh-my-pi/pi-coding-agent/task";
 import * as discovery from "@oh-my-pi/pi-coding-agent/task/discovery";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("task sibling prompt-cache routing", () => {
 	const sessions: AgentSession[] = [];
@@ -293,14 +294,14 @@ describe("task sibling prompt-cache routing", () => {
 						"persisted:task",
 					);
 					await lifecycle.park(ref.id);
-					const records = Bun.JSONL.parse(await Bun.file(ref.sessionFile).text()) as Array<{
+					const records = bun.JSONL.parse(await bun.file(ref.sessionFile).text()) as Array<{
 						type: string;
 						taskPromptCacheKey?: string;
 					}>;
 					for (const record of records) {
 						if (record.type === "session") delete record.taskPromptCacheKey;
 					}
-					await Bun.write(ref.sessionFile, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
+					await bun.write(ref.sessionFile, `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
 					const withoutCandidate = await lifecycle.ensureLive(ref.id);
 					await withoutCandidate.prompt("Continue without inherited affinity.");
 					expect(

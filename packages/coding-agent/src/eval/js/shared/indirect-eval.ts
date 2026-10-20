@@ -1,3 +1,7 @@
+import { constants as vmConstants, runInThisContext } from "node:vm";
+
+const USE_MAIN_CONTEXT_DEFAULT_LOADER = vmConstants.USE_MAIN_CONTEXT_DEFAULT_LOADER;
+
 /**
  * Indirect eval — runs in the host's global scope, isolating bindings declared with
  * `const`/`let` from this module's closure. Used by both the JS eval worker and the
@@ -17,14 +21,13 @@ export function indirectEval(source: string, filename?: string): unknown {
 	// the runtime keeps the untouched filename separately for import bases.
 	const sourceUrl = filename?.replace(/[\r\n\u2028\u2029]/g, separator => encodeURIComponent(separator));
 	const withPragma = sourceUrl ? `${source}\n//# sourceURL=${sourceUrl}` : source;
-	// Read `eval` via a property access so the call site is *indirect* (global scope),
-	// not direct (this module's lexical scope). The cast erases the DOM lib return type.
-	// We deliberately avoid `node:vm` because Bun crashes the parent with SIGTRAP when
-	// Worker.terminate() fires mid-`vm.runInContext` synchronous loop — indirect eval is
-	// the executor for user code in the worker.
-	// oxlint-disable-next-line no-eval -- this is the executor.
-	const geval = globalThis.eval as (src: string) => unknown;
-	return geval(withPragma);
+	// `vm.runInThisContext` shares the global scope with indirect eval while
+	// giving dynamic `import()` a module loader. Plain eval cannot: V8 rejects
+	// `import()` there with "A dynamic import callback was not specified".
+	return runInThisContext(withPragma, {
+		filename: filename ?? "omp-eval",
+		importModuleDynamically: USE_MAIN_CONTEXT_DEFAULT_LOADER,
+	});
 }
 
 export async function awaitMaybePromise<T>(value: T | Promise<T>): Promise<T> {

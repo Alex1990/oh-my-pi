@@ -4,7 +4,7 @@
  * resolved its base entry to ~1M, ignoring the default lane's reported
  * `max_prompt_tokens`, so the base row and its `-1m` sibling were both ~1M.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { githubCopilotModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 
 /** `/models` entry shaped like Copilot under `X-GitHub-Api-Version: 2026-08-01`. */

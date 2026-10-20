@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resolveAuthBrokerConfig } from "@oh-my-pi/pi-ai/auth-broker";
 import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLEAR_BROKER_ENV = {
 	OMP_AUTH_BROKER_URL: undefined,
@@ -24,7 +25,7 @@ describe("auth-broker config.yml key resolution", () => {
 	});
 
 	async function writeConfig(yaml: string): Promise<void> {
-		await Bun.write(path.join(agentDir, "config.yml"), yaml);
+		await bun.write(path.join(agentDir, "config.yml"), yaml);
 	}
 
 	test("nested YAML keys resolve broker url and token", async () => {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { JsonLexer, QUOTE } from "@oh-my-pi/pi-utils/json-lexer";
 import { parseStreamingJson } from "@oh-my-pi/pi-utils/json-parse";
 

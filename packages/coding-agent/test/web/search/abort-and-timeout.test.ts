@@ -11,7 +11,7 @@
  * spot-checked on anthropic (LLM-backed) and brave (pure search API); the
  * helper itself is exercised directly.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AuthStorage, FetchImpl } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -30,6 +30,7 @@ import {
 	cfgProvidersWebSearchTimeoutSeconds,
 	cfgRetryFallbackChains,
 } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const openAuthStorages: AuthStorage[] = [];
 
@@ -45,7 +46,7 @@ function createSearchContext(modelProvider: string, modelId: string) {
 describe("withHardTimeout", () => {
 	it("returns a signal that aborts on the hard timeout when no caller signal is supplied", async () => {
 		const signal = withHardTimeout(undefined, 10);
-		await Bun.sleep(40);
+		await bun.sleep(40);
 		expect(signal.aborted).toBe(true);
 	});
 
@@ -59,7 +60,7 @@ describe("withHardTimeout", () => {
 	it("fires the hard timeout even when the caller signal stays open", async () => {
 		const ac = new AbortController();
 		const signal = withHardTimeout(ac.signal, 10);
-		await Bun.sleep(40);
+		await bun.sleep(40);
 		expect(signal.aborted).toBe(true);
 		expect(ac.signal.aborted).toBe(false);
 	});

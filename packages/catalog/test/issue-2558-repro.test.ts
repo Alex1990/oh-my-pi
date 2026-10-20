@@ -15,7 +15,7 @@
  * `fine-grained-tool-streaming-2025-05-14` beta header on the Copilot
  * transport (the proxy doesn't whitelist Anthropic beta features either).
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildAnthropicClientOptions, streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import type { Context, TJsonSchema, Tool } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";

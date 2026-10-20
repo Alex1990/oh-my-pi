@@ -3,7 +3,7 @@
 // socket. Fake timers cannot drive the unix-socket RPC or the replacement broker process. Shutdown is
 // observed by awaiting the broker's own run() promise; a regression leaves it pending, so the test's
 // own timeout surfaces the failure.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";

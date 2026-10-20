@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { visibleWidth, wrapTextWithAnsi } from "@oh-my-pi/pi-tui/utils";
 
 describe("wrapTextWithAnsi", () => {

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import {
 	createProcessTerminalRenderHarness,
 	type ProcessTerminalRenderHarness,
 } from "./process-terminal-render-harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Progressive-enhancement probe ordering contract. omp sends `CSI ? u \\ CSI c`
 // at startup: the kitty reply (`CSI ? <flags> u`) authoritatively says the
@@ -19,18 +20,18 @@ class ModalProbe implements Component {
 		return ["modal"];
 	}
 }
-const originalSshConnection = Bun.env.SSH_CONNECTION;
-const originalSshTty = Bun.env.SSH_TTY;
-const originalSshClient = Bun.env.SSH_CLIENT;
-const originalTmux = Bun.env.TMUX;
+const originalSshConnection = bun.env.SSH_CONNECTION;
+const originalSshTty = bun.env.SSH_TTY;
+const originalSshClient = bun.env.SSH_CLIENT;
+const originalTmux = bun.env.TMUX;
 const originalTerminalId = TERMINAL.id;
 
 function restoreEnv(name: "SSH_CONNECTION" | "SSH_TTY" | "SSH_CLIENT" | "TMUX", value: string | undefined): void {
 	if (value === undefined) {
-		delete Bun.env[name];
+		delete bun.env[name];
 		return;
 	}
-	Bun.env[name] = value;
+	bun.env[name] = value;
 }
 
 describe("ProcessTerminal kitty keyboard progressive-enhancement ordering", () => {
@@ -118,9 +119,9 @@ describe("ProcessTerminal kitty keyboard progressive-enhancement ordering", () =
 	});
 
 	it("skips modifyOtherKeys fallback for SSH_CONNECTION-only unknown terminals", async () => {
-		Bun.env.SSH_CONNECTION = "192.0.2.10 54321 192.0.2.20 22";
-		delete Bun.env.SSH_TTY;
-		delete Bun.env.SSH_CLIENT;
+		bun.env.SSH_CONNECTION = "192.0.2.10 54321 192.0.2.20 22";
+		delete bun.env.SSH_TTY;
+		delete bun.env.SSH_CLIENT;
 		Object.defineProperty(TERMINAL, "id", { value: "base", configurable: true });
 		harness = createProcessTerminalRenderHarness(100, 30);
 		await harness.settle();
@@ -140,10 +141,10 @@ describe("ProcessTerminal kitty keyboard progressive-enhancement ordering", () =
 		// (delivering Ctrl+H and Shift+Enter distinctly) and ignores it under
 		// `extended-keys off`, so tmux — not omp — is the capability gate. A blanket
 		// tmux exclusion (#5502) collapsed those keys to legacy bytes in every pane.
-		Bun.env.TMUX = "/tmp/tmux-501/default,1234,0";
-		delete Bun.env.SSH_CONNECTION;
-		delete Bun.env.SSH_TTY;
-		delete Bun.env.SSH_CLIENT;
+		bun.env.TMUX = "/tmp/tmux-501/default,1234,0";
+		delete bun.env.SSH_CONNECTION;
+		delete bun.env.SSH_TTY;
+		delete bun.env.SSH_CLIENT;
 		harness = createProcessTerminalRenderHarness(100, 30);
 		await harness.settle();
 		harness.writes.length = 0;

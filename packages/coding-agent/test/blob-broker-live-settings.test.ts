@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import { ImageUrlService, LiveImageUrlService } from "@oh-my-pi/pi-coding-agent/blob-broker/service";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";

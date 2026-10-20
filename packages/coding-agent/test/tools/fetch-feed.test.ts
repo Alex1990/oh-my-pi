@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function makeSession(): ToolSession {
 	const cwd = process.cwd();
@@ -32,14 +34,14 @@ const ATOM = `<?xml version="1.0" encoding="UTF-8"?>
 </feed>`;
 
 describe("read URL RSS/Atom feeds (#15954)", () => {
-	const servers: Bun.Server<undefined>[] = [];
+	const servers: Server<undefined>[] = [];
 	afterEach(() => {
 		for (const server of servers) server.stop(true);
 		servers.length = 0;
 	});
 
 	async function readFeed(body: string, contentType: string): Promise<string | undefined> {
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: () => new Response(body, { headers: { "content-type": contentType } }),
 		});

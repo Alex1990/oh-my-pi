@@ -1,5 +1,6 @@
 import { sanitizeText as currentSanitizeText } from "@oh-my-pi/pi-utils/sanitize-text";
 import { makeBench } from "./_harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STRIP_RE = new RegExp(
 	[
@@ -259,7 +260,7 @@ function sanitizeBinaryOutput(str: string): string {
 			continue;
 		}
 
-		// Filter out characters that crash `Bun.stringWidth()` or cause display issues:
+		// Filter out characters that crash `bun.stringWidth()` or cause display issues:
 		// - ASCII control chars (C0)
 		// - DEL + C1 control block
 		// - Lone surrogates
@@ -279,7 +280,7 @@ function sanitizeBinaryOutput(str: string): string {
 	return out.join("");
 }
 function jsSanitizeText(text: string): string {
-	return sanitizeBinaryOutput(Bun.stripANSI(text)).replaceAll("\r", "");
+	return sanitizeBinaryOutput(bun.stripANSI(text)).replaceAll("\r", "");
 }
 
 const ITERATIONS = 2000;

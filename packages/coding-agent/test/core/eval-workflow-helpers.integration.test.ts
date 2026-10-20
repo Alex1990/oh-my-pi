@@ -6,13 +6,14 @@
  * (or sandboxes where subprocess spawning is restricted) does not fail.
  */
 
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { disposeAllKernelSessions, executePythonWithKernel } from "@oh-my-pi/pi-coding-agent/eval/py/executor";
 import { PythonKernel } from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SHOULD_RUN = Bun.env.PI_PYTHON_INTEGRATION === "1";
+const SHOULD_RUN = bun.env.PI_PYTHON_INTEGRATION === "1";
 
 describe.skipIf(!SHOULD_RUN)("python eval workflow helpers", () => {
 	afterEach(async () => {
@@ -55,8 +56,8 @@ describe.skipIf(!SHOULD_RUN)("python eval workflow helpers", () => {
 			expect(result.output).toContain(`WROTE ${path.join(root, "notes", "merge-map.md")}`);
 			expect(result.output).toContain("READ hello world");
 			// Lands under the injected root — not a literal `local:` directory under cwd.
-			expect(await Bun.file(path.join(root, "notes", "merge-map.md")).text()).toBe("hello world");
-			expect(await Bun.file(path.join(tempDir.path(), "local:")).exists()).toBe(false);
+			expect(await bun.file(path.join(root, "notes", "merge-map.md")).text()).toBe("hello world");
+			expect(await bun.file(path.join(tempDir.path(), "local:")).exists()).toBe(false);
 		} finally {
 			await kernel.shutdown();
 		}
@@ -65,7 +66,7 @@ describe.skipIf(!SHOULD_RUN)("python eval workflow helpers", () => {
 	it("read() returns an artifact's full text and refuses artifact writes", async () => {
 		using tempDir = TempDir.createSync("@eval-workflow-artifact-");
 		const artifacts = path.join(tempDir.path(), "artifacts");
-		await Bun.write(path.join(artifacts, "12.eval.log"), `${"v".repeat(14_430)}\nsecond\nthird\n`);
+		await bun.write(path.join(artifacts, "12.eval.log"), `${"v".repeat(14_430)}\nsecond\nthird\n`);
 		const kernel = await PythonKernel.start({ cwd: tempDir.path() });
 		try {
 			const code = [

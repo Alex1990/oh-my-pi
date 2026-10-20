@@ -34,7 +34,7 @@ async function spawnCapture(
 	options: SpawnCaptureOptions & { encoding?: "bytes" } = {},
 ): Promise<string | Uint8Array> {
 	const timeoutMs = options.timeoutMs ?? 2000;
-	const proc = Bun.spawn(cmd, {
+	const proc = bun.spawn(cmd, {
 		stdout: "pipe",
 		stderr: "ignore",
 		stdin: options.input !== undefined ? Buffer.from(options.input) : "ignore",
@@ -206,7 +206,7 @@ const POWERSHELL_TIMEOUT_MS = 8000;
  */
 async function readImageViaPowerShell(): Promise<ClipboardImage | null> {
 	try {
-		const proc = Bun.spawn(
+		const proc = bun.spawn(
 			["powershell.exe", "-NoProfile", "-NonInteractive", "-Sta", "-Command", POWERSHELL_IMAGE_SCRIPT],
 			{
 				stdout: "pipe",
@@ -258,7 +258,7 @@ $ErrorActionPreference = 'Stop'
  * clipboard only works when `wl-clipboard` happens to be installed in the
  * distro, while `powershell.exe` is always reachable. Forcing UTF-8 output
  * encoding keeps non-ASCII text intact regardless of the console codepage
- * (the legacy win32 `Get-Clipboard` shell-out mangled it), and `Bun.spawn`
+ * (the legacy win32 `Get-Clipboard` shell-out mangled it), and `bun.spawn`
  * keeps a cold PowerShell start off the TUI event loop.
  *
  * Returns null when the bridge fails (WSL callers fall through to
@@ -266,7 +266,7 @@ $ErrorActionPreference = 'Stop'
  */
 async function readTextViaPowerShell(): Promise<string | null> {
 	try {
-		const proc = Bun.spawn(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", POWERSHELL_TEXT_SCRIPT], {
+		const proc = bun.spawn(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", POWERSHELL_TEXT_SCRIPT], {
 			stdout: "pipe",
 			stderr: "ignore",
 			stdin: "ignore",
@@ -408,3 +408,4 @@ export async function readTextFromClipboard(): Promise<string> {
 	}
 	return "";
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

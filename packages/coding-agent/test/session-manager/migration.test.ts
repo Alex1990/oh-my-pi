@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FileEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { migrateSessionEntries } from "@oh-my-pi/pi-coding-agent/session/session-migrations";
 

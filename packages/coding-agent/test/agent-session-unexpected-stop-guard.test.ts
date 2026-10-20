@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentMessage, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import * as ai from "@oh-my-pi/pi-ai";
@@ -12,6 +12,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import * as unexpectedStopClassifier from "@oh-my-pi/pi-coding-agent/session/unexpected-stop-classifier";
 import { logger, TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const recordToolSchema = type({ value: type("string") });
 
@@ -422,12 +423,12 @@ describe("AgentSession unexpected stop guard", () => {
 		try {
 			const deadline = Date.now() + 10_000;
 			while (spy.mock.calls.length === 0 && Date.now() < deadline) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 			expect(spy).toHaveBeenCalledTimes(1);
 			// A slow-but-within-budget verdict (12.2s in production against the
 			// 15s default): the judge wait must still be alive.
-			await Bun.sleep(200);
+			await bun.sleep(200);
 			expect(observedSignal?.aborted).toBe(false);
 			release.resolve(true);
 			await pending;
@@ -466,11 +467,11 @@ describe("AgentSession unexpected stop guard", () => {
 		try {
 			const deadline = Date.now() + 10_000;
 			while (spy.mock.calls.length === 0 && Date.now() < deadline) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 			expect(spy).toHaveBeenCalledTimes(1);
 			// Hold past the injected budget: the wait must abort and settle.
-			await Bun.sleep(200);
+			await bun.sleep(200);
 			expect(observedSignal?.aborted).toBe(true);
 			// The late verdict plus any later stop must not resurrect the turn.
 			spy.mockResolvedValue(false);
@@ -503,7 +504,7 @@ describe("AgentSession unexpected stop guard", () => {
 		try {
 			const deadline = Date.now() + 10_000;
 			while (spy.mock.calls.length === 0 && Date.now() < deadline) {
-				await Bun.sleep(10);
+				await bun.sleep(10);
 			}
 			expect(spy).toHaveBeenCalledTimes(1);
 			const aborted = session.abort();

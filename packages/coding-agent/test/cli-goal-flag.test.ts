@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs, validateGoalLaunch, validateGoalStartup } from "@oh-my-pi/pi-coding-agent/cli/args";
@@ -8,13 +8,15 @@ import { createSessionManager, runRootCommand } from "@oh-my-pi/pi-coding-agent/
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { setInteractiveHost, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const cliEntry = path.resolve(import.meta.dir, "../src/cli.ts");
+const cliEntry = path.resolve(import.meta.dirname, "../src/cli.ts");
 
 async function launch(args: string[], cwd?: string): Promise<{ exitCode: number; stderr: string }> {
 	using dir = TempDir.createSync("@omp-goal-flag-");
 	const sessionArgs = cwd === undefined ? ["--no-session"] : [];
-	const proc = Bun.spawn([process.execPath, cliEntry, ...sessionArgs, ...args], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, ...sessionArgs, ...args], {
 		cwd: cwd ?? dir.path(),
 		stdin: "ignore",
 		stdout: "pipe",

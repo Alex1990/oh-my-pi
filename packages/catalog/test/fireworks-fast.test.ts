@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { FIREWORKS_FAST_SUFFIX, isFireworksFastModelId, toFireworksBaseModelId } from "../src/fireworks-model-id";
 import { buildFireworksFastSeed } from "../src/provider-models/openai-compat";
 

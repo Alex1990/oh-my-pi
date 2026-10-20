@@ -1,6 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { MCPOAuthFlow, refreshMCPOAuthToken } from "@oh-my-pi/pi-coding-agent/mcp/oauth-flow";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -54,7 +56,7 @@ async function completeLocalOAuthCallback(url: string): Promise<void> {
 			return;
 		} catch (error) {
 			lastError = error;
-			await Bun.sleep(5);
+			await bun.sleep(5);
 		}
 	}
 	throw lastError;
@@ -529,7 +531,7 @@ describe("mcp oauth flow", () => {
 	});
 
 	it("listens on the implied port for exact HTTP loopback redirectUri values", async () => {
-		const serveSpy = vi.spyOn(Bun, "serve").mockImplementation(options => {
+		const serveSpy = vi.spyOn(bun, "serve").mockImplementation(options => {
 			expect(options.port).toBe(80);
 			throw new Error("EADDRINUSE");
 		});
@@ -550,7 +552,7 @@ describe("mcp oauth flow", () => {
 	});
 
 	it("listens on the explicit port for exact HTTP loopback redirectUri values", async () => {
-		const serveSpy = vi.spyOn(Bun, "serve").mockImplementation(options => {
+		const serveSpy = vi.spyOn(bun, "serve").mockImplementation(options => {
 			expect(options.port).toBe(3000);
 			throw new Error("EADDRINUSE");
 		});
@@ -571,7 +573,7 @@ describe("mcp oauth flow", () => {
 	});
 
 	it("fails instead of falling back to a random port when redirectUri is exact", async () => {
-		vi.spyOn(Bun, "serve").mockImplementation(() => {
+		vi.spyOn(bun, "serve").mockImplementation(() => {
 			throw new Error("EADDRINUSE");
 		});
 
@@ -592,7 +594,7 @@ describe("mcp oauth flow", () => {
 	});
 
 	it("fails fast when the preferred port is busy and a static clientId pins the registered redirect URI", async () => {
-		const serveSpy = vi.spyOn(Bun, "serve").mockImplementation(options => {
+		const serveSpy = vi.spyOn(bun, "serve").mockImplementation(options => {
 			expect(options.port).toBe(14572);
 			throw new Error("EADDRINUSE");
 		});
@@ -634,11 +636,11 @@ describe("mcp oauth flow", () => {
 		// Occupy 127.0.0.1 explicitly — the interface callback flows bind for
 		// `localhost` — because macOS lets a specific-address bind coexist with a
 		// wildcard one, which would let the flow bind the "blocked" port.
-		const blocker = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("blocker") });
+		const blocker = await serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("blocker") });
 		const blockerPort = blocker.port;
 		if (typeof blockerPort !== "number") {
 			blocker.stop(true);
-			throw new Error("Bun.serve({ port: 0 }) did not assign a numeric port");
+			throw new Error("serve({ port: 0 }) did not assign a numeric port");
 		}
 
 		const registrations: unknown[] = [];

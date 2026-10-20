@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
@@ -15,6 +15,16 @@ import type { WorkerInbound } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { rejectionOf } from "../helpers/rejection";
 import { chromiumAvailable } from "./chromium-probe";
+import { workerControl } from "../helpers/worker-mock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// The tab-worker constructor now lives in the compat module; a runtime global
+// no longer exists to patch, so the suite substitutes the module itself.
+vi.mock("@oh-my-pi/pi-utils/worker", async () => {
+	const actual = await vi.importActual<typeof import("@oh-my-pi/pi-utils/worker")>("@oh-my-pi/pi-utils/worker");
+	const { createMockWorker } = await import("../helpers/worker-mock");
+	return { ...actual, Worker: createMockWorker(actual.Worker) };
+});
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const session: ToolSession = {
@@ -134,19 +144,9 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser tab worker exit", () => {
 	it("does not name an earlier message error as the cause of a later exit", async () => {
 		const name = "worker-exit-stale-cause";
 		// Capture the tab's Bun worker to raise a `messageerror` on it, which leaves the worker running.
-		const RealWorker = globalThis.Worker;
-		let spawned: Worker | undefined;
-		globalThis.Worker = class extends RealWorker {
-			constructor(...args: ConstructorParameters<typeof Worker>) {
-				super(...args);
-				spawned = this;
-			}
-		};
-		try {
-			await open(name, "alive");
-		} finally {
-			globalThis.Worker = RealWorker;
-		}
+		const spawnedBefore = workerControl.instances.length;
+		await open(name, "alive");
+		const spawned = workerControl.instances[spawnedBefore];
 		if (!spawned) throw new Error("expected the tab's worker");
 		spawned.dispatchEvent(new MessageEvent("messageerror", { data: "stale" }));
 		expect(await run(name, "return 1;")).toBe(1);
@@ -251,7 +251,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser tab worker exit", () => {
 		const reopened = prelude.invoke({ action: "open", name }, context).finally(() => {
 			settled = true;
 		});
-		await Bun.sleep(300);
+		await bun.sleep(300);
 		expect(settled).toBe(false);
 		release();
 		await reopened;
@@ -267,7 +267,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser tab worker exit", () => {
 		const before = getTab(name);
 		const { release } = await crashAndHoldRecovery(name);
 		const reopened = prelude.invoke({ action: "open", name }, context);
-		await Bun.sleep(100);
+		await bun.sleep(100);
 		await releaseTab(name);
 		release();
 		await reopened;
@@ -380,7 +380,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser tab worker exit", () => {
 			settled = true;
 		});
 		// No event marks an open that wrongly returned early, so give it real time to do so.
-		await Bun.sleep(500);
+		await bun.sleep(500);
 		expect(settled).toBe(false);
 		gate.resolve();
 		const text = textOf((await reopened).content);

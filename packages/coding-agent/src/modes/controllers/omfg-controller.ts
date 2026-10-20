@@ -16,6 +16,7 @@ import {
 	parseGeneratedRule,
 	validateParsedRuleAgainstAssistantHistory,
 } from "./omfg-rule";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface OmfgRequest {
 	component: OmfgPanelComponent;
@@ -241,7 +242,7 @@ export class OmfgController {
 			}
 
 			const target = this.#resolveTarget(location, candidate.rule.name);
-			if (await Bun.file(target.filePath).exists()) {
+			if (await bun.file(target.filePath).exists()) {
 				const shouldOverwrite = await this.ctx.showHookConfirm(
 					"Overwrite TTSR rule?",
 					`${shortenPath(target.filePath)} already exists. Overwrite it?`,
@@ -255,7 +256,7 @@ export class OmfgController {
 			}
 
 			request.component.setStatus("saving", `Saving ${candidate.rule.name}…`);
-			await Bun.write(target.filePath, candidate.fileContent);
+			await bun.write(target.filePath, candidate.fileContent);
 			// Drop the cached directory snapshot the discovery layer reads, so the next
 			// session-scoped rebuild's rule rediscovery observes this new file instead of
 			// a stale listing that would make `replaceTtsrRules` evict the live rule

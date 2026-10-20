@@ -1,7 +1,7 @@
 /**
  * In-memory collab transport shared by the collab test suites.
  *
- * `FakeWebSocket` + `InMemoryRelay` replace the real Bun.serve relay and
+ * `FakeWebSocket` + `InMemoryRelay` replace the real serve relay and
  * loopback WebSocket. They mirror the production relay's forwarding contract
  * exactly (4-byte peerId envelope routing, peer-joined/peer-left control
  * frames) but deliver every frame on a microtask with zero network or timer
@@ -13,6 +13,7 @@
  * `uninstallInMemoryRelay()` in the matching `afterAll`/`afterEach`.
  */
 import { rewriteEnvelopePeer, unpackEnvelope } from "@oh-my-pi/pi-coding-agent/collab/protocol";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** Active relay the fake transport routes through; set between install/uninstall. */
 let activeRelay: InMemoryRelay | null = null;

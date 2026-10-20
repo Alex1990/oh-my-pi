@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { convertToPng } from "@oh-my-pi/pi-coding-agent/extensibility/legacy-pi-coding-agent-shim";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
@@ -14,7 +15,7 @@ describe("legacy shim image conversion", () => {
 	});
 
 	it("converts decodable image attachments to PNG", async () => {
-		const jpeg = await new Bun.Image(Buffer.from(RED_1X1_PNG_BASE64, "base64")).jpeg({ quality: 90 }).toBase64();
+		const jpeg = await new Image(Buffer.from(RED_1X1_PNG_BASE64, "base64")).jpeg({ quality: 90 }).toBase64();
 		const converted = await convertToPng(jpeg, "image/jpeg");
 
 		expect(converted?.mimeType).toBe("image/png");

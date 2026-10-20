@@ -7,7 +7,7 @@
  * TUI's local copy (PR #3317) — these tests pin all four paths so that
  * regression can't silently drop a case again.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolveUsedFraction, type UsageLimit } from "@oh-my-pi/pi-ai";
 
 function makeLimit(amount: UsageLimit["amount"]): UsageLimit {

@@ -1,7 +1,8 @@
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { isPidRunning } from "@oh-my-pi/pi-utils/procmgr";
 import { runCli } from "../src/cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The worker-host re-entry seam dispatches any `__omp_worker_*` selector to
 // `runWorkerEntrypoint`. An unrecognized selector must fail loudly rather than
@@ -27,7 +28,7 @@ describe("worker selector dispatch", () => {
 	});
 	it("declares workerHostEntry in process entry before dispatching worker selector", async () => {
 		const repoRoot = path.resolve(__dirname, "../../..");
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [
 				process.execPath,
 				"-e",
@@ -61,14 +62,14 @@ describe("worker selector dispatch", () => {
 	});
 
 	it("exits promptly when an IPC worker selector is launched without an IPC channel", async () => {
-		const proc = Bun.spawn({
+		const proc = bun.spawn({
 			cmd: [process.execPath, "packages/coding-agent/src/cli.ts", "__omp_worker_js_eval_process"],
 			cwd: path.resolve(__dirname, "../../.."),
 			stdin: "ignore",
 			stdout: "ignore",
 			stderr: "ignore",
 		});
-		const exited = await Promise.race([proc.exited.then(() => true), Bun.sleep(2000).then(() => false)]);
+		const exited = await Promise.race([proc.exited.then(() => true), bun.sleep(2000).then(() => false)]);
 		if (!exited) {
 			proc.kill("SIGKILL");
 		}
@@ -77,12 +78,12 @@ describe("worker selector dispatch", () => {
 
 	it("reaps orphaned IPC worker when parent process terminates", async () => {
 		const repoRoot = path.resolve(__dirname, "../../..");
-		const parent = Bun.spawn({
+		const parent = bun.spawn({
 			cmd: [
 				process.execPath,
 				"-e",
 				`
-				const child = Bun.spawn({
+				const child = bun.spawn({
 					cmd: [process.execPath, "packages/coding-agent/src/cli.ts", "__omp_worker_js_eval_process"],
 					cwd: ${JSON.stringify(repoRoot)},
 					ipc(msg) {},
@@ -111,7 +112,7 @@ describe("worker selector dispatch", () => {
 		let running = isPidRunning(childPid);
 		try {
 			for (let i = 0; i < 30 && running; i++) {
-				await Bun.sleep(100);
+				await bun.sleep(100);
 				running = isPidRunning(childPid);
 			}
 		} finally {
@@ -126,12 +127,12 @@ describe("worker selector dispatch", () => {
 
 	it("reaps orphaned IPC worker using fallback watchdog when native process handles are unavailable", async () => {
 		const repoRoot = path.resolve(__dirname, "../../..");
-		const parent = Bun.spawn({
+		const parent = bun.spawn({
 			cmd: [
 				process.execPath,
 				"-e",
 				`
-				const child = Bun.spawn({
+				const child = bun.spawn({
 					cmd: [process.execPath, "packages/coding-agent/src/cli.ts", "__omp_worker_js_eval_process"],
 					cwd: ${JSON.stringify(repoRoot)},
 					env: { ...process.env, PI_TEST_NO_NATIVES: "1" },
@@ -161,7 +162,7 @@ describe("worker selector dispatch", () => {
 		let running = isPidRunning(childPid);
 		try {
 			for (let i = 0; i < 30 && running; i++) {
-				await Bun.sleep(100);
+				await bun.sleep(100);
 				running = isPidRunning(childPid);
 			}
 		} finally {
@@ -190,7 +191,7 @@ describe("worker selector dispatch", () => {
 			await runCli(["__omp_worker_js_eval_process"]);
 		`;
 
-			const child = Bun.spawn({
+			const child = bun.spawn({
 				cmd: [process.execPath, "-e", childScript],
 				cwd: repoRoot,
 				ipc() {},
@@ -200,7 +201,7 @@ describe("worker selector dispatch", () => {
 				stderr: "ignore",
 			});
 
-			await Bun.sleep(400);
+			await bun.sleep(400);
 			const alive = !child.killed && child.exitCode === null;
 			child.kill("SIGKILL");
 			expect(alive).toBe(true);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createMockModel, registerMockApi } from "@oh-my-pi/pi-ai/providers/mock";
@@ -10,6 +10,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgWorkspaceAdditionalDirectories } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 registerMockApi();
 
@@ -124,7 +125,7 @@ describe("workspace directories in the system prompt", () => {
 			};
 			// Let the coalesced watch run, then drain the prompt rebuild it queued.
 			const settle = async (): Promise<void> => {
-				await Bun.sleep(0);
+				await bun.sleep(0);
 				await session.runToolRegistryMutation(async () => {});
 			};
 			try {

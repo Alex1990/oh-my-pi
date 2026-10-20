@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { LogoutAccountSelectorComponent } from "@oh-my-pi/pi-tui/overlays/logout-account-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { StoredAuthCredential } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { toLogoutAccounts } from "@oh-my-pi/pi-coding-agent/slash-commands/helpers/logout";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -49,7 +50,7 @@ describe("LogoutAccountSelectorComponent", () => {
 
 		const rendered = component
 			.render(100)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain("b@example.com (active)");
 		expect(rendered.indexOf("b@example.com")).toBeLessThan(rendered.indexOf("a@example.com"));

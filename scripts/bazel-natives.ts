@@ -44,10 +44,13 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { detectHostAvx2Support, detectHostMusl, resolveLocalHostAddon } from "./host-detect";
 import { hasVersionStampSlot, nativesPackageVersion, stampNativeVersion } from "./stamp-native-version";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 
 /** //:natives-<name> → canonical addon filename (mirrors _ADDONS in BUILD.bazel). */
 export const ADDON_OUTPUTS: Record<string, string> = {
@@ -226,7 +229,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
 }
 
 function resolveBazelBinary(): string | null {
-	return Bun.which("bazelisk") ?? Bun.which("bazel");
+	return bun.which("bazelisk") ?? bun.which("bazel");
 }
 
 const STDERR_TAIL_LINES = 40;
@@ -237,7 +240,7 @@ async function runBazel(
 	args: string[],
 	stdout: "inherit" | "pipe",
 ): Promise<{ exitCode: number; stdout: string; stderrTail: string }> {
-	const proc = Bun.spawn([bin, ...args], { cwd: repoRoot, stdout, stderr: "pipe" });
+	const proc = bun.spawn([bin, ...args], { cwd: repoRoot, stdout, stderr: "pipe" });
 	const decoder = new TextDecoder();
 	let tail = "";
 	const pumpStderr = (async () => {
@@ -322,7 +325,7 @@ export async function verifyHostAddonLoads(
 		`const m = { exports: {} }; try { process.dlopen(m, ${JSON.stringify(destPath)}); } ` +
 		"catch (error) { console.error(error && error.message ? error.message : String(error)); process.exit(1); } " +
 		versionCheck;
-	const proc = Bun.spawn([process.execPath, "-e", probe], { stdout: "ignore", stderr: "pipe" });
+	const proc = bun.spawn([process.execPath, "-e", probe], { stdout: "ignore", stderr: "pipe" });
 	let timedOut = false;
 	const timer = setTimeout(() => {
 		timedOut = true;
@@ -348,12 +351,16 @@ export async function verifyHostAddonLoads(
 /** Build and install the host addon through the local Cargo/N-API path. */
 async function buildLocalHostAddon(host: HostInfo, destDir: string): Promise<void> {
 	const script = path.join(repoRoot, "packages/natives/scripts/build-bindings.ts");
+	const loader = path.join(repoRoot, "scripts/node-runtime-loader.mjs");
 	console.log(`local host build: using ${path.relative(repoRoot, script)}`);
-	const proc = Bun.spawn([process.execPath, script], {
-		cwd: repoRoot,
-		stdout: "inherit",
-		stderr: "inherit",
-	});
+	const proc = bun.spawn(
+		[process.execPath, "--experimental-transform-types", "--import", pathToFileURL(loader).href, script],
+		{
+			cwd: repoRoot,
+			stdout: "inherit",
+			stderr: "inherit",
+		},
+	);
 	const exitCode = await proc.exited;
 	if (exitCode !== 0) process.exit(exitCode || 1);
 
@@ -377,7 +384,7 @@ async function main(): Promise<void> {
 	};
 	const destDir = options.dest ? path.resolve(options.dest) : path.join(repoRoot, "packages/natives/native");
 
-	const backend = Bun.env.OMP_NATIVE_BUILD_BACKEND?.trim();
+	const backend = bun.env.OMP_NATIVE_BUILD_BACKEND?.trim();
 	if (backend && backend !== "cargo" && backend !== "bazel") {
 		throw new Error(`Unknown OMP_NATIVE_BUILD_BACKEND "${backend}" (expected "cargo" or "bazel")`);
 	}
@@ -428,7 +435,7 @@ async function main(): Promise<void> {
 		}
 		// CI hands cache wiring (remote or disk) through a bazelrc fragment so
 		// endpoint composition stays in .github/actions/bazel-cache.
-		const rcPath = Bun.env.OMP_BAZEL_RC?.trim();
+		const rcPath = bun.env.OMP_BAZEL_RC?.trim();
 		const startupArgs = rcPath ? [`--bazelrc=${rcPath}`] : [];
 
 		const buildArgs = [...startupArgs, "build", ...options.bazelArgs, "--", ...labels];
@@ -492,7 +499,7 @@ async function main(): Promise<void> {
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	try {
 		await main();
 	} catch (err) {

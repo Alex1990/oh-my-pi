@@ -1,4 +1,5 @@
 import { $which } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Portable command that rejects credential prompts without assuming an FHS layout. */
 export const REJECT_PROMPT_COMMAND = $which("false") ?? "false";
@@ -110,7 +111,7 @@ function withoutCI(env: Readonly<Record<string, string>>): Record<string, string
 /** Builds the per-command environment for non-interactive child processes. */
 export function buildNonInteractiveEnv(
 	overrides?: Record<string, string>,
-	baseEnv: Record<string, string | undefined> = Bun.env,
+	baseEnv: Record<string, string | undefined> = bun.env,
 	platform: NodeJS.Platform = process.platform,
 ): Record<string, string> {
 	// `PI_BASH_NO_CI` (and its legacy alias) opts out of the automatic `CI=true`

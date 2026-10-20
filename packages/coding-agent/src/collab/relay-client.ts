@@ -14,6 +14,21 @@ import { logger } from "@oh-my-pi/pi-utils";
 import { open, sealSerialized } from "./crypto";
 import type { CollabFrame, EncodedFrame, RelayControlMessage } from "./protocol";
 import { packEnvelope, unpackEnvelope } from "./protocol";
+import { WebSocket, type WebSocketOptions } from "@oh-my-pi/pi-utils/node-serve";
+
+/** Constructor captured at load, so a test-installed replacement is detectable. */
+const NativeWebSocket = globalThis.WebSocket;
+
+/**
+ * Prefer a `globalThis.WebSocket` that a test harness swapped in; otherwise use
+ * the compat adapter, which supports headers and proxy options the Node builtin
+ * does not.
+ */
+function activeWebSocketConstructor(): typeof WebSocket {
+	const candidate = globalThis.WebSocket;
+	if (candidate && candidate !== NativeWebSocket) return candidate as unknown as typeof WebSocket;
+	return WebSocket;
+}
 
 const RELAY_CLOSE_REASONS: Record<number, string> = {
 	4001: "room closed",
@@ -506,8 +521,8 @@ export class CollabSocket {
 		const url = `${this.#opts.wsUrl}?role=${this.#opts.role}`;
 		const options = {
 			proxy: getProxyForUrl("collab", new URL(url)),
-		} satisfies Bun.WebSocketOptions;
-		const ws: WebSocket = Reflect.construct(WebSocket, [url, options]);
+		} satisfies WebSocketOptions;
+		const ws: WebSocket = Reflect.construct(activeWebSocketConstructor(), [url, options]);
 		ws.binaryType = "arraybuffer";
 		this.#ws = ws;
 		ws.onopen = () => {

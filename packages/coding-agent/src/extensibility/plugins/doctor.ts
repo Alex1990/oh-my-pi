@@ -1,6 +1,7 @@
 import { $which } from "@oh-my-pi/pi-utils";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import type { DoctorCheck } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 	const checks: DoctorCheck[] = [];
@@ -29,7 +30,7 @@ export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 	];
 
 	for (const key of apiKeys) {
-		const hasKey = !!Bun.env[key.name];
+		const hasKey = !!bun.env[key.name];
 		checks.push({
 			name: key.name,
 			status: hasKey ? "ok" : "warning",

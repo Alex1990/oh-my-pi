@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { OmpTypeError } from "../src/errors";
 import { Type, type } from "../src/type";
 import * as zod from "../src/zod";

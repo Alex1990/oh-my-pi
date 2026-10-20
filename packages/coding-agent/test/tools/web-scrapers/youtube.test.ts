@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as toolsManager from "@oh-my-pi/pi-coding-agent/utils/tools-manager";
 import { handleYouTube } from "@oh-my-pi/pi-coding-agent/web/scrapers/youtube";
 import { ptree } from "@oh-my-pi/pi-utils";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleYouTube", () => {
 	it("returns null for non-YouTube URLs", async () => {
@@ -224,7 +225,7 @@ function fakeYtDlp(metadata: FakeSpawn, autoCaptions?: FakeSpawn): string[][] {
 		// --dump-json implies --simulate, which returns before yt-dlp writes subtitle files.
 		const writesSubs = args.includes("--write-sub") || args.includes("--write-auto-sub");
 		const simulates = args.includes("--dump-json") && !args.includes("--no-simulate");
-		if (spawn.subtitle && writesSubs && !simulates) await Bun.write(`${template}.en.vtt`, spawn.subtitle);
+		if (spawn.subtitle && writesSubs && !simulates) await bun.write(`${template}.en.vtt`, spawn.subtitle);
 		const ok = spawn.ok ?? false;
 		return { ok, stdout: spawn.stdout ?? "", stderr: spawn.stderr ?? "", exitCode: ok ? 0 : 1 };
 	};

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamBedrock } from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import { crc32 } from "@oh-my-pi/pi-ai/providers/aws-eventstream";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 interface GuardrailPayload {
 	guardrailConfig?: {
@@ -92,7 +93,7 @@ function stopReasonFetch(stopReason: string): FetchImpl {
 					headers: { "content-type": "application/vnd.amazon.eventstream" },
 				},
 			),
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 

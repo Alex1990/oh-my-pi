@@ -32,6 +32,7 @@ import {
 import { resolveContainedPath } from "./contained-path";
 import { compareSkillOrder, createSourceMeta, listClaudePluginRoots } from "./helpers";
 import { listOmpExtensionRoots } from "./omp-extension-roots";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER_ID = "agent-plugins";
 const DISPLAY_NAME = "Agent Plugins";
@@ -88,7 +89,7 @@ async function listCandidateRoots(ctx: LoadContext): Promise<CandidateRoot[]> {
  * scopes, or local directories) from aliasing each other's state.
  */
 function pluginDataDir(home: string, manifestName: string, instanceKey: string): string {
-	const digest = new Bun.CryptoHasher("sha256").update(instanceKey).digest("hex").slice(0, 16);
+	const digest = new bun.CryptoHasher("sha256").update(instanceKey).digest("hex").slice(0, 16);
 	return path.join(getPluginsDir(home), "data", `${manifestName}-${digest}`);
 }
 

@@ -1,11 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const CLI_ENTRY = path.join(import.meta.dir, "..", "src", "cli.ts");
+const CLI_ENTRY = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 describe("omp read skill resources", () => {
 	let root: string;
@@ -18,7 +20,7 @@ describe("omp read skill resources", () => {
 		agentDir = path.join(root, "agent");
 		const skillDir = path.join(projectDir, ".omp", "skills", "standalone-skill");
 		await Promise.all([fs.mkdir(skillDir, { recursive: true }), fs.mkdir(agentDir)]);
-		await Bun.write(
+		await bun.write(
 			path.join(skillDir, "SKILL.md"),
 			"---\nname: standalone-skill\ndescription: Readable from the standalone CLI.\n---\n\n# Standalone Skill\n",
 		);
@@ -30,14 +32,14 @@ describe("omp read skill resources", () => {
 
 	async function runReadProbe(skillUrl: string): Promise<{ exitCode: number; output: string; error: string }> {
 		const probePath = path.join(root, "probe.ts");
-		await Bun.write(
+		await bun.write(
 			probePath,
 			[
 				`import { runCli } from ${JSON.stringify(url.pathToFileURL(CLI_ENTRY).href)};`,
 				`await runCli(["read", ${JSON.stringify(skillUrl)}]);`,
 			].join("\n"),
 		);
-		const proc = Bun.spawn([process.execPath, probePath], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 			cwd: projectDir,
 			stdout: "pipe",
 			stderr: "pipe",
@@ -65,7 +67,7 @@ describe("omp read skill resources", () => {
 
 	it("starts MCP servers only for a skill URL no local skill owns", async () => {
 		const marker = path.join(root, "mcp-started");
-		await Bun.write(
+		await bun.write(
 			path.join(projectDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {
@@ -81,22 +83,22 @@ describe("omp read skill resources", () => {
 		const local = await runReadProbe("skill://standalone-skill;skill://standalone-skill/SKILL.md");
 		expect(local.exitCode).toBe(0);
 		expect(local.output).toContain("# Standalone Skill");
-		expect(await Bun.file(marker).exists()).toBe(false);
+		expect(await bun.file(marker).exists()).toBe(false);
 
 		const unknown = await runReadProbe("skill://nope");
 		expect(unknown.exitCode).toBe(1);
 		expect(unknown.error).toContain("Unknown skill: nope");
-		expect(await Bun.file(marker).exists()).toBe(true);
+		expect(await bun.file(marker).exists()).toBe(true);
 	}, 60_000);
 
 	it("honors the codex opt-in when reading a user skill through the standalone CLI", async () => {
 		const skillDir = path.join(root, ".codex", "skills", "codex-user-skill");
 		await fs.mkdir(skillDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(skillDir, "SKILL.md"),
 			"---\nname: codex-user-skill\ndescription: Opted-in user skill.\n---\n\n# Codex User Skill\n",
 		);
-		await Bun.write(path.join(agentDir, "config.yml"), "enabledProviders:\n  - codex\n");
+		await bun.write(path.join(agentDir, "config.yml"), "enabledProviders:\n  - codex\n");
 
 		const { exitCode, output, error } = await runReadProbe("skill://codex-user-skill");
 
@@ -108,12 +110,12 @@ describe("omp read skill resources", () => {
 	it("reads an extension skill configured outside .omp through the standalone CLI", async () => {
 		const skillDir = path.join(projectDir, "ext-pkg", "skills", "ext-skill");
 		await fs.mkdir(skillDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(skillDir, "SKILL.md"),
 			"---\nname: ext-skill\ndescription: Extension skill.\n---\n\n# Extension Skill\n",
 		);
 		await fs.mkdir(path.join(projectDir, ".claude"), { recursive: true });
-		await Bun.write(path.join(projectDir, ".claude", "settings.json"), JSON.stringify({ extensions: ["./ext-pkg"] }));
+		await bun.write(path.join(projectDir, ".claude", "settings.json"), JSON.stringify({ extensions: ["./ext-pkg"] }));
 
 		const { exitCode, output, error } = await runReadProbe("skill://ext-skill");
 

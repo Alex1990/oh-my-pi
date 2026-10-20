@@ -14,7 +14,7 @@
  * Windows / compiled binaries the kernel derives the name from the exec'd file,
  * so those paths already report correctly; there we only set `process.title`.
  */
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType, ptr } from "@oh-my-pi/pi-utils/ffi";
 import * as os from "node:os";
 
 /** `prctl(2)` option that sets the calling thread's `comm` name. */

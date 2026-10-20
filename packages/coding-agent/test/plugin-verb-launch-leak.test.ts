@@ -19,7 +19,7 @@
  * Imported via a relative path (not the `@oh-my-pi/pi-coding-agent` alias) so the
  * assertions exercise this checkout's `cli-commands.ts` directly.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { isSubcommand, resolveCliArgv } from "../src/cli-commands";
 
 describe("documented-but-unregistered plugin verbs do not leak to launch (#2935)", () => {

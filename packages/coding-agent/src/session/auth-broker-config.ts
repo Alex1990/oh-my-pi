@@ -42,6 +42,7 @@ import type { AuthStorage } from "./auth-storage";
 
 import { cfgAuthAccountPolicies, cfgAuthBrokerToken, cfgAuthBrokerUrl } from "../config/model-settings";
 import { cfgRetryUsageReservePct } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { type AuthBrokerClientConfig, getAuthBrokerTokenFilePath };
 
@@ -194,7 +195,7 @@ export function createAuthStorageSettingsSync(scope: ScopeLike, authStorage: Aut
 		const brokerChanged = next.brokerUrl !== previous.brokerUrl || next.brokerToken !== previous.brokerToken;
 		const policiesChanged =
 			next.usageReservePct !== previous.usageReservePct ||
-			!Bun.deepEquals(next.accountPolicies, previous.accountPolicies);
+			!bun.deepEquals(next.accountPolicies, previous.accountPolicies);
 		pending = pending.then(async () => {
 			if (brokerChanged) await applyBroker();
 			if (policiesChanged) await applyPolicies();

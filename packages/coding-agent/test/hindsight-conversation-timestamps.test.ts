@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { HindsightApi } from "@oh-my-pi/pi-coding-agent/hindsight/client";
 import type { HindsightConfig } from "@oh-my-pi/pi-coding-agent/hindsight/config";
 import { HindsightSessionState } from "@oh-my-pi/pi-coding-agent/hindsight/state";
@@ -9,11 +10,11 @@ import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-ent
 function captureBodies(): unknown[] {
 	const bodies: unknown[] = [];
 	const fetchMock: typeof globalThis.fetch = Object.assign(
-		async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+		async (_input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 			bodies.push(JSON.parse(String(init?.body ?? "{}")));
 			return new Response("{}", { status: 200 });
 		},
-		{ preconnect: globalThis.fetch.preconnect },
+		{ preconnect: preconnectOf(globalThis.fetch) },
 	);
 	vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 	return bodies;

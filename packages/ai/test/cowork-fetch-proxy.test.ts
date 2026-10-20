@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { coworkFetch } from "@oh-my-pi/pi-ai/providers/cowork-fetch";
 
 /**

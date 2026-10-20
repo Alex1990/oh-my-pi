@@ -8,6 +8,7 @@ import type {
 	WorkerInbound,
 	WorkerOutbound,
 } from "./worker-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface PendingTool {
 	resolve(value: unknown): void;
@@ -378,7 +379,7 @@ export class WorkerCore {
 			// One event-loop turn so rejections the cell already floated surface
 			// while this run can still own them (rejection callbacks run before
 			// timers fire).
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			result = foldFloatingRejections(active, result, hooks);
 		} finally {
 			this.#runs.delete(runId);

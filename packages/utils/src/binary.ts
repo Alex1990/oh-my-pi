@@ -10,7 +10,7 @@
  *
  * @example
  * if (await isProbablyBinary(path)) return "[binary file omitted]";
- * const text = await Bun.file(path).text();
+ * const text = await bun.file(path).text();
  */
 import { peekFile, peekFileSync } from "./peek-file";
 

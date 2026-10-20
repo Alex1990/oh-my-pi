@@ -1,15 +1,15 @@
 /**
  * Functional tests for {@link SqlSessionStorage}. Driven by a real
- * `Bun.SQL` SQLite instance (in-memory) so the storage exercises actual
+ * `SQL` SQLite instance (in-memory) so the storage exercises actual
  * SQL execution, not a hand-rolled mock. PostgreSQL/MySQL behaviour is
  * covered by the dialect-specific query suite below, which inspects the
  * statements built at construction.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { serializeTitleSlot } from "@oh-my-pi/pi-coding-agent/session/session-title-slot";
 import { SqlSessionStorage, type SqlSessionStorageClient } from "@oh-my-pi/pi-coding-agent/session/sql-session-storage";
-import { SQL } from "bun";
+import { SQL } from "@oh-my-pi/pi-utils/sql-compat";
 
 async function createSqlite(): Promise<{ client: InstanceType<typeof SQL>; storage: SqlSessionStorage }> {
 	const client = new SQL("sqlite::memory:");
@@ -414,7 +414,7 @@ describe("SqlSessionStorage (SQLite backend)", () => {
 
 // ---------------------------------------------------------------------------
 // Dialect-specific statement coverage. We can't run a real Postgres/MySQL
-// instance from the test process, so we instantiate a `Bun.SQL` client (which
+// instance from the test process, so we instantiate a `SQL` client (which
 // parses the URL but doesn't connect until the first query) and stub
 // `client.unsafe` to capture the rendered SQL. This catches dialect-specific
 // regressions in the query builder.

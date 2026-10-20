@@ -1,9 +1,8 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Api, AssistantMessage, ImageContent, Model } from "@oh-my-pi/pi-ai";
-import * as ai from "@oh-my-pi/pi-ai";
+import * as aiStream from "@oh-my-pi/pi-ai/stream";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
 import { AsyncJobManager } from "../../src/async";
 import { ModelRegistry } from "../../src/config/model-registry";
 import { Settings } from "../../src/config/settings";
@@ -22,9 +21,11 @@ import {
 	type JudgmentBatchProgress,
 } from "../../src/eval/judgment-batch-events";
 import { EventBus } from "../../src/utils/event-bus";
-import type { PythonResult } from "../../src/eval/py/executor";
+import { disposeAllKernelSessions, executePython, type PythonResult } from "../../src/eval/py/executor";
 import type { ToolSession } from "../../src/tools";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const SMOL: Model<Api> = {
 	id: "smol",
@@ -125,13 +126,13 @@ async function expectUpscaledImage(images: unknown[] | undefined, original: Imag
 	expect(images).toHaveLength(1);
 	const image = images![0] as ImageContent;
 	expect(image.data).not.toBe(original.data);
-	const metadata = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+	const metadata = await new Image(Buffer.from(image.data, "base64")).metadata();
 	expect(Math.min(metadata.width, metadata.height)).toBeGreaterThanOrEqual(200);
 }
 
 /** Route each completion by the state text embedded in the prompt; gated states block until released. */
 function mockJudge(answers: Record<string, string | Promise<string>>): void {
-	vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context, options) => {
+	vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context, options) => {
 		const user = context.messages.find(message => message.role === "user");
 		const prompt = typeof user?.content === "string" ? user.content : JSON.stringify(user?.content);
 		let message = reply("tests: no");
@@ -219,7 +220,7 @@ describe("judge_batch bridge", () => {
 	});
 	it("validates items and options before starting", async () => {
 		const { session } = makeSession();
-		const spy = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));
+		const spy = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("tests: yes"));
 		await expect(
 			runEvalJudgmentBatch({ op: "create", items: [], questions: QUESTIONS }, { session }),
 		).rejects.toThrow("items must not be empty");
@@ -274,7 +275,7 @@ describe("judge_batch bridge", () => {
 
 	it("routes distinct image mappings to matching keyed batch items", async () => {
 		const completions: Array<{ prompt: string; images: unknown[] }> = [];
-		const complete = vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context, options) => {
+		const complete = vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context, options) => {
 			const user = context.messages.find(message => message.role === "user");
 			const content = user?.content;
 			completions.push({
@@ -316,9 +317,9 @@ describe("judge_batch bridge", () => {
 		const tempDir = TempDir.createSync("@omp-eval-judge-batch-bad-image-");
 		try {
 			const brokenPath = path.join(tempDir.path(), "broken.png");
-			await Bun.write(brokenPath, "not an image");
+			await bun.write(brokenPath, "not an image");
 			const completions: Array<{ prompt: string; images: unknown[] }> = [];
-			const complete = vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context, options) => {
+			const complete = vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context, options) => {
 				const user = context.messages.find(message => message.role === "user");
 				const content = user?.content;
 				completions.push({
@@ -526,7 +527,7 @@ describe("judge_batch bridge", () => {
 	it("retries an image-backed item once and preserves its prepared image for the answer", async () => {
 		let attempts = 0;
 		const imageAttempts: unknown[][] = [];
-		vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context) => {
+		vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context) => {
 			attempts++;
 			const user = context.messages.find(message => message.role === "user");
 			const content = user?.content;
@@ -622,7 +623,7 @@ describe("judgeBatch() JS runtime", () => {
 		const tempDir = TempDir.createSync("@omp-eval-judge-batch-js-");
 		try {
 			const completions: Array<{ prompt: string; images: unknown[] }> = [];
-			const complete = vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context, options) => {
+			const complete = vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context, options) => {
 				const user = context.messages.find(message => message.role === "user");
 				const content = user?.content;
 				completions.push({
@@ -676,15 +677,7 @@ describe("judgeBatch() JS runtime", () => {
 		}
 	});
 });
-async function runPythonJudgeBatchInSubprocess(tempDir: TempDir): Promise<PythonResult> {
-	const repoRoot = path.resolve(import.meta.dir, "../../..");
-	const scriptPath = path.join(tempDir.path(), "run-python-judge-batch.ts");
-	const resultPath = path.join(tempDir.path(), "python-judge-batch-result.json");
-	const aiPath = path.resolve(import.meta.dir, "../../../ai/src/index.ts");
-	const executorPath = path.resolve(import.meta.dir, "../../src/eval/py/executor.ts");
-	const settingsPath = path.resolve(import.meta.dir, "../../src/config/settings.ts");
-	const registryPath = path.resolve(import.meta.dir, "../../src/config/model-registry.ts");
-	const setupPath = path.resolve(import.meta.dir, "../helpers/agent-session-setup.ts");
+async function runPythonJudgeBatchInProcess(tempDir: TempDir): Promise<Pick<PythonResult, "exitCode" | "output">> {
 	const cellOne = [
 		"import json",
 		'Q = {"tests": {"type": "bool", "instructions": "Does the request mention tests?"}}',
@@ -712,75 +705,38 @@ async function runPythonJudgeBatchInSubprocess(tempDir: TempDir): Promise<Python
 		'print(json.dumps({"rest": rest, "status": again.status()["done"], "results": sorted(again.results())}))',
 		"again.close()",
 	].join("\n");
-	await Bun.write(
-		scriptPath,
-		`
-import { vi } from "bun:test";
-import * as ai from ${JSON.stringify(aiPath)};
-import type { ImageContent } from ${JSON.stringify(aiPath)};
-import { executePython } from ${JSON.stringify(executorPath)};
-import { Settings } from ${JSON.stringify(settingsPath)};
-import { ModelRegistry } from ${JSON.stringify(registryPath)};
-import { createInMemoryAuthStorage } from ${JSON.stringify(setupPath)};
-
-const SMOL = ${JSON.stringify(SMOL)};
-const VISION = { ...SMOL, input: ["text", "image"] };
-const settings = Settings.isolated({ "async.enabled": false, "task.isolation.enabled": false, modelRoles: { judge: "p/smol" } });
-const authStorage = createInMemoryAuthStorage();
-authStorage.keys.setRuntime("p", "test-key");
-const modelRegistry = new ModelRegistry(authStorage, "/nonexistent/judgment-batch-py-models.yml");
-vi.spyOn(modelRegistry, "getAvailable").mockReturnValue([VISION]);
-const observedImageBlocks: Array<{ prompt: string; images: ImageContent[] }> = [];
-vi.spyOn(ai, "completeSimple").mockImplementation(async (_model, context) => {
-	const user = context.messages.find(message => message.role === "user");
-	const prompt = (typeof user?.content === "string" ? user.content : JSON.stringify(user?.content)) ?? "";
-	const images = Array.isArray(user?.content)
-		? user.content.filter((block): block is ImageContent => block.type === "image")
-		: [];
-	if (images.length > 0) observedImageBlocks.push({ prompt, images });
-	return {
-		role: "assistant",
-		api: "openai-responses",
-		provider: "p",
-		model: "smol",
-		stopReason: "stop",
-		content: [{ type: "text", text: prompt.includes("tests") || prompt.includes("image-") ? "tests: yes" : "tests: no" }],
+	const { session } = makeSession({ vision: true, cwd: tempDir.path() });
+	const observedImageBlocks: Array<{ prompt: string; images: ImageContent[] }> = [];
+	// Runs in-process so the Vitest `vi` mock reaches the host bridge: a child
+	// runtime cannot install a spy without a worker state.
+	vi.spyOn(aiStream, "completeSimple").mockImplementation(async (_model, context) => {
+		const user = context.messages.find(message => message.role === "user");
+		const prompt = (typeof user?.content === "string" ? user.content : JSON.stringify(user?.content)) ?? "";
+		const images = Array.isArray(user?.content)
+			? user.content.filter((block): block is ImageContent => block.type === "image")
+			: [];
+		if (images.length > 0) observedImageBlocks.push({ prompt, images });
+		return reply(prompt.includes("tests") || prompt.includes("image-") ? "tests: yes" : "tests: no");
+	});
+	const options = {
+		cwd: tempDir.path(),
+		sessionId: "py-judge-batch",
+		sessionFile: path.join(tempDir.path(), "session.jsonl"),
+		toolSession: session,
 	};
-});
-const session = {
-	cwd: ${JSON.stringify(tempDir.path())},
-	hasUI: false,
-	getSessionFile: () => ${JSON.stringify(path.join(tempDir.path(), "session.jsonl"))},
-	getSessionSpawns: () => null,
-	settings,
-	modelRegistry,
-};
-const options = {
-	cwd: ${JSON.stringify(tempDir.path())},
-	sessionId: "py-judge-batch",
-	sessionFile: ${JSON.stringify(path.join(tempDir.path(), "session.jsonl"))},
-	toolSession: session,
-};
-const one = await executePython(${JSON.stringify(cellOne)}, options);
-const two = await executePython(${JSON.stringify(cellTwo)}, options);
-const imageReport = "\\n__IMAGE_BLOCKS__" + JSON.stringify(observedImageBlocks);
-await Bun.write(${JSON.stringify(resultPath)}, JSON.stringify({ exitCode: one.exitCode || two.exitCode, output: one.output + "\\n" + two.output + imageReport }));
-process.exit(0);
-`,
-	);
-	const child = await $`bun ${scriptPath}`.cwd(repoRoot).quiet().nothrow();
-	const stdout = child.stdout.toString();
-	const stderr = child.stderr.toString();
-	if (child.exitCode !== 0)
-		throw new Error(stderr || stdout || `Python judge_batch subprocess exited with ${child.exitCode}`);
-	return (await Bun.file(resultPath).json()) as PythonResult;
+	const one = await executePython(cellOne, options);
+	const two = await executePython(cellTwo, options);
+	return {
+		exitCode: one.exitCode || two.exitCode,
+		output: `${one.output}\n${two.output}\n__IMAGE_BLOCKS__${JSON.stringify(observedImageBlocks)}`,
+	};
 }
 
 describe("judge_batch() Python prelude", () => {
 	it("drains across cells and re-attaches by id", async () => {
 		const tempDir = TempDir.createSync("@omp-eval-judge-batch-py-");
 		try {
-			const result = await runPythonJudgeBatchInSubprocess(tempDir);
+			const result = await runPythonJudgeBatchInProcess(tempDir);
 			expect(result.exitCode).toBe(0);
 			const [one, two] = result.output
 				.trim()
@@ -821,6 +777,9 @@ describe("judge_batch() Python prelude", () => {
 				await expectUpscaledImage(capture?.images, original);
 			}
 		} finally {
+			// The live Python kernel keeps the temp cwd open; Windows refuses to
+			// remove it until the session shuts down.
+			await disposeAllKernelSessions();
 			tempDir.removeSync();
 		}
 	});

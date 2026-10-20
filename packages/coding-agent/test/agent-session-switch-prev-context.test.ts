@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -10,6 +10,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import type { BuildSessionContextOptions, SessionContext } from "@oh-my-pi/pi-coding-agent/session/session-context";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression for issue #3846: in-TUI `/resume` rebuilt the *previous*
@@ -240,7 +241,7 @@ describe("AgentSession.switchSession previous-context build", () => {
 		expect(sessionManager.getCwd()).toBe(sourceDir.path());
 		expect(sessionManager.getRecordedCwd()).toBe(targetDir.path());
 		await sessionManager.addWorkspaceDirectory(extraDir.path());
-		expect(await Bun.file(targetSessionFile!).text()).not.toContain(extraDir.path());
+		expect(await bun.file(targetSessionFile!).text()).not.toContain(extraDir.path());
 	});
 
 	it("fails closed when cwd rollback throws after changing it", async () => {

@@ -9,9 +9,10 @@
 #   & ([scriptblock]::Create((irm https://omp.sh/install.ps1))) -Binary -Ref v18.8.9
 #
 # -Ref takes any tag/commit/branch with -Source; binary installs take a release
-# tag (v<version>). Prebuilt binaries come from the build service
-# ($env:PI_BUILD_URL, default https://build.stencil.so) and are checked against
-# its sha256 before install.
+# tag (v<version>). Prebuilt distributions come from the build service
+# ($env:PI_BUILD_URL, default https://build.stencil.so): a Windows launcher and
+# the shared `cli.js` payload it runs on Node.js, each checked against its
+# sha256 before install.
 
 param(
     [switch]$Source,
@@ -52,14 +53,16 @@ $BuildTarget = switch ($RawArchitecture.ToUpperInvariant()) {
     "ARM64" { "windows-arm64" }
     default { throw "Unsupported Windows architecture: $RawArchitecture" }
 }
-$MinimumBunVersion = "1.3.14"
+$MinimumNodeVersion = "22.12.0"
+$PnpmVersion = "10.18.0"
 
 # PowerShell 5.1 raises a terminating NativeCommandError for any line a native
 # executable writes to stderr while $ErrorActionPreference is "Stop", regardless
-# of the process exit code. Tools like bun and git emit normal progress on
-# stderr, so run them with the preference relaxed to "Continue" and let callers
-# gate on $LASTEXITCODE. Global "Stop" stays in effect for the cmdlet-driven
-# operations (Invoke-WebRequest/Invoke-RestMethod) that depend on it.
+# of the process exit code. Tools like node, pnpm and git emit normal progress
+# on stderr, so run them with the preference relaxed to "Continue" and let
+# callers gate on $LASTEXITCODE. Global "Stop" stays in effect for the
+# cmdlet-driven operations (Invoke-WebRequest/Invoke-RestMethod) that depend on
+# it.
 function Invoke-Native {
     param([Parameter(Mandatory = $true)][scriptblock]$Command)
     $previous = $ErrorActionPreference
@@ -71,33 +74,33 @@ function Invoke-Native {
     }
 }
 
-function Test-BunInstalled {
+function Test-NodeInstalled {
     try {
-        $null = Get-Command bun -ErrorAction Stop
+        $null = Get-Command node -ErrorAction Stop
         return $true
     } catch {
         return $false
     }
 }
 
-function Get-BunVersion {
+function Get-NodeVersion {
     try {
-        $versionText = (bun --version 2>$null)
+        $versionText = (node --version 2>$null)
         if (-not $versionText) {
             return $null
         }
 
-        $clean = $versionText.Trim().Split("-")[0]
+        $clean = $versionText.Trim().TrimStart("v").Split("-")[0]
         return [version]$clean
     } catch {
         return $null
     }
 }
 
-function Test-BunVersion {
+function Test-NodeVersion {
     param([string]$MinimumVersion)
 
-    $currentVersion = Get-BunVersion
+    $currentVersion = Get-NodeVersion
     if (-not $currentVersion) {
         return $false
     }
@@ -105,13 +108,13 @@ function Test-BunVersion {
     return $currentVersion -ge [version]$MinimumVersion
 }
 
-function Assert-BunVersion {
+function Assert-NodeVersion {
     param([string]$MinimumVersion)
 
-    if (-not (Test-BunVersion $MinimumVersion)) {
-        $current = Get-BunVersion
+    if (-not (Test-NodeVersion $MinimumVersion)) {
+        $current = Get-NodeVersion
         $currentText = if ($current) { $current.ToString() } else { "unknown" }
-        throw "Bun $MinimumVersion or newer is required. Current version: $currentText. Upgrade Bun at https://bun.sh/docs/installation"
+        throw "Node.js $MinimumVersion or newer is required. Current version: $currentText. Upgrade Node.js at https://nodejs.org/en/download"
     }
 }
 
@@ -212,16 +215,82 @@ function Configure-BashShell {
     }
 }
 
-function Install-Bun {
-    Write-Host "Installing bun..."
-    Invoke-Native { irm bun.sh/install.ps1 | iex }
-    # Refresh PATH
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    Assert-BunVersion $MinimumBunVersion
+function Install-Node {
+    Write-Host "Installing Node.js..."
+    $nodeArch = if ($RawArchitecture.ToUpperInvariant() -eq "ARM64") { "arm64" } else { "x64" }
+    $baseUrl = "https://nodejs.org/dist/latest-v22.x"
+    try {
+        $sums = (Invoke-WebRequest -Uri "$baseUrl/SHASUMS256.txt" -UseBasicParsing -TimeoutSec 60).Content
+    } catch {
+        throw "Failed to download Node.js checksums from $baseUrl`: $_"
+    }
+
+    $archive = $null
+    $expected = $null
+    foreach ($line in ($sums -split "`n")) {
+        $parts = $line.Trim() -split '\s+'
+        if ($parts.Count -eq 2 -and $parts[1] -match "^node-v[0-9.]+-win-$nodeArch\.zip$") {
+            $expected = $parts[0]
+            $archive = $parts[1]
+            break
+        }
+    }
+    if (-not $archive -or $expected -notmatch '^[0-9a-f]{64}$') {
+        throw "Could not find a Node.js win-$nodeArch archive in $baseUrl/SHASUMS256.txt"
+    }
+
+    $nodeHome = if ($env:PI_NODE_HOME) { $env:PI_NODE_HOME } else { Join-Path $env:LOCALAPPDATA "omp\node" }
+    $tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) ("node-" + [System.Guid]::NewGuid().ToString("N") + ".zip")
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("node-" + [System.Guid]::NewGuid().ToString("N"))
+    try {
+        Write-Host "Downloading $archive..."
+        Invoke-WebRequest -Uri "$baseUrl/$archive" -OutFile $tmpZip -TimeoutSec 900
+        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $tmpZip).Hash.ToLowerInvariant()
+        if ($actual -ne $expected) {
+            throw "Checksum mismatch for ${archive}: expected $expected, got $actual"
+        }
+        Expand-Archive -LiteralPath $tmpZip -DestinationPath $tmpDir -Force
+        $extracted = Get-ChildItem -LiteralPath $tmpDir -Directory | Select-Object -First 1
+        if (-not $extracted) {
+            throw "Node.js archive did not contain an extracted directory"
+        }
+        Remove-Item -Recurse -Force -LiteralPath $nodeHome -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $nodeHome) | Out-Null
+        Move-Item -LiteralPath $extracted.FullName -Destination $nodeHome
+    } finally {
+        Remove-Item -Force -LiteralPath $tmpZip -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force -LiteralPath $tmpDir -ErrorAction SilentlyContinue
+    }
+
+    $env:Path = "$nodeHome;$env:Path"
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($userPath -notlike "*$nodeHome*") {
+        [Environment]::SetEnvironmentVariable("Path", "$userPath;$nodeHome", "User")
+    }
+    Assert-NodeVersion $MinimumNodeVersion
 }
 
-function Install-ViaBun {
-    Write-Host "Installing via bun..."
+function Install-Pnpm {
+    Write-Host "Installing pnpm..."
+    $installed = $false
+    if (Get-Command corepack -ErrorAction SilentlyContinue) {
+        Invoke-Native { corepack enable }
+        if ($LASTEXITCODE -eq 0) {
+            Invoke-Native { corepack prepare "pnpm@$PnpmVersion" --activate }
+            $installed = $LASTEXITCODE -eq 0
+        }
+    }
+    if (-not $installed -and (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Invoke-Native { npm install -g "pnpm@$PnpmVersion" }
+        $installed = $LASTEXITCODE -eq 0
+    }
+    if (-not $installed -or -not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+        throw "Failed to install pnpm $PnpmVersion (corepack or npm is required)"
+    }
+}
+
+function Install-ViaPnpm {
+    Write-Host "Installing via pnpm..."
     if ($Ref) {
         if (-not (Test-GitInstalled)) {
             throw "git is required for -Ref when installing from source"
@@ -264,22 +333,22 @@ function Install-ViaBun {
                 throw "Expected package at $packagePath"
             }
 
-            Invoke-Native { bun install -g $packagePath }
+            Invoke-Native { pnpm add -g $packagePath }
             if ($LASTEXITCODE -ne 0) {
-                throw "Failed to install from $packagePath via bun"
+                throw "Failed to install from $packagePath via pnpm"
             }
         } finally {
             Remove-Item -Recurse -Force $tmpRoot -ErrorAction SilentlyContinue
         }
     } else {
-        Invoke-Native { bun install -g $Package }
+        Invoke-Native { pnpm add -g $Package }
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to install $Package via bun"
+            throw "Failed to install $Package via pnpm"
         }
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp via bun" -ForegroundColor Green
+    Write-Host "[OK] Installed omp via pnpm" -ForegroundColor Green
 
     Configure-BashShell
 
@@ -305,30 +374,51 @@ function Install-Binary {
     }
 
     $Version = $Answer.build.version
+    $BuildId = "$($Answer.build.id)"
     $BinaryName = $Answer.file.name
     $ExpectedSha256 = "$($Answer.file.sha256)".ToLowerInvariant()
+    $CliFile = @($Answer.build.files) | Where-Object { $_.name -eq "cli.js" } | Select-Object -First 1
+    $CliSha256 = if ($CliFile) { "$($CliFile.sha256)".ToLowerInvariant() } else { "" }
     $DownloadUrl = $Answer.download
-    if (-not $Version -or -not $BinaryName -or -not $DownloadUrl -or $ExpectedSha256 -notmatch '^[0-9a-f]{64}$') {
+    if (-not $Version -or -not $BuildId -or -not $BinaryName -or -not $DownloadUrl -or
+        $ExpectedSha256 -notmatch '^[0-9a-f]{64}$' -or $CliSha256 -notmatch '^[0-9a-f]{64}$') {
         throw "Unexpected answer from $ApiUrl"
     }
     Write-Host "Using version: $Version"
 
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
-    # Download next to the destination and move it into place only once the
-    # checksum matches, so a bad download never replaces a working omp.
+    # Download next to the destinations and move them into place only once the
+    # checksums match, so a bad download never replaces a working omp.
     Write-Host "Downloading $BinaryName..."
-    $OutPath = Join-Path $InstallDir "omp.exe"
-    $DownloadPath = Join-Path $InstallDir ".omp.download.exe"
+    $OutPath = Join-Path $InstallDir "omp.cmd"
+    $CliPath = Join-Path $InstallDir "cli.js"
+    $DownloadPath = Join-Path $InstallDir ".omp.download.cmd"
+    $CliDownloadPath = Join-Path $InstallDir ".cli.download.js"
+    $CliUrl = "$BuildUrl/d/omp/$([uri]::EscapeDataString($BuildId))/cli.js"
     try {
         Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath -TimeoutSec 900
         $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $DownloadPath).Hash.ToLowerInvariant()
         if ($ActualSha256 -ne $ExpectedSha256) {
             throw "Checksum mismatch for ${BinaryName}: expected $ExpectedSha256, got $ActualSha256"
         }
+        Write-Host "Downloading cli.js..."
+        Invoke-WebRequest -Uri $CliUrl -OutFile $CliDownloadPath -TimeoutSec 900
+        $CliActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CliDownloadPath).Hash.ToLowerInvariant()
+        if ($CliActualSha256 -ne $CliSha256) {
+            throw "Checksum mismatch for cli.js: expected $CliSha256, got $CliActualSha256"
+        }
         Move-Item -Force -LiteralPath $DownloadPath -Destination $OutPath
+        Move-Item -Force -LiteralPath $CliDownloadPath -Destination $CliPath
     } finally {
         Remove-Item -Force -LiteralPath $DownloadPath -ErrorAction SilentlyContinue
+        Remove-Item -Force -LiteralPath $CliDownloadPath -ErrorAction SilentlyContinue
+    }
+
+    # The launcher runs cli.js on Node.js; install a usable runtime when the
+    # host has none (or one older than the CLI supports).
+    if (-not (Test-NodeInstalled) -or -not (Test-NodeVersion $MinimumNodeVersion)) {
+        Install-Node
     }
 
     Write-Host ""
@@ -357,18 +447,20 @@ if ($Ref -and -not $Source -and -not $Binary) {
 }
 
 if ($Source) {
-    if (-not (Test-BunInstalled)) {
-        Install-Bun
+    if (-not (Test-NodeInstalled)) {
+        Install-Node
     }
-    Assert-BunVersion $MinimumBunVersion
-    Install-ViaBun
+    Assert-NodeVersion $MinimumNodeVersion
+    Install-Pnpm
+    Install-ViaPnpm
 } elseif ($Binary) {
     Install-Binary
 } else {
-    # Default: use bun if available, otherwise binary
-    if (Test-BunInstalled) {
-        Assert-BunVersion $MinimumBunVersion
-        Install-ViaBun
+    # Default: use the registry when a usable Node.js is available, otherwise
+    # fetch the prebuilt launcher and cli.js.
+    if ((Test-NodeInstalled) -and (Test-NodeVersion $MinimumNodeVersion)) {
+        Install-Pnpm
+        Install-ViaPnpm
     } else {
         Install-Binary
     }

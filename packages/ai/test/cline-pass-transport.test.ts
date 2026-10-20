@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model, Tool, Usage } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 /**
  * Mirrors what `fetchClinePassModels` produces for a free-bucket entry with a
@@ -134,7 +135,7 @@ async function capturePayload(options: {
 			headers = Object.fromEntries(new Headers(init?.headers).entries());
 			return completionResponse(model.id, options.rawUsage);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	const result = await streamOpenAICompletions(model, options.context ?? context, {
 		apiKey: "test-key",
@@ -208,7 +209,7 @@ describe("ClinePass OpenAI transport", () => {
 
 	it("replays reasoning on free-tier DeepSeek tool continuations with the gateway field", async () => {
 		const firstFetch: FetchImpl = Object.assign(async () => toolCompletionResponse(freeTierDeepseek.id), {
-			preconnect: fetch.preconnect,
+			preconnect: preconnectOf(fetch),
 		});
 		const assistant = await streamOpenAICompletions(freeTierDeepseek, context, {
 			apiKey: "test-key",
@@ -295,7 +296,7 @@ describe("ClinePass OpenAI transport", () => {
 	it("serializes a Qwen tool continuation without requiring reasoning replay", async () => {
 		const model = getBundledModel<"openai-completions">("cline-pass", "qwen3.7-max") as Model<"openai-completions">;
 		const firstFetch: FetchImpl = Object.assign(async () => toolCompletionResponse(model.id), {
-			preconnect: fetch.preconnect,
+			preconnect: preconnectOf(fetch),
 		});
 		const assistant = await streamOpenAICompletions(model, context, {
 			apiKey: "test-key",

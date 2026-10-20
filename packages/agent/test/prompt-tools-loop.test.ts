@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { agentLoop } from "@oh-my-pi/pi-agent-core/agent-loop";
 import type { AgentContext, AgentLoopConfig, AgentMessage, AgentTool } from "@oh-my-pi/pi-agent-core/types";
 import type { AssistantMessage, Context, Message, TextContent, ToolResultMessage } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { createUserMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function identityConverter(messages: AgentMessage[]): Message[] {
 	return messages.filter(m => m.role === "user" || m.role === "assistant" || m.role === "toolResult") as Message[];
@@ -220,8 +221,8 @@ describe("agentLoop with owned in-band tool calls", () => {
 	});
 
 	it("uses PI_DIALECT=minimax when config.dialect is unset", async () => {
-		const before = Bun.env.PI_DIALECT;
-		Bun.env.PI_DIALECT = "minimax";
+		const before = bun.env.PI_DIALECT;
+		bun.env.PI_DIALECT = "minimax";
 		try {
 			const echoArgs: Array<{ msg: string }> = [];
 			const toolSchema = type({ msg: "string" });
@@ -263,8 +264,8 @@ describe("agentLoop with owned in-band tool calls", () => {
 			expect(captured[0].tools).toBeUndefined();
 			expect((captured[0].systemPrompt ?? []).join("\n")).toContain("<minimax:tool_call>");
 		} finally {
-			if (before === undefined) delete Bun.env.PI_DIALECT;
-			else Bun.env.PI_DIALECT = before;
+			if (before === undefined) delete bun.env.PI_DIALECT;
+			else bun.env.PI_DIALECT = before;
 		}
 	});
 });

@@ -12,10 +12,13 @@
  *
  * Example: bun scripts/release.ts minor
  */
-import { $, Glob } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 import { compareVersions } from "../packages/utils/src/version.ts";
 import { runChangelogFixer } from "./fix-changelogs";
 import { generateNixBunDeps, resolveNixBunDepsGenerator } from "./gen-nix-bun";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const changelogGlob = new Glob("packages/*/CHANGELOG.md");
 const packageJsonGlob = new Glob("packages/*/package.json");
@@ -80,7 +83,7 @@ async function watchCI(): Promise<boolean> {
 
 		if (runs.length === 0) {
 			console.log("  Waiting for CI to start...");
-			await Bun.sleep(3000);
+			await bun.sleep(3000);
 			continue;
 		}
 
@@ -163,7 +166,7 @@ async function watchCI(): Promise<boolean> {
 			return true;
 		}
 
-		await Bun.sleep(5000);
+		await bun.sleep(5000);
 	}
 }
 
@@ -183,7 +186,7 @@ async function updateChangelogsForRelease(version: string): Promise<void> {
 	const date = new Date().toISOString().split("T")[0];
 
 	for await (const changelog of changelogGlob.scan(".")) {
-		let content = await Bun.file(changelog).text();
+		let content = await bun.file(changelog).text();
 
 		if (!content.includes("## [Unreleased]")) {
 			console.log(`  Skipping ${changelog}: no [Unreleased] section`);
@@ -199,7 +202,7 @@ async function updateChangelogsForRelease(version: string): Promise<void> {
 		// Clean up any existing empty version entries
 		content = removeEmptyVersionEntries(content);
 
-		await Bun.write(changelog, content);
+		await bun.write(changelog, content);
 		console.log(`  Updated ${changelog}`);
 	}
 }
@@ -306,7 +309,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 
 	// Step 4 refreshes MODULE.bazel.lock through bazel; fail before touching
 	// any file rather than half-way through the version rewrite.
-	const bazel = Bun.which("bazelisk") ?? Bun.which("bazel");
+	const bazel = bun.which("bazelisk") ?? bun.which("bazel");
 	if (!bazel) {
 		console.error("Error: bazelisk (or bazel) not on PATH; needed to refresh MODULE.bazel.lock.");
 		process.exit(1);
@@ -336,7 +339,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 	// Filter out private packages
 	const publicPkgPaths: string[] = [];
 	for (const pkgPath of pkgJsonPaths) {
-		const pkgJson = await Bun.file(pkgPath).json();
+		const pkgJson = await bun.file(pkgPath).json();
 		if (pkgJson.private) {
 			console.log(`  Skipping ${pkgJson.name} (private)`);
 			continue;
@@ -349,16 +352,16 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 	// Verify
 	console.log("  Verifying versions:");
 	for (const pkgPath of publicPkgPaths) {
-		const pkgJson = await Bun.file(pkgPath).json();
+		const pkgJson = await bun.file(pkgPath).json();
 		console.log(`    ${pkgJson.name}: ${pkgJson.version}`);
 	}
 	console.log();
 
 	// Update @oh-my-pi/* catalog entries in root package.json
 	console.log("Updating root catalog versions...");
-	let rootPkgRaw = await Bun.file("package.json").text();
+	let rootPkgRaw = await bun.file("package.json").text();
 	rootPkgRaw = rootPkgRaw.replace(/("@oh-my-pi\/[^"]+":\s*)"[^"]+"/g, `$1"${version}"`);
-	await Bun.write("package.json", rootPkgRaw);
+	await bun.write("package.json", rootPkgRaw);
 	console.log("  Updated root catalog @oh-my-pi/* entries");
 
 	// 3. Update Rust workspace version
@@ -366,7 +369,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 	await $`sd '^version = "[^"]+"' ${`version = "${version}"`} Cargo.toml`;
 
 	// Verify
-	const cargoToml = await Bun.file("Cargo.toml").text();
+	const cargoToml = await bun.file("Cargo.toml").text();
 	const versionMatch = cargoToml.match(/^\[workspace\.package\][\s\S]*?^version = "([^"]+)"/m);
 	if (versionMatch) {
 		console.log(`  workspace: ${versionMatch[1]}`);
@@ -374,7 +377,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 
 	// List crates using workspace version
 	for await (const cargoPath of cargoTomlGlob.scan(".")) {
-		const content = await Bun.file(cargoPath).text();
+		const content = await bun.file(cargoPath).text();
 		if (content.includes("version.workspace = true")) {
 			const nameMatch = content.match(/^name = "([^"]+)"/m);
 			if (nameMatch) {
@@ -491,7 +494,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 // Main
 // =============================================================================
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const arg = process.argv[2];
 	const usage = () => {
 		console.error("Usage:");

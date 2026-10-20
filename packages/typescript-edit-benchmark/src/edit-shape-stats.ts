@@ -34,6 +34,7 @@ import * as path from "node:path";
 import { parseArgs } from "node:util";
 import { computeDefaultSessionDir } from "@oh-my-pi/pi-coding-agent/session/session-paths";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EDIT_TOOL_NAMES: Record<string, true> = { edit: true, apply_patch: true };
 const SIZE_BUCKETS: Array<[string, number]> = [
@@ -59,7 +60,7 @@ function parseArguments(): Args {
 	const { values } = parseArgs({
 		options: {
 			"sessions-dir": { type: "string" },
-			repo: { type: "string", default: path.resolve(import.meta.dir, "../../..") },
+			repo: { type: "string", default: path.resolve(import.meta.dirname, "../../..") },
 			"max-sessions": { type: "string", default: "2000" },
 		},
 	});
@@ -184,7 +185,7 @@ function extractCallPath(args: Record<string, unknown>): string | null {
 /** Extract change runs for every successful edit in one session JSONL file. */
 async function collectSessionEdits(sessionFile: string): Promise<SessionScan> {
 	const scan: SessionScan = { edits: [], requestFiles: [], formats: new Map(), skipped: 0 };
-	const stream = Bun.file(sessionFile).stream();
+	const stream = bun.file(sessionFile).stream();
 	const decoder = new TextDecoder();
 	let buffer = "";
 	const callPaths = new Map<string, string>();
@@ -245,11 +246,11 @@ async function collectSessionEdits(sessionFile: string): Promise<SessionScan> {
 
 	for await (const chunk of stream) {
 		buffer += decoder.decode(chunk, { stream: true });
-		const parsed = Bun.JSONL.parseChunk(buffer);
+		const parsed = bun.JSONL.parseChunk(buffer);
 		for (const value of parsed.values) handleRecord(value);
 		buffer = buffer.slice(parsed.read);
 	}
-	for (const value of Bun.JSONL.parse(`${buffer}\n`)) handleRecord(value);
+	for (const value of bun.JSONL.parse(`${buffer}\n`)) handleRecord(value);
 	flushRequest();
 	return scan;
 }

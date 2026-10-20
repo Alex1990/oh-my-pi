@@ -9,6 +9,7 @@ import { raceWithSignal } from "../../utils/abort";
 import { extractGoogleValidationUrl, formatGoogleValidationRequiredMessage } from "../../utils/google-validation";
 import type { AfterExchangeHook } from "../hooks/types";
 import { oauthFetch, throwIfLoginCancelled } from "./google-oauth-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLOUD_CODE_ASSIST_ENDPOINT = "https://daily-cloudcode-pa.googleapis.com";
 const LOAD_CODE_ASSIST_URL = `${CLOUD_CODE_ASSIST_ENDPOINT}/v1internal:loadCodeAssist`;
@@ -233,7 +234,7 @@ async function onboardUser(context: CloudCodeContext): Promise<void> {
 		}
 
 		await raceWithSignal(
-			Bun.sleep(Math.min(ONBOARD_POLL_INTERVAL_MS, remainingOnboardTime(deadline))),
+			bun.sleep(Math.min(ONBOARD_POLL_INTERVAL_MS, remainingOnboardTime(deadline))),
 			context.signal,
 		);
 		throwIfLoginCancelled(context.signal);

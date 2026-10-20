@@ -1,3 +1,4 @@
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Micro-benchmark harness shared by the tui bench scripts.
  *
@@ -7,11 +8,11 @@
  */
 export function makeBench(iterations: number): (name: string, fn: () => void) => number {
 	return function bench(name: string, fn: () => void): number {
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		for (let i = 0; i < iterations; i++) {
 			fn();
 		}
-		const elapsed = (Bun.nanoseconds() - start) / 1e6;
+		const elapsed = (bun.nanoseconds() - start) / 1e6;
 		const perOp = (elapsed / iterations).toFixed(6);
 		console.log(`${name}: ${elapsed.toFixed(2)}ms total (${perOp}ms/op)`);
 		return elapsed;

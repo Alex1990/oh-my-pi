@@ -4,6 +4,7 @@ import { COMPOSER_DEFAULTS, Composer } from "@oh-my-pi/pi-tui/prompt/composer";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { CURSOR_MARKER } from "@oh-my-pi/pi-tui/tui";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class RecordingTerminal extends ProcessTerminal {
 	resets = 0;
@@ -39,5 +40,5 @@ composer.ui.addPaintListener(paint => {
 	if (!paint.alt) terminal.setTitle(JSON.stringify({ height: paint.rows, resets: terminal.resets }));
 });
 composer.start({ playWelcomeIntro: false });
-await Bun.sleep(60000);
+await bun.sleep(60000);
 composer.ui.stop();

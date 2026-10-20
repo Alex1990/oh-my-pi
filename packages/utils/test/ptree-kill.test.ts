@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Process } from "@oh-my-pi/pi-natives";
 import { spawn } from "@oh-my-pi/pi-utils/ptree";
 

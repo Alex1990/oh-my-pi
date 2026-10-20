@@ -4,6 +4,7 @@
  * Run: bun packages/coding-agent/bench/count-lines.bench.ts
  */
 import { countTextLines } from "../src/tools/read-format";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const text = `${"x".repeat(100)}\n`.repeat(40 * 1024).slice(0, 4 * 1024 * 1024);
 
@@ -21,13 +22,13 @@ const actual = countTextLines(text);
 if (expected !== actual) throw new Error(`mismatch: legacy=${expected} new=${actual}`);
 
 const ITERS = 20;
-let start = Bun.nanoseconds();
+let start = bun.nanoseconds();
 for (let i = 0; i < ITERS; i++) legacyCount(text);
-const legacyMs = (Bun.nanoseconds() - start) / 1e6;
+const legacyMs = (bun.nanoseconds() - start) / 1e6;
 
-start = Bun.nanoseconds();
+start = bun.nanoseconds();
 for (let i = 0; i < ITERS; i++) countTextLines(text);
-const indexOfMs = (Bun.nanoseconds() - start) / 1e6;
+const indexOfMs = (bun.nanoseconds() - start) / 1e6;
 
 console.log(`text: ${(text.length / 1024 / 1024).toFixed(2)} MiB, ${expected} lines, ${ITERS} iterations`);
 console.log(`charCodeAt loop: ${legacyMs.toFixed(1)}ms total (${(legacyMs / ITERS).toFixed(2)}ms/op)`);

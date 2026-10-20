@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { LoginCancelledError } from "@oh-my-pi/pi-ai/error";
 import * as launchModule from "@oh-my-pi/pi-coding-agent/tools/browser/launch";
 import { captureBrowserSession } from "@oh-my-pi/pi-coding-agent/utils/browser-session";
 import type { Browser, LaunchOptions, PuppeteerNode } from "puppeteer-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const request = {
 	url: "https://www.perplexity.ai/auth/signin",
@@ -44,7 +45,7 @@ function browserFixture() {
 		const dir = options.args?.find(arg => arg.startsWith("--user-data-dir="))?.slice("--user-data-dir=".length);
 		if (!dir) throw new Error("An owned browser profile is required");
 		profiles.push(dir);
-		await Bun.write(path.join(dir, "test-browser-state"), "temporary state");
+		await bun.write(path.join(dir, "test-browser-state"), "temporary state");
 		return browser as unknown as Browser;
 	};
 	const launch = vi.fn(launchBrowser);

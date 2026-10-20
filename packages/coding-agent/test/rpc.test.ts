@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import type { BashExecutionMessage } from "@oh-my-pi/pi-coding-agent/session/mes
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { rejectionOf } from "./helpers/rejection";
 import { e2eApiKey } from "./utilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type MessageEndEvent = Extract<AgentEvent, { type: "message_end" }>;
 
@@ -36,8 +37,8 @@ describe.skipIf(!e2eApiKey("ANTHROPIC_API_KEY"))("RPC mode", () => {
 	beforeEach(() => {
 		sessionDir = path.join(os.tmpdir(), `omp-rpc-test-${Snowflake.next()}`);
 		client = new RpcClient({
-			cliPath: path.join(import.meta.dir, "..", "dist", "cli.js"),
-			cwd: path.join(import.meta.dir, ".."),
+			cliPath: path.join(import.meta.dirname, "..", "dist", "cli.js"),
+			cwd: path.join(import.meta.dirname, ".."),
 			env: { PI_CODING_AGENT_DIR: sessionDir },
 			provider: "anthropic",
 			model: "claude-sonnet-4-5",
@@ -104,7 +105,7 @@ describe.skipIf(!e2eApiKey("ANTHROPIC_API_KEY"))("RPC mode", () => {
 		const sessionFiles = fs.readdirSync(cwdSessionDir).filter(f => f.endsWith(".jsonl"));
 		expect(sessionFiles.length).toBe(1);
 
-		const sessionContent = await Bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
+		const sessionContent = await bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
 		const entries = parseSessionEntries(sessionContent);
 
 		// First entry should be session header
@@ -137,7 +138,7 @@ describe.skipIf(!e2eApiKey("ANTHROPIC_API_KEY"))("RPC mode", () => {
 		const sessionDirs = fs.readdirSync(sessionsPath);
 		const cwdSessionDir = path.join(sessionsPath, sessionDirs[0]);
 		const sessionFiles = fs.readdirSync(cwdSessionDir).filter(f => f.endsWith(".jsonl"));
-		const sessionContent = await Bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
+		const sessionContent = await bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
 		const entries = parseSessionEntries(sessionContent);
 
 		const compactionEntries = entries.filter(isCompactionEntry);
@@ -171,7 +172,7 @@ describe.skipIf(!e2eApiKey("ANTHROPIC_API_KEY"))("RPC mode", () => {
 		const sessionDirs = fs.readdirSync(sessionsPath);
 		const cwdSessionDir = path.join(sessionsPath, sessionDirs[0]);
 		const sessionFiles = fs.readdirSync(cwdSessionDir).filter(f => f.endsWith(".jsonl"));
-		const sessionContent = await Bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
+		const sessionContent = await bun.file(path.join(cwdSessionDir, sessionFiles[0])).text();
 		const entries = parseSessionEntries(sessionContent);
 
 		const bashMessages = entries.filter(
@@ -320,10 +321,10 @@ describe("RPC fast mode with unsupported Fireworks model and priority tier", () 
 
 	beforeEach(async () => {
 		sessionDir = path.join(os.tmpdir(), `omp-rpc-fast-mode-test-${Snowflake.next()}`);
-		await Bun.write(path.join(sessionDir, "config.yml"), ["providers:", "  fireworksTier: priority", ""].join("\n"));
+		await bun.write(path.join(sessionDir, "config.yml"), ["providers:", "  fireworksTier: priority", ""].join("\n"));
 		client = new RpcClient({
-			cliPath: path.join(import.meta.dir, "..", "src", "cli.ts"),
-			cwd: path.join(import.meta.dir, ".."),
+			cliPath: path.join(import.meta.dirname, "..", "src", "cli.ts"),
+			cwd: path.join(import.meta.dirname, ".."),
 			env: {
 				PI_CODING_AGENT_DIR: sessionDir,
 				FIREWORKS_API_KEY: "test-fireworks-key",

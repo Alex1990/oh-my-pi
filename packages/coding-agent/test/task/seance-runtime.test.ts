@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
@@ -22,6 +22,7 @@ import type { PreparedSeanceSession } from "@oh-my-pi/pi-coding-agent/task/seanc
 import { seanceIsolationOptions } from "@oh-my-pi/pi-coding-agent/task/seance-policy";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { getAgentDir, prompt, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function preparedSourceSession(sourceFile: string, sourceSessionId: string): PreparedSeanceSession {
 	return {
@@ -76,7 +77,7 @@ async function writeSourceSession(file: string, cwd: string, additionalDirectori
 	const text = [sourceHeader("source-session", cwd, additionalDirectories), unrestrictedSourceInit(), sourceMessage()]
 		.map(entry => JSON.stringify(entry))
 		.join("\n");
-	await Bun.write(file, `${text}\n`);
+	await bun.write(file, `${text}\n`);
 	return text + "\n";
 }
 
@@ -140,7 +141,7 @@ describe("seance startup contracts", () => {
 				path.join(cwd, markerNames[0]),
 				path.join(sourceRoot, markerNames[1]),
 				path.join(settingsRoot, markerNames[2]),
-			].map(file => Bun.write(file, "must not be discovered")),
+			].map(file => bun.write(file, "must not be discovered")),
 		);
 		const sourceFile = path.join(tempDir.path(), "source.jsonl");
 		const sourceText = await writeSourceSession(sourceFile, cwd, [sourceRoot]);
@@ -165,7 +166,7 @@ describe("seance startup contracts", () => {
 			"  });",
 			"};",
 		].join("\n");
-		await Bun.write(extensionPath, extensionSource);
+		await bun.write(extensionPath, extensionSource);
 		let session: AgentSession | undefined;
 		try {
 			const parentCapabilities = { enableIrc: true, enableMCP: true };
@@ -194,7 +195,7 @@ describe("seance startup contracts", () => {
 			expect(await fs.readFile(sourceFile, "utf8")).toBe(sourceText);
 
 			expect(created.session.getActiveToolNames().toSorted()).toEqual(["glob", "grep", "read", "yield"]);
-			expect(await Bun.file(extensionMarker).exists()).toBe(false);
+			expect(await bun.file(extensionMarker).exists()).toBe(false);
 		} finally {
 			try {
 				if (session) await session.dispose();
@@ -274,7 +275,7 @@ describe("seance startup contracts", () => {
 
 			const forkFile = path.join(artifactsDir, `${id}.jsonl`);
 			expect(reachedStartedBoundary).toBe(true);
-			expect(await Bun.file(forkFile).exists()).toBe(false);
+			expect(await bun.file(forkFile).exists()).toBe(false);
 			expect(extensionLoaded).toBe(false);
 			expect(extensionRootsRead).toBe(false);
 			expect(await fs.readFile(sourceFile, "utf8")).toBe(sourceText);
@@ -297,7 +298,7 @@ describe("seance startup contracts", () => {
 				path.join(cwd, markerNames[0]),
 				path.join(sourceRoot, markerNames[1]),
 				path.join(settingsRoot, markerNames[2]),
-			].map(file => Bun.write(file, "must not be discovered")),
+			].map(file => bun.write(file, "must not be discovered")),
 		);
 		const sourceFile = path.join(tempDir.path(), "source.jsonl");
 		const sourceText = await writeSourceSession(sourceFile, cwd, [sourceRoot]);

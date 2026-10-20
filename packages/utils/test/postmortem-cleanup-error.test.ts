@@ -1,11 +1,18 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { postmortem } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const postmortemModuleUrl = pathToFileURL(join(import.meta.dir, "../src/index.ts")).href;
+const postmortemModuleUrl = pathToFileURL(join(import.meta.dirname, "../src/index.ts")).href;
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(join(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 async function runPostmortemProbe(
 	source: string,
@@ -13,8 +20,8 @@ async function runPostmortemProbe(
 	const root = await mkdtemp(join(tmpdir(), "omp-postmortem-probe-"));
 	const probePath = join(root, "probe.ts");
 	try {
-		await Bun.write(probePath, source);
-		const proc = Bun.spawn([process.execPath, probePath], {
+		await bun.write(probePath, source);
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 			cwd: process.cwd(),
 			stdout: "pipe",
 			stderr: "pipe",
@@ -23,7 +30,7 @@ async function runPostmortemProbe(
 		// Process-level regressions can hang the child; the watchdog bounds the fixture without slowing
 		// green runs (the race resolves on exit). Generous deadline: a cold bun spawn transpiling the
 		// pi-utils module graph can take multiple seconds on a loaded parallel CI runner (observed >2s).
-		const watchdog = Bun.sleep(15_000).then(() => {
+		const watchdog = bun.sleep(15_000).then(() => {
 			proc.kill();
 			return -999;
 		});
@@ -183,12 +190,11 @@ describe("postmortem expected cleanup errors", () => {
 
 	it("exits after an uncaught exception when terminal stderr is revoked", async () => {
 		const result = await runPostmortemProbe(`
-			import { spyOn } from "bun:test";
 			import "${postmortemModuleUrl}";
 
-			spyOn(process.stderr, "write").mockImplementation(() => {
+			process.stderr.write = () => {
 				throw Object.assign(new Error("terminal revoked"), { code: "EIO" });
-			});
+			};
 			queueMicrotask(() => {
 				throw new Error("fatal after disconnect");
 			});
@@ -201,10 +207,35 @@ describe("postmortem expected cleanup errors", () => {
 
 	it("releases manual cleanup at the deadline even when a callback never settles", async () => {
 		const result = await runPostmortemProbe(`
-			import { vi } from "bun:test";
 			import { postmortem } from "${postmortemModuleUrl}";
 
-			vi.useFakeTimers();
+			// Minimal fake clock: the probe runs outside Vitest, which owns timers there.
+			let now = 0;
+			let sequence = 0;
+			const timers = [];
+			const realSetTimeout = globalThis.setTimeout;
+			const realClearTimeout = globalThis.clearTimeout;
+			globalThis.setTimeout = (callback, delay = 0, ...args) => {
+				const timer = { callback, args, at: now + Number(delay), sequence: sequence++ };
+				timers.push(timer);
+				return timer;
+			};
+			globalThis.clearTimeout = timer => {
+				const index = timers.indexOf(timer);
+				if (index !== -1) timers.splice(index, 1);
+			};
+			const advanceTimersByTime = ms => {
+				now += ms;
+				for (;;) {
+					const due = timers.filter(timer => timer.at <= now).sort((a, b) => a.at - b.at || a.sequence - b.sequence);
+					if (due.length === 0) return;
+					const timer = due[0];
+					timers.splice(timers.indexOf(timer), 1);
+					timer.callback(...timer.args);
+				}
+			};
+			void realSetTimeout;
+			void realClearTimeout;
 			postmortem.register("never-settles", () => Promise.withResolvers<void>().promise);
 
 			let settled = false;
@@ -217,14 +248,14 @@ describe("postmortem expected cleanup errors", () => {
 				process.exit(2);
 			}
 
-			vi.advanceTimersByTime(9999);
+			advanceTimersByTime(9999);
 			await Promise.resolve();
 			if (settled) {
 				console.error("cleanup settled before the full deadline");
 				process.exit(3);
 			}
 
-			vi.advanceTimersByTime(1);
+			advanceTimersByTime(1);
 			await cleanup;
 			if (!settled) {
 				console.error("cleanup stayed pending after the deadline");

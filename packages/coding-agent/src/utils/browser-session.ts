@@ -14,6 +14,7 @@ import {
 	removeUserDataDir,
 	stealthIgnoreDefaultArgs,
 } from "../tools/browser/launch";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LOGIN_TIMEOUT_MS = 5 * 60_000;
 
@@ -71,7 +72,7 @@ export async function captureBrowserSession(
 				const session = cookies.find(cookie => cookie.name === name && cookie.value);
 				if (session) return session.value;
 			}
-			await untilAborted(waiting, () => Bun.sleep(250));
+			await untilAborted(waiting, () => bun.sleep(250));
 		}
 	} catch (error) {
 		if (signal?.aborted) throw new LoginCancelledError();

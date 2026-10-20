@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -18,6 +18,7 @@ import type { BlobPutOptions, BlobPutResult } from "@oh-my-pi/pi-coding-agent/se
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ENTER = "\r";
 const FOLLOW_UP = "\x1b[13;5u";
@@ -35,7 +36,7 @@ async function createHarness(factory: ExtensionFactory) {
 	const blobs = new Map<string, Buffer>();
 	vi.spyOn(sessionManager, "putBlob").mockImplementation(
 		async (data: Buffer, options?: BlobPutOptions): Promise<BlobPutResult> => {
-			const hash = new Bun.CryptoHasher("sha256").update(data).digest("hex");
+			const hash = new bun.CryptoHasher("sha256").update(data).digest("hex");
 			const displayPath = `blob:${hash}.${options?.extension ?? "bin"}`;
 			blobs.set(displayPath, data);
 			return { hash, path: `blob:${hash}`, displayPath, ref: `blob:sha256:${hash}` };
@@ -404,7 +405,7 @@ describe("interactive native input ingress", () => {
 			});
 		});
 		const filePath = temp.join("SKILL.md");
-		await Bun.write(filePath, "---\nname: review\ndescription: Draft ownership probe\n---\nReview the request.\n");
+		await bun.write(filePath, "---\nname: review\ndescription: Draft ownership probe\n---\nReview the request.\n");
 		h.ctx.skillCommands.set("skill:review", {
 			name: "review",
 			description: "",

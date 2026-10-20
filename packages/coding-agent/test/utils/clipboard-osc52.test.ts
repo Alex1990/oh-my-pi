@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Buffer } from "node:buffer";
+import { fileURLToPath } from "node:url";
 import { copyToClipboard } from "@oh-my-pi/pi-coding-agent/utils/clipboard";
 import * as natives from "@oh-my-pi/pi-natives/clipboard";
 import { type ActiveTerminalHarness, startActiveTerminal } from "../helpers/active-terminal";
+import { Worker, type WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
 
@@ -53,12 +55,20 @@ describe("copyToClipboard OSC 52 routing", () => {
 	// The computer tool copies from a Bun Worker, which has no route to the
 	// main thread's terminal; its OSC 52 would hit fd 1 around the pump.
 	it("skips OSC 52 in a worker thread and still makes the native copy", async () => {
-		const worker = new Worker(new URL("../fixtures/clipboard-worker-copy.ts", import.meta.url).href, {
-			type: "module",
+		// Node's worker needs TypeScript stripping and the repo's ESM hooks
+		// (extensionless specifiers, `with { type: "text" }`) that Bun applied.
+		const worker = new Worker(new URL("../fixtures/clipboard-worker-copy.ts", import.meta.url), {
+			execArgv: [
+				"--experimental-transform-types",
+				"--import",
+				new URL("../../../../scripts/node-runtime-loader.mjs", import.meta.url).href,
+			],
 		});
 		const report = Promise.withResolvers<{ stdout: string[]; nativeCopies: string[] }>();
-		worker.addEventListener("message", event => report.resolve(event.data));
-		worker.addEventListener("error", event => report.reject(event.error ?? new Error(event.message)));
+		worker.addEventListener("message", event => report.resolve((event as MessageEvent).data));
+		worker.addEventListener("error", event =>
+			report.reject((event as WorkerErrorEvent).error ?? new Error((event as WorkerErrorEvent).message)),
+		);
 		try {
 			const { stdout, nativeCopies } = await report.promise;
 			expect(stdout.join("")).not.toContain("\x1b]52;");

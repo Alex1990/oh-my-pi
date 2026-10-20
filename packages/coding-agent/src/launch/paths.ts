@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { getDaemonRuntimeDir, hasFsCode, isEacces, isEisdir, isEnoent } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Resolve the private runtime directory shared by omp processes in one project directory. */
 export { getDaemonRuntimeDir as daemonRuntimeDir };
@@ -44,13 +45,13 @@ export async function canonicalProjectDir(projectDir: string): Promise<string> {
  * can map a hash-keyed runtime dir back to its project.
  */
 export async function writeDaemonScopeMeta(runtimeDir: string, projectDir: string): Promise<void> {
-	await Bun.write(path.join(runtimeDir, SCOPE_FILE), JSON.stringify({ projectDir }));
+	await bun.write(path.join(runtimeDir, SCOPE_FILE), JSON.stringify({ projectDir }));
 }
 
 /** Read the project directory recorded for a runtime dir; undefined when absent or malformed. */
 export async function readDaemonScopeMeta(runtimeDir: string): Promise<string | undefined> {
 	try {
-		const raw: unknown = await Bun.file(path.join(runtimeDir, SCOPE_FILE)).json();
+		const raw: unknown = await bun.file(path.join(runtimeDir, SCOPE_FILE)).json();
 		if (typeof raw === "object" && raw !== null && "projectDir" in raw && typeof raw.projectDir === "string") {
 			return raw.projectDir;
 		}
@@ -75,10 +76,10 @@ export interface StoredDaemonRecord {
  * daemon snapshot; throws when a file is missing or malformed.
  */
 export async function readStoredDaemonRecord(dir: string): Promise<StoredDaemonRecord | undefined> {
-	const meta: unknown = await Bun.file(path.join(dir, DAEMON_META_FILE)).json();
+	const meta: unknown = await bun.file(path.join(dir, DAEMON_META_FILE)).json();
 	if (typeof meta !== "object" || meta === null || !("daemon" in meta)) return undefined;
 	if ("spec" in meta) return { meta, spec: meta.spec, legacyLayout: true };
-	const spec: unknown = await Bun.file(path.join(dir, DAEMON_SPEC_FILE)).json();
+	const spec: unknown = await bun.file(path.join(dir, DAEMON_SPEC_FILE)).json();
 	return { meta, spec, legacyLayout: false };
 }
 

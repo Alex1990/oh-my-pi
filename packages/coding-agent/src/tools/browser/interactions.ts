@@ -25,6 +25,7 @@ import {
 	type UploadSource,
 	type UploadStaging,
 } from "./upload-files";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Options accepted by coordinate-based mouse clicks. */
 export interface ClickAtOptions {
@@ -293,7 +294,7 @@ async function actionableClickPoint(
 	try {
 		while (true) {
 			throwIfAborted(signal);
-			await untilAborted(signal, () => Bun.sleep(16));
+			await untilAborted(signal, () => bun.sleep(16));
 			const current = await untilAborted(signal, () => handle.boundingBox());
 			const stable =
 				previous !== null &&
@@ -310,7 +311,7 @@ async function actionableClickPoint(
 			}
 			refusal = result.ok ? "still moving" : result.coveredBy ? `covered by ${result.coveredBy}` : result.reason;
 			previous = current;
-			await untilAborted(signal, () => Bun.sleep(34));
+			await untilAborted(signal, () => bun.sleep(34));
 		}
 	} catch (error) {
 		if (signal?.aborted && refusal !== undefined) throw new ClickRefusedError(refusal, { cause: signal.reason });
@@ -801,7 +802,7 @@ export async function clickQueryHandlerText(
 		try {
 			target = await resolveActionableQueryHandlerClickTarget(handles, clickSignal);
 			if (!target) {
-				await untilAborted(clickSignal, () => Bun.sleep(50));
+				await untilAborted(clickSignal, () => bun.sleep(50));
 				continue;
 			}
 			await clickElement(target, label, clickSignal);
@@ -902,7 +903,7 @@ export async function highlightElement(
 		}, id),
 	);
 	try {
-		await untilAborted(signal, () => Bun.sleep(duration));
+		await untilAborted(signal, () => bun.sleep(duration));
 	} finally {
 		await handle.frame
 			.page()

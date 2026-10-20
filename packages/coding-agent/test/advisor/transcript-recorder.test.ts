@@ -11,7 +11,7 @@
  * - The target follows the session file: a switch routes later turns to the new
  *   session's `__advisor.jsonl`, leaving the prior file intact.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import {
 	loadAdvisorTranscriptCosts,
 } from "@oh-my-pi/pi-coding-agent/advisor/transcript-recorder";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface AdvisorEntry {
 	type?: string;
@@ -47,7 +48,7 @@ async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
 
 /** Parse the message entries (skipping the session header) from an advisor JSONL. */
 async function readMessageEntries(file: string): Promise<AdvisorEntry[]> {
-	const text = await Bun.file(file).text();
+	const text = await bun.file(file).text();
 	// JSON.parse returns `any`; assigning to the typed array narrows reads below.
 	const entries: AdvisorEntry[] = text
 		.trim()

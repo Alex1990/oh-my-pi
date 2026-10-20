@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "bun:test";
+import { beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { BashExecutionComponent } from "@oh-my-pi/pi-tui/chat/bash-execution";
 import { CommandController } from "@oh-my-pi/pi-coding-agent/modes/controllers/command-controller";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createContainer() {
 	return {
@@ -293,9 +294,9 @@ describe("bash shortcut command", () => {
 		expect(component).toBeInstanceOf(BashExecutionComponent);
 		if (!(component instanceof BashExecutionComponent)) throw new Error("Expected BashExecutionComponent");
 		const bashComponent = component;
-		expect(Bun.stripANSI(bashComponent.render(80).join("\n"))).toContain("[Image: [image/png] 1x1]");
+		expect(bun.stripANSI(bashComponent.render(80).join("\n"))).toContain("[Image: [image/png] 1x1]");
 		bashComponent.setExpanded(true);
-		expect(Bun.stripANSI(bashComponent.render(80).join("\n"))).toContain("[Image: [image/png] 1x1]");
+		expect(bun.stripANSI(bashComponent.render(80).join("\n"))).toContain("[Image: [image/png] 1x1]");
 	});
 
 	it("finalizes successful output before reporting a standalone cd refresh failure", async () => {

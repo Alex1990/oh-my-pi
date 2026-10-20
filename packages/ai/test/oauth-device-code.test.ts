@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { pollOAuthDeviceCodeFlow } from "@oh-my-pi/pi-ai/oauth";
 
 describe("OAuth device-code polling", () => {

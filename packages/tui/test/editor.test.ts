@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +17,7 @@ import { setKittyProtocolActive } from "@oh-my-pi/pi-tui/keys";
 import { visibleWidth } from "@oh-my-pi/pi-tui/utils";
 import { defaultEditorTheme } from "./test-themes";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("Editor component", () => {
 	afterEach(() => {
@@ -536,14 +537,14 @@ describe("Editor component", () => {
 			);
 
 			editor.handleInput("/");
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			editor.handleInput("m");
 			editor.handleInput("o");
 			editor.handleInput("d");
-			await Bun.sleep(110);
+			await bun.sleep(110);
 
 			editor.handleInput("	");
-			await Bun.sleep(0);
+			await bun.sleep(0);
 
 			expect(editor.getText()).toBe("/model ");
 			expect(editor.isShowingAutocomplete()).toBe(true);
@@ -573,13 +574,13 @@ describe("Editor component", () => {
 			);
 
 			editor.handleInput("/");
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			editor.handleInput("h");
 			editor.handleInput("e");
-			await Bun.sleep(110);
+			await bun.sleep(110);
 
 			editor.handleInput("	");
-			await Bun.sleep(0);
+			await bun.sleep(0);
 
 			expect(editor.getText()).toBe("/help ");
 			expect(editor.isShowingAutocomplete()).toBe(false);
@@ -589,7 +590,7 @@ describe("Editor component", () => {
 			vi.useFakeTimers();
 			const baseDir = await fs.mkdtemp(path.join(os.tmpdir(), "slash-tab-no-arg-"));
 			try {
-				await Bun.write(path.join(baseDir, "visible-file.ts"), "export {};\n");
+				await bun.write(path.join(baseDir, "visible-file.ts"), "export {};\n");
 				const editor = new Editor(defaultEditorTheme);
 				editor.setAutocompleteProvider(
 					new CombinedAutocompleteProvider([{ name: "quit", description: "Quit", allowArgs: false }], baseDir),
@@ -2598,7 +2599,7 @@ describe("Editor component", () => {
 	describe("Korean NFC paste normalization", () => {
 		// macOS Finder drag-drops/Copy-As-Pathname emit Korean filenames as
 		// NFD (decomposed) — e.g. `화` becomes `ᄒ`(U+1112) + `ᅪ`(U+116A).
-		// `Bun.stringWidth` measures NFD jamo at 3 cells per syllable while
+		// `bun.stringWidth` measures NFD jamo at 3 cells per syllable while
 		// terminals render the precomposed syllable at 2 cells, so without
 		// normalization the cursor column drifts past the visible filename
 		// and subsequent input renders into the wrong row. The earlier fix

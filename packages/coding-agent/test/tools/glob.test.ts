@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { FileType } from "@oh-my-pi/pi-natives";
 import type { AgentToolResult } from "@oh-my-pi/pi-agent-core";

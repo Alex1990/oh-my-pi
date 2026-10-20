@@ -25,6 +25,7 @@ import { DynamicBorder } from "../../chrome/dynamic-border";
 import { theme } from "../../theme/theme";
 import { ansi } from "../../native/describe";
 import type { NativeNode } from "../../native/node";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PNG_SIGNATURE = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
 
@@ -34,7 +35,7 @@ function pngChunk(type: string, data: Uint8Array): Uint8Array {
 	const out = Buffer.alloc(body.length + 8);
 	out.writeUInt32BE(data.length, 0);
 	body.copy(out, 4);
-	out.writeUInt32BE(Bun.hash.crc32(body) >>> 0, out.length - 4);
+	out.writeUInt32BE(bun.hash.crc32(body) >>> 0, out.length - 4);
 	return out;
 }
 

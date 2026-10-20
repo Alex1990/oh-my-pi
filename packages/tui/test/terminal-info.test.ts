@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	collectTerminalState,
 	formatTerminalState,
@@ -6,6 +6,7 @@ import {
 } from "@oh-my-pi/pi-tui/apps/debug/terminal-info";
 import { TERMINAL } from "@oh-my-pi/pi-tui";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const sample: TerminalStateInfo = {
 	detectedId: "kitty",
@@ -73,31 +74,31 @@ describe("collectTerminalState", () => {
 		const keys = [...TERMINAL_MULTIPLEXER_ENV_KEYS, "HERDR_SOCKET_PATH"];
 		const previous = new Map<string, string | undefined>();
 		for (const key of keys) {
-			previous.set(key, Bun.env[key]);
-			delete Bun.env[key];
+			previous.set(key, bun.env[key]);
+			delete bun.env[key];
 		}
 		const runtime = { columns: 80, rows: 24, synchronizedOutput: true };
 		try {
 			expect(collectTerminalState(runtime).multiplexer).toBeNull();
-			Bun.env.HERDR_ENV = "1";
+			bun.env.HERDR_ENV = "1";
 			expect(collectTerminalState(runtime).multiplexer).toBe("herdr");
-			delete Bun.env.HERDR_ENV;
-			Bun.env.HERDR_PANE_ID = "p1";
+			delete bun.env.HERDR_ENV;
+			bun.env.HERDR_PANE_ID = "p1";
 			expect(collectTerminalState(runtime).multiplexer).toBe("herdr");
-			delete Bun.env.HERDR_PANE_ID;
-			Bun.env.WMUX = "1";
+			delete bun.env.HERDR_PANE_ID;
+			bun.env.WMUX = "1";
 			expect(collectTerminalState(runtime).multiplexer).toBe("wmux");
-			delete Bun.env.WMUX;
-			Bun.env.WMUX_SURFACE_ID = "3f2a";
+			delete bun.env.WMUX;
+			bun.env.WMUX_SURFACE_ID = "3f2a";
 			expect(collectTerminalState(runtime).multiplexer).toBe("wmux");
-			delete Bun.env.WMUX_SURFACE_ID;
-			Bun.env.HERDR_SOCKET_PATH = "/tmp/x";
+			delete bun.env.WMUX_SURFACE_ID;
+			bun.env.HERDR_SOCKET_PATH = "/tmp/x";
 			expect(collectTerminalState(runtime).multiplexer).toBeNull();
 		} finally {
 			for (const key of keys) {
 				const value = previous.get(key);
-				if (value === undefined) delete Bun.env[key];
-				else Bun.env[key] = value;
+				if (value === undefined) delete bun.env[key];
+				else bun.env[key] = value;
 			}
 		}
 	});

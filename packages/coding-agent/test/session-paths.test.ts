@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,9 @@ import {
 	setAgentDir,
 } from "@oh-my-pi/pi-utils";
 import { resolveEquivalentPath } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const cleanup: string[] = [];
 
@@ -52,7 +55,7 @@ describe("legacy session directory migration", () => {
 			const sessionsRoot = path.join(root, "sessions");
 			fs.mkdirSync(cwd, { recursive: true });
 			const canonical = resolveEquivalentPath(path.resolve(cwd));
-			const digest = Bun.SHA256.hash(canonical.replaceAll("\\", "/"), "hex");
+			const digest = bun.SHA256.hash(canonical.replaceAll("\\", "/"), "hex");
 			const oldDir = path.join(sessionsRoot, `home-project-${digest}`);
 			const canonicalDir = path.join(sessionsRoot, "-tmp-project");
 			const transcript = Buffer.from('{"type":"session","id":"saved","note":"你好"}\r\n');

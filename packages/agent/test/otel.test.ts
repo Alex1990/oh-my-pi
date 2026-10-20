@@ -5,7 +5,7 @@
  * span names, attributes, parent/child relationships, status codes, and
  * lifecycle hook dispatch.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { agentLoop } from "@oh-my-pi/pi-agent-core/agent-loop";
 import {
@@ -43,6 +43,7 @@ import {
 	SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { createUserMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MOCK_IDENT = { id: "mock-model", provider: "mock-provider" } as const;
 
@@ -740,7 +741,7 @@ describe("agent-loop OTEL instrumentation", () => {
 		};
 		const ctx: AgentContext = { systemPrompt: [], messages: [], tools: [] };
 		await runAndDrain(agentLoop([createUserMessage("hi")], ctx, config, undefined, mock.stream));
-		await Bun.sleep(1);
+		await bun.sleep(1);
 
 		expect(warnings).toContain("on_chat_usage_failed");
 	});

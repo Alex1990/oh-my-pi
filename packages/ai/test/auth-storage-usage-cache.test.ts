@@ -11,7 +11,7 @@
  *      the failure backoff window — a repeat poll within the window is served
  *      from cache (no refetch); the entry expires and the next poll retries.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type AuthCredential,
 	type AuthCredentialStore,
@@ -23,6 +23,7 @@ import type { UsageLimit, UsageProvider, UsageReport } from "@oh-my-pi/pi-ai/usa
 import { alibabaTokenPlanUsageProvider } from "@oh-my-pi/pi-ai/usage/alibaba-token-plan";
 import * as claudeUsage from "@oh-my-pi/pi-ai/usage/claude";
 import { serializeAlibabaTokenPlanCredential } from "@oh-my-pi/pi-catalog/wire/alibaba-token-plan";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 function anthropicReports(reports: UsageReport[] | null): UsageReport[] {
 	return (reports ?? []).filter(r => r.provider === "anthropic");
@@ -905,7 +906,7 @@ describe("AuthStorage usage cache: provider failure policy", () => {
 							}),
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const storage = new AuthStorage(store, {
 			usageFetch,

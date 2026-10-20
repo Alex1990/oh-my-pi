@@ -19,6 +19,7 @@ import type { HandoffResult, SessionHandoffOptions } from "./agent-session-types
 import type { SessionManager } from "./session-manager";
 
 import { cfgCompactionHandoffSaveToDisk } from "./context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createHandoffFileName(date = new Date()): string {
 	const fileTimestamp = date.toISOString().replace(/[:.]/g, "-");
@@ -215,7 +216,7 @@ export class SessionHandoff {
 				if (artifactsDir) {
 					const handoffFilePath = path.join(artifactsDir, createHandoffFileName());
 					try {
-						await Bun.write(handoffFilePath, `${handoffText}\n`);
+						await bun.write(handoffFilePath, `${handoffText}\n`);
 						savedPath = handoffFilePath;
 					} catch (error) {
 						logger.warn("Failed to save handoff document to disk", {

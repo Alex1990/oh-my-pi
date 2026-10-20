@@ -5,7 +5,7 @@
  * when stopReason is "aborted", which would surface the sentinel to stderr
  * (and exit with code 1). This test verifies the guard skips silent-abort.
  */
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";

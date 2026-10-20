@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -15,9 +15,10 @@ import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgTasksTodoClearDelay } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function renderTodos(mode: InteractiveMode): string {
-	return Bun.stripANSI(mode.todoContainer.render(120).join("\n"));
+	return bun.stripANSI(mode.todoContainer.render(120).join("\n"));
 }
 
 describe("InteractiveMode todo HUD persistence", () => {
@@ -639,7 +640,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 		const lines = mode.todoContainer
 			.render(80)
 			.flatMap(line => line.split("\n"))
-			.map(line => Bun.stripANSI(line));
+			.map(line => bun.stripANSI(line));
 
 		// Lightened: no boxed top/bottom rules.
 		expect(lines.some(line => line === "─".repeat(80))).toBe(false);
@@ -682,7 +683,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 		const lines = mode.todoContainer
 			.render(80)
 			.flatMap(line => line.split("\n"))
-			.map(line => Bun.stripANSI(line));
+			.map(line => bun.stripANSI(line));
 		// One stage still renders the compact title; progress belongs to the
 		// tree spine and tail.
 		const root = lines.find(line => line.includes("TODO"));
@@ -707,7 +708,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 		const lines = mode.todoContainer
 			.render(80)
 			.flatMap(line => line.split("\n"))
-			.map(line => Bun.stripANSI(line));
+			.map(line => bun.stripANSI(line));
 		// Active stage + four following stages render; the rest collapse into a
 		// trailing "… n more stages" row.
 		expect(lines.some(line => line.includes("II. Two"))).toBe(true);
@@ -776,7 +777,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 			// statusContainer renders the compact right-aligned todo above editor
 			const rendered = mode.statusContainer.render(100);
 			expect(rendered.length).toBeGreaterThan(0);
-			const lastLine = Bun.stripANSI(rendered[rendered.length - 1] ?? "");
+			const lastLine = bun.stripANSI(rendered[rendered.length - 1] ?? "");
 			expect(lastLine).toContain("TODO 1/3");
 			expect(lastLine).toContain("Create API endpoints");
 			// Right-aligned: ends with the todo text (with trailing space)
@@ -803,7 +804,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 
 			const rendered = mode.statusContainer.render(120);
 			expect(rendered.length).toBeGreaterThanOrEqual(2);
-			const lastLine = Bun.stripANSI(rendered[rendered.length - 1] ?? "");
+			const lastLine = bun.stripANSI(rendered[rendered.length - 1] ?? "");
 			// Left side has the intent spinner/message
 			expect(lastLine).toContain("Reading src/index.ts");
 			// Right side has the compact todo
@@ -826,7 +827,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 			]);
 
 			const rendered = mode.statusContainer.render(100);
-			const lastLine = Bun.stripANSI(rendered[rendered.length - 1] ?? "");
+			const lastLine = bun.stripANSI(rendered[rendered.length - 1] ?? "");
 			expect(lastLine).toContain("TODO 2/2");
 			expect(lastLine).toContain("done");
 		});
@@ -848,7 +849,7 @@ describe("InteractiveMode todo HUD anchor", () => {
 			setTerminalRows(15);
 			expect(mode.todoContainer.render(100)).toHaveLength(0);
 			expect(mode.statusContainer.render(100).length).toBeGreaterThan(0);
-			const compactLine = Bun.stripANSI(mode.statusContainer.render(100).slice(-1)[0] ?? "");
+			const compactLine = bun.stripANSI(mode.statusContainer.render(100).slice(-1)[0] ?? "");
 			expect(compactLine).toContain("TODO 0/1");
 			expect(compactLine).toContain("Refactor router");
 

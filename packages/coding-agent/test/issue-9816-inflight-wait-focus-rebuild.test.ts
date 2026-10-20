@@ -11,7 +11,7 @@
  * focus blackout is authoritative in the rebuilt transcript; a later event is
  * delivered through the newly installed subscription.
  */
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -25,6 +25,7 @@ import type { AgentSession, AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/
 import type { SessionContext } from "@oh-my-pi/pi-coding-agent/session/session-context";
 import type { AgentProgress, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const usage = {
 	input: 1,
@@ -329,7 +330,7 @@ describe("#9816 focus blackout across an in-flight wait", () => {
 	it("drains a lost completion into the transcript before rebuilding the main session", async () => {
 		const { ctx, focus, main } = createFixture();
 		await ctx.renderInitialMessages();
-		const pending = Bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
+		const pending = bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
 		expect(pending).toContain("Wait");
 		expect(pending).not.toContain("Sleeper1");
 
@@ -344,7 +345,7 @@ describe("#9816 focus blackout across an in-flight wait", () => {
 		queueMicrotask(finishPersistence);
 		await returning;
 
-		const rendered = Bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
 		expect(rendered).toContain("1 job settled");
 		expect(rendered).toContain("Sleeper1");
 		expect(ctx.pendingTools.has("wait-1")).toBe(false);
@@ -358,14 +359,14 @@ describe("#10446 task progress across a focus rebuild", () => {
 
 		await fixture.ctx.renderInitialMessages();
 		await main.emitToolUpdate(taskProgressUpdate);
-		const before = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const before = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(before).toContain("Parent>Child");
 		expect(before).toContain("packages/coding-agent/src/modes");
 
 		await fixture.focus.focusAgent("Worker");
 		await fixture.focus.unfocus();
 
-		const after = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const after = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(after).toContain("Parent>Child");
 		expect(after).toContain("packages/coding-agent/src/modes");
 	});
@@ -380,7 +381,7 @@ describe("#10447 persisted background task board across a focus rebuild", () => 
 
 		await fixture.ctx.renderInitialMessages();
 		await main.emitToolUpdate(backgroundProgressUpdate("cached-progress-marker"));
-		const before = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const before = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(before).toContain("cached-progress-marker");
 
 		await fixture.focus.focusAgent("Worker");
@@ -388,13 +389,13 @@ describe("#10447 persisted background task board across a focus rebuild", () => 
 
 		// The rebuilt board replays the cached snapshot instead of collapsing to
 		// the persisted "running" result, and the card is still parked as pending.
-		const after = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const after = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(after).toContain("cached-progress-marker");
 		expect(fixture.ctx.pendingTools.has("task-bg")).toBe(true);
 
 		// A live frame emitted after return still routes to the preserved card.
 		await main.emitToolUpdate(backgroundProgressUpdate("post-return-marker"));
-		const live = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const live = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(live).toContain("post-return-marker");
 	});
 
@@ -407,7 +408,7 @@ describe("#10447 persisted background task board across a focus rebuild", () => 
 		await main.emitToolUpdate(backgroundProgressUpdate("completed-while-focused", "completed"));
 		await fixture.focus.unfocus();
 
-		const after = Bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
+		const after = bun.stripANSI(fixture.ctx.chatContainer.render(120).join("\n"));
 		expect(after).toContain("completed-while-focused");
 		expect(fixture.ctx.pendingTools.has("task-bg")).toBe(false);
 	});
@@ -452,7 +453,7 @@ describe("live Cursor focus recovery without another delta", () => {
 		const { ctx, focus } = createFixture(main);
 		await focus.focusAgent("Worker");
 		await focus.unfocus();
-		const rendered = () => Bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
+		const rendered = () => bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
 		expect(rendered()).toContain("PAUSED_REASONING");
 		expect(rendered()).toContain("COMPLETED_MATCH");
 		expect(ctx.pendingTools.size).toBe(0);
@@ -468,7 +469,7 @@ describe("live Cursor focus recovery without another delta", () => {
 		await focus.focusAgent("Worker");
 		await focus.unfocus();
 		await main.emit({ type: "message_end", message: paused });
-		const rendered = Bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(ctx.chatContainer.render(120).join("\n"));
 		expect(rendered).toContain("LAST_VISIBLE_TEXT");
 		expect(rendered).toContain("COMPLETED_MATCH");
 		expect(ctx.pendingTools.size).toBe(0);
@@ -480,7 +481,7 @@ describe("live Cursor focus recovery without another delta", () => {
 		const { ctx, focus } = createFixture(main);
 		await focus.focusAgent("Worker");
 		await focus.unfocus();
-		expect(Bun.stripANSI(ctx.chatContainer.render(120).join("\n"))).toContain("COMPLETED_MATCH");
+		expect(bun.stripANSI(ctx.chatContainer.render(120).join("\n"))).toContain("COMPLETED_MATCH");
 		expect(ctx.pendingTools.size).toBe(0);
 	});
 });

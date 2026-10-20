@@ -3,7 +3,7 @@
  *
  * Resolution order: GitHub-noreply address → Gravatar (`d=404` so misses fall
  * through) → GitHub commits API when the repo has a github remote. Hits are
- * normalized to a 64px PNG via `Bun.Image` and cached in ~/.omp/cache/avatars;
+ * normalized to a 64px PNG via `Image` and cached in ~/.omp/cache/avatars;
  * definite misses leave a `.miss` marker so offline sessions stay quiet. When
  * no photo exists (or the terminal cannot draw images) the sidebar falls back
  * to a deterministic half-block identicon supplied by the view.
@@ -13,13 +13,15 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { getAvatarCacheDir, logger } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const AVATAR_PX = 64;
 const FETCH_TIMEOUT_MS = 5_000;
 const NEGATIVE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function md5Hex(text: string): string {
-	return new Bun.CryptoHasher("md5").update(text).digest("hex");
+	return new bun.CryptoHasher("md5").update(text).digest("hex");
 }
 
 /** Candidate avatar URLs for a GitHub-noreply email, or empty for other hosts. */
@@ -97,7 +99,7 @@ export class AvatarLoader {
 		const pngPath = path.join(this.#dir, `${key}.png`);
 		const missPath = path.join(this.#dir, `${key}.miss`);
 		try {
-			const bytes = await Bun.file(pngPath).bytes();
+			const bytes = await bun.file(pngPath).bytes();
 			this.#memory.set(key, Buffer.from(bytes).toBase64());
 			return;
 		} catch {
@@ -125,12 +127,12 @@ export class AvatarLoader {
 		}
 		if (!bytes) {
 			this.#memory.set(key, null);
-			await Bun.write(missPath, "").catch(() => {});
+			await bun.write(missPath, "").catch(() => {});
 			return;
 		}
 		try {
-			const png = await new Bun.Image(bytes).resize(AVATAR_PX, AVATAR_PX).png().toBuffer();
-			await Bun.write(pngPath, png);
+			const png = await new Image(bytes).resize(AVATAR_PX, AVATAR_PX).png().toBuffer();
+			await bun.write(pngPath, png);
 			this.#memory.set(key, png.toBase64());
 		} catch (err) {
 			logger.debug("avatar normalize failed", { error: err instanceof Error ? err.message : String(err) });

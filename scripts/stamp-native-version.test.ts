@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import {
 	VERSION_STAMP_SIZE,
 } from "../packages/natives/native/version-sentinel.js";
 import { MAX_STAMP_VERSION_LENGTH, stampNativeBytes, stampNativeVersion } from "./stamp-native-version";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function placeholder(): Buffer {
 	const slot = Buffer.alloc(VERSION_STAMP_SIZE);
@@ -61,7 +62,7 @@ function signedMachO(flags: number): Buffer {
 	image.writeUInt8(12, cd + 39); // 4 KiB pages
 	image.write("fixture", cd + 88, "latin1");
 	for (let page = 0; page < PAGES; page++) {
-		Bun.CryptoHasher.hash("sha256", image.subarray(page * PAGE, (page + 1) * PAGE)).copy(
+		bun.CryptoHasher.hash("sha256", image.subarray(page * PAGE, (page + 1) * PAGE)).copy(
 			image,
 			FIRST_HASH + page * 32,
 		);
@@ -73,7 +74,7 @@ function signedMachO(flags: number): Buffer {
 function signatureMatches(image: Buffer): boolean {
 	for (let page = 0; page < PAGES; page++) {
 		const stored = image.subarray(FIRST_HASH + page * 32, FIRST_HASH + (page + 1) * 32);
-		const actual = Bun.CryptoHasher.hash("sha256", image.subarray(page * PAGE, (page + 1) * PAGE));
+		const actual = bun.CryptoHasher.hash("sha256", image.subarray(page * PAGE, (page + 1) * PAGE));
 		if (!actual.equals(stored)) return false;
 	}
 	return true;

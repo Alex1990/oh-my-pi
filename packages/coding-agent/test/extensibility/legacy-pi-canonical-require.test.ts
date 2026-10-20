@@ -1,19 +1,27 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
-const SHIM_PATH = path.join(import.meta.dir, "../../src/extensibility/plugins/legacy-pi-compat.ts");
-const PACKAGE_DIR = path.join(import.meta.dir, "../..");
+const SHIM_PATH = path.join(import.meta.dirname, "../../src/extensibility/plugins/legacy-pi-compat.ts");
+const PACKAGE_DIR = path.join(import.meta.dirname, "../..");
 
 /**
- * `Bun.plugin()` registrations are process-global and permanent, so the shim is
+ * `plugin()` registrations are process-global and permanent, so the shim is
  * installed in a child process: a leaked resolve hook would change module
  * resolution for every later test in this runner. `target` is required after
  * the shim is live; the child prints what it loaded.
  */
 async function requireThroughShim(target: string): Promise<string> {
 	const source = [
-		`const { installLegacyPiSpecifierShim } = await import(${JSON.stringify(SHIM_PATH)});`,
+		`const { installLegacyPiSpecifierShim } = await import(${JSON.stringify(pathToFileURL(SHIM_PATH).href)});`,
+		// `node -e` evaluates top-level await as ESM, where `require` is not a
+		// binding; anchor a CommonJS require at the package root so the shim's
+		// `require()` resolution path is still what the child exercises.
+		'import { createRequire } from "node:module";',
+		`const require = createRequire(${JSON.stringify(path.join(PACKAGE_DIR, "noop.cjs"))});`,
 		"installLegacyPiSpecifierShim();",
 		"try {",
 		`	const loaded = require(${JSON.stringify(target)});`,
@@ -24,7 +32,11 @@ async function requireThroughShim(target: string): Promise<string> {
 	].join("\n");
 	// `process.execPath` pins the child to the Bun running this test, not
 	// whichever `bun` happens to be first on PATH.
-	const proc = Bun.spawn([process.execPath, "-e", source], { cwd: PACKAGE_DIR, stdout: "pipe", stderr: "pipe" });
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", source], {
+		cwd: PACKAGE_DIR,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
 	const [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
 	await proc.exited;
 	const stderr = err.trim();
@@ -48,7 +60,7 @@ describe("legacy-pi specifier shim", () => {
 	it("resolves a canonical @oh-my-pi subpath that remaps to itself", async () => {
 		// Regression: the resolve hook matches `@oh-my-pi/pi-*` as well as the
 		// legacy scopes, so resolving the remapped specifier called
-		// `Bun.resolveSync` with a specifier this same hook matches. Bun
+		// `bun.resolveSync` with a specifier this same hook matches. Bun
 		// re-entered the hook and re-prefixed the namespace on every pass until
 		// the import died as `NameTooLong reading "file:file:…"`, breaking every
 		// `require("@oh-my-pi/pi-ai/index.js")` first-use boundary — the
@@ -64,13 +76,13 @@ describe("legacy-pi specifier shim", () => {
 		// than the fixture's single marker export.
 		tempDir = TempDir.createSync("@pi-legacy-canonical-shadow-");
 		const localPackage = tempDir.join("node_modules/@oh-my-pi/pi-ai");
-		await Bun.write(
+		await bun.write(
 			path.join(localPackage, "package.json"),
 			JSON.stringify({ name: "@oh-my-pi/pi-ai", version: "0.0.0", main: "index.js" }),
 		);
-		await Bun.write(path.join(localPackage, "index.js"), "module.exports = { PLUGIN_LOCAL_COPY: true };");
+		await bun.write(path.join(localPackage, "index.js"), "module.exports = { PLUGIN_LOCAL_COPY: true };");
 		const pluginEntry = tempDir.join("plugin.cjs");
-		await Bun.write(pluginEntry, 'module.exports = require("@oh-my-pi/pi-ai/index.js");');
+		await bun.write(pluginEntry, 'module.exports = require("@oh-my-pi/pi-ai/index.js");');
 
 		const loaded = parseLoaded(await requireThroughShim(pluginEntry));
 		expect(loaded.pluginLocal).toBe(false);

@@ -3,13 +3,13 @@
  *
  * On macOS x64 (Intel), `omp stats` builds only the `modern`
  * (`pi_natives.darwin-x64-modern.node`) variant when the host has AVX2,
- * because `scripts/host-detect.ts` uses `Bun.spawnSync("sysctl", …)` from a
+ * because `scripts/host-detect.ts` uses `bun.spawnSync("sysctl", …)` from a
  * normal shell context and correctly resolves AVX2 → modern.
  *
  * The runtime loader then re-detects from inside Bun worker threads. There
  * the old detector hit two failure modes at once:
  *   - `child_process.spawnSync` returned non-zero/null on darwin under Bun's
- *     worker shim while `Bun.spawnSync` would have worked.
+ *     worker shim while `bun.spawnSync` would have worked.
  *   - It looked up `sysctl` via PATH, which can lack `/usr/sbin` in
  *     non-shell-derived spawn contexts.
  *
@@ -34,8 +34,9 @@
  *      "baseline-only file list" from the report cannot reappear under that
  *      verdict.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getAddonFilenames, selectCpuVariant } from "../native/loader-state.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const VARIANT_CACHE_ENV_KEY = "__PI_NATIVE_VARIANT_CACHE";
 

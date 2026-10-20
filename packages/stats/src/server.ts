@@ -2,7 +2,8 @@ import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent, logger } from "@oh-my-pi/pi-utils";
-import { $, type Server } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
 import {
 	getCostDashboardStats,
 	getDashboardStats,
@@ -48,11 +49,14 @@ import {
 	traceFingerprintForEtag,
 	TracePathError,
 } from "./trace";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
-const CLIENT_DIR = path.join(import.meta.dir, "client");
-const STATIC_DIR = path.join(import.meta.dir, "..", "dist", "client");
+const CLIENT_DIR = path.join(import.meta.dirname, "client");
+const STATIC_DIR = path.join(import.meta.dirname, "..", "dist", "client");
 const IS_BUN_COMPILED =
-	Boolean(process.env.PI_COMPILED || Bun.env.PI_COMPILED) ||
+	Boolean(process.env.PI_COMPILED || bun.env.PI_COMPILED) ||
 	import.meta.url.includes("$bunfs") ||
 	import.meta.url.includes("~BUN") ||
 	import.meta.url.includes("%7EBUN");
@@ -60,7 +64,7 @@ const IS_BUN_COMPILED =
 // process.env.PI_BUNDLED at build time. Like compiled binaries, it ships no
 // dashboard sources or prebuilt dist/client next to the bundle, so the
 // embedded archive is the only viable asset source.
-const IS_PREBUILT = IS_BUN_COMPILED || Boolean(process.env.PI_BUNDLED || Bun.env.PI_BUNDLED);
+const IS_PREBUILT = IS_BUN_COMPILED || Boolean(process.env.PI_BUNDLED || bun.env.PI_BUNDLED);
 // Sniff the base64 gzip magic instead of decoding: importing this module (every
 // TUI start) must not pay for a multi-megabyte archive nobody may serve.
 const USE_EMBEDDED_CLIENT = hasEmbeddedClientArchive(embeddedClientArchiveTxt) || IS_PREBUILT;
@@ -78,10 +82,10 @@ async function getEmbeddedClientFiles(): Promise<Map<string, Blob>> {
 	}
 
 	// Keep bundled assets in memory so OS temporary-file cleanup cannot break a live dashboard.
-	embeddedClientFilesPromise = new Bun.Archive(archive).files().then(files => {
+	embeddedClientFilesPromise = new Archive(archive).files().then(files => {
 		for (const [name, file] of files) {
 			// Archive entries are untyped blobs; infer MIME types just as disk-backed Bun files do.
-			files.set(name, new File([file], name, { type: Bun.file(name).type }));
+			files.set(name, new File([file], name, { type: bun.file(name).type }));
 		}
 		return files;
 	});
@@ -147,8 +151,8 @@ const ensureClientBuild = async () => {
 	await fs.rm(STATIC_DIR, { recursive: true, force: true });
 
 	logger.debug("Building stats client");
-	const packageRoot = path.join(import.meta.dir, "..");
-	const buildResult = await $`bun run build.ts`.cwd(packageRoot).quiet().nothrow();
+	const packageRoot = path.join(import.meta.dirname, "..");
+	const buildResult = await $`pnpm run build`.cwd(packageRoot).quiet().nothrow();
 	if (buildResult.exitCode !== 0) {
 		const output = buildResult.text().trim();
 		const details = output ? `\n${output}` : "";
@@ -347,15 +351,15 @@ async function handleStatic(requestPath: string): Promise<Response> {
 	const filePath = requestPath === "/" ? "/index.html" : requestPath;
 	const fullPath = path.join(STATIC_DIR, filePath);
 
-	const file = Bun.file(fullPath);
+	const file = bun.file(fullPath);
 	if (await file.exists()) {
-		return new Response(file);
+		return new Response(file.stream());
 	}
 
 	// SPA fallback
-	const index = Bun.file(path.join(STATIC_DIR, "index.html"));
+	const index = bun.file(path.join(STATIC_DIR, "index.html"));
 	if (await index.exists()) {
-		return new Response(index);
+		return new Response(index.stream());
 	}
 
 	return new Response("Not Found", { status: 404 });
@@ -367,11 +371,11 @@ export function formatStatsDashboardUrl(hostname: string, port: number): string 
 	return `http://${urlHostname}:${port}`;
 }
 
-function createDashboardServer(port: number, hostname: string): Server<undefined> {
-	const server = Bun.serve({
+async function createDashboardServer(port: number, hostname: string): Promise<Server<undefined>> {
+	const server = await serve({
 		port,
 		hostname,
-		async fetch(req, server) {
+		async fetch(req, _server) {
 			const url = new URL(req.url);
 			const path = url.pathname;
 
@@ -387,8 +391,9 @@ function createDashboardServer(port: number, hostname: string): Server<undefined
 			}
 
 			if (path === "/api/events") {
-				// Long-lived stream: exempt from the idle timeout.
-				server.timeout(req, 0);
+				// Long-lived stream: Node's HTTP server has no per-response idle
+				// timeout (only `requestTimeout`, which bounds request intake), so
+				// the stream stays open without Bun's `server.timeout(req, 0)`.
 				return liveEventStream(dashboardHeaders, req.signal);
 			}
 
@@ -532,7 +537,7 @@ export async function startServer(
 	};
 
 	try {
-		return register(createDashboardServer(port, hostname));
+		return register(await createDashboardServer(port, hostname));
 	} catch (error) {
 		if (!(error instanceof Error && "code" in error && error.code === "EADDRINUSE")) throw error;
 
@@ -542,7 +547,7 @@ export async function startServer(
 		}
 
 		try {
-			return register(createDashboardServer(port, hostname));
+			return register(await createDashboardServer(port, hostname));
 		} catch (retryError) {
 			throw new Error(`Failed to start stats dashboard on ${hostname}:${port} after reclaiming it.`, {
 				cause: retryError,

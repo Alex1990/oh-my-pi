@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	Agent,
 	type AgentTool,
@@ -23,6 +23,7 @@ import type { Tool, ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStorage: AuthStorage = createInMemoryAuthStorage();
 for (const provider of ["anthropic", "mock"]) authStorage.keys.setRuntime(provider, "test-key");
@@ -130,7 +131,7 @@ describe("TTSR reminders on bridged tool calls", () => {
 			context,
 		);
 
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 		expect(texts(result.content).join("\n")).not.toContain("system-reminder");
 		expect(texts(result.content).join("\n")).not.toContain(RULE.content);
 		expect(sink).toHaveLength(1);
@@ -185,7 +186,7 @@ describe("TTSR reminders on bridged tool calls", () => {
 		} as never)) as ToolResultWithAdditionalContext;
 
 		expect(message.isError).toBe(false);
-		expect(await Bun.file(target).exists()).toBe(true);
+		expect(await bun.file(target).exists()).toBe(true);
 		expect(JSON.stringify(message.content)).not.toContain("system-reminder");
 		const carried = message[TOOL_RESULT_ADDITIONAL_CONTEXT];
 		expect(carried).toContain(`<system-reminder reason="rule_violation" rule="${RULE.name}"`);

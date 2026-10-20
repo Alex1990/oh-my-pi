@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { buildParams, convertTools } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { Context, Model, ModelSpec, Tool } from "@oh-my-pi/pi-ai/types";

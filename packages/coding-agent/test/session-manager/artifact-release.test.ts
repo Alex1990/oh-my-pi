@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { ArtifactManager } from "@oh-my-pi/pi-coding-agent/session/artifacts";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 interface RetentionProbeResult {
 	baselineBytes: number;
@@ -31,10 +33,15 @@ describe("SessionManager artifact terminal release", () => {
 	}
 
 	it("makes spill payloads collectible while the released manager remains reachable", async () => {
-		const probe = Bun.spawn(
-			[process.execPath, path.join(import.meta.dir, "../fixtures/sdk-artifact-retention-probe.ts")],
+		const probe = bun.spawn(
+			[
+				process.execPath,
+				...nodeSourceFlags(),
+				"--expose-gc",
+				path.join(import.meta.dirname, "../fixtures/sdk-artifact-retention-probe.ts"),
+			],
 			{
-				cwd: path.join(import.meta.dir, "../../../.."),
+				cwd: path.join(import.meta.dirname, "../../../.."),
 				env: {
 					...process.env,
 					PI_CODING_AGENT_DIR: tempDir.path(),
@@ -94,8 +101,8 @@ describe("SessionManager artifact terminal release", () => {
 		const firstPath = await child.getArtifactPath(firstId);
 		const secondPath = await sibling.getArtifactPath(secondId);
 		if (!firstPath || !secondPath) throw new Error("Expected retained artifact paths");
-		expect(await Bun.file(firstPath).text()).toBe("completed child output");
-		expect(await Bun.file(secondPath).text()).toBe("sibling output");
+		expect(await bun.file(firstPath).text()).toBe("completed child output");
+		expect(await bun.file(secondPath).text()).toBe("sibling output");
 		expect(await shared.listFiles()).toHaveLength(2);
 	});
 
@@ -113,7 +120,7 @@ describe("SessionManager artifact terminal release", () => {
 		if (!id) throw new Error("Expected the admitted spill to finish");
 		const artifactPath = await manager.getArtifactPath(id);
 		if (!artifactPath) throw new Error("Expected the completed artifact to remain readable");
-		expect(await Bun.file(artifactPath).text()).toBe(content);
+		expect(await bun.file(artifactPath).text()).toBe(content);
 	});
 
 	it("keeps owned disk artifacts readable after release without creating new spills", async () => {
@@ -125,7 +132,7 @@ describe("SessionManager artifact terminal release", () => {
 		manager.releaseRetainedEntries();
 		const artifactPath = await manager.getArtifactPath(id);
 		if (!artifactPath) throw new Error("Expected the persisted artifact path");
-		expect(await Bun.file(artifactPath).text()).toBe("persisted output");
+		expect(await bun.file(artifactPath).text()).toBe("persisted output");
 		expect(await manager.saveArtifact(`late-${crypto.randomUUID()}`, "bash")).toBeUndefined();
 		expect(await manager.allocateArtifactPath("bash")).toEqual({});
 	});

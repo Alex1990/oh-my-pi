@@ -4,7 +4,7 @@
  * are covered — volatile render metadata and the removed on-timer reload.
  */
 
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type {
 	HindsightApi,
 	MentalModelListResponse,

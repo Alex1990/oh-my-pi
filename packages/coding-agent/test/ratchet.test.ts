@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import { type ApprovalOutcome, createRatchetPrelude } from "@oh-my-pi/pi-coding-
 import type { ApprovalStatus, GateResult, RatchetState } from "@oh-my-pi/pi-coding-agent/ratchet/ratchet";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import type { ExtensionAskDialogQuestion, ExtensionAskDialogResult } from "@oh-my-pi/pi-tui/overlays/ask-dialog";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const FLOW = "router";
 const CASES = Array.from({ length: 10 }, (_, index) => `case_${index}`);
@@ -31,9 +32,9 @@ let root: string;
 
 beforeEach(async () => {
 	root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-ratchet-"));
-	await Bun.write(path.join(root, "eval/cases.jsonl"), CASES.map(id => JSON.stringify({ id })).join("\n"));
-	await Bun.write(path.join(root, "eval/run.ts"), "// runner\n");
-	await Bun.write(path.join(root, "src/prompt.md"), "route emails\n");
+	await bun.write(path.join(root, "eval/cases.jsonl"), CASES.map(id => JSON.stringify({ id })).join("\n"));
+	await bun.write(path.join(root, "eval/run.ts"), "// runner\n");
+	await bun.write(path.join(root, "src/prompt.md"), "route emails\n");
 });
 
 afterEach(async () => {
@@ -102,7 +103,7 @@ async function setup(options: { hold?: string[]; models?: unknown[] } = {}): Pro
 			const rows = CASES.map(id =>
 				JSON.stringify({ prompt_id: id, rep: 0, grade: { quality: grade(id) }, ...extra?.(id) }),
 			);
-			await Bun.write(flowPath(variant, "results.jsonl"), `${rows.join("\n")}\n`);
+			await bun.write(flowPath(variant, "results.jsonl"), `${rows.join("\n")}\n`);
 		},
 		split,
 		questions,
@@ -182,8 +183,8 @@ describe("ratchet gate", () => {
 		const rows = CASES.filter(id => id !== hard).map(id =>
 			JSON.stringify({ prompt_id: id, rep: 0, grade: { quality: 0.9 } }),
 		);
-		await Bun.write(flowPath("v1", "results.jsonl"), rows.join("\n"));
-		await Bun.write(flowPath("v1", "errors.jsonl"), JSON.stringify({ prompt_id: hard, rep: 0, class: "timeout" }));
+		await bun.write(flowPath("v1", "results.jsonl"), rows.join("\n"));
+		await bun.write(flowPath("v1", "errors.jsonl"), JSON.stringify({ prompt_id: hard, rep: 0, class: "timeout" }));
 		const gate = await harness.gate("v1", "shorter prompt");
 		expect(gate.decision).toBe("rerun");
 		expect(gate.best?.variant).toBe("baseline");
@@ -202,14 +203,14 @@ describe("ratchet gate", () => {
 		const harness = await setup();
 		await approveAll(harness);
 		await harness.writeRows("baseline", () => 0.2);
-		await Bun.write(flowPath("baseline", "traces", `${harness.split.test_ids[0]}_rep0.json`), "[]");
+		await bun.write(flowPath("baseline", "traces", `${harness.split.test_ids[0]}_rep0.json`), "[]");
 		await expect(harness.gate("baseline")).rejects.toThrow(/test cases/);
 	});
 
 	it("refuses to gate an incomplete run", async () => {
 		const harness = await setup();
 		await approveAll(harness);
-		await Bun.write(
+		await bun.write(
 			flowPath("baseline", "results.jsonl"),
 			JSON.stringify({ prompt_id: CASES[0], rep: 0, grade: { quality: 1 } }),
 		);
@@ -221,7 +222,7 @@ describe("ratchet approvals", () => {
 	it("marks the grader approval stale when the harness changes after approval", async () => {
 		const harness = await setup();
 		await approveAll(harness);
-		await Bun.write(path.join(root, "eval/run.ts"), "// runner that now reads the answer key\n");
+		await bun.write(path.join(root, "eval/run.ts"), "// runner that now reads the answer key\n");
 		const status = await harness.call<Status>({ action: "status" });
 		expect(status.approval_status).toEqual({ inputs: "current", grader: "stale", plan: "current" });
 		await expect(harness.call({ action: "check", variant: "baseline" })).rejects.toThrow(/grader: stale/);

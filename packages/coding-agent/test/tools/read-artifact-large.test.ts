@@ -1,6 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
+import type * as NodeOsModule from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
@@ -10,6 +12,21 @@ import {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { formatTruncationMetaNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// Node module namespaces are frozen; drive `os.homedir()` through a mock factory.
+// The getter returns a fresh function so caches keyed on the function identity
+// (e.g. `defaultHomeDir()` in pi-tui) observe the override.
+const osHome = vi.hoisted(() => ({ override: undefined as string | undefined }));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof NodeOsModule>();
+	return {
+		...actual,
+		get homedir() {
+			return () => osHome.override ?? actual.homedir();
+		},
+	};
+});
 
 function getTextOutput(result: { content: Array<{ type: string; text?: string }> }): string {
 	return result.content
@@ -58,13 +75,14 @@ describe("read tool large artifact handling", () => {
 		testDir = await fs.mkdtemp(path.join(os.tmpdir(), "read-artifact-large-"));
 		artifactDir = path.join(testDir, "session");
 		await fs.mkdir(artifactDir, { recursive: true });
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), largeArtifactText());
+		await bun.write(path.join(artifactDir, "0.mcp.log"), largeArtifactText());
 		resetRegisteredArtifactDirsForTests();
 		unregisterArtifactsDir = registerArtifactsDir(artifactDir);
 		tool = new ReadTool(makeSession(testDir));
 	});
 
 	afterEach(async () => {
+		osHome.override = undefined;
 		unregisterArtifactsDir?.();
 		resetRegisteredArtifactDirsForTests();
 		await fs.rm(testDir, { recursive: true, force: true });
@@ -118,7 +136,7 @@ describe("read tool large artifact handling", () => {
 	});
 
 	it("keeps the continuation when the byte budget stops inside requested artifact content", async () => {
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), byteLimitedRangeArtifact());
+		await bun.write(path.join(artifactDir, "0.mcp.log"), byteLimitedRangeArtifact());
 
 		const result = await tool.execute("call-byte-limited-range", { path: "artifact://0:1-100" });
 		const output = getTextOutput(result);
@@ -136,7 +154,7 @@ describe("read tool large artifact handling", () => {
 	});
 
 	it("reports an oversized selected line instead of sending a looping continuation selector", async () => {
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
+		await bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
 
 		const result = await tool.execute("call-oversized-selected", { path: "artifact://0:2-2" });
 		const output = getTextOutput(result);
@@ -153,7 +171,7 @@ describe("read tool large artifact handling", () => {
 	});
 
 	it("still returns the oversized selected line when a wider range raises the byte budget", async () => {
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
+		await bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
 
 		const result = await tool.execute("call-wide-oversized-selected", { path: "artifact://0:2-142" });
 		const output = getTextOutput(result);
@@ -165,7 +183,7 @@ describe("read tool large artifact handling", () => {
 	});
 
 	it("keeps raw oversized-line reads context-free and byte-capped", async () => {
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
+		await bun.write(path.join(artifactDir, "0.mcp.log"), oversizedSelectedLineArtifact());
 
 		const result = await tool.execute("call-raw-oversized-selected", { path: "artifact://0:raw:2-2" });
 		const output = getTextOutput(result);
@@ -193,7 +211,7 @@ describe("read tool large artifact handling", () => {
 	});
 
 	it("shortens artifact paths under the user's home dir instead of leaking the absolute path", async () => {
-		const homeSpy = spyOn(os, "homedir").mockReturnValue(testDir);
+		osHome.override = testDir;
 		try {
 			const result = await tool.execute("call-raw-home", { path: "artifact://0:raw" });
 			const output = getTextOutput(result);
@@ -204,7 +222,7 @@ describe("read tool large artifact handling", () => {
 			expect(output).toContain("~/session/0.mcp.log");
 			expect(output).not.toContain(artifactDir);
 		} finally {
-			homeSpy.mockRestore();
+			osHome.override = undefined;
 		}
 	});
 });

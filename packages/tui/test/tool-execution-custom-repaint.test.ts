@@ -1,10 +1,11 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { type Component, Text, TUI } from "@oh-my-pi/pi-tui";
 import { StressRenderScheduler } from "./render-stress-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Viewport-repaint seams of ToolExecutionComponent, driven through the public
 // ToolRenderer flags (`forceFirstResultViewportRepaint`,
@@ -54,7 +55,7 @@ class Footer implements Component {
 function plainBuffer(term: VirtualTerminal): string[] {
 	return term
 		.getScrollBuffer()
-		.map(row => Bun.stripANSI(row).trimEnd())
+		.map(row => bun.stripANSI(row).trimEnd())
 		.filter(Boolean);
 }
 

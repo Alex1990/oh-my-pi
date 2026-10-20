@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { readArchiveEntries, writeArchive } from "@oh-my-pi/pi-utils/ar";
 
 import { cfgReadDefaultLimit } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createSession(cwd: string, bridge?: ClientBridge, editMode: "replace" | "hashline" = "replace"): ToolSession {
 	return {
@@ -90,19 +91,19 @@ describe("write tool read projection guard", () => {
 		const filePath = path.join(tmpDir, "sample.txt");
 		const originalLines = Array.from({ length: sourceLines }, (_, index) => `line ${index + 1}`);
 		const original = `${originalLines.join("\n")}\n`;
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		const partial = `${originalLines.slice(0, visibleLines).join("\n")}\n${notice}\n`;
 
 		await expect(
 			new WriteTool(createSession(tmpDir)).execute("call-1", { path: filePath, content: partial }),
 		).rejects.toThrow("incomplete read projection");
-		expect(await Bun.file(filePath).text()).toBe(original);
+		expect(await bun.file(filePath).text()).toBe(original);
 	});
 
 	it("rejects the actual bounded ReadTool output without changing the file", async () => {
 		const filePath = path.join(tmpDir, "round-trip.txt");
 		const original = `${Array.from({ length: 60 }, (_, index) => `line ${index + 1}`).join("\n")}\n`;
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		const session = createSession(tmpDir);
 		cfgReadDefaultLimit.set(session.settings, 20);
 		const projection = resultText(
@@ -113,13 +114,13 @@ describe("write tool read projection guard", () => {
 		await expect(new WriteTool(session).execute("write-1", { path: filePath, content: projection })).rejects.toThrow(
 			"incomplete read projection",
 		);
-		expect(await Bun.file(filePath).text()).toBe(original);
+		expect(await bun.file(filePath).text()).toBe(original);
 	});
 
 	it("rejects bounded hashline output whose display prefixes make it longer than the source", async () => {
 		const filePath = path.join(tmpDir, "hashline.txt");
 		const original = "\n".repeat(60);
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		const session = createSession(tmpDir, undefined, "hashline");
 		cfgReadDefaultLimit.set(session.settings, 20);
 		const projection = resultText(
@@ -131,7 +132,7 @@ describe("write tool read projection guard", () => {
 		await expect(
 			new WriteTool(session).execute("write-hashline", { path: filePath, content: projection }),
 		).rejects.toThrow("incomplete read projection");
-		expect(await Bun.file(filePath).text()).toBe(original);
+		expect(await bun.file(filePath).text()).toBe(original);
 	});
 
 	it("rejects a byte-truncated single-line projection that renders longer than its source", async () => {
@@ -140,7 +141,7 @@ describe("write tool read projection guard", () => {
 		// plus its partial-line footer is longer than the source line, yet covers
 		// strictly less of it. The marker, not rendered length, proves it partial.
 		const original = `${"x".repeat(50 * 1024 + 10)}\n`;
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		const session = createSession(tmpDir);
 		const projection = resultText(
 			await wrapToolWithMetaNotice(new ReadTool(session)).execute("read-line", { path: `${filePath}:1-1` }),
@@ -151,7 +152,7 @@ describe("write tool read projection guard", () => {
 		await expect(
 			new WriteTool(session).execute("write-line", { path: filePath, content: projection }),
 		).rejects.toThrow("incomplete read projection");
-		expect(await Bun.file(filePath).text()).toBe(original);
+		expect(await bun.file(filePath).text()).toBe(original);
 	});
 
 	it("rejects actual bounded archive-member output without changing the archive", async () => {
@@ -159,7 +160,7 @@ describe("write tool read projection guard", () => {
 		const member = "member.txt";
 		const original = `${Array.from({ length: 60 }, (_, index) => `line ${index + 1}`).join("\n")}\n`;
 		await writeArchive(archivePath, "zip", [[member, original]]);
-		const before = await Bun.file(archivePath).bytes();
+		const before = await bun.file(archivePath).bytes();
 		const session = createSession(tmpDir);
 		const projection = resultText(
 			await wrapToolWithMetaNotice(new ReadTool(session)).execute("read-archive", {
@@ -171,7 +172,7 @@ describe("write tool read projection guard", () => {
 		await expect(
 			new WriteTool(session).execute("write-archive", { path: `${archivePath}:${member}`, content: projection }),
 		).rejects.toThrow("incomplete read projection");
-		expect(await Bun.file(archivePath).bytes()).toEqual(before);
+		expect(await bun.file(archivePath).bytes()).toEqual(before);
 		const entries = await readArchiveEntries({ bytes: before, format: "zip" });
 		expect(new TextDecoder().decode(entries.get(member))).toBe(original);
 	});
@@ -221,7 +222,7 @@ describe("write tool read projection guard", () => {
 			(_, index) =>
 				`export function handler${index}(input: number): number {\n\tconst doubled = input * 2;\n\treturn doubled + ${index};\n}\n`,
 		).join("\n");
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		const session = createSession(tmpDir);
 
 		const projection = resultText(
@@ -232,7 +233,7 @@ describe("write tool read projection guard", () => {
 		await expect(
 			new WriteTool(session).execute("write-local", { path: "local://big.ts", content: projection }),
 		).rejects.toThrow("incomplete read projection");
-		expect(await Bun.file(filePath).text()).toBe(original);
+		expect(await bun.file(filePath).text()).toBe(original);
 	});
 
 	it("round-trips a single-page read of a large local:// file without read metadata", async () => {
@@ -240,7 +241,7 @@ describe("write tool read projection guard", () => {
 		await fs.mkdir(localRoot, { recursive: true });
 		const filePath = path.join(localRoot, "notes.txt");
 		const original = `${Array.from({ length: 250 }, (_, index) => `note ${index + 1} ${"x".repeat(250)}`).join("\n")}\n`;
-		await Bun.write(filePath, original);
+		await bun.write(filePath, original);
 		// The file exceeds the raw-inline cap but must still read as one page, so lift the
 		// spill threshold that `read` pages at above the file size.
 		const session = {
@@ -254,14 +255,14 @@ describe("write tool read projection guard", () => {
 
 		// A writable scheme's read carries no backing-file hint that a write-back would persist.
 		await new WriteTool(session).execute("write-local", { path: "local://notes.txt", content: projection });
-		expect((await Bun.file(filePath).text()).trimEnd()).toBe(original.trimEnd());
+		expect((await bun.file(filePath).text()).trimEnd()).toBe(original.trimEnd());
 	});
 
 	it("compares against the ACP buffer before bridge writes", async () => {
 		const filePath = path.join(tmpDir, "bridge.txt");
 		const diskContent = "disk\n";
 		const bufferContent = `${Array.from({ length: 65 }, (_, index) => `buffer ${index + 1}`).join("\n")}\n`;
-		await Bun.write(filePath, diskContent);
+		await bun.write(filePath, diskContent);
 		let bridgeWriteCalled = false;
 		let bridgeReadCalled = false;
 		const bridge: ClientBridge = {
@@ -281,16 +282,16 @@ describe("write tool read projection guard", () => {
 		).rejects.toThrow("incomplete read projection");
 		expect(bridgeReadCalled).toBe(true);
 		expect(bridgeWriteCalled).toBe(false);
-		expect(await Bun.file(filePath).text()).toBe(diskContent);
+		expect(await bun.file(filePath).text()).toBe(diskContent);
 	});
 
 	it("writes a literal read notice when the replacement does not shrink the current source", async () => {
 		const filePath = path.join(tmpDir, "documentation.txt");
 		const content = "Example omp output:\n[Showing lines 1-20 of 60. Use :21 to continue]\n";
-		await Bun.write(filePath, "old\n");
+		await bun.write(filePath, "old\n");
 
 		await new WriteTool(createSession(tmpDir)).execute("call-2", { path: filePath, content });
 
-		expect(await Bun.file(filePath).text()).toBe(content);
+		expect(await bun.file(filePath).text()).toBe(content);
 	});
 });

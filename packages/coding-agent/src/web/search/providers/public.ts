@@ -5,6 +5,7 @@ import { clampNumResults } from "../utils";
 import type { SearchParams } from "./base";
 import { SearchProvider } from "./base";
 import { withHardTimeout } from "./utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Credential-free engines the Public Web aggregate fans out to. Order is the
@@ -147,9 +148,9 @@ export async function searchPublicWeb(
 		}),
 	);
 
-	await Promise.race([all, Bun.sleep(softMs)]);
+	await Promise.race([all, bun.sleep(softMs)]);
 	if (!responses.some(response => response !== undefined) && failures.length < engineIds.length) {
-		await Promise.race([all, firstSuccess.promise, Bun.sleep(Math.max(0, hardMs - softMs))]);
+		await Promise.race([all, firstSuccess.promise, bun.sleep(Math.max(0, hardMs - softMs))]);
 	}
 	straggler.abort();
 

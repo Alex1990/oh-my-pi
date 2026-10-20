@@ -6,7 +6,7 @@
 //  3. Obfuscation fixture: secrets in tool-call arguments / toolResult
 //     details.diff are obfuscated BEFORE chunk rendering (message-level pass),
 //     matching the old security contract.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 
 import { renderAdvisorDeltaChunks } from "../../src/advisor/delta-split";

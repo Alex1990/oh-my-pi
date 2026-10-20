@@ -4,7 +4,7 @@
  * turn holds it again. A dialog waiting for the user's answer ends the turn's hold until it settles, and a subagent
  * marks no turns, so its runs keep the native grace period.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";

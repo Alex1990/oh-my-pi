@@ -18,7 +18,7 @@
  * variadic, and the arm64-darwin ABI passes variadic arguments on the stack,
  * so a fixed-arity FFI signature would read garbage for the third argument.
  */
-import { dlopen, FFIType } from "bun:ffi";
+import { dlopen, FFIType } from "@oh-my-pi/pi-utils/ffi";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getLogPath } from "./dirs";

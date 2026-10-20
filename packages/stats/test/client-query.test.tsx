@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseHTML } from "@oh-my-pi/pi-utils/dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -8,7 +8,7 @@ import { inflightRequest, loadQuery, releaseQuery } from "../src/client/data/que
 import type { SessionTrace } from "../src/client/types";
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
 let root: Root | null = null;
@@ -160,15 +160,12 @@ describe("trace revalidation", () => {
 		const trace = { file: "/s.jsonl", tracks: [] };
 		const ifNoneMatch: (string | null)[] = [];
 		const jsonSpy = vi.spyOn(Response.prototype, "json");
-		const fetchStub = Object.assign(
-			async (_input: FetchInput, init?: FetchInit) => {
-				const tag = new Headers(init?.headers).get("If-None-Match");
-				ifNoneMatch.push(tag);
-				if (tag === '"v1"') return new Response(null, { status: 304 });
-				return Response.json(trace, { headers: { ETag: '"v1"' } });
-			},
-			{ preconnect: globalThis.fetch.preconnect },
-		);
+		const fetchStub = async (_input: FetchInput, init?: FetchInit) => {
+			const tag = new Headers(init?.headers).get("If-None-Match");
+			ifNoneMatch.push(tag);
+			if (tag === '"v1"') return new Response(null, { status: 304 });
+			return Response.json(trace, { headers: { ETag: '"v1"' } });
+		};
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 
 		const results: QueryResult<SessionTrace>[] = [];

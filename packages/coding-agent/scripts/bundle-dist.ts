@@ -4,12 +4,19 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { buildDocsIndexPayload } from "./generate-docs-index";
+import { createBunImportAttributesPlugin } from "./import-attributes-plugin";
 import { createJsonParsePlugin } from "./json-parse-plugin";
 import { createLegacyPiVirtualModulePlugin } from "./legacy-pi-virtual-module";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { build } from "@oh-my-pi/pi-utils/node-build";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const packageDir = path.join(import.meta.dir, "..");
+const packageDir = path.join(import.meta.dirname, "..");
+
+/** `with { type: "text" }` imports are inlined by esbuild's text loader. */
+const TEXT_LOADERS = { ".md": "text" as const, ".txt": "text" as const, ".py": "text" as const, ".lark": "text" as const, ".plist": "text" as const };
 const defaultOutDir = path.join(packageDir, "dist");
-const shebang = "#!/usr/bin/env bun\n";
+const shebang = "#!/usr/bin/env node\n";
 const htmlExportAssetPattern =
 	/^(?:template-[^.]+\.(?:css|html|js)|tool-views\.generated-[^.]+\.js|(?:marked|highlight)\.min-[^.]+\.js)$/;
 
@@ -23,10 +30,10 @@ const ALWAYS_EXTERNAL = ["@oh-my-pi/pi-natives", "@huggingface/transformers", "f
 // import would load the unpatched npm package in users' installs (currently
 // @ark/schema is patched, so it — and arktype, which pulls @ark/schema — stay
 // bundled).
-const RUNTIME_EXTERNAL = ["puppeteer-core", "@babel/parser"];
+const RUNTIME_EXTERNAL = ["puppeteer-core", "@babel/parser", "prettier", "jsonc-parser"];
 
 async function runCommand(command: string[]): Promise<void> {
-	const proc = Bun.spawn(command, {
+	const proc = bun.spawn(command, {
 		cwd: packageDir,
 		stdout: "inherit",
 		stderr: "inherit",
@@ -36,10 +43,10 @@ async function runCommand(command: string[]): Promise<void> {
 }
 
 async function ensureShebang(cliPath: string): Promise<void> {
-	const text = await Bun.file(cliPath).text();
+	const text = await bun.file(cliPath).text();
 	if (text.startsWith(shebang)) return;
 	const withoutExisting = text.startsWith("#!") ? text.slice(text.indexOf("\n") + 1) : text;
-	await Bun.write(cliPath, shebang + withoutExisting);
+	await bun.write(cliPath, shebang + withoutExisting);
 }
 
 function formatBytes(bytes: number): string {
@@ -76,12 +83,12 @@ async function cleanBundleOutputs(outDir: string): Promise<void> {
 /** Builds the npm CLI bundle into `outDir`; release scripts use the package `dist` directory by default. */
 export async function bundleDist(outDir: string = defaultOutDir): Promise<void> {
 	const cliPath = path.join(outDir, "cli.js");
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	await cleanBundleOutputs(outDir);
 	// The npm bundle ships no stats dashboard sources, so embed the dashboard
 	// archive the same way compiled binaries do (scripts/build-binary.ts). Reset
 	// afterwards to keep the checked-in placeholder empty.
-	await runCommand(["bun", "--cwd=../stats", "run", "gen:stats"]);
+	await runCommand(["pnpm", "--dir", "../stats", "run", "gen:stats"]);
 	// One payload for both consumers: inlined into dist/cli.js via `--define` for
 	// the bundled CLI entrypoint, and written to dist/docs-index.generated.txt so
 	// SDK consumers importing `@oh-my-pi/pi-coding-agent/*` (TypeScript source, no
@@ -91,11 +98,20 @@ export async function bundleDist(outDir: string = defaultOutDir): Promise<void> 
 		// Build in-process: the docs embed payload is far larger than Linux's
 		// 128KiB per-argv-string cap, so it can never be passed as a CLI
 		// `--define` (posix_spawn fails with E2BIG).
-		const output = await Bun.build({
+		const output = await build({
 			entrypoints: [path.join(packageDir, "src/cli.ts")],
 			outdir: outDir,
-			target: "bun",
-			plugins: [createJsonParsePlugin(), await createLegacyPiVirtualModulePlugin()],
+			target: "node",
+			banner: {
+				js: [
+					'import { fileURLToPath as __ompFileURLToPath } from "node:url";',
+					'import { dirname as __ompDirname } from "node:path";',
+					"const __filename = __ompFileURLToPath(import.meta.url);",
+					"const __dirname = __ompDirname(__filename);",
+				].join("\n"),
+			},
+			loader: TEXT_LOADERS,
+			plugins: [createJsonParsePlugin(), await createLegacyPiVirtualModulePlugin(), createBunImportAttributesPlugin()],
 			external: [...ALWAYS_EXTERNAL, ...RUNTIME_EXTERNAL],
 			define: {
 				"process.env.PI_BUNDLED": JSON.stringify("true"),
@@ -113,15 +129,15 @@ export async function bundleDist(outDir: string = defaultOutDir): Promise<void> 
 			throw new Error(`CLI bundle failed:\n${output.logs.map(log => log.message).join("\n")}`);
 		}
 		await ensureShebang(cliPath);
-		await Bun.write(path.join(outDir, "docs-index.generated.txt"), docsPayload.payload);
+		await bun.write(path.join(outDir, "docs-index.generated.txt"), docsPayload.payload);
 	} finally {
-		await runCommand(["bun", "--cwd=../stats", "run", "gen:stats:reset"]);
+		await runCommand(["pnpm", "--dir", "../stats", "run", "gen:stats:reset"]);
 	}
 	const stat = await fs.stat(cliPath);
-	const elapsedMs = (Bun.nanoseconds() - start) / 1_000_000;
+	const elapsedMs = (bun.nanoseconds() - start) / 1_000_000;
 	process.stdout.write(
 		`Bundled coding-agent CLI to ${cliPath} (${formatBytes(stat.size)}) in ${elapsedMs.toFixed(0)}ms\n`,
 	);
 }
 
-if (import.meta.main) await bundleDist();
+if (isMainModule(import.meta.url)) await bundleDist();

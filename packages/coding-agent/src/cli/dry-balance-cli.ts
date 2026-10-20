@@ -27,6 +27,7 @@ import {
 import { Settings } from "../config/settings";
 import dryBalanceBenchPrompt from "../prompts/dry-balance-bench.md" with { type: "text" };
 import { discoverAuthStorage, loadCliExtensionProviders } from "../sdk";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_SAMPLE_COUNT = 100;
 const DEFAULT_CONCURRENCY = 32;
@@ -786,7 +787,7 @@ export async function runDryBalanceCommand(
 	const concurrency = isBench
 		? 0
 		: Math.min(samples, normalizePositiveInteger("concurrency", command.flags.concurrency, DEFAULT_CONCURRENCY));
-	const randomSessionId = deps.randomSessionId ?? (() => Bun.randomUUIDv7());
+	const randomSessionId = deps.randomSessionId ?? (() => bun.randomUUIDv7());
 	const writeStdout = deps.writeStdout ?? ((text: string) => process.stdout.write(text));
 	const writeStderr = deps.writeStderr ?? ((text: string) => process.stderr.write(text));
 	const setExitCode =

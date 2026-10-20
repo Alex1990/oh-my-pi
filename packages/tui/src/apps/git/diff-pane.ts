@@ -24,6 +24,7 @@ import { getLanguageFromPath } from "../../lang-from-path";
 import { createHighlightStream, getThemeEpoch, theme } from "../../theme/theme";
 import { bgAnsiHex, canvasHex, fgAnsiHex, mixHex, pill, selectionBgAnsi, textHex, withBg } from "./colors";
 import { DIFF_CONTEXT_LINES, type FileAssetSide, type FileStreamUpdate } from "./state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Column ranges (inclusive start, exclusive end) carrying intraline emphasis. */
 type MarkRanges = readonly (readonly [number, number])[];
@@ -747,7 +748,7 @@ export class DiffPane {
 				);
 			}
 			requestRender();
-			if (oldOffset < doc.oldDisplayLines.length || newOffset < doc.newDisplayLines.length) await Bun.sleep(0);
+			if (oldOffset < doc.oldDisplayLines.length || newOffset < doc.newDisplayLines.length) await bun.sleep(0);
 		}
 	}
 

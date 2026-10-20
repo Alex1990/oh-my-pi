@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildArchiveBase64 } from "../scripts/generate-client-bundle";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 const tempDirs: string[] = [];
 
@@ -12,7 +14,7 @@ async function createFixture(order: readonly string[]): Promise<string> {
 	for (const relativePath of order) {
 		const filePath = path.join(root, relativePath);
 		await fs.mkdir(path.dirname(filePath), { recursive: true });
-		await Bun.write(filePath, relativePath === "index.html" ? "<main>OMP</main>" : "body { color: blue; }");
+		await bun.write(filePath, relativePath === "index.html" ? "<main>OMP</main>" : "body { color: blue; }");
 	}
 	return root;
 }
@@ -46,10 +48,11 @@ describe("embedded stats client archive", () => {
 
 		const gzipBytes = Buffer.from(first, "base64");
 		expect(gzipBytes.readUInt32LE(4)).toBe(0);
-		const tarBytes = Bun.gunzipSync(gzipBytes);
-		expect(tarHeaderMtimes(tarBytes)).toEqual([0, 0]);
+		const tarBytes = bun.gunzipSync(gzipBytes);
+		// Two file headers plus the synthesized `assets/` directory entry.
+		expect(tarHeaderMtimes(tarBytes)).toEqual([0, 0, 0]);
 
-		const files = await new Bun.Archive(gzipBytes).files();
+		const files = await new Archive(gzipBytes).files();
 		expect(await files.get("index.html")?.text()).toBe("<main>OMP</main>");
 		expect(await files.get("assets/app.css")?.text()).toBe("body { color: blue; }");
 	});

@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,6 +25,7 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 
 import { cfgCompactionModelThresholds, cfgExtendedContext } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ModelRegistry", () => {
 	let tempDir: string;
@@ -49,12 +50,12 @@ describe("ModelRegistry", () => {
 
 	beforeEach(async () => {
 		resetSettingsForTest();
-		originalOllamaBaseUrl = Bun.env.OLLAMA_BASE_URL;
-		originalOllamaHost = Bun.env.OLLAMA_HOST;
-		originalOllamaContextLength = Bun.env.OLLAMA_CONTEXT_LENGTH;
-		delete Bun.env.OLLAMA_BASE_URL;
-		delete Bun.env.OLLAMA_HOST;
-		delete Bun.env.OLLAMA_CONTEXT_LENGTH;
+		originalOllamaBaseUrl = bun.env.OLLAMA_BASE_URL;
+		originalOllamaHost = bun.env.OLLAMA_HOST;
+		originalOllamaContextLength = bun.env.OLLAMA_CONTEXT_LENGTH;
+		delete bun.env.OLLAMA_BASE_URL;
+		delete bun.env.OLLAMA_HOST;
+		delete bun.env.OLLAMA_CONTEXT_LENGTH;
 		tempDir = path.join(os.tmpdir(), `pi-test-model-registry-${Snowflake.next()}`);
 		fs.mkdirSync(tempDir, { recursive: true });
 		modelsJsonPath = path.join(tempDir, "models.json");
@@ -68,19 +69,19 @@ describe("ModelRegistry", () => {
 		resetSettingsForTest();
 		for (const spy of spies.splice(0)) spy.mockRestore();
 		if (originalOllamaBaseUrl === undefined) {
-			delete Bun.env.OLLAMA_BASE_URL;
+			delete bun.env.OLLAMA_BASE_URL;
 		} else {
-			Bun.env.OLLAMA_BASE_URL = originalOllamaBaseUrl;
+			bun.env.OLLAMA_BASE_URL = originalOllamaBaseUrl;
 		}
 		if (originalOllamaHost === undefined) {
-			delete Bun.env.OLLAMA_HOST;
+			delete bun.env.OLLAMA_HOST;
 		} else {
-			Bun.env.OLLAMA_HOST = originalOllamaHost;
+			bun.env.OLLAMA_HOST = originalOllamaHost;
 		}
 		if (originalOllamaContextLength === undefined) {
-			delete Bun.env.OLLAMA_CONTEXT_LENGTH;
+			delete bun.env.OLLAMA_CONTEXT_LENGTH;
 		} else {
-			Bun.env.OLLAMA_CONTEXT_LENGTH = originalOllamaContextLength;
+			bun.env.OLLAMA_CONTEXT_LENGTH = originalOllamaContextLength;
 		}
 		authStorage.close();
 		if (tempDir && fs.existsSync(tempDir)) {
@@ -92,12 +93,12 @@ describe("ModelRegistry", () => {
 		// Build shared registries in a discovery-free, default-settings env so
 		// their results match what `beforeEach` guarantees for in-body tests.
 		resetSettingsForTest();
-		bootOllamaBaseUrl = Bun.env.OLLAMA_BASE_URL;
-		bootOllamaHost = Bun.env.OLLAMA_HOST;
-		bootOllamaContextLength = Bun.env.OLLAMA_CONTEXT_LENGTH;
-		delete Bun.env.OLLAMA_BASE_URL;
-		delete Bun.env.OLLAMA_HOST;
-		delete Bun.env.OLLAMA_CONTEXT_LENGTH;
+		bootOllamaBaseUrl = bun.env.OLLAMA_BASE_URL;
+		bootOllamaHost = bun.env.OLLAMA_HOST;
+		bootOllamaContextLength = bun.env.OLLAMA_CONTEXT_LENGTH;
+		delete bun.env.OLLAMA_BASE_URL;
+		delete bun.env.OLLAMA_HOST;
+		delete bun.env.OLLAMA_CONTEXT_LENGTH;
 		sharedAuth = await AuthStorage.create(":memory:");
 		sharedDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-test-mr-shared-"));
 		// Unmodified bundled catalog (no custom config); reused by built-in-only
@@ -111,12 +112,12 @@ describe("ModelRegistry", () => {
 	afterAll(() => {
 		sharedAuth.close();
 		removeSyncWithRetries(sharedDir);
-		if (bootOllamaBaseUrl === undefined) delete Bun.env.OLLAMA_BASE_URL;
-		else Bun.env.OLLAMA_BASE_URL = bootOllamaBaseUrl;
-		if (bootOllamaHost === undefined) delete Bun.env.OLLAMA_HOST;
-		else Bun.env.OLLAMA_HOST = bootOllamaHost;
-		if (bootOllamaContextLength === undefined) delete Bun.env.OLLAMA_CONTEXT_LENGTH;
-		else Bun.env.OLLAMA_CONTEXT_LENGTH = bootOllamaContextLength;
+		if (bootOllamaBaseUrl === undefined) delete bun.env.OLLAMA_BASE_URL;
+		else bun.env.OLLAMA_BASE_URL = bootOllamaBaseUrl;
+		if (bootOllamaHost === undefined) delete bun.env.OLLAMA_HOST;
+		else bun.env.OLLAMA_HOST = bootOllamaHost;
+		if (bootOllamaContextLength === undefined) delete bun.env.OLLAMA_CONTEXT_LENGTH;
+		else bun.env.OLLAMA_CONTEXT_LENGTH = bootOllamaContextLength;
 		resetSettingsForTest();
 	});
 
@@ -516,8 +517,8 @@ describe("ModelRegistry", () => {
 		});
 
 		test("apiKey-only override supplies fallback auth for built-in models", async () => {
-			const originalOpenAiKey = Bun.env.OPENAI_API_KEY;
-			delete Bun.env.OPENAI_API_KEY;
+			const originalOpenAiKey = bun.env.OPENAI_API_KEY;
+			delete bun.env.OPENAI_API_KEY;
 			try {
 				writeRawModelsJson({
 					openai: {
@@ -531,8 +532,8 @@ describe("ModelRegistry", () => {
 				expect(openaiModels.length).toBeGreaterThan(0);
 				await expect(registry.getApiKey(openaiModels[0])).resolves.toBe("issue-typed-key");
 			} finally {
-				if (originalOpenAiKey === undefined) delete Bun.env.OPENAI_API_KEY;
-				else Bun.env.OPENAI_API_KEY = originalOpenAiKey;
+				if (originalOpenAiKey === undefined) delete bun.env.OPENAI_API_KEY;
+				else bun.env.OPENAI_API_KEY = originalOpenAiKey;
 			}
 		});
 		test("zhipu-coding-plan glm-5.2 chat resolves the zhipu credential with model-scoped hints", async () => {
@@ -691,7 +692,7 @@ describe("ModelRegistry", () => {
 	describe("provider compat overrides", () => {
 		test("models.yml can opt a Responses provider in while opting one model out of stored chaining", async () => {
 			const modelsPath = path.join(tempDir, "models.yml");
-			await Bun.write(
+			await bun.write(
 				modelsPath,
 				`providers:
   stateful-proxy:
@@ -1365,9 +1366,9 @@ describe("ModelRegistry", () => {
 
 			async function loadRegistry(transport?: "pi-native", modelBaseUrl?: string): Promise<ModelRegistry> {
 				const modelsPath = path.join(tempDir, "models.yml");
-				await Bun.write(
+				await bun.write(
 					modelsPath,
-					Bun.YAML.stringify({
+					bun.YAML.stringify({
 						providers: {
 							openai: {
 								baseUrl: "https://gateway.example",

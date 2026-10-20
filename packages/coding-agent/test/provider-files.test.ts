@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Context, Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import {
@@ -16,6 +16,7 @@ import { createGeminiProviderFileClient } from "@oh-my-pi/pi-coding-agent/blob-b
 import { createOpenAIFileClient } from "@oh-my-pi/pi-coding-agent/blob-broker/provider-files-openai";
 import type { FetchImpl } from "@oh-my-pi/pi-coding-agent/blob-broker/uploader-runtime";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface RecordedRequest {
 	readonly url: string;
@@ -335,7 +336,7 @@ describe("ProviderFileCache", () => {
 		});
 		cache.save();
 
-		const persisted = await Bun.file(indexPath).text();
+		const persisted = await bun.file(indexPath).text();
 		expect(persisted).not.toContain("account-a-secret");
 		expect(persisted).not.toContain("account-b-secret");
 		now = 1_500;

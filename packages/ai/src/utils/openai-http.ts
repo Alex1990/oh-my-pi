@@ -164,7 +164,16 @@ async function* decodeStream<TEvent>(
 			// Not a recognisable throttle: reproduce the exact strict-parse failure the
 			// previous reader raised, so genuinely malformed payloads stay equally
 			// loud. A frame that parses again was a JSON string, not a malformed one.
-			JSON.parse(frame);
+			try {
+				JSON.parse(frame);
+			} catch (error) {
+				// Bun and Node word parse failures differently; surface one stable
+				// prefix so callers and tests do not depend on the engine's wording.
+				throw new SyntaxError(
+					`JSON Parse error: ${error instanceof Error ? error.message : String(error)}`,
+					{ cause: error },
+				);
+			}
 			continue;
 		}
 		yield frame;

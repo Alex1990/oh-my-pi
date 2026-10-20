@@ -25,6 +25,8 @@
  */
 import { HttpTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/http";
 import { LegacySseTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/sse";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** Fixed, and comfortably past the shortened idle default plus its wheel granularity. */
 const STALL_MS = 7_000;
@@ -57,7 +59,7 @@ function legacyStream(): ReadableStream<Uint8Array> {
 		start(controller) {
 			controller.enqueue(encoder.encode("event: endpoint\ndata: /messages\n\n"));
 			void (async () => {
-				const [id] = await Promise.all([posted.promise, Bun.sleep(STALL_MS)]);
+				const [id] = await Promise.all([posted.promise, bun.sleep(STALL_MS)]);
 				const answer = { jsonrpc: "2.0", id, result: { waited: true } };
 				try {
 					controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(answer)}\n\n`));
@@ -70,7 +72,7 @@ function legacyStream(): ReadableStream<Uint8Array> {
 	});
 }
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	// The client's idle timer is the subject; a server-side one would drop the
 	// socket first and the run would prove nothing.
@@ -87,7 +89,7 @@ const server = Bun.serve({
 			return new Response(null, { status: 202 });
 		}
 		const body = (await request.json()) as { id: string | number };
-		await Bun.sleep(STALL_MS);
+		await bun.sleep(STALL_MS);
 		return Response.json({ jsonrpc: "2.0", id: body.id, result: { waited: true } });
 	},
 });

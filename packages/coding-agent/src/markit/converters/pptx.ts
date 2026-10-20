@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { XMLParser } from "@oh-my-pi/pi-utils/xml";
 import type { ConversionResult, Converter, StreamInfo } from "../types";
 import { ZipPackage } from "@oh-my-pi/pi-utils/ar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXTENSIONS = [".pptx"];
 const MIMETYPES = ["application/vnd.openxmlformats-officedocument.presentationml.presentation"];
@@ -212,7 +213,7 @@ export class PptxConverter implements Converter {
 						const filepath = path.join(imageDir, filename);
 						const buf = await zip.readBytes(normalizedPath);
 						if (!buf) throw new Error(`Missing image ${normalizedPath}`);
-						await Bun.write(filepath, buf);
+						await bun.write(filepath, buf);
 						slideLines.push(`![${name}](${filepath})`);
 					} catch {
 						slideLines.push(`<!-- image: ${name} (slide ${i + 1}) -->`);

@@ -13,7 +13,7 @@
  * actions) must keep getting the pre-#5642 plain leaf move instead of
  * silently reporting a successful no-op navigation (review on #5895).
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, AgentBusyError, type AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";

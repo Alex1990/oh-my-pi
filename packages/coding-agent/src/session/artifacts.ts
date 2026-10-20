@@ -7,6 +7,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { replaceFileAtomically } from "../utils/atomic-file";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Sanitize a tool name for safe use as the middle segment of the artifact
@@ -45,11 +46,11 @@ export async function writeArtifact(path: string, content: string): Promise<numb
 	const expectedBytes = Buffer.byteLength(content);
 	const tempPath = `${path}.tmp-${crypto.randomUUID()}`;
 	try {
-		const writtenBytes = await Bun.write(tempPath, content);
+		const writtenBytes = await bun.write(tempPath, content);
 		if (writtenBytes !== expectedBytes) {
 			throw new Error(`Artifact write incomplete: wrote ${writtenBytes} of ${expectedBytes} bytes`);
 		}
-		const file = Bun.file(tempPath);
+		const file = bun.file(tempPath);
 		if (file.size !== expectedBytes) {
 			throw new Error(`Artifact size mismatch: found ${file.size} of ${expectedBytes} bytes`);
 		}

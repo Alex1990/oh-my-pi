@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FileDiagnosticsResult } from "@oh-my-pi/pi-tui/tools/lsp";
 import { DiagnosticsLedger, diagnosticIdentity } from "@oh-my-pi/pi-coding-agent/lsp/diagnostics-ledger";
 

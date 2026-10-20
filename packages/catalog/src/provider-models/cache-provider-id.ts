@@ -8,6 +8,7 @@ import {
 	SINGULARITYAPI_TECH_API_BASE_URL,
 	normalizeSingularityApiBaseUrl,
 } from "../wire/singularityapi";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface ModelCacheProviderIdOptions extends AccountScope {
 	apiKey?: string;
@@ -43,7 +44,7 @@ export function getDefaultModelDiscoveryBaseUrl(providerId: string): string | un
 		case "ollama":
 			return "http://127.0.0.1:11434";
 		case "litellm":
-			return Bun.env.LITELLM_BASE_URL ?? "http://localhost:4000/v1";
+			return bun.env.LITELLM_BASE_URL ?? "http://localhost:4000/v1";
 		case "opencode-go":
 			return "https://opencode.ai/inference/go/v1";
 		case "opencode-zen":
@@ -67,7 +68,7 @@ export function resolveOllamaModelCacheProviderId(providerId: string, baseUrl?: 
 	} catch {
 		// Malformed URLs fall back during discovery, so share the default endpoint's cache.
 	}
-	return `${providerId}:ollama-models-v1:${Bun.hash(endpoint).toString(36)}`;
+	return `${providerId}:ollama-models-v1:${bun.hash(endpoint).toString(36)}`;
 }
 
 /**
@@ -98,7 +99,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// unhashed namespace so existing caches stay valid.
 			const baseUrl = options.baseUrl?.trim().replace(/\/+$/, "");
 			if (!baseUrl || baseUrl === CODEX_BASE_URL) return `${providerId}:${CODEX_CLIENT_VERSION}`;
-			return `${providerId}:${CODEX_CLIENT_VERSION}:${Bun.hash(baseUrl).toString(36)}`;
+			return `${providerId}:${CODEX_CLIENT_VERSION}:${bun.hash(baseUrl).toString(36)}`;
 		}
 		case "ollama":
 			return resolveOllamaModelCacheProviderId(providerId, options.baseUrl);
@@ -113,7 +114,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			const baseUrl = (options.baseUrl ?? CURSOR_DEFAULT_BASE_URL).replace(/\/+$/, "");
 			const apiKey = options.apiKey ?? "";
 			const scope = `${cursorCredentialSubject(apiKey) ?? apiKey}\u0000${baseUrl}`;
-			return `cursor:rich-models-v5:${Bun.hash(scope).toString(36)}`;
+			return `cursor:rich-models-v5:${bun.hash(scope).toString(36)}`;
 		}
 		case "charm-hyper": {
 			// Discovery is authoritative for this gateway, so a warm cache is served
@@ -130,12 +131,12 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// Normalized through the shared helper because the registry passes the
 			// raw configured value while `charmHyperModelManagerOptions` passes a
 			// `/v1`-suffixed one; both must land on one namespace.
-			return `charm-hyper:models-v1:${Bun.hash(normalizeCharmHyperBaseUrl(options.baseUrl)).toString(36)}`;
+			return `charm-hyper:models-v1:${bun.hash(normalizeCharmHyperBaseUrl(options.baseUrl)).toString(36)}`;
 		}
 		case "muse-code": {
 			const baseUrl = options.baseUrl ?? getDefaultModelDiscoveryBaseUrl(providerId)!;
 			const scope = `${options.apiKey ?? ""}\u0000${baseUrl}`;
-			return `muse-code:models-v1:${Bun.hash(scope).toString(36)}`;
+			return `muse-code:models-v1:${bun.hash(scope).toString(36)}`;
 		}
 		case "singularityapi-dev":
 		case "singularityapi-tech": {
@@ -156,7 +157,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 				providerId === "singularityapi-tech" ? SINGULARITYAPI_TECH_API_BASE_URL : SINGULARITYAPI_DEV_API_BASE_URL;
 			const baseUrl = normalizeSingularityApiBaseUrl(options.baseUrl, canonical);
 			const scope = `${options.apiKey ?? ""}\u0000${baseUrl}`;
-			return `${providerId}:models-v1:${Bun.hash(scope).toString(36)}`;
+			return `${providerId}:models-v1:${bun.hash(scope).toString(36)}`;
 		}
 		case "litellm": {
 			const baseUrl = options.baseUrl ?? getDefaultModelDiscoveryBaseUrl(providerId)!;
@@ -167,7 +168,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// declaration into it; earlier versions invalidated rows whose
 			// `compatConfig` retained a colliding bundled model's provider-specific
 			// transport (e.g. Fireworks `wireModelIdMode`) (issue #9938).
-			return `litellm:rich-v12:${Bun.hash(baseUrl).toString(36)}`;
+			return `litellm:rich-v12:${bun.hash(baseUrl).toString(36)}`;
 		}
 		case "gmi-cloud":
 		case "siliconflow":
@@ -183,7 +184,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			const trimmedBaseUrl = configuredBaseUrl.endsWith("/") ? configuredBaseUrl.slice(0, -1) : configuredBaseUrl;
 			const discoveryBaseUrl = trimmedBaseUrl.endsWith("/v1") ? trimmedBaseUrl : `${trimmedBaseUrl}/v1`;
 			const scope = `${options.apiKey ?? ""}\u0000${discoveryBaseUrl}`;
-			return `${providerId}:models-v3:${Bun.hash(scope).toString(36)}`;
+			return `${providerId}:models-v3:${bun.hash(scope).toString(36)}`;
 		}
 		case "github-copilot": {
 			// Copilot model specs bake in the plan-specific endpoint (personal vs
@@ -201,7 +202,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// another provider's routing — so version the namespace instead.
 			const baseUrl = options.baseUrl ?? PERSONAL_GITHUB_COPILOT_BASE_URL;
 			const scope = `${options.apiKey ?? ""}\u0000${baseUrl}`;
-			return `github-copilot:models-v2:${Bun.hash(scope).toString(36)}`;
+			return `github-copilot:models-v2:${bun.hash(scope).toString(36)}`;
 		}
 		case "factory-droid":
 			return factoryDroidModelCacheProviderId(options);
@@ -211,7 +212,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// v2: qwen3.8 rows cached before the reasoning/template-effort upgrade
 			// carry `reasoning: false` and must be refetched.
 			const baseUrl = options.baseUrl ?? getDefaultModelDiscoveryBaseUrl(providerId)!;
-			return `vllm:models-v2:${Bun.hash(baseUrl).toString(36)}`;
+			return `vllm:models-v2:${bun.hash(baseUrl).toString(36)}`;
 		}
 		case "devin":
 			// v2: rows cached before Fusion pairings carried their lead uid as

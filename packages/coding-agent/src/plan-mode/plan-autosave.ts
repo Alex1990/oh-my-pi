@@ -87,7 +87,7 @@ export async function autosaveApprovedPlan(input: {
 	if (!isPlanAutosaveEnabled(input.settings)) return null;
 	if (input.planContent.trim() === "") return null;
 	const dir = resolvePlanAutosaveDir(input.settings, input.cwd);
-	// fs.writeFile (unlike Bun.write) leaves parent creation to us; one mkdir
+	// fs.writeFile (unlike bun.write) leaves parent creation to us; one mkdir
 	// up front covers every candidate the claim loop below may create.
 	await fs.mkdir(dir, { recursive: true });
 	return claimAutosavePath(dir, planSaveFileName(input.title), input.planContent);

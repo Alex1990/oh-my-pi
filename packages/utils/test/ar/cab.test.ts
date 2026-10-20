@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { readUInt32LE } from "../../src/ar/bytes";
 import { readCab, sniffCab } from "../../src/ar/cab";
 import { ArchiveError } from "../../src/ar/error";
@@ -6,6 +6,7 @@ import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
 import { type ByteSource, memoryByteSource } from "../../src/ar/source";
 import type { ArchiveIndexEntry } from "../../src/ar/types";
 import { arFixture as fixtureBytes } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const textDecoder = new TextDecoder();
 
@@ -32,7 +33,7 @@ function indexOfAscii(bytes: Uint8Array, value: string): number {
 }
 
 function sha256(bytes: Uint8Array): string {
-	return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	return new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
 const expectedNestedPayload = `nested cabinet payload\n${"history-window-line\n".repeat(3000)}`;

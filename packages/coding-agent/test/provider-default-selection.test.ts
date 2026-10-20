@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { fetchCursorUsableModels } from "@oh-my-pi/pi-catalog/discovery/cursor";
@@ -23,6 +23,7 @@ import { create, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
 import { getBundledModel, getBundledModels } from "@oh-my-pi/pi-catalog/models";
 import { DEFAULT_MODEL_PER_PROVIDER } from "@oh-my-pi/pi-catalog/provider-models";
 import { pickDefaultAvailableModel } from "@oh-my-pi/pi-coding-agent/config/model-resolver";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** One `GetCliModelConfigs` row; `effort` files it as a lane of a server-declared family. */
 function devinConfig(
@@ -224,7 +225,7 @@ describe("provider default selection", () => {
 				create(GetDefaultModelForCliResponseSchema, { model: create(ModelDetailsSchema, { modelId: "default" }) }),
 			),
 		};
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: request => {
 				const body = responses[new URL(request.url).pathname];

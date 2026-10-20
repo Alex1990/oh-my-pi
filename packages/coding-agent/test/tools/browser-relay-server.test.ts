@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { findFreeCdpPort } from "@oh-my-pi/pi-coding-agent/tools/browser/attach";
 import { relayCdpClientsOf } from "@oh-my-pi/pi-coding-agent/tools/browser/relay/probe";
 import {
@@ -6,6 +6,7 @@ import {
 	type RelayUnavailableInfo,
 	startRelayServer,
 } from "@oh-my-pi/pi-coding-agent/tools/browser/relay/server";
+import { connect } from "@oh-my-pi/pi-utils/net-compat";
 
 const EXTENSION_HELLO = {
 	t: "hello",
@@ -19,7 +20,7 @@ const EXTENSION_HELLO = {
 async function rawGet(port: number, requestBytes: string): Promise<string> {
 	const { promise, resolve, reject } = Promise.withResolvers<string>();
 	let response = "";
-	await Bun.connect({
+	await connect({
 		hostname: "127.0.0.1",
 		port,
 		socket: {
@@ -109,7 +110,7 @@ describe("browser relay discovery endpoint", () => {
 
 	async function startReadyRelay(): Promise<number> {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		extension = await connectExtension(port);
 		await waitForDiscovery(port);
 		return port;
@@ -147,7 +148,7 @@ describe("browser relay discovery endpoint", () => {
 
 	it("reports 503 with extensionSeen=false while no extension has ever handshaken", async () => {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		const response = await fetch(`http://127.0.0.1:${port}/json/version`);
 		expect(response.status).toBe(503);
 		const info = (await response.json()) as RelayUnavailableInfo;
@@ -172,7 +173,7 @@ describe("browser relay discovery endpoint", () => {
 
 	it("reports how many CDP clients are connected, both while waiting for the extension and once ready", async () => {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		const discovery = async () => {
 			const response = await fetch(`http://127.0.0.1:${port}/json/version`);
 			const body: unknown = await response.json();

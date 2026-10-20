@@ -20,6 +20,7 @@ import {
 import { parseSel } from "./read-selector";
 import { throwIfAborted } from "./tool-errors";
 import { toolResult } from "./tool-result";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const JSON_FILE_PATTERN = /\.(?:jsonl?|ndjson)$/i;
 const DEFAULT_JSON_QUERY_LIMIT = 100;
@@ -218,7 +219,7 @@ function pageStream(values: string[], selector: JsonSelector, page: JsonPage, mo
 
 async function readStderr(stderrPath: string): Promise<string> {
 	try {
-		return await Bun.file(stderrPath).text();
+		return await bun.file(stderrPath).text();
 	} catch (err) {
 		if (isEnoent(err)) return "";
 		throw err;
@@ -373,7 +374,7 @@ export async function resolveJsonReadPath(
 
 	const absolutePath = resolveReadPath(target.jsonPath, session.cwd);
 	try {
-		const stat = await Bun.file(absolutePath).stat();
+		const stat = await bun.file(absolutePath).stat();
 		return stat.isFile() ? { absolutePath, selector } : null;
 	} catch (error) {
 		if (!isNotFoundError(error) || isRemoteMountPath(absolutePath)) return null;
@@ -382,7 +383,7 @@ export async function resolveJsonReadPath(
 	const suffixMatch = await findSuffixMatchCached(session, suffixCache, target.jsonPath, signal);
 	if (!suffixMatch) return null;
 	try {
-		const stat = await Bun.file(suffixMatch.absolutePath).stat();
+		const stat = await bun.file(suffixMatch.absolutePath).stat();
 		if (!stat.isFile()) return null;
 	} catch (error) {
 		if (isNotFoundError(error)) return null;

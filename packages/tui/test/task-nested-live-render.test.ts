@@ -1,8 +1,9 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { AgentProgress, SingleResult, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { taskToolRenderer } from "@oh-my-pi/pi-tui/tools/task";
 import { formatDuration, formatNumber } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("task renderer: nested live rendering", () => {
 	beforeAll(async () => {
@@ -94,7 +95,7 @@ describe("task renderer: nested live rendering", () => {
 			{ expanded: false, isPartial: true, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(160).join("\n"));
+		return bun.stripANSI(component.render(160).join("\n"));
 	}
 
 	it("renders completed nested task results stored in extractedToolData.task while parent is in-progress", async () => {
@@ -249,14 +250,14 @@ describe("task renderer: nested live rendering", () => {
 		};
 		const f0 = renderAt(0);
 		const f1 = renderAt(700);
-		const header0 = f0.find(l => Bun.stripANSI(l).includes("Task"))!;
-		const header1 = f1.find(l => Bun.stripANSI(l).includes("Task"))!;
-		const body0 = f0.find(l => Bun.stripANSI(l).includes("Probe"))!;
-		const body1 = f1.find(l => Bun.stripANSI(l).includes("Probe"))!;
+		const header0 = f0.find(l => bun.stripANSI(l).includes("Task"))!;
+		const header1 = f1.find(l => bun.stripANSI(l).includes("Task"))!;
+		const body0 = f0.find(l => bun.stripANSI(l).includes("Probe"))!;
+		const body1 = f1.find(l => bun.stripANSI(l).includes("Probe"))!;
 		// Header and per-agent body rows are static; only the tool header owns live animation.
 		expect(header0).toBe(header1);
 		expect(body0).toBe(body1);
-		expect(Bun.stripANSI(body1)).toContain(`${theme.status.done} Probe: Investigate padding`);
+		expect(bun.stripANSI(body1)).toContain(`${theme.status.done} Probe: Investigate padding`);
 	});
 
 	it("wraps the completed run summary in bracket glyphs, dropping the Total: label", async () => {
@@ -273,7 +274,7 @@ describe("task renderer: nested live rendering", () => {
 			{ expanded: false, isPartial: false },
 			theme,
 		);
-		const text = Bun.stripANSI(component.render(160).join("\n"));
+		const text = bun.stripANSI(component.render(160).join("\n"));
 		// Bash-style bracketed footer: dim bracket chrome wrapping colored counts,
 		// with no "Total:" prefix between the bracket and the first count.
 		const expected = `${theme.format.bracketLeft}1 succeeded${theme.sep.dot}1 failed${theme.sep.dot}${formatDuration(39_400)}${theme.format.bracketRight}`;

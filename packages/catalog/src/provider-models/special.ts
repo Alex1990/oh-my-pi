@@ -18,6 +18,7 @@ import { DEVIN_DEFAULT_BASE_URL } from "../wire/devin";
 import { unionAccountCatalogs } from "./account-access";
 import { toModelSpec } from "./bundled-references";
 import { resolveModelCacheProviderId } from "./cache-provider-id";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ---------------------------------------------------------------------------
 // OpenAI Codex
@@ -326,11 +327,11 @@ function gitLabDuoWorkflowModelCacheProviderId(apiKey: string, config: GitLabDuo
 	// namespace/project config OR the same env vars, then the git remote at the
 	// effective cwd. Built-in discovery leaves the config fields empty, so the env +
 	// resolved cwd terms are what actually distinguish two workspaces sharing a token.
-	const namespaceId = config.namespaceId ?? Bun.env.GITLAB_DUO_NAMESPACE_ID ?? "";
-	const projectId = config.projectId ?? Bun.env.GITLAB_DUO_PROJECT_ID ?? Bun.env.GITLAB_DUO_PROJECT_PATH ?? "";
+	const namespaceId = config.namespaceId ?? bun.env.GITLAB_DUO_NAMESPACE_ID ?? "";
+	const projectId = config.projectId ?? bun.env.GITLAB_DUO_PROJECT_ID ?? bun.env.GITLAB_DUO_PROJECT_PATH ?? "";
 	const cwd = config.cwd ?? process.cwd();
 	const scope = [config.baseUrl ?? "", namespaceId, projectId, cwd].join("\u0000");
-	return `gitlab-duo-agent:${Bun.hash(`${apiKey}\u0000${scope}`).toString(36)}`;
+	return `gitlab-duo-agent:${bun.hash(`${apiKey}\u0000${scope}`).toString(36)}`;
 }
 
 // Devin (Codeium Cascade)
@@ -430,7 +431,7 @@ export interface TypeSafeModelManagerConfig {
  */
 export function typesafeModelManagerOptions(config: TypeSafeModelManagerConfig = {}): ModelManagerOptions<"typesafe"> {
 	const { apiKey } = config;
-	const envBaseUrl = Bun.env.TYPESAFE_BASE_URL?.trim();
+	const envBaseUrl = bun.env.TYPESAFE_BASE_URL?.trim();
 	const baseUrl = (config.baseUrl ?? (envBaseUrl || TYPESAFE_DEFAULT_BASE_URL)).replace(/\/+$/, "");
 	const staticModels = seedModels<"typesafe">("typesafe").map(model => ({ ...model, baseUrl }));
 	return {

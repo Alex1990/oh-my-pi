@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface AdvisorNoteFixture {
 	note: string;
@@ -36,7 +37,7 @@ function render(tree: SessionTreeNode[]): string {
 		() => {},
 		() => {},
 	);
-	return Bun.stripANSI(selector.render(120).join("\n"));
+	return bun.stripANSI(selector.render(120).join("\n"));
 }
 
 describe("TreeSelectorComponent advisor message rendering", () => {

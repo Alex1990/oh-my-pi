@@ -16,6 +16,8 @@
  * (including `notifications/initialized`) are dropped.
  */
 import * as readline from "node:readline";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const TOOL_NAME = "late_tool";
 export const TOOL_RESULT = "MCP_LATE_CONNECT_OK_9d21";
@@ -55,8 +57,8 @@ function buildResult(method: string): Record<string, unknown> {
 
 async function startServer(): Promise<void> {
 	const markerPath = process.argv[2];
-	const delayInitialize = !markerPath || !(await Bun.file(markerPath).exists());
-	if (markerPath && delayInitialize) await Bun.write(markerPath, "");
+	const delayInitialize = !markerPath || !(await bun.file(markerPath).exists());
+	if (markerPath && delayInitialize) await bun.write(markerPath, "");
 
 	const rl = readline.createInterface({ input: process.stdin });
 	rl.on("line", line => {
@@ -72,7 +74,7 @@ async function startServer(): Promise<void> {
 			if (msg.id === undefined || msg.id === null) return;
 			if (msg.method === "initialize" && delayInitialize) {
 				if (markerPath) return;
-				await Bun.sleep(INITIALIZE_DELAY_MS);
+				await bun.sleep(INITIALIZE_DELAY_MS);
 			}
 			const response = { jsonrpc: "2.0" as const, id: msg.id, result: buildResult(msg.method) };
 			process.stdout.write(`${JSON.stringify(response)}\n`);
@@ -81,6 +83,6 @@ async function startServer(): Promise<void> {
 	rl.on("close", () => process.exit(0));
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	void startServer();
 }

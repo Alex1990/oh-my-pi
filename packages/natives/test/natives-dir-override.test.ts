@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -31,7 +31,6 @@ describe("native addon directory override", () => {
 		process.env.HOME = home;
 		process.env.USERPROFILE = home;
 		process.env.PI_NATIVE_VARIANT = "baseline";
-		vi.spyOn(os, "homedir").mockReturnValue(home);
 	});
 
 	afterEach(async () => {

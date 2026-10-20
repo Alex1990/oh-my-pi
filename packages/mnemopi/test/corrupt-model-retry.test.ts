@@ -1,7 +1,7 @@
 // Contract: defaultLocalModelInitializer retries FlagEmbedding.init EXACTLY
 // once after a Protobuf-corruption failure (quarantining the cached file in
 // between), and does not loop when the retry fails too.
-import { describe, expect, spyOn, test } from "bun:test";
+import { describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

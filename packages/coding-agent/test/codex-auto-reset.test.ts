@@ -17,7 +17,7 @@
  *   bypasses the horizon, usage gate, and non-terminal deferrals, but retains
  *   consent, live credit eligibility, terminal dedupe, and account cooldown.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ResetCreditTarget, UsageReport } from "@oh-my-pi/pi-ai";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {

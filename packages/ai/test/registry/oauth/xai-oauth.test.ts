@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "../../../src/registry/registry";
 import {
 	buildXAICliBillingUrl,
@@ -12,6 +12,7 @@ import {
 } from "../../../src/registry/oauth/xai-oauth";
 import type { OAuthController, OAuthCredentials } from "../../../src/registry/oauth/types";
 import type { FetchImpl } from "../../../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -413,7 +414,7 @@ describe("xAI OAuth login", () => {
 	});
 
 	it("continues through authorization_pending and slow_down responses", async () => {
-		const sleepSpy = vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		const sleepSpy = vi.spyOn(bun, "sleep").mockResolvedValue(undefined);
 		const { fetchMock, requests } = createDeviceFlowFetch([
 			{ status: 400, body: { error: "authorization_pending" } },
 			{ status: 400, body: { error: "slow_down" } },

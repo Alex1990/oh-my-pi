@@ -6,7 +6,7 @@
  * The effectful `hostHasInheritableConsole` combines a Win32 FFI probe with
  * TTY evidence and is the function `kernel.ts` actually calls.
  */
-import { dlopen, FFIType } from "bun:ffi";
+import { dlopen, FFIType } from "@oh-my-pi/pi-utils/ffi";
 
 /**
  * Decide whether the long-lived Python kernel subprocess should be spawned

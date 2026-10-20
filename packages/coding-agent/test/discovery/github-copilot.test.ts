@@ -8,7 +8,7 @@
  * tests pin the user-global surface, driven through COPILOT_HOME so they never touch
  * the developer's real ~/.copilot directory.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

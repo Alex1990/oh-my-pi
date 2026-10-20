@@ -6,8 +6,9 @@ import {
 	containsVersionStamp,
 	VERSION_STAMP_MAGIC,
 } from "../native/version-sentinel.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const defaultNativeDir = path.join(import.meta.dir, "../native");
+const defaultNativeDir = path.join(import.meta.dirname, "../native");
 
 /**
  * zstd level for embedded addons. Each addon is its own frame with no
@@ -31,14 +32,14 @@ export interface EmbedOptions extends NativeEmbedTarget {
 }
 
 /**
- * Build the in-memory `Bun.build({ files })` overrides that embed one target's
+ * Build the in-memory module overrides that embed one target's
  * addons into a standalone binary: one `<addon>.node.zst` zstd frame per addon
  * variant and a replacement for the checked-in null `native/embedded-addon.js`
  * manifest that points at them. Output is a pure function of the addon bytes
  * (no timestamps, no container), which keeps release-to-release binary patches
  * small.
  *
- * Nothing is written to disk. Bun.build shares the runtime's directory cache
+ * Nothing is written to disk. build shares the runtime's directory cache
  * and never re-reads it on a miss, so a process that imported pi-natives before
  * writing the frames cannot resolve them; in-memory files bypass that lookup.
  *
@@ -87,7 +88,7 @@ export async function embeddedAddonFiles({
 
 	// Variants compress concurrently on Bun's thread pool.
 	const frames = await Promise.all(
-		available.map(({ bytes }) => Bun.zstdCompress(bytes, { level: EMBEDDED_ADDON_ZSTD_LEVEL })),
+		available.map(({ bytes }) => bun.zstdCompress(bytes, { level: EMBEDDED_ADDON_ZSTD_LEVEL })),
 	);
 	const imports = available.map(
 		({ filename }, index) =>

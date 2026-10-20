@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, spyOn, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl, Model } from "@oh-my-pi/pi-ai";
 import { type GeneratedProvider, getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";

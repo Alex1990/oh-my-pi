@@ -2,6 +2,7 @@ import * as net from "node:net";
 import { streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { Context, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Fake HTTP CONNECT proxy: record the CONNECT target of the first request, then
 // reset. The run fails afterwards regardless — the recorded target is the proof
@@ -27,15 +28,15 @@ if (!proxyAddress || typeof proxyAddress === "string") throw new Error("proxy di
 // Only the standard HTTPS_PROXY var is set; the provider-specific override and
 // PI_PROXY are unset, so a fix that only reads PI_PROXY would connect direct and
 // never reach this proxy.
-delete Bun.env.PI_PROXY;
-delete Bun.env.PI_PROXY_CURSOR;
-delete Bun.env.HTTP_PROXY;
-delete Bun.env.http_proxy;
-delete Bun.env.ALL_PROXY;
-delete Bun.env.all_proxy;
-delete Bun.env.NO_PROXY;
-delete Bun.env.no_proxy;
-Bun.env.HTTPS_PROXY = `http://127.0.0.1:${proxyAddress.port}`;
+delete bun.env.PI_PROXY;
+delete bun.env.PI_PROXY_CURSOR;
+delete bun.env.HTTP_PROXY;
+delete bun.env.http_proxy;
+delete bun.env.ALL_PROXY;
+delete bun.env.all_proxy;
+delete bun.env.NO_PROXY;
+delete bun.env.no_proxy;
+bun.env.HTTPS_PROXY = `http://127.0.0.1:${proxyAddress.port}`;
 
 // TEST-NET-2 (RFC 5737) target: not local/metadata, so the proxy is not bypassed,
 // and unroutable so nothing actually connects past the proxy.

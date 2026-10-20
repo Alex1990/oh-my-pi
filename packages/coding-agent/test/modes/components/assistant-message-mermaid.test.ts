@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -8,6 +8,7 @@ import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-containe
 import { clearMermaidCache } from "@oh-my-pi/pi-tui/theme/mermaid-cache";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { ImageProtocol, setTerminalImageProtocol, TERMINAL, Text } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 
@@ -33,7 +34,7 @@ function createAssistantMessage(markdown: string): AssistantMessage {
 
 function renderAssistantMessage(markdown: string, renderers: readonly AssistantThinkingRenderer[] = []): string {
 	const component = new AssistantMessageComponent(createAssistantMessage(markdown), false, undefined, renderers);
-	return Bun.stripANSI(component.render(120).join("\n"))
+	return bun.stripANSI(component.render(120).join("\n"))
 		.split("\n")
 		.map(line => line.trimEnd())
 		.join("\n");
@@ -73,13 +74,13 @@ describe("AssistantMessageComponent transcript lifecycle", () => {
 			createAssistantMessage("Revised opening paragraph replaces the prior draft.\n\nCurrent partial paragraph"),
 			{ transient: true },
 		);
-		const live = Bun.stripANSI(transcript.renderViewport(80, 20, { now: 1, tick: 1 }).join("\n"));
+		const live = bun.stripANSI(transcript.renderViewport(80, 20, { now: 1, tick: 1 }).join("\n"));
 		expect(live).toContain("Revised opening paragraph");
 		expect(transcript.peekFinalizedBatch(80, 0)).toBeUndefined();
 
 		component.markTranscriptBlockFinalized();
 		const batch = transcript.peekFlushBatch(80);
-		expect(Bun.stripANSI(batch?.rows.join("\n") ?? "")).toContain("Revised opening paragraph");
+		expect(bun.stripANSI(batch?.rows.join("\n") ?? "")).toContain("Revised opening paragraph");
 	});
 
 	it("retires the frozen thinking prefix into history while still streaming", () => {
@@ -107,20 +108,20 @@ describe("AssistantMessageComponent transcript lifecycle", () => {
 		// Under pressure the frozen thinking prefix retires while streaming.
 		const first = transcript.peekFinalizedBatch(80, 0);
 		expect(first).toBeDefined();
-		const firstText = Bun.stripANSI(first!.rows.join("\n"));
+		const firstText = bun.stripANSI(first!.rows.join("\n"));
 		expect(firstText).toContain("Alpha reasoning paragraph.");
 		expect(firstText).not.toContain("Newer tail");
 		transcript.acknowledgeFinalizedBatch(first!.id);
 
 		// Emitted rows leave the mutable viewport; the streaming tail stays live.
-		const live = Bun.stripANSI(transcript.renderViewport(80, 20, { now: 2, tick: 2 }).join("\n"));
+		const live = bun.stripANSI(transcript.renderViewport(80, 20, { now: 2, tick: 2 }).join("\n"));
 		expect(live).not.toContain("Alpha reasoning paragraph.");
 		expect(live).toContain("Newer tail");
 
 		// Finalization retires exactly the un-emitted remainder — no duplicates.
 		component.markTranscriptBlockFinalized();
 		const flush = transcript.peekFlushBatch(80);
-		const flushText = Bun.stripANSI(flush?.rows.join("\n") ?? "");
+		const flushText = bun.stripANSI(flush?.rows.join("\n") ?? "");
 		expect(flushText).not.toContain("Alpha reasoning paragraph.");
 		expect(flushText).toContain("Newer tail");
 	});
@@ -140,7 +141,7 @@ describe("AssistantMessageComponent transcript lifecycle", () => {
 		transcript.renderViewport(80, 20, { now: 1, tick: 1 });
 
 		const batch = transcript.peekFinalizedBatch(80, 0);
-		expect(Bun.stripANSI(batch?.rows.join("\n") ?? "")).toContain("Alpha completed paragraph.");
+		expect(bun.stripANSI(batch?.rows.join("\n") ?? "")).toContain("Alpha completed paragraph.");
 	});
 
 	it("withholds mid-stream retirement when the wire may revise streamed text", () => {
@@ -173,7 +174,7 @@ describe("AssistantMessageComponent transcript lifecycle", () => {
 
 		// Withholding costs reachability only — finalization still retires the whole block.
 		component.markTranscriptBlockFinalized();
-		const flushText = Bun.stripANSI(transcript.peekFlushBatch(80)?.rows.join("\n") ?? "");
+		const flushText = bun.stripANSI(transcript.peekFlushBatch(80)?.rows.join("\n") ?? "");
 		expect(flushText).toContain("Alpha reasoning paragraph.");
 		expect(flushText).toContain("Newer tail");
 	});
@@ -194,7 +195,7 @@ describe("AssistantMessageComponent transcript lifecycle", () => {
 		component.markTranscriptBlockFinalized();
 
 		const batch = transcript.peekFlushBatch(80);
-		const rendered = Bun.stripANSI(batch?.rows.join("\n") ?? "");
+		const rendered = bun.stripANSI(batch?.rows.join("\n") ?? "");
 		expect(rendered).toContain("Current partial paragraph");
 		expect(rendered.indexOf("cache miss")).toBeGreaterThan(rendered.indexOf("Current partial paragraph"));
 	});
@@ -266,7 +267,7 @@ describe("AssistantMessageComponent thinking renderers", () => {
 			],
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("I should inspect the input.");
 		expect(rendered.indexOf("I should inspect the input.")).toBeLessThan(rendered.indexOf("first note"));
 		expect(rendered.indexOf("first note")).toBeLessThan(rendered.indexOf("second note"));
@@ -288,7 +289,7 @@ describe("AssistantMessageComponent thinking renderers", () => {
 			],
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("I should inspect the input.");
 		expect(rendered).not.toContain("renderer failed");
 	});
@@ -318,11 +319,11 @@ describe("AssistantMessageComponent thinking renderers", () => {
 			],
 		);
 
-		expect(Bun.stripANSI(component.render(120).join("\n"))).toContain("translation loading");
+		expect(bun.stripANSI(component.render(120).join("\n"))).toContain("translation loading");
 		mountedNote?.setText("translation ready");
 		requestRender?.();
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(renderRequests).toBe(1);
 		expect(rendererCalls).toBe(1);
 		expect(rendered).toContain("translation ready");
@@ -346,7 +347,7 @@ describe("AssistantMessageComponent thinking renderers", () => {
 			],
 		);
 
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).not.toContain("Thinking...");
 		expect(rendered).not.toContain("I should inspect the input.");
 		expect(rendered).not.toContain("hidden note");
@@ -366,17 +367,17 @@ describe("AssistantMessageComponent images", () => {
 		};
 		const component = new AssistantMessageComponent(message);
 
-		const rendered = Bun.stripANSI(component.render(80).join("\n"));
+		const rendered = bun.stripANSI(component.render(80).join("\n"));
 		expect(rendered.indexOf("Before image")).toBeLessThan(rendered.indexOf("[Image: image/png]"));
 		expect(rendered.indexOf("[Image: image/png]")).toBeLessThan(rendered.indexOf("After image"));
 		component.setImagesVisible(false);
-		expect(Bun.stripANSI(component.render(80).join("\n"))).not.toContain("[Image: image/png]");
+		expect(bun.stripANSI(component.render(80).join("\n"))).not.toContain("[Image: image/png]");
 	});
 
 	it("converts WebP tool images for Kitty terminal rendering", async () => {
 		const webpBase64 = Buffer.from(
-			await Bun.file(path.join(import.meta.dir, "../../../../../assets/python.webp")).arrayBuffer(),
-		).toBase64();
+			await bun.file(path.join(import.meta.dirname, "../../../../../assets/python.webp")).arrayBuffer(),
+		).toString("base64");
 		setTerminalImageProtocol(ImageProtocol.Kitty);
 
 		const converted = Promise.withResolvers<void>();

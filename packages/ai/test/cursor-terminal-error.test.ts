@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as http2 from "node:http2";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
@@ -28,6 +28,7 @@ import {
 	UpdateTodosToolCallSchema,
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CONNECT_END_STREAM_FLAG = 0b00000010;
 
@@ -816,7 +817,7 @@ describe("Cursor terminal lifecycle after turnEnded", () => {
 			// processed the end. Yield so the client's `end` handler and every
 			// queued continuation run first: a provider that does not await the
 			// handler settles the stream in exactly that window.
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			try {
 				expect(stream.resultSettled).toBe(false);
 				expect(paired).toEqual([]);
@@ -877,7 +878,7 @@ describe("Cursor terminal lifecycle after turnEnded", () => {
 
 		const gate = (async () => {
 			await Promise.all([handlerStarted.promise, responseFinished.promise]);
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			try {
 				expect(stream.resultSettled).toBe(false);
 				expect(paired).toEqual([]);

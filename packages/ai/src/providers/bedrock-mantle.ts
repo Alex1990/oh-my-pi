@@ -5,6 +5,7 @@ import { resolveAwsRegion } from "../utils/aws-profile";
 import { invalidateAwsCredentialCache, resolveAwsCredentials } from "./aws-credentials";
 import { signRequest } from "./aws-sigv4";
 import type { OpenAIResponsesOptions } from "./openai-responses";
+import { preconnectOf } from "../utils/fetch-preconnect";
 
 export type BedrockMantleProviderOptions = AwsBedrockProviderOptions;
 
@@ -61,7 +62,7 @@ function createSignedFetch(options: BedrockMantleOptions, region: string): Fetch
 		}
 		return response;
 	};
-	return Object.assign(signedFetch, baseFetch.preconnect ? { preconnect: baseFetch.preconnect } : {});
+	return Object.assign(signedFetch, preconnectOf(baseFetch) ? { preconnect: preconnectOf(baseFetch) } : {});
 }
 
 function resolveBearerToken(options: BedrockMantleOptions): string | undefined {
@@ -81,7 +82,7 @@ export function createBedrockMantleAuthenticatedFetch(options: BedrockMantleOpti
 		headers.set("authorization", `Bearer ${bearerToken}`);
 		return baseFetch(input, { ...init, headers });
 	};
-	return Object.assign(authenticatedFetch, baseFetch.preconnect ? { preconnect: baseFetch.preconnect } : {});
+	return Object.assign(authenticatedFetch, preconnectOf(baseFetch) ? { preconnect: preconnectOf(baseFetch) } : {});
 }
 
 export interface PreparedBedrockMantleRequest {

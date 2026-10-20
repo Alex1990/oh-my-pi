@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { afterEach, beforeAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -12,6 +12,7 @@ import {
 } from "@oh-my-pi/pi-tui/overlays/model-hub";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Issue #2761: implicit local providers (ollama, llama.cpp, lm-studio) used to
 // get a sidebar tab even when nothing was listening on their endpoint. The hub
@@ -88,7 +89,7 @@ function createHub(registry: ModelRegistry): ModelHubComponent {
 /** Flush the constructor's offline-refresh promise chain and any re-probes. */
 async function settle(): Promise<void> {
 	for (let i = 0; i < 5; i++) {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	}
 }
 

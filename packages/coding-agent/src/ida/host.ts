@@ -24,6 +24,7 @@ import {
 } from "./protocol";
 import { idbRef, prepareStoreDir } from "./store";
 import { IdaWorker } from "./supervisor";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** How long a host whose open failed keeps answering with the failure before exiting. */
 const OPEN_FAILED_LINGER_MS = 10_000;
@@ -61,7 +62,7 @@ class IdaHost {
 			worker = await this.#opening;
 		} catch (error) {
 			process.stderr.write(`IDA open failed: ${errorMessage(error)}\n`);
-			await Bun.sleep(OPEN_FAILED_LINGER_MS);
+			await bun.sleep(OPEN_FAILED_LINGER_MS);
 			await this.shutdown();
 			return 1;
 		}

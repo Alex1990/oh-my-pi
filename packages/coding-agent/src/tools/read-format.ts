@@ -35,6 +35,7 @@ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
 
 import { cfgReadRenderMarkdown } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export function toReadTruncationStats(result: TruncationResult): ReadTruncationStats {
 	const { content: _content, ...stats } = result;
@@ -89,7 +90,7 @@ export async function readHashlineHeaderContext(
 	cwd: string,
 	displayPath?: string,
 ): Promise<HashlineHeaderContext> {
-	return hashlineHeaderContextForText(session, absolutePath, cwd, await Bun.file(absolutePath).text(), displayPath);
+	return hashlineHeaderContextForText(session, absolutePath, cwd, await bun.file(absolutePath).text(), displayPath);
 }
 
 /**

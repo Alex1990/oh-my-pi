@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { adaptDesktopSession } from "../native/desktop-adapter.js";
 import { desktopEscapeStops, forgetDesktopEscapeStops } from "../native/desktop.js";
 import * as loaderState from "../native/loader-state.js";

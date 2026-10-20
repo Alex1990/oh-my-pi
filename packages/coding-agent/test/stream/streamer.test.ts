@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,8 @@ import { IpcConnection } from "@oh-my-pi/pi-natives";
 import { STREAM_HISTORY_LIMIT, STREAM_PROTO, type StreamHostFrame, type StreamServerToHost } from "@oh-my-pi/pi-wire";
 import { STREAM_LOCAL_PROTO, type StreamStreamerFrame } from "../../src/stream/protocol";
 import { resolveStreamUrls, StreamMuxHost, type StreamConsoleEvent } from "../../src/stream/streamer";
+import type { ServerWebSocket } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 type HostSocketData = Record<string, never>;
 
@@ -17,7 +19,7 @@ interface FrameWaiter<T> {
 interface FakeStreamServer {
 	port: number;
 	frames: StreamHostFrame[];
-	hostSocket(): Bun.ServerWebSocket<HostSocketData> | null;
+	hostSocket(): ServerWebSocket<HostSocketData> | null;
 	waitForFrame(predicate: (frame: StreamHostFrame) => boolean): Promise<StreamHostFrame>;
 	stop(): Promise<void>;
 }
@@ -63,11 +65,11 @@ function recordFrame<T>(frames: T[], waiters: FrameWaiter<T>[], frame: T): void 
 	}
 }
 
-function startFakeStreamServer(port = 0): FakeStreamServer {
+async function startFakeStreamServer(port = 0): Promise<FakeStreamServer> {
 	const frames: StreamHostFrame[] = [];
 	const waiters: FrameWaiter<StreamHostFrame>[] = [];
-	let host: Bun.ServerWebSocket<HostSocketData> | null = null;
-	const server = Bun.serve<HostSocketData>({
+	let host: ServerWebSocket<HostSocketData> | null = null;
+	const server = await serve<HostSocketData>({
 		hostname: "127.0.0.1",
 		port,
 		fetch(request, bunServer): Response | undefined {
@@ -82,7 +84,7 @@ function startFakeStreamServer(port = 0): FakeStreamServer {
 				host = socket;
 			},
 			message(socket, message): void {
-				const text = typeof message === "string" ? message : message.toString("utf8");
+				const text = typeof message === "string" ? message : new TextDecoder().decode(message);
 				const frame = JSON.parse(text) as StreamHostFrame;
 				recordFrame(frames, waiters, frame);
 				if (frame.t === "hello") {
@@ -147,7 +149,7 @@ describe("StreamMuxHost", () => {
 	it("materializes patch, reset, and bounded history state across reconnect replays", async () => {
 		const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-stream-test-"));
 		projectDirs.push(projectDir);
-		const firstServer = startFakeStreamServer();
+		const firstServer = await startFakeStreamServer();
 		const port = firstServer.port;
 		const events: StreamConsoleEvent[] = [];
 		const host = new StreamMuxHost({
@@ -220,7 +222,7 @@ describe("StreamMuxHost", () => {
 		await firstServer.waitForFrame(frame => frame.t === "paused");
 		await firstServer.stop();
 
-		const secondServer = startFakeStreamServer(port);
+		const secondServer = await startFakeStreamServer(port);
 		await secondServer.waitForFrame(frame => frame.t === "paused");
 		expect(secondServer.frames.slice(0, 5)).toEqual([
 			{ t: "hello", proto: STREAM_PROTO, title: "Contract test" },
@@ -236,7 +238,7 @@ describe("StreamMuxHost", () => {
 		);
 		await secondServer.stop();
 
-		const thirdServer = startFakeStreamServer(port);
+		const thirdServer = await startFakeStreamServer(port);
 		await thirdServer.waitForFrame(frame => frame.t === "paused");
 		expect(thirdServer.frames.slice(0, 5)).toEqual([
 			{ t: "hello", proto: STREAM_PROTO, title: "Contract test" },

@@ -27,6 +27,7 @@ import { applyActions, initialArray, makeActions } from "./actions";
 import type { IfBenchFailure, IfBenchObserver } from "@oh-my-pi/pi-tui/apps/if-bench-board";
 import type { CatPlacement } from "./protocol";
 import { assessResponse, buildSystemPrompt, buildTurnPrompt } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Outcome of one turn: what was asked, what came back, and how it scored. */
 export interface IfBenchTurnRecord {
@@ -86,7 +87,7 @@ export interface IfBenchRunOptions {
 	now: () => number;
 	randomSessionId: () => string;
 	observer?: IfBenchObserver<IfBenchTurnRecord, IfBenchModelReport>;
-	/** Sleep between refusal-retry attempts; tests inject a no-op. Defaults to `Bun.sleep`. */
+	/** Sleep between refusal-retry attempts; tests inject a no-op. Defaults to `bun.sleep`. */
 	sleep?: (ms: number) => Promise<void>;
 }
 
@@ -278,7 +279,7 @@ async function requestTurnWithRefusalRetry(
 ): Promise<TurnOutcome> {
 	let outcome: TurnOutcome = { text: "", error: "request failed", durationMs: 0 };
 	for (let attempt = 1; attempt <= REFUSAL_MAX_ATTEMPTS; attempt += 1) {
-		if (attempt > 1) await (options.sleep ?? Bun.sleep)(REFUSAL_BACKOFF_MS[attempt - 1] ?? 180_000);
+		if (attempt > 1) await (options.sleep ?? bun.sleep)(REFUSAL_BACKOFF_MS[attempt - 1] ?? 180_000);
 		const sessionId = options.randomSessionId();
 		const apiKey = options.runtime.modelRegistry.resolver(model, sessionId);
 		outcome = await requestTurn(model, context, sessionId, apiKey, providerSessionState, target, options);

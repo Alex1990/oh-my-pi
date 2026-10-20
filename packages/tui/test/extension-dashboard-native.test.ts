@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { TSP_KINDS, type TspNode, type TspPickerProps } from "@oh-my-pi/pi-wire";
 import { ExtensionDashboard, type ExtensionDashboardRuntime } from "../src/overlays/extensions/extension-dashboard";
 import type { Extension, ExtensionProvider } from "../src/overlays/extensions/types";

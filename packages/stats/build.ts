@@ -1,11 +1,13 @@
 import * as fs from "node:fs/promises";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { build } from "@oh-my-pi/pi-utils/node-build";
 
 // Clean dist
 await fs.rm("./dist/client", { recursive: true, force: true });
 
 // Bundle the React app. CSS imported from TSX modules is emitted alongside as index.css.
 console.log("Building dashboard client...");
-const result = await Bun.build({
+const result = await build({
 	entrypoints: ["./src/client/index.tsx"],
 	outdir: "./dist/client",
 	minify: true,
@@ -50,6 +52,6 @@ const indexHtml = `<!DOCTYPE html>
 // Static asset the bundler never emits; copied beside index.css so the on-disk client and the embedded archive both serve it.
 await fs.copyFile("./src/client/favicon.ico", "./dist/client/favicon.ico");
 
-await Bun.write("./dist/client/index.html", indexHtml);
+await bun.write("./dist/client/index.html", indexHtml);
 
 console.log("Build complete");

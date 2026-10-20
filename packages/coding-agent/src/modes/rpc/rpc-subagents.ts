@@ -21,6 +21,7 @@ import type {
 	RpcSubagentSnapshot,
 	RpcSubagentSubscriptionLevel,
 } from "./rpc-types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface RpcSubagentTranscriptSelector {
 	subagentId?: string;
@@ -69,7 +70,7 @@ function addPruned(set: Set<string>, value: string, maxSize: number): void {
 
 export async function readRpcSubagentTranscript(sessionFile: string, fromByte = 0): Promise<RpcSubagentMessagesResult> {
 	let startByte = Number.isFinite(fromByte) ? Math.max(0, Math.trunc(fromByte)) : 0;
-	const file = Bun.file(sessionFile);
+	const file = bun.file(sessionFile);
 	let size: number;
 	try {
 		({ size } = await fs.stat(sessionFile));

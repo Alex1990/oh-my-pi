@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import puppeteer from "puppeteer-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const VIEWPORT = { width: 1280, height: 720, deviceScaleFactor: 1 } as const;
 
@@ -9,7 +10,7 @@ async function resolveChrome(explicit: string | undefined): Promise<string> {
   const fromEnv = explicit ?? process.env.PUPPETEER_EXECUTABLE_PATH ?? process.env.CHROME_PATH;
   if (fromEnv) candidates.push(fromEnv);
   for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser", "chrome"]) {
-    const found = Bun.which(name);
+    const found = bun.which(name);
     if (found) candidates.push(found);
   }
   candidates.push(
@@ -32,7 +33,7 @@ async function resolveChrome(explicit: string | undefined): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const outDir = path.resolve(import.meta.dir, "../verify-out/robomp-lifecycle-cards");
+  const outDir = path.resolve(import.meta.dirname, "../verify-out/robomp-lifecycle-cards");
   await fs.mkdir(outDir, { recursive: true });
 
   const chrome = await resolveChrome(undefined);
@@ -110,7 +111,7 @@ async function main(): Promise<void> {
   console.log(`Live retry response: ${retryStatus}`, JSON.stringify(retryBody));
 
   // Let the SPA render the status line from the response, then read it.
-  await Bun.sleep(500);
+  await bun.sleep(500);
   const retryStatusText = await page.evaluate(() => document.querySelector(".rmp-trigger-bar-status")?.textContent ?? "");
   console.log("Live retry status text:", retryStatusText);
 
@@ -153,7 +154,7 @@ async function main(): Promise<void> {
   console.log(`Live cancel response: ${cancelStatus}`, JSON.stringify(cancelBody));
 
   // Let the SPA render the status line from the response, then read it.
-  await Bun.sleep(500);
+  await bun.sleep(500);
   const statusText = await page.evaluate(() => document.querySelector(".rmp-trigger-bar-status")?.textContent ?? "");
   console.log("Live cancel status text:", statusText);
 

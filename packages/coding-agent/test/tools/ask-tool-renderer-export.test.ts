@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as PiCodingAgent from "@oh-my-pi/pi-coding-agent";
 import { askToolRenderer } from "@oh-my-pi/pi-tui/tools/ask";
 

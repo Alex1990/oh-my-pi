@@ -1,9 +1,10 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { discoverAuthStorage } from "@oh-my-pi/pi-coding-agent/sdk";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { resetSettingsForTest } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { runRootCommand } from "@oh-my-pi/pi-coding-agent/main";
 import { getDbBusyTimeoutMs, setInteractiveHost, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 it("classifies an interactive host before opening auth storage", async () => {
 	const previous = setInteractiveHost(false);
@@ -35,11 +36,11 @@ it("classifies an interactive host before opening auth storage", async () => {
 it("standalone auth discovery routes by PI_CONFIG_FILES policy over main config", async () => {
 	using tempDir = TempDir.createSync("@omp-standalone-policy-");
 	const overlayPath = tempDir.join("policy.yml");
-	await Bun.write(
+	await bun.write(
 		tempDir.join("config.yml"),
 		"auth:\n  accountPolicies:\n    - provider: test-provider\n      unsupported: true\n",
 	);
-	await Bun.write(
+	await bun.write(
 		overlayPath,
 		[
 			"auth:",

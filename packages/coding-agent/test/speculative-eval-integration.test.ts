@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EvalTool } from "@oh-my-pi/pi-coding-agent/tools/eval";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const temporaryDirectories: string[] = [];
 const pythonIt = process.env.PI_PYTHON_INTEGRATION === "1" ? it : it.skip;
@@ -669,7 +670,7 @@ describe("streamed eval speculation", () => {
 		await admitted.promise;
 
 		await expect(
-			Promise.race([shadow.discard("test complete").then(() => "done"), Bun.sleep(100).then(() => "timed-out")]),
+			Promise.race([shadow.discard("test complete").then(() => "done"), bun.sleep(100).then(() => "timed-out")]),
 		).resolves.toBe("done");
 		expect(discarded).toBe(true);
 	});
@@ -963,7 +964,7 @@ describe("streamed eval speculation", () => {
 pythonIt("claims a Python read started before the outer eval call finishes streaming", async () => {
 	const directory = await fs.mkdtemp(path.join(os.tmpdir(), "speculative-eval-python-"));
 	temporaryDirectories.push(directory);
-	await Bun.write(path.join(directory, "note.txt"), "before");
+	await bun.write(path.join(directory, "note.txt"), "before");
 	const settings = Settings.isolated({
 		"eval.autoBackground.enabled": false,
 		"images.autoResize": false,

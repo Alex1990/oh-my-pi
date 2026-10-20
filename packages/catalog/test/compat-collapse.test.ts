@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -1576,7 +1576,6 @@ describe("antigravity discovery collapsing", () => {
 	const fetcher = Object.assign(
 		(_input: Parameters<typeof fetch>[0], _init?: Parameters<typeof fetch>[1]) =>
 			Promise.resolve(new Response(JSON.stringify(payload), { status: 200 })),
-		{ preconnect: fetch.preconnect },
 	);
 
 	it("returns collapsed logical entries and keeps the denylist", async () => {
@@ -1624,7 +1623,6 @@ describe("antigravity discovery collapsing", () => {
 				}
 				return Promise.resolve(new Response(JSON.stringify(payload), { status: 200 }));
 			},
-			{ preconnect: fetch.preconnect },
 		);
 		const options = googleGeminiCliModelManagerOptions({
 			oauthToken: "t",
@@ -1653,7 +1651,6 @@ describe("antigravity discovery collapsing", () => {
 				requestedUrls.push(String(input));
 				return Promise.resolve(new Response(JSON.stringify(payload), { status: 200 }));
 			},
-			{ preconnect: fetch.preconnect },
 		);
 
 		const models = (
@@ -1692,7 +1689,6 @@ describe("antigravity discovery collapsing", () => {
 							})
 						: new Response("version: 2.19.1\n"),
 				),
-			{ preconnect: fetch.preconnect },
 		);
 
 		const models = (await fetchAntigravityDiscoveryModels({ token: "t", fetcher }))?.models;
@@ -1715,7 +1711,6 @@ describe("antigravity discovery collapsing", () => {
 					Promise.resolve(
 						String(input).includes(":fetchAvailableModels") ? discovery() : new Response("version: 2.19.1\n"),
 					),
-				{ preconnect: fetch.preconnect },
 			);
 			const options = googleAntigravityModelManagerOptions({
 				resolveAccounts: async () => [{ accessToken: "t" }],
@@ -1760,7 +1755,6 @@ describe("antigravity discovery collapsing", () => {
 							})
 						: new Response("version: 2.19.1\n"),
 				),
-			{ preconnect: fetch.preconnect },
 		);
 		const options = googleAntigravityModelManagerOptions({
 			resolveAccounts: async () => [{ accessToken: "t" }],
@@ -1790,7 +1784,6 @@ describe("antigravity discovery collapsing", () => {
 					}),
 				);
 			},
-			{ preconnect: fetch.preconnect },
 		);
 		const options = googleAntigravityModelManagerOptions({
 			resolveAccounts: async () => [
@@ -1821,7 +1814,6 @@ describe("antigravity discovery collapsing", () => {
 				}
 				return Promise.resolve(Response.json({ models: { "gemini-3.1-pro-low": { supportsThinking: true } } }));
 			},
-			{ preconnect: fetch.preconnect },
 		);
 		const options = googleAntigravityModelManagerOptions({
 			resolveAccounts: async () => [

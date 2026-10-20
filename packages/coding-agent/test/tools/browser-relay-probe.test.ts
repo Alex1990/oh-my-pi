@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { VERSION } from "@oh-my-pi/pi-utils/dirs";
 import { findFreeCdpPort } from "@oh-my-pi/pi-coding-agent/tools/browser/attach";
 import { waitForRelayExtension } from "@oh-my-pi/pi-coding-agent/tools/browser/relay/probe";
@@ -8,6 +8,8 @@ import {
 	type RelayUnavailableInfo,
 	startRelayServer,
 } from "@oh-my-pi/pi-coding-agent/tools/browser/relay/server";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const EXTENSION_HELLO = {
 	t: "hello",
@@ -28,7 +30,7 @@ const LEGACY_EXTENSION_HELLO = {
 
 describe("waitForRelayExtension", () => {
 	let relay: RelayServer | undefined;
-	let fake: Bun.Server<undefined> | undefined;
+	let fake: Server<undefined> | undefined;
 	let extension: WebSocket | undefined;
 
 	afterEach(() => {
@@ -55,7 +57,7 @@ describe("waitForRelayExtension", () => {
 			uptimeMs: 60_000,
 			ompRelayCdpClients: 0,
 		};
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => Response.json(info, { status: 503 }),
@@ -75,7 +77,7 @@ describe("waitForRelayExtension", () => {
 			disconnectedMs: 120_000,
 		};
 		let probes = 0;
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => {
@@ -88,7 +90,7 @@ describe("waitForRelayExtension", () => {
 	});
 
 	it("reports a stale relay before blaming an extension that has been gone past the redial window", async () => {
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -109,7 +111,7 @@ describe("waitForRelayExtension", () => {
 	it("keeps polling after a recent disconnect and fails once the redial window has passed", async () => {
 		const disconnects = [1_000, 120_000];
 		let probes = 0;
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => {
@@ -129,7 +131,7 @@ describe("waitForRelayExtension", () => {
 	});
 
 	it("rejects an already-running relay without discarded-tab metadata", async () => {
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -146,7 +148,7 @@ describe("waitForRelayExtension", () => {
 	});
 
 	it("reports a stale relay before blaming its extension, even if the capability marker matches", async () => {
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -160,7 +162,7 @@ describe("waitForRelayExtension", () => {
 	});
 
 	it("accepts a compatible relay from another OMP version", async () => {
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -181,7 +183,7 @@ describe("waitForRelayExtension", () => {
 	])(
 		"reports a compatible relay from $version with $clients CDP clients as $outcome",
 		async ({ version, clients, outcome }) => {
-			fake = Bun.serve({
+			fake = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				fetch: () =>
@@ -197,7 +199,7 @@ describe("waitForRelayExtension", () => {
 	);
 
 	it("identifies a stale relay before its extension connects, without waiting for the dial window", async () => {
-		fake = Bun.serve({
+		fake = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
@@ -213,7 +215,7 @@ describe("waitForRelayExtension", () => {
 
 	it("rejects an extension without discarded-tab snapshots, even when it has no tabs", async () => {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		extension = new WebSocket(`ws://127.0.0.1:${port}/ext`);
 		extension.addEventListener("open", () => extension?.send(JSON.stringify(LEGACY_EXTENSION_HELLO)), { once: true });
 		expect(await waitForRelayExtension(`http://127.0.0.1:${port}`)).toBe("outdated-extension");
@@ -221,7 +223,7 @@ describe("waitForRelayExtension", () => {
 
 	it("keeps polling a young relay and reports ready once the extension handshakes", async () => {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		const wait = waitForRelayExtension(`http://127.0.0.1:${port}`);
 		// The relay is serving 503 (young, no extension yet) before the extension dials in.
 		expect((await fetch(`http://127.0.0.1:${port}/json/version`)).status).toBe(503);
@@ -232,7 +234,7 @@ describe("waitForRelayExtension", () => {
 
 	it("still waits for an extension that disconnected and comes back inside the redial window", async () => {
 		const port = await findFreeCdpPort();
-		relay = startRelayServer({ port });
+		relay = await startRelayServer({ port });
 		const first = new WebSocket(`ws://127.0.0.1:${port}/ext`);
 		first.addEventListener("open", () => first.send(JSON.stringify(EXTENSION_HELLO)), { once: true });
 		expect(await waitForRelayExtension(`http://127.0.0.1:${port}`)).toBe("ready");

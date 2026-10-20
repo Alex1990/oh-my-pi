@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAzureOpenAIResponses } from "@oh-my-pi/pi-ai/providers/azure-openai-responses";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { Context, FetchImpl, Model, ProviderSessionState } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const testContext: Context = {
 	messages: [{ role: "user", content: "hello", timestamp: 0 }],
@@ -366,7 +367,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 					? invalidReasoningResponse("reasoning_effort", "xhigh")
 					: createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(createCompletionsModel(), testContext, {
@@ -387,7 +388,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? camelCaseReasoningEffortResponse() : createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAICompletions(createCompletionsModel(), testContext, {
@@ -408,7 +409,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? invalidReasoningResponse("reasoning_effort", "max") : createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const providerSessionState = new Map<string, ProviderSessionState>();
 		const model = createAzureAstraCompletionsModel();
@@ -456,7 +457,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 					? invalidReasoningResponse("reasoning.effort", "xhigh")
 					: createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const providerSessionState = new Map<string, ProviderSessionState>();
 
@@ -486,7 +487,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? pipeDelimitedReasoningEffortResponse() : createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -507,7 +508,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? invalidMediumReasoningResponse() : createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createResponsesModel(), testContext, {
@@ -533,7 +534,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 					? invalidReasoningResponse("reasoning.effort", "xhigh")
 					: createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamAzureOpenAIResponses(createAzureResponsesModel(), testContext, {
@@ -556,7 +557,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? unsupportedLevelResponse("none") : createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -580,7 +581,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 					? copilotUnsupportedValueResponse("none", "gpt-6-astra")
 					: createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -605,7 +606,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 					{ status: 400, headers: { "content-type": "application/json" } },
 				);
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -631,7 +632,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				if (effort === "none") return copilotUnsupportedValueResponse("none", "gpt-6-astra");
 				return createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const off = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -674,7 +675,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				}
 				return createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const disabled = await streamOpenAICompletions(createNoneEffortCompletionsModel(), testContext, {
@@ -705,7 +706,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				attempts += 1;
 				return unsupportedVerbosityResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -727,7 +728,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? unsupportedLevelResponse("xhigh") : createResponsesSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createMaxLadderResponsesModel(), testContext, {
@@ -747,7 +748,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				attempts += 1;
 				return summaryReasoningErrorResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 
 		const result = await streamOpenAIResponses(createResponsesModel(), testContext, {
@@ -770,7 +771,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? templateKwargRejectionResponse() : createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const providerSessionState = new Map<string, ProviderSessionState>();
 		const model = createLocalQwenModel("llama.cpp", "http://127.0.0.1:8080/v1");
@@ -812,7 +813,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? templateKwargRejectionResponse() : createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const model = createLocalQwenModel("vllm", "http://127.0.0.1:8000/v1");
 
@@ -843,7 +844,7 @@ describe("OpenAI reasoning effort fallback retry", () => {
 				bodies.push(body);
 				return bodies.length === 1 ? templateKwargValueRejectionResponse() : createChatSseResponse();
 			},
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const model = createLocalQwenModel("llama.cpp", "http://127.0.0.1:8080/v1");
 

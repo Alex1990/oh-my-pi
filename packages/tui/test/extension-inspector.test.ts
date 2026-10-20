@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import { ExtensionList } from "../src/overlays/extensions/extension-list";
 import {
@@ -11,6 +11,7 @@ import { InspectorPanel } from "../src/overlays/extensions/inspector-panel";
 import type { Extension } from "../src/overlays/extensions/types";
 import { initTheme, theme } from "../src/theme";
 import { shortenPath } from "../src/render/render-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false);
@@ -188,7 +189,7 @@ function listedSkillExtension(): Extension {
 }
 
 function render(panel: InspectorPanel): string {
-	return Bun.stripANSI(panel.render(72).join("\n"));
+	return bun.stripANSI(panel.render(72).join("\n"));
 }
 
 describe("shared inspector chrome", () => {
@@ -275,7 +276,7 @@ describe("tool inspector", () => {
 		expect(raw).not.toContain("\x1b]8;");
 		expect(raw).not.toContain("\x07");
 		expect(raw).not.toContain("\t");
-		const text = Bun.stripANSI(raw);
+		const text = bun.stripANSI(raw);
 		expect(text).toContain("Gmail Send");
 		expect(text).toContain("Send   via gog");
 		expect(text).toContain("Recipients, comma-separated");
@@ -310,7 +311,7 @@ describe("tool inspector", () => {
 			}),
 		});
 		panel.setExtension(toolExtension());
-		const lines = panel.render(72).map(line => Bun.stripANSI(line));
+		const lines = panel.render(72).map(line => bun.stripANSI(line));
 		const joined = lines.join("\n");
 		expect(joined).toContain("Default: alpha beta");
 		expect(joined).toContain("string injected");
@@ -340,7 +341,7 @@ describe("tool inspector", () => {
 			],
 		});
 		panel.setExtension(systemdExtension());
-		const lines = panel.render(72).map(line => Bun.stripANSI(line));
+		const lines = panel.render(72).map(line => bun.stripANSI(line));
 		const joined = lines.join("\n");
 		expect(joined).toContain("systemd_inspect injected");
 		expect(joined).toContain("inspect label");
@@ -368,7 +369,7 @@ describe("tool inspector", () => {
 		const inspectorRaw = panel.render(72).join("\n");
 		expect(inspectorRaw).not.toContain("\x1b]8;");
 		expect(inspectorRaw).not.toContain("\x07");
-		expect(Bun.stripANSI(inspectorRaw)).toContain("/tmp/evil/rule.md");
+		expect(bun.stripANSI(inspectorRaw)).toContain("/tmp/evil/rule.md");
 	});
 
 	test("list hint uses live hidden over a placeholder trigger", () => {
@@ -382,7 +383,7 @@ describe("tool inspector", () => {
 			},
 		});
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("gmail_send");
 		expect(text).toContain("hidden · personal");
 		expect(text).not.toContain("discoverable");
@@ -420,7 +421,7 @@ describe("tool inspector", () => {
 			},
 		});
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("personal");
 		expect(text).not.toContain("args");
 	});
@@ -458,7 +459,7 @@ describe("tool inspector", () => {
 			{ toolSource: systemdSource("/home/sf/worlds/personal/.omp/tools/systemd.ts") },
 		);
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("3 tools · personal");
 		expect(text).not.toContain("args");
 	});
@@ -768,7 +769,7 @@ describe("skill inspector", () => {
 
 		const list = new ExtensionList([skillExtension()]);
 		list.setFocused(true);
-		expect(Bun.stripANSI(list.render(80).join("\n"))).toContain("hidden");
+		expect(bun.stripANSI(list.render(80).join("\n"))).toContain("hidden");
 	});
 
 	test("listed skills stay unmarked in the list and under Active", () => {
@@ -782,7 +783,7 @@ describe("skill inspector", () => {
 
 		const list = new ExtensionList([listedSkillExtension()]);
 		list.setFocused(true);
-		const row = Bun.stripANSI(list.render(80).join("\n"));
+		const row = bun.stripANSI(list.render(80).join("\n"));
 		expect(row).toContain("fresh-drive");
 		expect(row).not.toContain("listed");
 	});
@@ -796,7 +797,7 @@ describe("skill inspector", () => {
 			},
 		]);
 		list.setFocused(true);
-		expect(Bun.stripANSI(list.render(80).join("\n"))).toContain("personal");
+		expect(bun.stripANSI(list.render(80).join("\n"))).toContain("personal");
 	});
 
 	test("project-only context files do not invent a project name without .omp", () => {
@@ -815,7 +816,7 @@ describe("skill inspector", () => {
 			},
 		]);
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("AGENTS.md");
 		expect(text).not.toContain("project · personal");
 		expect(text).not.toMatch(/AGENTS\.md\s+project\b/);
@@ -839,7 +840,7 @@ describe("inspector wrap and fill", () => {
 					"**Do not guard `clearTimeout` / `clearInterval` / `clearImmediate` with truthiness or `null`/`undefined` checks.** Per WHATWG/Node timers spec, calls no-op for `null`.",
 			},
 		});
-		const text = Bun.stripANSI(panel.render(42).join("\n"));
+		const text = bun.stripANSI(panel.render(42).join("\n"));
 		expect(text.split("\n").some(line => line.includes("…") || line.endsWith("..."))).toBe(false);
 		expect(text).toContain("clearTimeout");
 		expect(text).toContain("interrupt");
@@ -866,7 +867,7 @@ describe("inspector wrap and fill", () => {
 				content: "do not guard timers\nline 2\nline 3\nline 4",
 			},
 		});
-		const collapsed = Bun.stripANSI(panel.render(42).join("\n"));
+		const collapsed = bun.stripANSI(panel.render(42).join("\n"));
 		expect(collapsed).toContain("30 patterns");
 		expect(collapsed).toMatch(/more \(.* to expand\)/);
 		expect(collapsed).toContain("Rule");

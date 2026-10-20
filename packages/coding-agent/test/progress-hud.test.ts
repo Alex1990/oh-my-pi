@@ -1,13 +1,14 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { DownloadActivity } from "@oh-my-pi/pi-coding-agent/downloads/activity";
 import { DownloadActivityHud } from "@oh-my-pi/pi-coding-agent/modes/progress-hud";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false);
 });
 
-const plain = (lines: readonly string[]): string => lines.map(line => Bun.stripANSI(line).trim()).join("\n");
+const plain = (lines: readonly string[]): string => lines.map(line => bun.stripANSI(line).trim()).join("\n");
 
 function activity(overrides: Partial<DownloadActivity>): DownloadActivity {
 	return { id: 1, label: "SmolLM2-135M", state: "running", ...overrides };

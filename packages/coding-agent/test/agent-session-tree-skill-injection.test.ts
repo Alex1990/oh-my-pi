@@ -7,7 +7,7 @@
  * never the expanded skill body. An agent/autoload injection is not a user turn:
  * the leaf lands ON it so the skill stays on the active branch.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SKILL_PROMPT_MESSAGE_TYPE } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { assistantMsg, createTestSession, userMsg } from "./utilities";
 

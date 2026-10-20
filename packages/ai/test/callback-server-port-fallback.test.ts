@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ConfigurationError } from "@oh-my-pi/pi-ai/error";
 import { OAuthCallbackFlow } from "@oh-my-pi/pi-ai/registry/oauth/callback-server";
 import type { OAuthCredentials } from "@oh-my-pi/pi-ai/registry/oauth/types";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Minimal callback flow we can drive without a real authorization server.
@@ -25,18 +27,18 @@ class TestCallbackFlow extends OAuthCallbackFlow {
 }
 
 /**
- * Bind a real loopback port so the next `Bun.serve({ port })` against the
+ * Bind a real loopback port so the next `serve({ port })` against the
  * same port fails with EADDRINUSE. Occupies `127.0.0.1` explicitly — the
  * interface callback flows bind for `localhost` — because macOS lets a
  * specific-address bind coexist with a wildcard one. Returns the bound port
  * plus a `release` callback for teardown.
  */
-function occupyLoopbackPort(): { port: number; release: () => void } {
-	const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("blocker") });
+async function occupyLoopbackPort(): Promise<{ port: number; release: () => void }> {
+	const server = await serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("blocker") });
 	const port = server.port;
 	if (typeof port !== "number") {
 		server.stop(true);
-		throw new Error("Bun.serve({ port: 0 }) did not assign a numeric port");
+		throw new Error("serve({ port: 0 }) did not assign a numeric port");
 	}
 	return { port, release: () => server.stop(true) };
 }
@@ -47,7 +49,7 @@ afterEach(() => {
 
 describe("OAuthCallbackFlow port fallback policy", () => {
 	it("falls back to a random port by default so historical AI-provider flows keep working", async () => {
-		const blocker = occupyLoopbackPort();
+		const blocker = await occupyLoopbackPort();
 		const progress: string[] = [];
 		const controller = new AbortController();
 		const flow = new TestCallbackFlow(
@@ -76,7 +78,7 @@ describe("OAuthCallbackFlow port fallback policy", () => {
 	});
 
 	it("throws a ConfigurationError when allowPortFallback is false", async () => {
-		const serveSpy = vi.spyOn(Bun, "serve").mockImplementation(() => {
+		const serveSpy = vi.spyOn(bun, "serve").mockImplementation(() => {
 			throw new Error("EADDRINUSE");
 		});
 
@@ -100,7 +102,7 @@ describe("OAuthCallbackFlow port fallback policy", () => {
 	});
 
 	it("preserves redirectUri-strict behavior with the updated error message", async () => {
-		vi.spyOn(Bun, "serve").mockImplementation(() => {
+		vi.spyOn(bun, "serve").mockImplementation(() => {
 			throw new Error("EADDRINUSE");
 		});
 

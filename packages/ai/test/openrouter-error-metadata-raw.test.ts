@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import type { AssistantMessage, Context, FetchImpl, Model, ModelSpec } from "@oh-my-pi/pi-ai/types";
 import type { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const context: Context = {
 	systemPrompt: ["Stay concise."],
@@ -26,7 +27,7 @@ function create403Fetch(body: unknown): FetchImpl {
 				headers: { "content-type": "application/json" },
 			}),
 	) as unknown as FetchImpl;
-	return Object.assign(fetchMock, { preconnect: fetch.preconnect });
+	return Object.assign(fetchMock, { preconnect: preconnectOf(fetch) });
 }
 
 async function runToTerminal(stream: AssistantMessageEventStream): Promise<AssistantMessage> {

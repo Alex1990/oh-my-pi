@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { applyEditsThenRename } from "@oh-my-pi/pi-coding-agent/lsp/edits";
 import type { TextEdit } from "@oh-my-pi/pi-coding-agent/lsp/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Rewrite `./moved` → `./renamed` on line 0 of the reference file below.
 const importEdit: TextEdit[] = [
@@ -20,8 +21,8 @@ describe("applyEditsThenRename", () => {
 		dir = await fs.mkdtemp(path.join(os.tmpdir(), "edits-rename-"));
 		source = path.join(dir, "moved.ts");
 		ref = path.join(dir, "ref.ts");
-		await Bun.write(source, "export const x = 1;\n");
-		await Bun.write(ref, refBefore);
+		await bun.write(source, "export const x = 1;\n");
+		await bun.write(ref, refBefore);
 	});
 
 	afterEach(async () => {
@@ -32,23 +33,23 @@ describe("applyEditsThenRename", () => {
 		const dest = path.join(dir, "nested", "renamed.ts");
 		await applyEditsThenRename([{ filePath: ref, edits: importEdit }], source, dest);
 
-		expect(await Bun.file(dest).text()).toBe("export const x = 1;\n");
-		expect(await Bun.file(source).exists()).toBe(false);
-		expect(await Bun.file(ref).text()).toBe('import { x } from "./renamed";\n');
+		expect(await bun.file(dest).text()).toBe("export const x = 1;\n");
+		expect(await bun.file(source).exists()).toBe(false);
+		expect(await bun.file(ref).text()).toBe('import { x } from "./renamed";\n');
 	});
 
 	it("rolls back reference edits when the move fails", async () => {
 		// A regular file stands where a dest-parent directory must be, so the
 		// recursive mkdir throws ENOTDIR before the rename runs.
 		const blocker = path.join(dir, "blocker");
-		await Bun.write(blocker, "not a dir");
+		await bun.write(blocker, "not a dir");
 		const dest = path.join(blocker, "sub", "renamed.ts");
 
 		await expect(applyEditsThenRename([{ filePath: ref, edits: importEdit }], source, dest)).rejects.toThrow();
 
 		// Failed move must leave source, destination, and reference files untouched.
-		expect(await Bun.file(ref).text()).toBe(refBefore);
-		expect(await Bun.file(source).exists()).toBe(true);
-		expect(await Bun.file(dest).exists()).toBe(false);
+		expect(await bun.file(ref).text()).toBe(refBefore);
+		expect(await bun.file(source).exists()).toBe(true);
+		expect(await bun.file(dest).exists()).toBe(false);
 	});
 });

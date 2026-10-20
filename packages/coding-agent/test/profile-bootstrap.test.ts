@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseArgs } from "../src/cli/args";
 import { PROFILE_BOOTSTRAP_BOUNDARY_ARG } from "../src/cli/flag-tables";
 import { extractProfileFlags } from "../src/cli/profile-bootstrap";

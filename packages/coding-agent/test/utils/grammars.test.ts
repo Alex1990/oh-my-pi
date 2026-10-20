@@ -1,9 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { WasmGrammarInfo } from "@oh-my-pi/pi-natives";
 import { installGrammar } from "@oh-my-pi/pi-coding-agent/utils/grammars";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const RELEASE = "grammars-test";
 const WASM = new Uint8Array([
@@ -17,19 +20,19 @@ const WASM = new Uint8Array([
 	0x00,
 	...crypto.getRandomValues(new Uint8Array(4096)),
 ]);
-const WASM_SHA256 = new Bun.CryptoHasher("sha256").update(WASM).digest("hex");
+const WASM_SHA256 = new bun.CryptoHasher("sha256").update(WASM).digest("hex");
 
 function grammarInfo(file: string, sha256: string): WasmGrammarInfo {
 	return { language: "testlang", release: RELEASE, file, sha256, size: WASM.byteLength, installed: false };
 }
 
 describe("wasm grammar install", () => {
-	let server: Bun.Server<undefined>;
+	let server: Server<undefined>;
 	let previousUrl: string | undefined;
 
-	beforeAll(() => {
-		const compressed = Bun.zstdCompressSync(WASM);
-		server = Bun.serve({
+	beforeAll(async () => {
+		const compressed = bun.zstdCompressSync(WASM);
+		server = await serve({
 			port: 0,
 			fetch(request) {
 				const { pathname } = new URL(request.url);
@@ -55,7 +58,7 @@ describe("wasm grammar install", () => {
 
 		expect(await installGrammar(info, tempDir.path())).toBe(true);
 
-		expect(await Bun.file(dest).bytes()).toEqual(WASM);
+		expect(await bun.file(dest).bytes()).toEqual(WASM);
 		expect(fs.existsSync(`${dest}.part`)).toBe(false);
 		expect(fs.existsSync(`${dest}.zst.part`)).toBe(false);
 	});

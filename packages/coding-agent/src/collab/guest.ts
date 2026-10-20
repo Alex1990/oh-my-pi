@@ -45,6 +45,7 @@ import {
 	parseCollabLink,
 } from "./protocol";
 import { CollabSocket } from "./relay-client";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Commands a guest may run locally; everything else is host-only. */
 export const COLLAB_GUEST_ALLOWED_COMMANDS: Record<string, true> = {
@@ -486,7 +487,7 @@ export class CollabGuestLink {
 		// lease, so a resync must never expose a truncated, headerless file.
 		const tempPath = `${replicaPath}.${mintSessionId()}.tmp`;
 		try {
-			await Bun.write(tempPath, `${lines}\n`);
+			await bun.write(tempPath, `${lines}\n`);
 			await fs.rename(tempPath, replicaPath);
 		} catch (err) {
 			await fs.unlink(tempPath).catch(() => {});

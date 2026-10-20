@@ -13,6 +13,7 @@
  */
 
 import { isRecord } from "./type-guards";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ESC_CHAR = "\x1b";
 
@@ -34,7 +35,7 @@ function sanitizeWellFormedText(text: string): string {
 	CONTROL_RE.lastIndex = 0;
 	if (CONTROL_RE.exec(text) === null) return text;
 
-	const stripped = text.indexOf(ESC_CHAR) === -1 ? text : Bun.stripANSI(text);
+	const stripped = text.indexOf(ESC_CHAR) === -1 ? text : bun.stripANSI(text);
 	CONTROL_RE.lastIndex = 0;
 	return stripped.replace(CONTROL_RE, "");
 }

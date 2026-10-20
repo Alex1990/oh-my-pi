@@ -1,7 +1,8 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { HistoryStorage } from "@oh-my-pi/pi-coding-agent/session/history-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: TempDir | null = null;
 
@@ -27,7 +28,7 @@ afterEach(async () => {
 	HistoryStorage.close();
 	vi.useRealTimers();
 	if (tempDir) {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await tempDir.remove().catch(() => {});
 		tempDir = null;
 	}

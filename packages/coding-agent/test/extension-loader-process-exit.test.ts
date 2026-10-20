@@ -6,13 +6,15 @@
  * intercepted error surfaces as a per-module load failure (so OMP keeps going)
  * instead of crashing the test runner.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { loadExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import { loadHooks } from "@oh-my-pi/pi-coding-agent/extensibility/hooks/loader";
 import { ExtensionExitError, withHostGuard } from "@oh-my-pi/pi-coding-agent/extensibility/utils";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("extension/hook loader process.exit guard (#3680)", () => {
 	let project: TempDir | undefined;
@@ -36,8 +38,8 @@ describe("extension/hook loader process.exit guard (#3680)", () => {
 
 	const runProbe = async (probe: string, preload: string[] = []) => {
 		const preloadArgs = preload.flatMap(file => ["--preload", file]);
-		const proc = Bun.spawn([process.execPath, ...preloadArgs, "-e", probe], {
-			cwd: path.resolve(import.meta.dir, "../../.."),
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...preloadArgs, "-e", probe], {
+			cwd: path.resolve(import.meta.dirname, "../../.."),
 			stdin: "pipe",
 			stdout: "pipe",
 			stderr: "pipe",
@@ -77,7 +79,7 @@ void withHostGuard(async () => {
 	process.stdout.write("guard-active\\n");
 	${action}
 	// Keep the real child event loop alive so the platform can deliver SIGINT.
-	await Bun.sleep(10_000);
+	await bun.sleep(10_000);
 });
 `);
 	};
@@ -215,7 +217,7 @@ process.stdout.write("armed\\n");
 process.kill(process.pid, "SIGHUP");
 // Keep the real child event loop alive so the platform can deliver SIGHUP;
 // real signal delivery cannot be driven by fake timers.
-await Bun.sleep(10_000);
+await bun.sleep(10_000);
 `,
 				[preload],
 			);

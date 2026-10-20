@@ -1,4 +1,4 @@
-import { expect, test, vi } from "bun:test";
+import { expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { describeUsageFallback } from "@oh-my-pi/pi-coding-agent/session/retry-fallback-reason";
 
 test("does not describe plan-ineligible accounts as exhausted quota", () => {

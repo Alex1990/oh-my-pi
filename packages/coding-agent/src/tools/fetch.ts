@@ -1,6 +1,6 @@
 import { repairCollapsedScheme, tryExtractEmbeddedUrlSelector } from "@oh-my-pi/pi-tui/tools/fetch";
 import type { ReadUrlToolDetails } from "@oh-my-pi/pi-tui/tools/fetch";
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -40,6 +40,7 @@ import { clampTimeout } from "./tool-timeouts";
 
 import { cfgFetchEnabled, cfgToolsMaxTimeout } from "./settings";
 import { cfgProvidersFetch } from "../session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // =============================================================================
 // Types and Constants
@@ -875,7 +876,7 @@ async function withTempBinaryFile<T>(
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
 	const tempPath = path.join(tempDir, `payload${extension}`);
 	try {
-		await Bun.write(tempPath, bytes);
+		await bun.write(tempPath, bytes);
 		return await readTempFile(tempPath);
 	} finally {
 		await fs.rm(tempDir, { recursive: true, force: true });
@@ -884,7 +885,7 @@ async function withTempBinaryFile<T>(
 
 async function renderNotebookPayload(bytes: Uint8Array, displayUrl: string): Promise<string> {
 	return withTempBinaryFile("omp-url-notebook-", ".ipynb", bytes, async tempPath =>
-		notebookToEditableText(await Bun.file(tempPath).text(), displayUrl),
+		notebookToEditableText(await bun.file(tempPath).text(), displayUrl),
 	);
 }
 
@@ -1639,7 +1640,7 @@ async function persistReadUrlArtifact(
 ): Promise<{ id?: string; path?: string } | undefined> {
 	const artifact = await session.allocateOutputArtifact?.("read");
 	if (!artifact?.path) return undefined;
-	await Bun.write(artifact.path, output);
+	await bun.write(artifact.path, output);
 	return artifact;
 }
 
@@ -1669,9 +1670,9 @@ async function materializeReadUrlContent(session: ToolSession, entry: ReadUrlEnt
 	}
 	const dir = path.join(root, "url-search");
 	await fs.mkdir(dir, { recursive: true });
-	const hash = Bun.hash(`${raw ? "raw" : "rendered"}:${entry.details.finalUrl}`).toString(36);
+	const hash = bun.hash(`${raw ? "raw" : "rendered"}:${entry.details.finalUrl}`).toString(36);
 	const contentPath = path.join(dir, `${hash}${readUrlContentExtension(entry.details.finalUrl)}`);
-	await Bun.write(contentPath, entry.content);
+	await bun.write(contentPath, entry.content);
 	return contentPath;
 }
 

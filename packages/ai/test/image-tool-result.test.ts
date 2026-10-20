@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
@@ -33,7 +33,7 @@ async function handleToolWithImageResult<TApi extends Api>(model: Model<TApi>, o
 	}
 
 	// Read the test image
-	const imagePath = path.join(import.meta.dir, "data", "red-circle.png");
+	const imagePath = path.join(import.meta.dirname, "data", "red-circle.png");
 	const imageBuffer = await fs.readFile(imagePath);
 	const base64Image = imageBuffer.toBase64();
 
@@ -121,7 +121,7 @@ async function handleToolWithTextAndImageResult<TApi extends Api>(model: Model<T
 	}
 
 	// Read the test image
-	const imagePath = path.join(import.meta.dir, "data", "red-circle.png");
+	const imagePath = path.join(import.meta.dirname, "data", "red-circle.png");
 	const imageBuffer = await fs.readFile(imagePath);
 	const base64Image = imageBuffer.toBase64();
 

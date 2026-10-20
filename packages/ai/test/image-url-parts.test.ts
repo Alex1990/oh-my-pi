@@ -1,7 +1,7 @@
 // Contract: an ImageContent carrying `url` ships the URL to providers whose
 // APIs fetch remote images — and its base64 payload stays off the wire.
 // Undecorated blocks keep the inline base64 forms byte-for-byte.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { convertAnthropicMessages } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { convertMessages as convertGoogleMessages } from "@oh-my-pi/pi-ai/providers/google-shared";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";

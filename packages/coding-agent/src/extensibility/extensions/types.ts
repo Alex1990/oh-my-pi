@@ -1734,7 +1734,7 @@ export interface ExtensionAPI {
 	 * path keeps working. Intended for a host embedding the agent inside a sandbox
 	 * that denies direct filesystem writes but exposes a privileged write channel.
 	 *
-	 * A denial that `Bun.write` masks as `ENOENT` — a write into a directory the host
+	 * A denial that `bun.write` masks as `ENOENT` — a write into a directory the host
 	 * may not create — also diverts here, with `req.dst`'s parent absent and the
 	 * handler responsible for creating it.
 	 *

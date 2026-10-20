@@ -15,11 +15,12 @@
  * guard (or routes the reasoning path behind a content-presence check) is caught.
  * See issue #2996 for the reported (non-reproducing) scenario this defends.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model, ModelSpec } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 function createSseResponse(events: unknown[]): Response {
 	const payload = `${events
@@ -35,7 +36,7 @@ function createMockFetch(events: unknown[]): FetchImpl {
 	async function mockFetch(_input: string | URL | Request, _init?: RequestInit): Promise<Response> {
 		return createSseResponse(events);
 	}
-	return Object.assign(mockFetch, { preconnect: fetch.preconnect });
+	return Object.assign(mockFetch, { preconnect: preconnectOf(fetch) });
 }
 
 function baseContext(): Context {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SelectList, type SelectListTheme } from "@oh-my-pi/pi-tui/components/select-list";
 import { KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "@oh-my-pi/pi-tui/keybindings";
 import type { SgrMouseEvent } from "@oh-my-pi/pi-tui/mouse";

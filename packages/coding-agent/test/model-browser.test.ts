@@ -1,5 +1,5 @@
 import { createModelBrowserSource } from "../src/modes/model-browser-source";
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -19,6 +19,7 @@ import {
 } from "@oh-my-pi/pi-tui/overlays/model-browser";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { createModelMentionSource } from "@oh-my-pi/pi-tui/prompt/model-mention-autocomplete";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Optional presentation metadata a catalog or discovery source may attach. */
 type NativeMetadata = Pick<Model, "description" | "isNew" | "isBeta" | "isRecommended" | "int" | "tps"> &
@@ -345,7 +346,7 @@ describe("ModelBrowser perf display", () => {
 	}
 
 	function renderPlain(browser: ModelBrowser, width: number): string[] {
-		return browser.render(width).map(line => Bun.stripANSI(line));
+		return browser.render(width).map(line => bun.stripANSI(line));
 	}
 
 	test("row perf column scales with width: off, TPS-only, TTFT+TPS", () => {
@@ -425,7 +426,7 @@ describe("ModelBrowser native model metadata", () => {
 	function renderDetail(model: Model): string {
 		const browser = new ModelBrowser(createModelBrowserSource(Settings.isolated({})));
 		browser.setItems(buildBrowserItems([model]));
-		const lines = browser.render(160).map(line => Bun.stripANSI(line));
+		const lines = browser.render(160).map(line => bun.stripANSI(line));
 		return lines[lines.length - 2] as string;
 	}
 
@@ -467,7 +468,7 @@ describe("ModelBrowser native model metadata", () => {
 
 		const variable = makeModel("cursor", "default", { pricingStatus: "variable" });
 		const browser = makeBrowser([variable], []);
-		const lines = browser.render(160).map(line => Bun.stripANSI(line));
+		const lines = browser.render(160).map(line => bun.stripANSI(line));
 		expect(lines[2]).toContain("varies");
 		expect(lines[lines.length - 2]).toContain("price varies");
 		// A router priced per request is not free, so the `free` filter skips it.
@@ -516,7 +517,7 @@ describe("ModelBrowser native model metadata", () => {
 		invalid.cost.input = -1;
 		invalid.cost.output = Number.POSITIVE_INFINITY;
 		const browser = makeBrowser([zero, missing, partial, negativeZero, invalid], []);
-		const rows = browser.render(100).map(line => Bun.stripANSI(line));
+		const rows = browser.render(100).map(line => bun.stripANSI(line));
 		expect(rows.find(line => line.includes("fixture/zero"))).toContain("free");
 		expect(rows.find(line => line.includes("fixture/missing"))).toContain("free");
 		expect(rows.find(line => line.includes("fixture/partial"))).toContain("$?/2");
@@ -524,7 +525,7 @@ describe("ModelBrowser native model metadata", () => {
 		expect(rows.find(line => line.includes("fixture/invalid"))).toContain("$?/?");
 
 		browser.setQuery("free");
-		const freeRows = browser.render(100).map(line => Bun.stripANSI(line));
+		const freeRows = browser.render(100).map(line => bun.stripANSI(line));
 		expect(freeRows.some(line => line.includes("fixture/zero"))).toBe(true);
 		expect(freeRows.some(line => line.includes("fixture/negative-zero"))).toBe(false);
 	});
@@ -537,7 +538,7 @@ describe("ModelBrowser native model metadata", () => {
 		model.cost.input = input;
 		model.cost.output = output;
 		const browser = makeBrowser([model], []);
-		const rows = browser.render(100).map(line => Bun.stripANSI(line));
+		const rows = browser.render(100).map(line => bun.stripANSI(line));
 		expect(rows.find(line => line.includes("demo/invalid-rate"))).toContain(expected);
 		expect(renderDetail(model)).toContain(`${expected} per M`);
 		browser.setQuery("free");
@@ -552,14 +553,14 @@ describe("ModelBrowser native model metadata", () => {
 		tiny.cost.input = 0.0000001;
 		tiny.cost.output = 0.001;
 		const browser = makeBrowser([priced, tiny], []);
-		const rows = browser.render(100).map(line => Bun.stripANSI(line));
+		const rows = browser.render(100).map(line => bun.stripANSI(line));
 		const listRow = rows.find(line => line.includes("fixture/priced"));
 		const detailRow = rows.find(line => line.includes("$100/0.001 per M"));
 		const tinyRow = rows.find(line => line.includes("fixture/tiny"));
 		expect(listRow).toContain("$100/0.001");
 		expect(detailRow).toContain("$100/0.001 per M");
 		expect(tinyRow).toContain("$0.0000001/0.001");
-		expect(rows.every(line => Bun.stringWidth(line) <= 100)).toBe(true);
+		expect(rows.every(line => bun.stringWidth(line) <= 100)).toBe(true);
 	});
 });
 
@@ -582,7 +583,7 @@ describe("Factory Droid credits badge", () => {
 		const paid = makeDroidModel("preview-credit-model", 2);
 		paid.cost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 		const browser = makeBrowser([priced, paid], []);
-		const rows = browser.render(120).map(line => Bun.stripANSI(line));
+		const rows = browser.render(120).map(line => bun.stripANSI(line));
 		const pricedRow = rows.find(row => row.includes("claude-opus-5"));
 		const paidRow = rows.find(row => row.includes("preview-credit-model"));
 
@@ -623,7 +624,7 @@ describe("serviceTierFor", () => {
 						["openai/gpt-6-astra@ultrafast", { samples: 2, tps: 300, ttftMs: null }],
 					]),
 				);
-				const row = () => Bun.stripANSI(browser.render(120)[2] ?? "");
+				const row = () => bun.stripANSI(browser.render(120)[2] ?? "");
 
 				expect(row()).toContain("25t/s");
 				expect(row()).not.toContain("ultrafast");

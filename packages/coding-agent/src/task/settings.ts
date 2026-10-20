@@ -13,6 +13,7 @@ import { THINKING_EFFORTS } from "@oh-my-pi/pi-catalog/effort";
 import { isRecord, logger, setWorktreesDir } from "@oh-my-pi/pi-utils";
 import { setFeedModelBadgeEnabled } from "@oh-my-pi/pi-tui/render/render-utils";
 import { getThinkingLevelMetadata } from "@oh-my-pi/pi-tui/thinking";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EMPTY_AGENT_SERVICE_TIER_OVERRIDES: Record<string, ServiceTierInheritSettingValue> = {};
 const EMPTY_AGENT_COMPACTION_THRESHOLD_OVERRIDES: Record<string, AgentCompactionThresholdOverride> = {};
@@ -428,7 +429,7 @@ function validateAgentSoftRequestBudget(value: unknown): void {
 	for (const [agentName, budget] of Object.entries(value)) {
 		if (budget === null || (typeof budget === "number" && Number.isSafeInteger(budget) && budget >= 0)) continue;
 		throw new Error(
-			`Invalid task.agentSoftRequestBudget.${agentName}: expected a non-negative integer request count (0 disables the guard), got ${Bun.inspect(budget)}.`,
+			`Invalid task.agentSoftRequestBudget.${agentName}: expected a non-negative integer request count (0 disables the guard), got ${bun.inspect(budget)}.`,
 		);
 	}
 }

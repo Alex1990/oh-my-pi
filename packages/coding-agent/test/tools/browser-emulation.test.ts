@@ -1,10 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { freezeTabsForOwner, releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const OWNER_ID = "browser-emulation-test-owner";
@@ -24,7 +26,7 @@ const session: ToolSession = {
 };
 const prelude = createBrowserPrelude(session);
 const context = { session, toolCallId: "browser-emulation-test" };
-let server: Bun.Server<undefined>;
+let server: Server<undefined>;
 let pageUrl = "";
 
 async function invoke(parameters: unknown) {
@@ -45,8 +47,8 @@ async function run(code: string): Promise<unknown> {
 	return valueFrom(result as { details?: Record<string, unknown> });
 }
 
-beforeAll(() => {
-	server = Bun.serve({
+beforeAll(async () => {
+	server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch(request) {

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamGoogleGeminiCli } from "@oh-my-pi/pi-ai/providers/google-gemini-cli";
 import type { Context, ImageContent, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
@@ -29,7 +30,7 @@ const gemini = makeModel("gemini-3-flash");
 
 async function makeRedPng(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
+	const upscaled = await new Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
 	return Buffer.from(upscaled).toString("base64");
 }
 
@@ -40,7 +41,7 @@ async function makeRedPng(width: number, height: number): Promise<string> {
  */
 async function makeHeavyPng(): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const canvas = await new Bun.Image(seed).resize(1200, 900, { filter: "nearest" }).png().bytes();
+	const canvas = await new Image(seed).resize(1200, 900, { filter: "nearest" }).png().bytes();
 	return Buffer.concat([Buffer.from(canvas), Buffer.alloc(4 * 1024 * 1024, 7)]).toString("base64");
 }
 
@@ -87,7 +88,7 @@ function captureImages(model: Model<"google-gemini-cli">, context: Context): Pro
 }
 
 async function dimensions(data: string): Promise<{ width: number; height: number }> {
-	const { width, height } = await new Bun.Image(Buffer.from(data, "base64")).metadata();
+	const { width, height } = await new Image(Buffer.from(data, "base64")).metadata();
 	return { width, height };
 }
 

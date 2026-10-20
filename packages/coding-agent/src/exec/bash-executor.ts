@@ -35,6 +35,7 @@ import {
 	cfgShellPath,
 	type ShellMinimizerSettings,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface BashExecutorOptions {
 	cwd?: string;
@@ -438,7 +439,7 @@ function buildUserShellCommand(shell: string, args: string[], command: string): 
 
 function resolveUserShellConfig(settings: Settings, baseConfig: ShellConfig): ShellConfig {
 	const customShellPath = cfgShellPath.get(settings);
-	const envShell = Bun.env.SHELL;
+	const envShell = bun.env.SHELL;
 	if (customShellPath || process.platform === "win32" || !envShell || envShell === baseConfig.shell) {
 		return baseConfig;
 	}

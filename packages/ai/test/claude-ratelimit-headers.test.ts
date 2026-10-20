@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { UsageLimit, UsageReport } from "@oh-my-pi/pi-ai/usage";
 import { parseClaudeRateLimitHeaders } from "@oh-my-pi/pi-ai/usage/claude";
 

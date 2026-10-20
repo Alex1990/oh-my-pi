@@ -8,7 +8,7 @@
  * timeout.
  */
 import * as path from "node:path";
-import { $flag, isBunTestRuntime, logger, Snowflake } from "@oh-my-pi/pi-utils";
+import { $flag, isTestRuntime, logger, Snowflake } from "@oh-my-pi/pi-utils";
 import { Settings } from "../../config/settings";
 import {
 	BaseKernel,
@@ -31,6 +31,7 @@ import {
 } from "./runtime";
 import { hostHasInheritableConsole, shouldDetachKernel, shouldHideKernelWindow } from "./spawn-options";
 import type { PythonToolRequest } from "./executor";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type {
 	KernelExecuteOptions,
@@ -116,7 +117,7 @@ export async function checkPythonKernelAvailability(
 	interpreter?: string,
 	options?: { forceProbe?: boolean } & BackendProbeOptions,
 ): Promise<PythonKernelAvailability> {
-	if (!options?.forceProbe && (isBunTestRuntime() || $flag("PI_PYTHON_SKIP_CHECK"))) {
+	if (!options?.forceProbe && (isTestRuntime() || $flag("PI_PYTHON_SKIP_CHECK"))) {
 		return { ok: true };
 	}
 	const resolvedCwd = path.resolve(cwd);
@@ -305,7 +306,7 @@ export class PythonKernel extends BaseKernel<PythonKernelExecuteOptions> {
 		const scriptPath = await stageRunnerScript("omp-python-runner", "py", RUNNER_SCRIPT);
 		const kernel = new PythonKernel(Snowflake.next(), runtime.pythonPath);
 
-		const proc = Bun.spawn([runtime.pythonPath, "-u", scriptPath], {
+		const proc = bun.spawn([runtime.pythonPath, "-u", scriptPath], {
 			cwd: options.cwd,
 			detached: shouldDetachKernel(process.platform),
 			env: spawnEnv,

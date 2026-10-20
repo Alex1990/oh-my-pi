@@ -1,18 +1,66 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import type * as NodeFs from "node:fs";
+import type * as NodePath from "node:path";
 import * as path from "node:path";
 import { openPath } from "@oh-my-pi/pi-coding-agent/utils/open";
-import * as piUtils from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type * as PiUtils from "@oh-my-pi/pi-utils";
+import type * as NodeRuntime from "@oh-my-pi/pi-utils/node-runtime";
+import {
+	type SpawnOptions,
+	type SpawnSyncOptions,
+	type SpawnSyncResult,
+	type Subprocess,
+} from "@oh-my-pi/pi-utils/node-runtime";
+// Mock hoisting needs the real Vitest entry point; the test-runtime barrel
+// re-exports it, which Vitest's mock-API check rejects.
+import { vi } from "vitest";
 
-type SpawnOptions = Bun.SpawnOptions.SpawnOptions<
-	Bun.SpawnOptions.Writable,
-	Bun.SpawnOptions.Readable,
-	Bun.SpawnOptions.Readable
->;
+/**
+ * ESM module namespaces are frozen, so these cannot be `vi.spyOn`-ed. Mock the
+ * modules instead and delegate to the real implementations unless a test
+ * overrides them.
+ */
+const mocks = vi.hoisted(() => ({
+	spawn: vi.fn(),
+	spawnSync: vi.fn(),
+	existsSync: vi.fn(),
+	resolve: vi.fn(),
+	which: vi.fn(),
+	warn: vi.fn(),
+	actual: {} as {
+		fs?: typeof NodeFs;
+		path?: typeof NodePath;
+		utils?: typeof PiUtils;
+	},
+}));
+
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFs>();
+	mocks.actual.fs = actual;
+	mocks.existsSync.mockImplementation(candidate => actual.existsSync(candidate));
+	return { ...actual, existsSync: mocks.existsSync };
+});
+
+vi.mock("node:path", async importOriginal => {
+	const actual = await importOriginal<typeof NodePath>();
+	mocks.actual.path = actual;
+	mocks.resolve.mockImplementation((...segments: string[]) => actual.resolve(...segments));
+	return { ...actual, resolve: mocks.resolve };
+});
+
+vi.mock("@oh-my-pi/pi-utils", async importOriginal => {
+	const actual = await importOriginal<typeof PiUtils>();
+	mocks.actual.utils = actual;
+	mocks.which.mockImplementation(command => actual.$which(command));
+	return { ...actual, $which: mocks.which, logger: { ...actual.logger, warn: mocks.warn } };
+});
+
+vi.mock("@oh-my-pi/pi-utils/node-runtime", async importOriginal => {
+	const actual = await importOriginal<typeof NodeRuntime>();
+	return { ...actual, bun: { ...actual.bun, spawn: mocks.spawn, spawnSync: mocks.spawnSync } };
+});
+
 type SpawnCall = { cmd: string[]; options: SpawnOptions };
-
-type SpawnSyncOptions = Bun.SpawnOptions.SpawnSyncOptions<"ignore", "pipe", "ignore">;
 
 const existingLinuxPath = "/mnt/c/Users/example/Downloads/session.html";
 const windowsPath = "C:\\Users\\example\\Downloads\\session.html";
@@ -38,15 +86,18 @@ function fakeProcess(): Subprocess {
 }
 
 function spySpawn(calls: SpawnCall[]) {
-	function mockSpawn(opts: SpawnOptions & { cmd: string[] }): Subprocess;
-	function mockSpawn(cmd: string[], opts?: SpawnOptions): Subprocess;
-	function mockSpawn(first: string[] | (SpawnOptions & { cmd: string[] }), second?: SpawnOptions): Subprocess {
-		const cmd = Array.isArray(first) ? first : first.cmd;
-		const options = Array.isArray(first) ? (second ?? ({} as SpawnOptions)) : (first as SpawnOptions);
-		calls.push({ cmd, options });
+	function mockSpawn(
+		command: string | string[] | ({ cmd: string[] } & SpawnOptions),
+		options?: SpawnOptions,
+	): Subprocess {
+		const cmd = typeof command === "string" ? [command] : Array.isArray(command) ? command : command.cmd;
+		const resolved: SpawnOptions =
+			typeof command === "object" && !Array.isArray(command) ? { ...command, ...options } : (options ?? {});
+		calls.push({ cmd, options: resolved });
 		return fakeProcess();
 	}
-	return vi.spyOn(Bun, "spawn").mockImplementation(mockSpawn);
+	mocks.spawn.mockImplementation(mockSpawn);
+	return mocks.spawn;
 }
 
 function spyWslPath(calls: string[][], output: string, exitCode = 0) {
@@ -57,20 +108,24 @@ function spyWslPath(calls: string[][], output: string, exitCode = 0) {
 		success: exitCode === 0,
 		resourceUsage: {},
 		pid: 1,
-	} as unknown as Bun.SyncSubprocess<"pipe", "ignore">;
+	} as unknown as SpawnSyncResult;
 
-	function mockSpawnSync(opts: SpawnSyncOptions & { cmd: string[] }): Bun.SyncSubprocess<"pipe", "ignore">;
-	function mockSpawnSync(cmd: string[], opts?: SpawnSyncOptions): Bun.SyncSubprocess<"pipe", "ignore">;
-	function mockSpawnSync(
-		first: string[] | (SpawnSyncOptions & { cmd: string[] }),
-	): Bun.SyncSubprocess<"pipe", "ignore"> {
-		calls.push(Array.isArray(first) ? first : first.cmd);
+	function mockSpawnSync(command: string[] | string | { cmd: string[] }, _options?: SpawnSyncOptions): SpawnSyncResult {
+		calls.push(typeof command === "string" ? [command] : Array.isArray(command) ? command : command.cmd);
 		return result;
 	}
-	return vi.spyOn(Bun, "spawnSync").mockImplementation(mockSpawnSync);
+	mocks.spawnSync.mockImplementation(mockSpawnSync);
+	return mocks.spawnSync;
 }
 
 beforeEach(() => {
+	// `restoreMocks` clears implementations before every test.
+	mocks.existsSync.mockImplementation(candidate => mocks.actual.fs!.existsSync(candidate));
+	mocks.resolve.mockImplementation((...segments: string[]) => mocks.actual.path!.resolve(...segments));
+	mocks.which.mockImplementation(command => mocks.actual.utils!.$which(command));
+	mocks.spawn.mockReset();
+	mocks.spawnSync.mockReset();
+
 	savedEnv = {};
 	for (const key of ENV_KEYS) {
 		savedEnv[key] = process.env[key];
@@ -95,11 +150,11 @@ describe("openPath", () => {
 		// Keep the mocked linux platform deterministic on a Windows dev host:
 		// the real path.resolve would rewrite /mnt/c/… against the drive root.
 		const realResolve = path.resolve;
-		vi.spyOn(path, "resolve").mockImplementation((...segments: string[]) =>
+		mocks.resolve.mockImplementation((...segments: string[]) =>
 			segments.length === 1 && segments[0] === existingLinuxPath ? existingLinuxPath : realResolve(...segments),
 		);
-		vi.spyOn(piUtils, "$which").mockImplementation(command => (command === "wslview" ? "/usr/bin/wslview" : null));
-		vi.spyOn(fs, "existsSync").mockImplementation(candidate => candidate === existingLinuxPath);
+		mocks.which.mockImplementation(command => (command === "wslview" ? "/usr/bin/wslview" : null));
+		mocks.existsSync.mockImplementation(candidate => candidate === existingLinuxPath);
 
 		const spawnSyncCalls: string[][] = [];
 		spyWslPath(spawnSyncCalls, windowsPath);
@@ -115,8 +170,8 @@ describe("openPath", () => {
 	it("keeps WSL URL opening on xdg-open without path conversion", () => {
 		setPlatform("linux");
 		process.env.WSL_INTEROP = "/run/WSL/1_interop";
-		vi.spyOn(piUtils, "$which").mockReturnValue("/usr/bin/wslview");
-		const spawnSyncSpy = vi.spyOn(Bun, "spawnSync");
+		mocks.which.mockReturnValue("/usr/bin/wslview");
+		const spawnSyncSpy = mocks.spawnSync;
 		const spawnCalls: SpawnCall[] = [];
 		spySpawn(spawnCalls);
 
@@ -129,8 +184,8 @@ describe("openPath", () => {
 	it("falls back to xdg-open when wslview is unavailable", () => {
 		setPlatform("linux");
 		process.env.WSL_DISTRO_NAME = "Ubuntu";
-		vi.spyOn(piUtils, "$which").mockReturnValue(null);
-		const spawnSyncSpy = vi.spyOn(Bun, "spawnSync");
+		mocks.which.mockReturnValue(null);
+		const spawnSyncSpy = mocks.spawnSync;
 		const spawnCalls: SpawnCall[] = [];
 		spySpawn(spawnCalls);
 
@@ -145,7 +200,7 @@ describe("openPath", () => {
 		const originalSystemRoot = process.env.SystemRoot;
 		process.env.SystemRoot = "D:\\CustomWindows";
 		const powershellPath = "D:\\CustomWindows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
-		vi.spyOn(fs, "existsSync").mockImplementation(candidate => candidate === powershellPath);
+		mocks.existsSync.mockImplementation(candidate => candidate === powershellPath);
 		try {
 			const spawnCalls: SpawnCall[] = [];
 			spySpawn(spawnCalls);
@@ -176,7 +231,7 @@ describe("openPath", () => {
 
 	it("doubles embedded single quotes so the target stays one PowerShell literal", () => {
 		setPlatform("win32");
-		vi.spyOn(fs, "existsSync").mockReturnValue(true);
+		mocks.existsSync.mockReturnValue(true);
 		const spawnCalls: SpawnCall[] = [];
 		spySpawn(spawnCalls);
 
@@ -194,7 +249,7 @@ describe("openPath", () => {
 		delete process.env.SYSTEMROOT;
 		try {
 			const defaultPath = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
-			const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation(candidate => candidate === defaultPath);
+			const existsSpy = mocks.existsSync.mockImplementation(candidate => candidate === defaultPath);
 			const spawnCalls: SpawnCall[] = [];
 			spySpawn(spawnCalls);
 
@@ -213,14 +268,14 @@ describe("openPath", () => {
 
 	it("logs when the opener exits non-zero so Start-Process failures are diagnosable", async () => {
 		setPlatform("win32");
-		vi.spyOn(fs, "existsSync").mockReturnValue(true);
-		const warnSpy = vi.spyOn(piUtils.logger, "warn").mockImplementation((() => {}) as never);
+		mocks.existsSync.mockReturnValue(true);
+		const warnSpy = mocks.warn.mockImplementation((() => {}) as never);
 		const failing = {
 			pid: 1,
 			exited: Promise.resolve(1),
 			kill: () => true,
 		} as unknown as Subprocess;
-		vi.spyOn(Bun, "spawn").mockImplementation(() => failing);
+		mocks.spawn.mockImplementation(() => failing);
 
 		openPath("https://example.com");
 		await failing.exited;

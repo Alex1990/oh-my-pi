@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
 import { resolveEvalUrlRoots } from "../../src/eval/backend";
 import { createHelpers, type HelperContext } from "../../src/eval/js/shared/helpers";
 import type { ToolSession } from "../../src/tools";
 import { rejectionOf } from "../helpers/rejection";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * The eval helpers (`read`/`write`) must substitute injected on-disk
@@ -30,12 +31,12 @@ describe("eval js helpers internal-url resolution", () => {
 
 		const written = await helpers.writeFile("local://notes/merge-map.md", "hello");
 		expect(written).toBe(path.join(root, "notes", "merge-map.md"));
-		expect(await Bun.file(written).text()).toBe("hello");
+		expect(await bun.file(written).text()).toBe("hello");
 		expect(await helpers.read("local://notes/merge-map.md")).toBe("hello");
 
 		// Regression: no literal `local:` directory created under the cwd.
-		expect(await Bun.file(path.join(tmp.path(), "local:")).exists()).toBe(false);
-		expect(await Bun.file(path.join(tmp.path(), "local:", "notes", "merge-map.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmp.path(), "local:")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmp.path(), "local:", "notes", "merge-map.md")).exists()).toBe(false);
 	});
 
 	it("rejects traversal and schemes without an injected root", async () => {
@@ -60,8 +61,8 @@ describe("eval js helpers internal-url resolution", () => {
 		using tmp = TempDir.createSync("@eval-helpers-artifact-");
 		const artifacts = path.join(tmp.path(), "artifacts");
 		const wide = "v".repeat(14_430);
-		await Bun.write(path.join(artifacts, "12.eval.log"), `${wide}\nsecond\nthird\n`);
-		await Bun.write(path.join(artifacts, "120.bash.log"), "other");
+		await bun.write(path.join(artifacts, "12.eval.log"), `${wide}\nsecond\nthird\n`);
+		await bun.write(path.join(artifacts, "120.bash.log"), "other");
 		const helpers = createHelpers(makeCtx(tmp.path(), { artifact: artifacts }));
 
 		expect(helpers.hasRoot("artifact://12")).toBe(true);
@@ -80,12 +81,12 @@ describe("eval js helpers internal-url resolution", () => {
 		expect(await rejectionOf(helpers.writeFile("artifact://12", "x"))).toMatchObject({
 			message: expect.stringMatching(/not supported/i),
 		});
-		expect(await Bun.file(path.join(artifacts, "12")).exists()).toBe(false);
+		expect(await bun.file(path.join(artifacts, "12")).exists()).toBe(false);
 	});
 
 	it("serves artifact:// from the session's artifacts dir, and leaves it to the read tool without one", async () => {
 		using tmp = TempDir.createSync("@eval-helpers-session-artifacts-");
-		await Bun.write(path.join(tmp.path(), "12.eval.log"), "artifact text");
+		await bun.write(path.join(tmp.path(), "12.eval.log"), "artifact text");
 		const withDir = { cwd: tmp.path(), getArtifactsDir: () => tmp.path() } as unknown as ToolSession;
 		const withoutDir = { cwd: tmp.path() } as unknown as ToolSession;
 

@@ -5,8 +5,9 @@
  * misreads the header would either miss a swapped model or accuse an honest
  * one.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { spawnSync } from "node:child_process";
+import { nodeTsArgs } from "./helpers/node-ts";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { AnthropicMessages } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import {
@@ -42,17 +43,14 @@ describe("servedModelFromAnthropicSignature", () => {
 
 	it("rejects a length above signed 32-bit range without looping", () => {
 		const signature = Buffer.from([0x1a, 0x80, 0x80, 0x80, 0x80, 0x08]).toString("base64");
-		const module = import.meta.resolve("@oh-my-pi/pi-ai/providers/anthropic-signature");
+		const module = new URL("../src/providers/anthropic-signature.ts", import.meta.url).href;
 		// A synchronous parser loop cannot be interrupted by the test runner's timeout.
-		const result = spawnSync(
-			process.execPath,
-			[
-				"-e",
-				`import { servedModelFromAnthropicSignature } from ${JSON.stringify(module)};
+		const [node, ...nodeArgs] = nodeTsArgs(
+			"-e",
+			`import { servedModelFromAnthropicSignature } from ${JSON.stringify(module)};
 console.log(servedModelFromAnthropicSignature(${JSON.stringify(signature)}));`,
-			],
-			{ encoding: "utf8", timeout: 2_000 },
 		);
+		const result = spawnSync(node, nodeArgs, { encoding: "utf8", timeout: 2_000 });
 		expect(result.error).toBeUndefined();
 		expect(result.stdout).toBe("undefined\n");
 	});

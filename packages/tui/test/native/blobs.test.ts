@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,8 @@ import { node } from "@oh-my-pi/pi-tui/native/describe";
 import type { NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import type { Component } from "@oh-my-pi/pi-tui/tui";
 import { TspHarness } from "./tsp-harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeScriptArgs } from "../helpers/node-subprocess";
 
 describe("native image blob lifetime", () => {
 	const cases = [
@@ -58,11 +60,14 @@ describe("native image blob lifetime", () => {
 						fs.promises.mkdir(root.join(dir), { recursive: true }),
 					),
 				);
-				const child = Bun.spawn([process.execPath, path.join(import.meta.dir, "fixtures", fixture), source], {
-					stdout: "pipe",
-					stderr: "pipe",
-					env,
-				});
+				const child = bun.spawn(
+					[process.execPath, ...nodeScriptArgs(path.join(import.meta.dirname, "fixtures", fixture)), source],
+					{
+						stdout: "pipe",
+						stderr: "pipe",
+						env,
+					},
+				);
 				const timeout = setTimeout(() => child.kill(), 10_000);
 				try {
 					const [stdout, stderr, exitCode] = await Promise.all([
@@ -160,14 +165,14 @@ describe("native blob delivery", () => {
 	it("records a blob the terminal already held with its full body, after the query", async () => {
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tsp-record-"));
 		const record = path.join(tempDir, "tsp.jsonl");
-		const before = Bun.env.PI_TUI_TSP_RECORD;
-		Bun.env.PI_TUI_TSP_RECORD = record;
+		const before = bun.env.PI_TUI_TSP_RECORD;
+		bun.env.PI_TUI_TSP_RECORD = record;
 		const pic = image();
 		try {
 			harness = await TspHarness.start(tui => tui.addChild(pic.probe()), { heldBlobs: [pic.bytes] });
 		} finally {
-			if (before === undefined) delete Bun.env.PI_TUI_TSP_RECORD;
-			else Bun.env.PI_TUI_TSP_RECORD = before;
+			if (before === undefined) delete bun.env.PI_TUI_TSP_RECORD;
+			else bun.env.PI_TUI_TSP_RECORD = before;
 		}
 		const lines = fs
 			.readFileSync(record, "utf8")
@@ -219,12 +224,12 @@ describe("native blob delivery", () => {
 	});
 
 	it("hands a blob over through the terminal's blob cache under TERN_BLOB_DIR", async () => {
-		const before = Bun.env.TERN_BLOB_DIR;
+		const before = bun.env.TERN_BLOB_DIR;
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tern-blobs-"));
 		const pic = image();
 		harness = await TspHarness.start(tui => tui.addChild(pic.probe()), { blobDir: tempDir });
 		const h = harness;
-		expect(Bun.env.TERN_BLOB_DIR).toBe(tempDir);
+		expect(bun.env.TERN_BLOB_DIR).toBe(tempDir);
 		await h.until(() => sent(h, "q").length > 0);
 		h.flush();
 
@@ -237,7 +242,7 @@ describe("native blob delivery", () => {
 
 		h.stop();
 		harness = undefined;
-		expect(Bun.env.TERN_BLOB_DIR).toBe(before);
+		expect(bun.env.TERN_BLOB_DIR).toBe(before);
 	});
 
 	it("sends a blob inline when it couldn't be saved to the blob cache", async () => {

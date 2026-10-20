@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AttachmentChipsBand } from "@oh-my-pi/pi-tui/prompt/attachment-chips";
 import { CustomEditor } from "@oh-my-pi/pi-tui/prompt/custom-editor";
 import { chipLabel } from "@oh-my-pi/pi-tui/prompt/composer-attachments";
@@ -8,6 +8,8 @@ import { setKittyGraphics } from "@oh-my-pi/pi-tui/kitty-graphics";
 import { getCellDimensions, ImageProtocol, setCellDimensions, TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { getAvailableSymbolPresets, SYMBOL_PRESETS } from "@oh-my-pi/pi-tui/theme/symbols";
 import { visibleWidth } from "@oh-my-pi/pi-tui/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 // 2x2 red PNG — real header so the band's dimension probe decodes 2x2.
 const TINY_PNG =
@@ -31,7 +33,7 @@ describe("AttachmentChipsBand", () => {
 	it("renders a 6-row card with the chip token caption and paste line caption", () => {
 		const { editor, band } = makeBand();
 		editor.insertTextAttachment("line1\nline2\nline3");
-		const rows = band.render(80).map(Bun.stripANSI);
+		const rows = band.render(80).map(bun.stripANSI);
 		expect(rows).toHaveLength(6);
 		expect(rows[0]).toContain(chipLabel("paste", 1));
 		expect(rows[5]).toContain("+3 lines");
@@ -43,7 +45,7 @@ describe("AttachmentChipsBand", () => {
 	it("captions a single-line paste with its character count", () => {
 		const { editor, band } = makeBand();
 		editor.insertTextAttachment("x".repeat(42));
-		const rows = band.render(80).map(Bun.stripANSI);
+		const rows = band.render(80).map(bun.stripANSI);
 		expect(rows[5]).toContain("42 chars");
 	});
 
@@ -60,7 +62,7 @@ describe("AttachmentChipsBand", () => {
 		editor.pendingImages.push({ type: "image", data: TINY_PNG, mimeType: "image/png" });
 		editor.insertAtom(chipLabel("image", 1), "[Image #1, 2x2]");
 		editor.insertTextAttachment("hello");
-		const rows = band.render(80).map(Bun.stripANSI);
+		const rows = band.render(80).map(bun.stripANSI);
 		expect(rows).toHaveLength(6);
 		expect(rows[0]).toContain(chipLabel("image", 1));
 		expect(rows[0]).toContain(chipLabel("paste", 1));
@@ -74,7 +76,7 @@ describe("AttachmentChipsBand", () => {
 		editor.pendingImageLinks.push("/tmp/launch.mp4");
 		editor.insertAtom(chipLabel("video", 1), "[Video #1, 2x2]");
 
-		const rows = band.render(80).map(Bun.stripANSI);
+		const rows = band.render(80).map(bun.stripANSI);
 
 		expect(rows[0]).toContain(chipLabel("video", 1));
 		expect(rows[0]).not.toContain(chipLabel("image", 1));
@@ -86,7 +88,7 @@ describe("AttachmentChipsBand", () => {
 		editor.insertTextAttachment("first");
 		editor.insertTextAttachment("second");
 		// 14 cols per card + 2 gap: at width 20 only the first card fits.
-		const rows = band.render(20).map(Bun.stripANSI);
+		const rows = band.render(20).map(bun.stripANSI);
 		expect(rows[0]).toContain(chipLabel("paste", 1));
 		expect(rows[0]).not.toContain(chipLabel("paste", 2));
 	});
@@ -137,7 +139,7 @@ describe("AttachmentChipsBand — Kitty placeholder thumbnails", () => {
 		try {
 			// Regression: pasted images are re-encoded JPEG/WebP; transmitting those raw
 			// bytes as f=100 made Ghostty reject the data (EINVAL) and render blank cells.
-			const jpeg = await new Bun.Image(Buffer.from(TINY_PNG, "base64")).jpeg().toBase64();
+			const jpeg = await new Image(Buffer.from(TINY_PNG, "base64")).jpeg().toBase64();
 			const editor = new CustomEditor(getEditorTheme());
 			const budget = new ImageBudget(8);
 			const repaint = Promise.withResolvers<void>();

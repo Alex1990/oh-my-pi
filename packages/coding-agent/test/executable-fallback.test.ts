@@ -1,23 +1,30 @@
 import * as path from "node:path";
 import * as utils from "@oh-my-pi/pi-utils";
-import { afterEach, describe, expect, it, vi } from "bun:test";
-import { resolveCliEntryCmd, resolveExecutablePath, resolveWorkerSpawnCmd } from "../src/subprocess/worker-client";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import {
+	__setSpawnArgv0ForTests,
+	resolveCliEntryCmd,
+	resolveExecutablePath,
+	resolveWorkerSpawnCmd,
+} from "../src/subprocess/worker-client";
 
 describe("executable fallback on unlinked binary", () => {
 	const originalExecPathDesc = Object.getOwnPropertyDescriptor(process, "execPath");
-	const originalArgv0Desc = Object.getOwnPropertyDescriptor(process, "argv0");
 
 	afterEach(() => {
 		vi.restoreAllMocks();
 		if (originalExecPathDesc) {
 			Object.defineProperty(process, "execPath", originalExecPathDesc);
 		}
-		if (originalArgv0Desc) {
-			Object.defineProperty(process, "argv0", originalArgv0Desc);
-		}
+		__setSpawnArgv0ForTests(undefined);
 	});
 
 	function setProcessProp(prop: "execPath" | "argv0", value: string): void {
+		// Node defines `process.argv0` as a non-configurable read-only value.
+		if (prop === "argv0") {
+			__setSpawnArgv0ForTests(value);
+			return;
+		}
 		Object.defineProperty(process, prop, {
 			value,
 			writable: true,

@@ -1,13 +1,15 @@
 #!/usr/bin/env bun
 /** Minimal stdio MCP server with independently delayed startup and tools/call. */
 import * as readline from "node:readline";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const name = Bun.env.SRV_NAME ?? "srv";
-const startupDelayMs = Number(Bun.env.DELAY_STARTUP ?? 0);
-const callDelayMs = Number(Bun.env.DELAY_CALL ?? 0);
+const name = bun.env.SRV_NAME ?? "srv";
+const startupDelayMs = Number(bun.env.DELAY_STARTUP ?? 0);
+const callDelayMs = Number(bun.env.DELAY_CALL ?? 0);
 
 async function serve(): Promise<void> {
-	if (startupDelayMs > 0) await Bun.sleep(startupDelayMs);
+	if (startupDelayMs > 0) await bun.sleep(startupDelayMs);
 	const lines = readline.createInterface({ input: process.stdin });
 	for await (const line of lines) {
 		let request: unknown;
@@ -40,7 +42,7 @@ async function serve(): Promise<void> {
 				};
 				break;
 			case "tools/call":
-				if (callDelayMs > 0) await Bun.sleep(callDelayMs);
+				if (callDelayMs > 0) await bun.sleep(callDelayMs);
 				result = { content: [{ type: "text", text: `MARKER_OK::${name}` }] };
 				break;
 			default:
@@ -50,4 +52,4 @@ async function serve(): Promise<void> {
 	}
 }
 
-if (import.meta.main) void serve();
+if (isMainModule(import.meta.url)) void serve();

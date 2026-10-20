@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as natives from "@oh-my-pi/pi-natives";
 import { buildDirectoryTree, buildWorkspaceTree } from "@oh-my-pi/pi-coding-agent/workspace-tree";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 
@@ -15,7 +16,7 @@ async function makeTempDir(): Promise<string> {
 }
 
 async function writeFileWithMtime(filePath: string, content: string, mtimeMs: number): Promise<void> {
-	await Bun.write(filePath, content);
+	await bun.write(filePath, content);
 	const mtime = new Date(mtimeMs);
 	await fs.utimes(filePath, mtime, mtime);
 }
@@ -77,7 +78,7 @@ describe("buildWorkspaceTree", () => {
 
 	it("enforces the depth cap and skips hidden, excluded, and gitignored paths", async () => {
 		const cwd = await makeTempDir();
-		await Bun.write(path.join(cwd, ".gitignore"), "ignored.txt\nignored-dir/\na/b/ignored-nested.txt\n");
+		await bun.write(path.join(cwd, ".gitignore"), "ignored.txt\nignored-dir/\na/b/ignored-nested.txt\n");
 		await writeFileWithMtime(path.join(cwd, "kept.txt"), "kept", Date.now() - 1_000);
 		await writeFileWithMtime(path.join(cwd, "ignored.txt"), "ignored", Date.now() - 1_000);
 		await touchDirWithMtime(path.join(cwd, "ignored-dir"), Date.now() - 1_000);
@@ -186,12 +187,12 @@ describe("buildWorkspaceTree", () => {
 	it("returns AGENTS.md files at directory depths one through four", async () => {
 		const cwd = await makeTempDir();
 
-		await Bun.write(path.join(cwd, "AGENTS.md"), "root rules");
-		await Bun.write(path.join(cwd, "one", "AGENTS.md"), "depth one rules");
-		await Bun.write(path.join(cwd, "one", "two", "AGENTS.md"), "depth two rules");
-		await Bun.write(path.join(cwd, "one", "two", "three", "AGENTS.md"), "depth three rules");
-		await Bun.write(path.join(cwd, "one", "two", "three", "four", "AGENTS.md"), "depth four rules");
-		await Bun.write(path.join(cwd, "one", "two", "three", "four", "five", "AGENTS.md"), "too deep");
+		await bun.write(path.join(cwd, "AGENTS.md"), "root rules");
+		await bun.write(path.join(cwd, "one", "AGENTS.md"), "depth one rules");
+		await bun.write(path.join(cwd, "one", "two", "AGENTS.md"), "depth two rules");
+		await bun.write(path.join(cwd, "one", "two", "three", "AGENTS.md"), "depth three rules");
+		await bun.write(path.join(cwd, "one", "two", "three", "four", "AGENTS.md"), "depth four rules");
+		await bun.write(path.join(cwd, "one", "two", "three", "four", "five", "AGENTS.md"), "too deep");
 
 		const tree = await buildWorkspaceTree(cwd);
 
@@ -205,13 +206,13 @@ describe("buildWorkspaceTree", () => {
 
 	it("surfaces gitignored AGENTS.md files but not AGENTS.md under ignored directories", async () => {
 		const cwd = await makeTempDir();
-		await Bun.write(path.join(cwd, ".gitignore"), "src/AGENTS.md\nignored-dir/\nnode_modules/\n.git/\n.hidden/\n");
-		await Bun.write(path.join(cwd, "src", "AGENTS.md"), "src rules");
-		await Bun.write(path.join(cwd, "src", "main.ts"), "source");
-		await Bun.write(path.join(cwd, "ignored-dir", "AGENTS.md"), "ignored dir rules");
-		await Bun.write(path.join(cwd, "node_modules", "pkg", "AGENTS.md"), "ignored dependency rules");
-		await Bun.write(path.join(cwd, ".git", "AGENTS.md"), "ignored git rules");
-		await Bun.write(path.join(cwd, ".hidden", "AGENTS.md"), "ignored hidden rules");
+		await bun.write(path.join(cwd, ".gitignore"), "src/AGENTS.md\nignored-dir/\nnode_modules/\n.git/\n.hidden/\n");
+		await bun.write(path.join(cwd, "src", "AGENTS.md"), "src rules");
+		await bun.write(path.join(cwd, "src", "main.ts"), "source");
+		await bun.write(path.join(cwd, "ignored-dir", "AGENTS.md"), "ignored dir rules");
+		await bun.write(path.join(cwd, "node_modules", "pkg", "AGENTS.md"), "ignored dependency rules");
+		await bun.write(path.join(cwd, ".git", "AGENTS.md"), "ignored git rules");
+		await bun.write(path.join(cwd, ".hidden", "AGENTS.md"), "ignored hidden rules");
 
 		const tree = await buildWorkspaceTree(cwd);
 

@@ -3,7 +3,7 @@
 // maintenance depends on: only oversized, still-live `read`/`grep`/`glob`
 // results from reviews before the latest one are blanked, and the cut is the
 // one that actually pays for the prompt-cache rewrite it forces.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type AgentMessage, Tokenizer } from "@oh-my-pi/pi-agent-core";
 
 import { evictStaleToolResults } from "../../src/advisor/tool-result-eviction";

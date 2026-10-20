@@ -20,6 +20,7 @@ import { initialArray } from "./actions";
 import { createIfBenchBoard, formatIfBenchScoreboard } from "@oh-my-pi/pi-tui/apps/if-bench-board";
 import { DEFAULT_NYA_MAX } from "./protocol";
 import { type IfBenchSummary, runIfBench } from "./runner";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_TURNS = 24;
 const DEFAULT_ARRAY_LENGTH = 24;
@@ -122,7 +123,7 @@ export async function runIfBenchCommand(
 			par,
 			stream: deps.streamSimple ?? streamSimple,
 			now: deps.now ?? (() => performance.now()),
-			randomSessionId: deps.randomSessionId ?? (() => Bun.randomUUIDv7()),
+			randomSessionId: deps.randomSessionId ?? (() => bun.randomUUIDv7()),
 			sleep: deps.sleep,
 			observer: board,
 		});

@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { scheduler } from "node:timers/promises";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { AsyncJobError, AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import { buildAsyncResultBatchMessage } from "@oh-my-pi/pi-coding-agent/session/async-job-delivery";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function waitForJobEviction(manager: AsyncJobManager, jobId: string): Promise<void> {
 	const deadline = Date.now() + 2_000;
@@ -22,9 +23,9 @@ async function waitForCondition(predicate: () => boolean, timeoutMs = 2_000): Pr
 
 /** Resolve positive-duration sleeps immediately so grace-period waits don't cost real wall-clock time. */
 function mockPositiveSleepsImmediate() {
-	const realSleep = Bun.sleep.bind(Bun);
-	return vi.spyOn(Bun, "sleep").mockImplementation((duration?: number | Date) => {
-		if (typeof duration === "number" && duration > 0) return Promise.resolve();
+	const realSleep = bun.sleep;
+	return vi.spyOn(bun, "sleep").mockImplementation((duration?: number) => {
+		if (typeof duration === "number" && duration > 0) return Promise.resolve(undefined);
 		return realSleep(duration ?? 0);
 	});
 }

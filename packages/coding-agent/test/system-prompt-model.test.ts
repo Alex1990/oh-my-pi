@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +14,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { buildSystemPrompt } from "@oh-my-pi/pi-coding-agent/system-prompt";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EMPTY_TREE = {
 	rootPath: "",
@@ -31,13 +33,13 @@ async function expectPromptDateFromStartupTimezone(options: {
 	rejectedDate: string;
 }): Promise<void> {
 	const scenarioPath = path.join(options.tempDir, "prompt-date-timezone.test.ts");
-	await Bun.write(
+	await bun.write(
 		scenarioPath,
-		`import { setSystemTime } from "bun:test";
+		`import { setSystemTime } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderDateCwdReminder } from ${JSON.stringify(
-			path.resolve(import.meta.dir, "../src/session/date-cwd-reminder.ts"),
+			path.resolve(import.meta.dirname, "../src/session/date-cwd-reminder.ts"),
 		)};
-import { formatLocalCalendarDate } from ${JSON.stringify(path.resolve(import.meta.dir, "../../tui/src/chrome/local-date.ts"))};
+import { formatLocalCalendarDate } from ${JSON.stringify(path.resolve(import.meta.dirname, "../../tui/src/chrome/local-date.ts"))};
 
 setSystemTime(new Date(process.env.OMP_TEST_NOW!));
 try {
@@ -55,7 +57,7 @@ try {
 }
 `,
 	);
-	const child = Bun.spawn([process.execPath, scenarioPath], {
+	const child = bun.spawn([process.execPath, ...nodeSourceFlags(), scenarioPath], {
 		cwd: options.tempDir,
 		env: {
 			...process.env,

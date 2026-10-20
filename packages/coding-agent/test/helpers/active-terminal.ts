@@ -1,4 +1,4 @@
-import { vi } from "bun:test";
+import { vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
 

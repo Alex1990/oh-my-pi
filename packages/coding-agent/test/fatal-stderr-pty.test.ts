@@ -1,5 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Terminal as VirtualTerminal } from "@oh-my-pi/pi-utils/vterm";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Terminal } from "@oh-my-pi/pi-utils/terminal-compat";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 const COLUMNS = 120;
 const ROWS = 30;
@@ -15,7 +18,7 @@ describe.skipIf(process.platform === "win32")("fatal stderr terminal handoff", (
 		const closed = Promise.withResolvers<void>();
 		const composerSeen = Promise.withResolvers<void>();
 		let screenWritten = Promise.resolve();
-		await using terminal = new Bun.Terminal({
+		await using terminal = new Terminal({
 			cols: COLUMNS,
 			rows: ROWS,
 			data(_terminal, data) {
@@ -31,7 +34,7 @@ describe.skipIf(process.platform === "win32")("fatal stderr terminal handoff", (
 			},
 		});
 		try {
-			const proc = Bun.spawn([process.execPath, `${import.meta.dir}/fixtures/fatal-tui.ts`], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), `${import.meta.dirname}/fixtures/fatal-tui.ts`], {
 				cwd: process.cwd(),
 				// This is a real-terminal contract test: shed the test-runtime markers so
 				// the fixture's ProcessTerminal paints instead of going headless

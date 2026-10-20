@@ -15,6 +15,7 @@
  * Usage: bun scripts/generate-nerd-font-glyphs.ts [--version 3.4.0]
  */
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const args = process.argv.slice(2);
 const versionFlag = args.indexOf("--version");
@@ -46,6 +47,6 @@ const lines = [
 	...entries,
 ];
 
-const output = path.join(import.meta.dir, "../src/utils/nerd-font-glyphs.txt");
-await Bun.write(output, `${lines.join("\n")}\n`);
+const output = path.join(import.meta.dirname, "../src/utils/nerd-font-glyphs.txt");
+await bun.write(output, `${lines.join("\n")}\n`);
 console.info(`${entries.length} glyphs → ${output}`);

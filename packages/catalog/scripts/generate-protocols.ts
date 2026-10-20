@@ -1,11 +1,13 @@
 import * as path from "node:path";
 import { generateProtoTs, ProtoContext, parseProto } from "./proto-parser";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
-const PACKAGES_DIR = path.resolve(import.meta.dir, "../..");
+const PACKAGES_DIR = path.resolve(import.meta.dirname, "../..");
 const CURSOR_PROTO = path.join(PACKAGES_DIR, "ai/src/providers/cursor/proto/agent.proto");
 const CURSOR_MODELS_PROTO = path.join(PACKAGES_DIR, "catalog/src/discovery/cursor-models.proto");
 const DEVIN_PROTO_DIR = path.join(PACKAGES_DIR, "ai/src/providers/devin/proto");
-const DISCOVERY_DIR = path.resolve(import.meta.dir, "../src/discovery");
+const DISCOVERY_DIR = path.resolve(import.meta.dirname, "../src/discovery");
 
 const CURSOR_CONSUMER_DIRS = [
 	path.join(PACKAGES_DIR, "ai/src"),
@@ -62,7 +64,7 @@ async function collectCursorMessages(): Promise<string[]> {
 	const sourceFiles = await collectTypeScriptFiles(CURSOR_CONSUMER_DIRS);
 
 	for (const sourceFile of sourceFiles) {
-		const source = await Bun.file(sourceFile).text();
+		const source = await bun.file(sourceFile).text();
 		for (const match of source.matchAll(importPattern)) {
 			const modulePath = match[2];
 			if (!modulePath.endsWith("cursor-proto")) continue;
@@ -84,7 +86,7 @@ async function collectCursorMessages(): Promise<string[]> {
 
 async function collectTypeScriptFiles(directories: string[]): Promise<string[]> {
 	const files: string[] = [];
-	const glob = new Bun.Glob("**/*.ts");
+	const glob = new Glob("**/*.ts");
 	for (const directory of directories) {
 		for await (const relativePath of glob.scan({ cwd: directory, onlyFiles: true })) {
 			files.push(path.join(directory, relativePath));
@@ -96,19 +98,19 @@ async function collectTypeScriptFiles(directories: string[]): Promise<string[]> 
 async function parseProtoDirectory(directory: string): Promise<ProtoContext> {
 	const context = new ProtoContext();
 	const paths: string[] = [];
-	const glob = new Bun.Glob("**/*.proto");
+	const glob = new Glob("**/*.proto");
 	for await (const relativePath of glob.scan({ cwd: directory, onlyFiles: true })) paths.push(relativePath);
 
 	for (const relativePath of paths.sort()) {
-		const source = await Bun.file(path.join(directory, relativePath)).text();
+		const source = await bun.file(path.join(directory, relativePath)).text();
 		context.addFile(parseProto(source, relativePath));
 	}
 	return context;
 }
 
 async function generateProtocols(): Promise<void> {
-	const cursorSource = await Bun.file(CURSOR_PROTO).text();
-	const cursorModelsSource = await Bun.file(CURSOR_MODELS_PROTO).text();
+	const cursorSource = await bun.file(CURSOR_PROTO).text();
+	const cursorModelsSource = await bun.file(CURSOR_MODELS_PROTO).text();
 	const cursorContext = new ProtoContext();
 	cursorContext.addFile(parseProto(cursorSource, "agent.proto"));
 	cursorContext.addFile(parseProto(cursorModelsSource, "cursor-models.proto"));
@@ -128,8 +130,8 @@ async function generateProtocols(): Promise<void> {
 		protobufImportPath: "./protobuf",
 	});
 
-	await Bun.write(path.join(DISCOVERY_DIR, "cursor-proto.ts"), `${cursor}\n`);
-	await Bun.write(path.join(DISCOVERY_DIR, "devin-proto.ts"), `${devin}\n`);
+	await bun.write(path.join(DISCOVERY_DIR, "cursor-proto.ts"), `${cursor}\n`);
+	await bun.write(path.join(DISCOVERY_DIR, "devin-proto.ts"), `${devin}\n`);
 }
 
 await generateProtocols();

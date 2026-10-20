@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import {
 	Agent,
@@ -14,6 +14,7 @@ import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { kCursorExecResolved } from "@oh-my-pi/pi-ai/utils/block-symbols";
 import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
 import { createAssistantMessage, createUserMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("Agent", () => {
 	it("classifies agent-authored steering as a parent steering message", async () => {
@@ -308,7 +309,13 @@ describe("Agent", () => {
 		agent.followUp({ role: "user", content: "first turn", timestamp: Date.now() });
 		await agent.continue(controller.signal);
 		expect(calls).toBe(1);
-		expect(signals).toEqual([controller.signal]);
+		// The hook receives the run's combined signal (caller signal + continuation
+		// controller), so assert identity-independent behavior instead of deep equality.
+		const receivedSignal = signals[0];
+		expect(receivedSignal).toBeInstanceOf(AbortSignal);
+		expect(receivedSignal?.aborted).toBe(false);
+		controller.abort();
+		expect(receivedSignal?.aborted).toBe(true);
 
 		removeSecond();
 		agent.followUp({ role: "user", content: "second turn", timestamp: Date.now() });
@@ -937,7 +944,7 @@ describe("Agent", () => {
 		});
 
 		const turn = agent.prompt("trigger");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		gate.resolve();
 		await turn;
 

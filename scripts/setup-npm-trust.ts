@@ -34,12 +34,13 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { LEAF_TARGETS } from "../packages/natives/scripts/gen-npm-packages.ts";
 import { compareVersions } from "../packages/utils/src/version.ts";
 import { packages } from "./ci-release-publish.ts";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const repoRoot = path.join(import.meta.dir, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const MIN_NPM = "11.16.0";
 const DEFAULT_WORKFLOW = "ci.yml";
 const FALLBACK_REPO = "can1357/oh-my-pi";
@@ -158,7 +159,7 @@ async function collectTargets(): Promise<{ names: string[]; repoFromManifest: st
 	const names: string[] = [];
 	let repoFromManifest: string | null = null;
 	for (const pkg of packages) {
-		const manifest = (await Bun.file(path.join(repoRoot, pkg.dir, "package.json")).json()) as ManifestShape;
+		const manifest = (await bun.file(path.join(repoRoot, pkg.dir, "package.json")).json()) as ManifestShape;
 		if (manifest.private) continue;
 		repoFromManifest ??= parseRepo(manifest.repository);
 		if (typeof manifest.name === "string" && !seen.has(manifest.name)) {
@@ -182,7 +183,7 @@ async function collectTargets(): Promise<{ names: string[]; repoFromManifest: st
 
 /** Run npm with the terminal attached so the web 2FA flow stays interactive. */
 function npmInteractive(args: readonly string[]): Promise<number> {
-	return Bun.spawn(["npm", ...args], { stdin: "inherit", stdout: "inherit", stderr: "inherit" }).exited;
+	return bun.spawn(["npm", ...args], { stdin: "inherit", stdout: "inherit", stderr: "inherit" }).exited;
 }
 
 /**
@@ -192,7 +193,7 @@ function npmInteractive(args: readonly string[]): Promise<number> {
  * it carries are what `npm trust revoke --id` needs.
  */
 async function trustListJson(name: string): Promise<{ ok: boolean; hasConfig: boolean; ids: string[] }> {
-	const proc = Bun.spawn(["npm", "trust", "list", name, "--json"], {
+	const proc = bun.spawn(["npm", "trust", "list", name, "--json"], {
 		stdin: "inherit",
 		stdout: "pipe",
 		stderr: "inherit",
@@ -230,7 +231,7 @@ async function packageExists(name: string): Promise<boolean> {
 async function waitForPackageExists(name: string): Promise<boolean> {
 	for (let attempt = 0; attempt < 6; attempt++) {
 		if (await packageExists(name)) return true;
-		await Bun.sleep(1000 * (attempt + 1));
+		await bun.sleep(1000 * (attempt + 1));
 	}
 	return false;
 }
@@ -286,11 +287,11 @@ function placeholderReadme(name: string, target: NativeLeafTarget): string {
 async function publishNativeLeafPlaceholder(name: string, target: NativeLeafTarget, repo: string): Promise<boolean> {
 	const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-native-placeholder-"));
 	try {
-		await Bun.write(
+		await bun.write(
 			path.join(tmpDir, "package.json"),
 			`${JSON.stringify(placeholderManifest(name, target, repo), null, "\t")}\n`,
 		);
-		await Bun.write(path.join(tmpDir, "README.md"), placeholderReadme(name, target));
+		await bun.write(path.join(tmpDir, "README.md"), placeholderReadme(name, target));
 		return (await npmInteractive(["publish", tmpDir, "--access", "public"])) === 0;
 	} finally {
 		await fs.rm(tmpDir, { recursive: true, force: true });
@@ -333,7 +334,7 @@ async function main(): Promise<void> {
 	const repo = opts.repo ?? repoFromManifest ?? FALLBACK_REPO;
 	const workflow = opts.workflow;
 
-	if (!(await Bun.file(path.join(repoRoot, ".github", "workflows", workflow)).exists())) {
+	if (!(await bun.file(path.join(repoRoot, ".github", "workflows", workflow)).exists())) {
 		console.warn(
 			`Warning: .github/workflows/${workflow} not found; npm will still accept it, but OIDC won't match a non-existent workflow.`,
 		);
@@ -384,7 +385,7 @@ async function main(): Promise<void> {
 				console.log(`- ${name}: not published yet — create it first, then re-run.`);
 				continue;
 			}
-			if (shouldThrottle(first)) await Bun.sleep(2000);
+			if (shouldThrottle(first)) await bun.sleep(2000);
 			first = false;
 			console.log(`- ${name}: not published yet — publishing inert ${PLACEHOLDER_VERSION} placeholder.`);
 			if (!(await publishNativeLeafPlaceholder(name, target, repo))) {
@@ -402,7 +403,7 @@ async function main(): Promise<void> {
 
 		// Throttle between mutating calls per npm's bulk-config guidance, but not
 		// before the very first one (it carries the interactive 2FA prompt).
-		if (shouldThrottle(first)) await Bun.sleep(2000);
+		if (shouldThrottle(first)) await bun.sleep(2000);
 		first = false;
 
 		const existing = await trustListJson(name);

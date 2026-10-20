@@ -1,3 +1,4 @@
+import { preconnectOf } from "./fetch-preconnect";
 import { resolveExtraCa, withExtraCaInit } from "@oh-my-pi/pi-utils";
 import { coworkFetch } from "../providers/cowork-fetch";
 import { withInferenceUserAgent } from "../providers/inference-headers";
@@ -41,7 +42,8 @@ export function transportFetch(model: Model<Api>, fetchImpl: FetchImpl | undefin
 		const session = await createFetchRequestDebugSession(input, init);
 		return session.wrapResponse(await base(input, init));
 	};
-	if (base.preconnect) fetch.preconnect = base.preconnect;
+	const preconnect = preconnectOf(base);
+	if (preconnect) (fetch as typeof fetch & { preconnect?: typeof preconnect }).preconnect = preconnect;
 	fetch[TRANSPORT_FETCH] = true;
 	return fetch;
 }

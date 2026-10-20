@@ -5,7 +5,7 @@
  * online-eligible refresh, with the cache kept only for offline/failure
  * fallback. An explicit "offline" strategy still serves the cache untouched.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

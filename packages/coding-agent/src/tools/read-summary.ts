@@ -17,6 +17,7 @@ import {
 	cfgReadSummarizeUnfoldLimit,
 	cfgReadSummarizeUnfoldUntil,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Per-session memo for tree-sitter summaries. `summarizeCodeAsync` is a pure function
 // of (code, path, fold settings) but costs ~12-18ms for a ~1500-line file, and a
@@ -83,7 +84,7 @@ export async function trySummarize(
 	try {
 		throwIfAborted(signal);
 		const bridgePromise = routeReadThroughBridge(session, absolutePath);
-		const readDisk = async () => diskText ?? (await Bun.file(absolutePath).text());
+		const readDisk = async () => diskText ?? (await bun.file(absolutePath).text());
 		const code = bridgePromise !== undefined ? await bridgePromise.catch(readDisk) : await readDisk();
 		throwIfAborted(signal);
 		const lineCount = countTextLines(code);
@@ -95,7 +96,7 @@ export async function trySummarize(
 		const unfoldUntilLines = cfgReadSummarizeUnfoldUntil.get(session.settings);
 		const unfoldLimitLines = cfgReadSummarizeUnfoldLimit.get(session.settings);
 		const cache = getSummaryParseCache(session);
-		const cacheKey = `${absolutePath}\0${languagePath ?? ""}\0${Bun.hash(code)}\0${minBodyLines},${minCommentLines},${unfoldUntilLines},${unfoldLimitLines}`;
+		const cacheKey = `${absolutePath}\0${languagePath ?? ""}\0${bun.hash(code)}\0${minBodyLines},${minCommentLines},${unfoldUntilLines},${unfoldLimitLines}`;
 		const memoized = cache.get(cacheKey);
 		if (memoized !== undefined) return memoized || null;
 		const summaryPath = languagePath ?? absolutePath;

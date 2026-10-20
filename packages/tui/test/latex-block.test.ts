@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { latexToBlock } from "@oh-my-pi/pi-tui/latex-block";
 import { TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";

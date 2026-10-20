@@ -1,9 +1,8 @@
 /**
  * SQL-Backed Sessions (PostgreSQL / MySQL / SQLite)
  *
- * Store session JSONL in a SQL database via `bun:sql`. One table, one row
- * per session file — works against PostgreSQL, MySQL/MariaDB, and SQLite
- * with the dialect picked automatically from the connection URL.
+ * Store session JSONL in a SQL database via `node:sqlite`. One table, one row
+ * per session file — runs on Node's built-in SQLite.
  *
  * Useful when:
  * - sessions need to be queryable from existing analytics infra (just JOIN
@@ -19,9 +18,10 @@
  */
 
 import { createAgentSession, SessionManager, SqlSessionStorage } from "@oh-my-pi/pi-coding-agent";
-import { SQL } from "bun";
+import { SQL } from "@oh-my-pi/pi-utils/sql-compat";
 
-// Pick one — Bun.SQL auto-detects the dialect from the URL scheme.
+// The Node runtime implements the sqlite dialect; use a pg/mysql2-backed client
+// (`SqlSessionStorageClient`) for other engines.
 //
 //   postgres://user:pass@host:5432/db
 //   mysql://user:pass@host:3306/db

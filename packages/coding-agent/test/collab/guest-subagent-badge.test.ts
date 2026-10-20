@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import { generateRoomKey, importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabGuestLink } from "@oh-my-pi/pi-coding-agent/collab/guest";
@@ -17,6 +18,8 @@ import {
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 // In-memory transport: shared FakeWebSocket + InMemoryRelay harness (see
 // ./helpers/in-memory-relay), mirroring the relay's forwarding contract.
@@ -121,7 +124,7 @@ afterEach(() => {
 
 describe("collab guest running-subagents badge", () => {
 	it("uses the guest mirror registry and refreshes on join, resnapshot, and leave", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const roomId = "badge-room-1";
 		const roomKey = generateRoomKey();

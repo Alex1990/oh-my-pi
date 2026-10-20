@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { loadTasks, resolveDataset } from "../src/tb/dataset";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanupDirs: string[] = [];
 
@@ -14,7 +15,7 @@ async function makeFixture(): Promise<{ root: string; tasksDir: string }> {
 	const skippedDir = path.join(tasksDir, "missing-image");
 	await fs.mkdir(validDir, { recursive: true });
 	await fs.mkdir(skippedDir, { recursive: true });
-	await Bun.write(
+	await bun.write(
 		path.join(validDir, "task.toml"),
 		`[environment]
 docker_image = "terminal-bench/alpha:latest"
@@ -34,9 +35,9 @@ ATTEMPTS = 3
 difficulty = "hard"
 `,
 	);
-	await Bun.write(path.join(validDir, "instruction.md"), "Repair the alpha service.\nPreserve its output.\n");
-	await Bun.write(path.join(skippedDir, "task.toml"), "[environment]\ncpus = 1\n");
-	await Bun.write(path.join(skippedDir, "instruction.md"), "This task must be skipped.\n");
+	await bun.write(path.join(validDir, "instruction.md"), "Repair the alpha service.\nPreserve its output.\n");
+	await bun.write(path.join(skippedDir, "task.toml"), "[environment]\ncpus = 1\n");
+	await bun.write(path.join(skippedDir, "instruction.md"), "This task must be skipped.\n");
 	return { root, tasksDir };
 }
 

@@ -41,6 +41,7 @@ import type {
 	UrlCompletion,
 	WriteContext,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Upper bound on the ids a `Not found` error suggests. */
 const MAX_ID_SUGGESTIONS = 5;
@@ -240,7 +241,7 @@ export class AgentProtocolHandler implements ProtocolHandler {
 			}
 		});
 
-		const rawContent = await Bun.file(scan.foundPath).text();
+		const rawContent = await bun.file(scan.foundPath).text();
 		const notes: string[] = [];
 		let content = rawContent;
 		// A published file belongs to a finished run. If the agent is streaming
@@ -262,7 +263,7 @@ export class AgentProtocolHandler implements ProtocolHandler {
 			let parsed = false;
 			if (scan.jsonPath) {
 				try {
-					jsonValue = JSON.parse(await Bun.file(scan.jsonPath).text());
+					jsonValue = JSON.parse(await bun.file(scan.jsonPath).text());
 					extractedFrom = scan.jsonPath;
 					parsed = true;
 				} catch {

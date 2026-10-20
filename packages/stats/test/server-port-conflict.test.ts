@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { networkInterfaces } from "node:os";
-import { connect, type Subprocess } from "bun";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { connect } from "@oh-my-pi/pi-utils/net-compat";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import {
 	STATS_DASHBOARD_HEADER,
 	STATS_DASHBOARD_HOSTNAME,
@@ -9,6 +12,8 @@ import {
 } from "../src/port-conflict";
 import { startServer } from "../src/server";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 installStatsTestIsolation("@pi-stats-port-conflict-");
 
@@ -28,7 +33,7 @@ async function tcpConnects(hostname: string, port: number): Promise<boolean> {
 		},
 		() => false,
 	);
-	return Promise.race([attempt, Bun.sleep(1_000).then(() => false)]);
+	return Promise.race([attempt, bun.sleep(1_000).then(() => false)]);
 }
 function getNonLoopbackHostname(): string | undefined {
 	const interfaces = networkInterfaces();
@@ -44,7 +49,7 @@ const holderProcesses: Array<Subprocess<"ignore", "pipe", "pipe">> = [];
 
 async function startBunHolder(responseExpr: string, options?: { hostname?: string; statsOwned?: boolean }) {
 	const hostname = options?.hostname ?? STATS_DASHBOARD_HOSTNAME;
-	const reservation = Bun.serve({
+	const reservation = await serve({
 		port: 0,
 		hostname: STATS_DASHBOARD_HOSTNAME,
 		fetch: () => new Response("reserved"),
@@ -52,10 +57,11 @@ async function startBunHolder(responseExpr: string, options?: { hostname?: strin
 	const port = reservation.port;
 	reservation.stop(true);
 
-	const source = `Bun.serve({ port: ${port}, hostname: "${hostname}", fetch: () => ${responseExpr} }); process.stdout.write("ready"); await Promise.withResolvers().promise;`;
-	const args = [process.execPath, "-e", source];
+	const source = `import { serve } from "@oh-my-pi/pi-utils/node-serve";\nserve({ port: ${port}, hostname: "${hostname}", fetch: () => ${responseExpr} }); process.stdout.write("ready"); await Promise.withResolvers().promise;`;
+	const loader = pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href;
+	const args = [process.execPath, "--experimental-transform-types", "--import", loader, "--input-type=module", "-e", source];
 	if (options?.statsOwned) args.push("omp-stats");
-	const child = Bun.spawn(args, {
+	const child = bun.spawn(args, {
 		stdin: "ignore",
 		stdout: "pipe",
 		stderr: "pipe",
@@ -128,7 +134,7 @@ describe("startServer access", () => {
 describe("startServer port conflicts", () => {
 	it("returns the live in-process handle when started twice on the same port", async () => {
 		// Reserve an ephemeral port, then start on it explicitly so the memo applies.
-		const reservation = Bun.serve({ port: 0, hostname: STATS_DASHBOARD_HOSTNAME, fetch: () => new Response("") });
+		const reservation = await serve({ port: 0, hostname: STATS_DASHBOARD_HOSTNAME, fetch: () => new Response("") });
 		const port = reservation.port;
 		reservation.stop(true);
 
@@ -145,7 +151,7 @@ describe("startServer port conflicts", () => {
 	});
 
 	it("reuses a live stats dashboard identified by its header", async () => {
-		const existing = Bun.serve({
+		const existing = await serve({
 			port: 0,
 			hostname: STATS_DASHBOARD_HOSTNAME,
 			fetch: request =>

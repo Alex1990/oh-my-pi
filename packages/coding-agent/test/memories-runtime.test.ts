@@ -1,4 +1,5 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +15,7 @@ import {
 import * as memoryStorage from "@oh-my-pi/pi-coding-agent/memories/storage";
 import { getAgentDbPath, Snowflake, TempDir } from "@oh-my-pi/pi-utils";
 import { restoreEnvValue } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SessionFixture {
 	agentDir: string;
@@ -121,7 +123,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
 	if (sharedRoot) {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await sharedRoot.remove();
 	}
 	sharedRoot = undefined;
@@ -227,7 +229,7 @@ describe("memories runtime", () => {
 							status: 429,
 							headers: { "retry-after": "0" },
 						}),
-					{ preconnect: fetch.preconnect },
+					{ preconnect: preconnectOf(fetch) },
 				),
 			);
 
@@ -241,7 +243,7 @@ describe("memories runtime", () => {
 			await settle(fx.whenSettled, "rate-limited memory extraction");
 
 			expect(fetchSpy).toHaveBeenCalledTimes(3);
-			expect(await Bun.file(path.join(getMemoryRoot(fx.agentDir, fx.agentDir), "raw_memories.md")).exists()).toBe(
+			expect(await bun.file(path.join(getMemoryRoot(fx.agentDir, fx.agentDir), "raw_memories.md")).exists()).toBe(
 				false,
 			);
 		});
@@ -471,9 +473,9 @@ describe("memories runtime", () => {
 		});
 
 		await settle(fx.whenSettled, "phase2 empty-input cleanup");
-		expect(await Bun.file(path.join(memoryRoot, "MEMORY.md")).exists()).toBe(false);
-		expect(await Bun.file(path.join(memoryRoot, "memory_summary.md")).exists()).toBe(false);
-		expect(await Bun.file(path.join(memoryRoot, "skills")).exists()).toBe(false);
+		expect(await bun.file(path.join(memoryRoot, "MEMORY.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(memoryRoot, "memory_summary.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(memoryRoot, "skills")).exists()).toBe(false);
 		expect((await fs.readFile(path.join(memoryRoot, "raw_memories.md"), "utf8")).trim()).toBe(
 			"# Raw Memories\n\nNo raw memories yet.",
 		);

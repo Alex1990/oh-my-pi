@@ -1,11 +1,11 @@
 /**
  * Regression for #15878: a transcript placed in a session directory as a
  * symlink — a launcher's, a supervisor's clean-up tool's — is a transcript
- * like any other. `Bun.Glob` walks no symlink unless it is asked to, so
+ * like any other. `Glob` walks no symlink unless it is asked to, so
  * `omp --session-dir <dir> --resume <id>` found nothing where a hardlink, or
  * a copy, resumed the very same bytes.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,6 +18,8 @@ import {
 	resolveResumableSession,
 } from "@oh-my-pi/pi-coding-agent/session/session-listing";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SESSION_ID = "0198aaaa-0000-7000-8000-000000000001";
 const SESSION_NAME = `2026-10-15T00-00-00-000Z_${SESSION_ID}.jsonl`;

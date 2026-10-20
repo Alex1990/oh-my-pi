@@ -5,7 +5,7 @@ import type { Model, ServiceTier } from "@oh-my-pi/pi-ai";
 import type { AgentsHubDeps } from "@oh-my-pi/pi-tui/overlays/agents-hub";
 import { shortenPath } from "@oh-my-pi/pi-tui/render/render-utils";
 import { isEnoent, prompt } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import type { EffectiveExtensionRoots } from "../capability/types";
 import { getConfigDirs } from "../config";
 import type { ModelRegistry } from "../config/model-registry";
@@ -32,6 +32,7 @@ import {
 	cfgTaskDisabledAgents,
 	cfgTaskPrewalk,
 } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function extractAssistantText(messages: AgentMessage[]): string | null {
 	for (let i = messages.length - 1; i >= 0; i--) {
@@ -198,7 +199,7 @@ export function createAgentsHubDeps(
 				if (!isEnoent(error)) throw error;
 			}
 			const frontmatter = YAML.stringify({ name: spec.identifier, description: spec.whenToUse }, null, 2).trimEnd();
-			await Bun.write(filePath, `---\n${frontmatter}\n---\n\n${spec.systemPrompt.trim()}\n`);
+			await bun.write(filePath, `---\n${frontmatter}\n---\n\n${spec.systemPrompt.trim()}\n`);
 			await refreshAgentDiscovery(cwd, extensionRoots());
 			return filePath;
 		},

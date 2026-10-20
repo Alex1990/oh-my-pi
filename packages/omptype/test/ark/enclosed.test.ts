@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Out, type Type, type } from "@oh-my-pi/omptype/ark";
 import type { Eq } from "./type-assert";
 
@@ -58,7 +58,8 @@ it("regex exec literal", () => {
 	const T = type("x/^a(b)c$/");
 	const _type: Eq<typeof T, Type<(In: "abc") => Out<RegexExecArray<["abc", "b"], {}, "">>>> = true;
 	expect(_type).toBe(true);
-	expect(T("abc")).toEqual(["abc", "b"]);
+	// `RegExpExecArray` also carries `index`/`input`/`groups`; compare the matched values.
+	expect([...T("abc")]).toEqual(["abc", "b"]);
 });
 
 it("invalid regex exec literal", () => {

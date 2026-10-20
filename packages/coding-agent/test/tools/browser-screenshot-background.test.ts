@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import { acquireTab, releaseTab, runInTab } from "@oh-my-pi/pi-coding-agent/tool
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import type { Page } from "puppeteer-core";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 
@@ -58,7 +59,7 @@ async function connectedBrowser(): Promise<PuppeteerBrowserHandle> {
 	if (!exe) throw new Error("Expected a Chromium executable");
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-screenshot-background-"));
 	const port = await findFreeCdpPort();
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			exe,
 			"--headless=new",

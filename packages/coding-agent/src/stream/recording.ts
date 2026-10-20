@@ -26,6 +26,8 @@ import { isEnoent } from "@oh-my-pi/pi-utils";
 import { STREAM_FLUSH_INTERVAL_MS, StreamPaintEncoder } from "./paint-encoder";
 import { isDimension, isSessionFrame, type StreamScreenFrame } from "./protocol";
 import type { StreamRedactor } from "./redactor";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { FileSink } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const RECORDING_VERSION = 1;
 export const RECORDING_EXTENSION = ".ompcast";
@@ -95,7 +97,7 @@ export async function latestRecording(): Promise<string | null> {
  *   not a valid `[ms, frame]` event.
  */
 export function parseRecording(text: string): Recording {
-	const { values, error } = Bun.JSONL.parseChunk(text);
+	const { values, error } = bun.JSONL.parseChunk(text);
 	if (error) throw new Error(`malformed recording: ${error.message}`);
 	const [header, ...lines] = values;
 	if (!isRecordingHeader(header)) throw new Error("not an omp recording (missing ompcast header)");
@@ -141,7 +143,7 @@ export interface SessionRecorderOptions {
 export class SessionRecorder {
 	readonly path: string;
 	readonly #encoder: StreamPaintEncoder;
-	readonly #writer: Bun.FileSink;
+	readonly #writer: FileSink;
 	readonly #startedAt = performance.now();
 	#lastPaintAt = 0;
 	#flushTimer: NodeJS.Timeout | undefined;
@@ -157,7 +159,7 @@ export class SessionRecorder {
 		this.path = options.path;
 		const size = { columns: options.tui.terminal.columns, rows: options.tui.terminal.rows };
 		this.#encoder = new StreamPaintEncoder(size, options.redactor);
-		this.#writer = Bun.file(options.path).writer();
+		this.#writer = bun.file(options.path).writer();
 		const header: RecordingHeader = {
 			ompcast: RECORDING_VERSION,
 			cols: size.columns,

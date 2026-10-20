@@ -4,7 +4,7 @@
  * authenticated (MFA / keyboard-interactive hosts that `BatchMode=yes` can
  * never reach) instead of trying to start a fresh one.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import {
 	ensureConnection,
 	getControlPathTemplate,
 } from "../../src/ssh/connection-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let binDir: string;
 let fakeSsh: string;
@@ -51,7 +52,7 @@ exec bash -c "\${!#}"
 `;
 
 async function callsFor(destination: string): Promise<string[]> {
-	const log = await Bun.file(logPath).text();
+	const log = await bun.file(logPath).text();
 	return log.split("\n").filter(call => ` ${call} `.includes(` ${destination} `));
 }
 
@@ -63,7 +64,7 @@ beforeAll(async () => {
 	await fs.writeFile(fakeSsh, FAKE_SSH.replace("__LOG__", logPath).replaceAll("__USER_MASTER__", userMaster), {
 		mode: 0o755,
 	});
-	await Bun.write(logPath, "");
+	await bun.write(logPath, "");
 });
 
 afterAll(async () => {
@@ -102,7 +103,7 @@ describe.skipIf(process.platform === "win32")("ssh_config ControlPath (#15974)",
 		await ensureConnection(host);
 		// The configured socket was empty at check time. Its owner later
 		// authenticates and starts a master before omp closes the host.
-		await Bun.write(userMaster, "");
+		await bun.write(userMaster, "");
 		await closeConnection(host.name);
 
 		const calls = await callsFor("idle-host");

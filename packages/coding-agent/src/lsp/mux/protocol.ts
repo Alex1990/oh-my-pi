@@ -10,6 +10,7 @@
  * entry (`server.ts`), the client connector (`daemon.ts`), and tests.
  */
 import { stableStringifyJson } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { LSP_MUX_WORKER_ARG } from "../../cli/worker-selectors";
 
@@ -90,7 +91,7 @@ export interface MuxConnectResult {
  *
  * Every input that changes what the spawned process actually *is* belongs in
  * this key: the registry spawns `[command, ...args]` in `cwd` with
- * `{ ...Bun.env, ...env }`, so two links that agree on command and cwd but
+ * `{ ...bun.env, ...env }`, so two links that agree on command and cwd but
  * differ in args or env are not interchangeable. Keying on command and cwd
  * alone let an idle server started with one argument set be handed to a link
  * that asked for another, silently serving the wrong configuration from a
@@ -118,5 +119,5 @@ export function muxServerKey(params: MuxConnectParams): string {
 		params.env ?? {},
 		params.initializationOptions ?? {},
 	]);
-	return `sha256:${Bun.SHA256.hash(identity, "hex")}`;
+	return `sha256:${bun.SHA256.hash(identity, "hex")}`;
 }

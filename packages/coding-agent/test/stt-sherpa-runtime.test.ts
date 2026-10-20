@@ -1,16 +1,17 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { loadSourceSherpaRuntime } from "@oh-my-pi/pi-coding-agent/stt/sherpa-runtime";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PLATFORM_PACKAGE = `sherpa-onnx-${os.platform() === "win32" ? "win" : os.platform()}-${os.arch()}`;
 
 async function writePackage(nodeModules: string, name: string, source: string): Promise<void> {
 	const dir = path.join(nodeModules, name);
-	await Bun.write(path.join(dir, "package.json"), JSON.stringify({ name, main: "index.js" }));
-	await Bun.write(path.join(dir, "index.js"), source);
+	await bun.write(path.join(dir, "package.json"), JSON.stringify({ name, main: "index.js" }));
+	await bun.write(path.join(dir, "index.js"), source);
 }
 
 describe("sherpa source runtime resolution", () => {

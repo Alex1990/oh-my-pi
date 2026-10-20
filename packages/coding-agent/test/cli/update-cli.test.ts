@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,12 +6,14 @@ import { removeWithRetries, VERSION } from "@oh-my-pi/pi-utils";
 import { currentBuildHost } from "../../src/cli/build-service";
 import { fixedNpmRegistry } from "../../src/cli/npm-registry";
 import { getLatestRelease, runUpdateCommand } from "../../src/cli/update-cli";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { cfgUpdateChannel } from "../../src/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const npmjs = fixedNpmRegistry();
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 describe("runUpdateCommand version source", () => {
 	const previousPath = process.env.PATH;
@@ -45,7 +47,7 @@ describe("runUpdateCommand version source", () => {
 				requests.push({ url: String(input), signal: init?.signal });
 				return respond(String(input));
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 		return requests;
@@ -84,7 +86,7 @@ describe("runUpdateCommand version source", () => {
 		async () => {
 			const dir = await isolatePath();
 			const ompPath = path.join(dir, "omp");
-			await Bun.write(ompPath, "#!/bin/sh\necho omp/1.0.0\n");
+			await bun.write(ompPath, "#!/bin/sh\necho omp/1.0.0\n");
 			await fs.chmod(ompPath, 0o755);
 			const next = "#!/bin/sh\necho omp/999.0.0\n";
 			const { target, fileName } = await currentBuildHost();
@@ -95,7 +97,7 @@ describe("runUpdateCommand version source", () => {
 				if (url === check) {
 					return Response.json({
 						build: { version: "999.0.0" },
-						file: { name: fileName, size: Buffer.byteLength(next), sha256: Bun.SHA256.hash(next, "hex") },
+						file: { name: fileName, size: Buffer.byteLength(next), sha256: bun.SHA256.hash(next, "hex") },
 						download: "https://r2.test/omp",
 					});
 				}
@@ -106,7 +108,7 @@ describe("runUpdateCommand version source", () => {
 			await runUpdateCommand({ force: false, check: false });
 
 			expect(requests.map(request => request.url)).toEqual([check, "https://r2.test/omp"]);
-			expect(await Bun.file(ompPath).text()).toBe(next);
+			expect(await bun.file(ompPath).text()).toBe(next);
 			expect(logs.some(line => line.includes("Updated to 999.0.0"))).toBe(true);
 		},
 	);
@@ -134,7 +136,7 @@ describe("getLatestRelease rename pointers", () => {
 				if (!manifest) return new Response(null, { status: 404, statusText: "Not Found" });
 				return Response.json(manifest);
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 		return urls;
@@ -204,7 +206,7 @@ describe("getLatestRelease configured registry", () => {
 					requests.push({ url: String(input), authorization: new Headers(init?.headers).get("authorization") });
 					return Response.json({ version: "999.0.0" });
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -232,7 +234,7 @@ describe("getLatestRelease configured registry", () => {
 						versions: { "999.2.0": { version: "999.2.0", omp: { dist: "binary" } } },
 					});
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -257,7 +259,7 @@ describe("getLatestRelease configured registry", () => {
 						versions: { "999.3.0": { version: "999.3.0", omp: { dist: "binary" } } },
 					});
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -281,7 +283,7 @@ describe("getLatestRelease configured registry", () => {
 						versions: { "999.4.0": { version: "999.4.0" } },
 					});
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -304,7 +306,7 @@ describe("getLatestRelease configured registry", () => {
 						versions: { "999.5.0": { version: "999.5.0" } },
 					});
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -327,7 +329,7 @@ describe("getLatestRelease configured registry", () => {
 					});
 					return new Response(body, { status: 200 });
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -342,7 +344,7 @@ describe("getLatestRelease configured registry", () => {
 					String(input).endsWith("/canary")
 						? new Response(null, { status: 404, statusText: "Not Found" })
 						: Response.json({ "dist-tags": { latest: "1.0.0" }, versions: { "1.0.0": { version: "1.0.0" } } }),
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 
@@ -365,7 +367,7 @@ describe("getLatestRelease proxy errors", () => {
 						"For more information, pass `verbose: true` in the second argument to fetch()",
 				);
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 

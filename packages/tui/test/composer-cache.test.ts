@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { Database, Statement } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { Database, Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { COMPOSER_DEFAULTS, type ComposerStatusCache } from "@oh-my-pi/pi-tui/prompt/composer";
 import { ComposerCache } from "@oh-my-pi/pi-tui/prompt/composer-cache";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function statusFor(thinkingLevel: ThinkingLevel): ComposerStatusCache {
 	return {
@@ -83,8 +84,10 @@ describe("composer startup cache", () => {
 			// Same connection: nothing reaches SQLite.
 			cache.writeStatus(project, statusFor(ThinkingLevel.High));
 			// Next launch: values learned by read() are not written back either.
+			// Opening the store runs its schema bootstrap, so clear after it.
 			const next = ComposerCache.open(dbPath);
 			next.read(project);
+			statementRuns.mockClear();
 			next.writeStatus(project, statusFor(ThinkingLevel.High));
 			expect(statementRuns).not.toHaveBeenCalled();
 			expect(transactions).not.toHaveBeenCalled();
@@ -136,9 +139,9 @@ describe("composer startup cache", () => {
 			fs.mkdir(home, { recursive: true }),
 			fs.mkdir(path.join(xdgCache, "omp"), { recursive: true }),
 		]);
-		await Bun.write(path.join(home, ".env"), `XDG_CACHE_HOME=${xdgCache}\n`);
+		await bun.write(path.join(home, ".env"), `XDG_CACHE_HOME=${xdgCache}\n`);
 
-		const composerCacheModule = Bun.resolveSync("@oh-my-pi/pi-tui/prompt/composer-cache", import.meta.dir);
+		const composerCacheModule = bun.resolveSync("@oh-my-pi/pi-tui/prompt/composer-cache", import.meta.dirname);
 		const script = [
 			'import * as path from "node:path";',
 			`import { ComposerCache } from ${JSON.stringify(composerCacheModule)};`,
@@ -146,9 +149,9 @@ describe("composer startup cache", () => {
 			`cache.writeUi(${JSON.stringify(project)}, {}, {});`,
 			"cache.close();",
 			`const expected = path.join(${JSON.stringify(xdgCache)}, "omp", "cache", "composer.db");`,
-			"process.stdout.write(String(await Bun.file(expected).exists()));",
+			"process.stdout.write(String(await bun.file(expected).exists()));",
 		].join("\n");
-		const proc = Bun.spawn([process.execPath, "--no-env-file", "--no-install", "--eval", script], {
+		const proc = bun.spawn([process.execPath, "--no-env-file", "--no-install", "--eval", script], {
 			cwd: root,
 			env: {
 				...process.env,

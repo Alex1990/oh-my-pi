@@ -1,17 +1,17 @@
 # SDK
 
 The SDK is the in-process integration surface for `@oh-my-pi/pi-coding-agent`.
-Use it when you want direct access to agent state, event streaming, tool wiring, and session control from a Bun process.
+Use it when you want direct access to agent state, event streaming, tool wiring, and session control from a Node.js process.
 
 If you need cross-language/process isolation, use RPC mode instead.
 
 ## Installation
 
 ```bash
-bun add @oh-my-pi/pi-coding-agent
+pnpm add @oh-my-pi/pi-coding-agent
 ```
 
-Requires Bun 1.3.14 or newer. Before the first model-backed prompt, configure
+Requires Node.js 22.12 or newer. Before the first model-backed prompt, configure
 credentials for a provider or run a keyless local provider; see
 [Providers](./providers.md). Session construction can succeed without an
 available model, but prompting cannot.

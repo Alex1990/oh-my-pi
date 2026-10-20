@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import { readText, ReadTextError } from "@oh-my-pi/pi-coding-agent/tools/jfind/t
 import { eligibleFile, renderTree, resolveSearchRoot } from "@oh-my-pi/pi-coding-agent/tools/jfind/tree";
 import { resolveSearchResultPath } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Read-tier URL filesystem rooted at `cwd`, as the `find` tool builds one per call. */
 function urlFs(cwd: string): InternalUrlFilesystem {
@@ -144,8 +145,8 @@ describe("jfind readText", () => {
 	it("rejects binaries and trims a truncated read to the last full line", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-read-"));
 		try {
-			await Bun.write(path.join(dir, "bin.dat"), new Uint8Array([0x41, 0x00, 0x42]));
-			await Bun.write(path.join(dir, "text.txt"), "first line\nsecond line\nthird");
+			await bun.write(path.join(dir, "bin.dat"), new Uint8Array([0x41, 0x00, 0x42]));
+			await bun.write(path.join(dir, "text.txt"), "first line\nsecond line\nthird");
 			const filesystem = urlFs(dir);
 			await expect(readText(filesystem, path.join(dir, "bin.dat"), 100)).rejects.toBeInstanceOf(ReadTextError);
 			const read = await readText(filesystem, path.join(dir, "text.txt"), 16);
@@ -163,8 +164,8 @@ describe("jfind lexical index", () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-lexical-"));
 		try {
 			// Far more matching lines than one streamed batch carries.
-			await Bun.write(path.join(dir, "dense.txt"), "ΣΊΣΥΦΟΣ Service_Tier service_tier\n".repeat(3_000));
-			await Bun.write(path.join(dir, "other.txt"), "SERVICE_TIER\nunrelated\n");
+			await bun.write(path.join(dir, "dense.txt"), "ΣΊΣΥΦΟΣ Service_Tier service_tier\n".repeat(3_000));
+			await bun.write(path.join(dir, "other.txt"), "SERVICE_TIER\nunrelated\n");
 			const index = await grepIndex(dir, ["Σίσυφος", "service_tier"], {
 				includeHidden: false,
 				filesystem: urlFs(dir).shellFilesystem(),
@@ -225,13 +226,13 @@ describe("jfind cascade", () => {
 		try {
 			// 72 files, so two 64-question filename batches (> 128 would be truncated).
 			for (let i = 0; i < 70; i++) {
-				await Bun.write(path.join(dir, "pkg", `filler${i}.ts`), `export const filler${i} = ${i};\n`);
+				await bun.write(path.join(dir, "pkg", `filler${i}.ts`), `export const filler${i} = ${i};\n`);
 			}
 			const target = Array.from({ length: 600 }, (_, i) =>
 				i === 250 ? "function retryBudget() { return attempts * 2; } // retry" : `const noise${i} = ${i};`,
 			).join("\n");
-			await Bun.write(path.join(dir, "src", "retry.ts"), target);
-			await Bun.write(path.join(dir, "src", "other.ts"), "export const unrelated = 1;\n");
+			await bun.write(path.join(dir, "src", "retry.ts"), target);
+			await bun.write(path.join(dir, "src", "other.ts"), "export const unrelated = 1;\n");
 
 			const judge = new FakeJudge((request, key) => {
 				const state = stateOf(request);
@@ -281,7 +282,7 @@ describe("jfind cascade", () => {
 	it("routes sketches onward when their judgment fails and reports the failure", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-cascade-fail-"));
 		try {
-			await Bun.write(path.join(dir, "a.ts"), "export function parseToken() { return 1; }\n");
+			await bun.write(path.join(dir, "a.ts"), "export function parseToken() { return 1; }\n");
 			const judge = new FakeJudge(request => {
 				const state = stateOf(request);
 				if ("files" in state) return new Error("sketch backend down");
@@ -307,7 +308,7 @@ describe("jfind cascade", () => {
 	it("reports unavailable, not an empty result, when every judge request fails", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-cascade-down-"));
 		try {
-			await Bun.write(path.join(dir, "auth.ts"), "export function refreshToken() { return 1; }\n");
+			await bun.write(path.join(dir, "auth.ts"), "export function refreshToken() { return 1; }\n");
 			vi.spyOn(ChainJudge.prototype, "judge").mockRejectedValue(new Error("402 billing account rejected"));
 			const tool = new FindTool({
 				cwd: dir,
@@ -332,7 +333,7 @@ describe("jfind cascade", () => {
 	it("keeps an empty result complete when the judge answered and nothing matched", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-cascade-empty-"));
 		try {
-			await Bun.write(path.join(dir, "a.ts"), "export const unrelated = 1;\n");
+			await bun.write(path.join(dir, "a.ts"), "export const unrelated = 1;\n");
 			const result = await runCascade({
 				root: { path: dir, type: "directory" },
 				filesystem: urlFs(dir),
@@ -351,7 +352,7 @@ describe("jfind cascade", () => {
 	it("counts unusable answers apart from failed requests", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-cascade-garbled-"));
 		try {
-			await Bun.write(path.join(dir, "a.ts"), "export function parseToken() { return 1; }\n");
+			await bun.write(path.join(dir, "a.ts"), "export function parseToken() { return 1; }\n");
 			const judge = new FakeJudge(request => {
 				const state = stateOf(request);
 				if ("tree" in state) return Number.NaN;
@@ -437,7 +438,7 @@ describe("jfind cascade", () => {
 	it("rejects a missing scope path or a line selector before spending any judgment", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-scope-"));
 		try {
-			await Bun.write(path.join(dir, "a.ts"), "export const a = 1;\n");
+			await bun.write(path.join(dir, "a.ts"), "export const a = 1;\n");
 			const tool = new FindTool({
 				cwd: dir,
 				hasUI: false,
@@ -459,7 +460,7 @@ describe("jfind cascade", () => {
 	it("stops promptly when aborted mid-wave", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jfind-cascade-abort-"));
 		try {
-			await Bun.write(path.join(dir, "a.ts"), "export const a = 1;\n");
+			await bun.write(path.join(dir, "a.ts"), "export const a = 1;\n");
 			const controller = new AbortController();
 			const judge = new FakeJudge(() => {
 				controller.abort();

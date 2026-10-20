@@ -18,6 +18,7 @@ import { LRUCache } from "@oh-my-pi/pi-utils/lru";
 import { capFrameDataBytes, frameDataBytesBudget, providerImageBudget } from "@oh-my-pi/snapcompact";
 import { supportsRemoteImageUrls } from "../blob-broker/context-images";
 import { imageDecodeFailureReason } from "@oh-my-pi/pi-tui/chat/image-loading";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const IMAGE_OMISSION: TextContent = {
 	type: "text",
@@ -192,7 +193,7 @@ const IMAGE_DECODE_CACHE_MAX_ENTRIES = 512;
 const imageDecodeFailures = new LRUCache<string, string | null>({ max: IMAGE_DECODE_CACHE_MAX_ENTRIES });
 
 async function unreadableImageReason(image: ImageContent): Promise<string | null> {
-	const key = `${image.mimeType}:${image.data.length}:${String(Bun.hash(image.data))}`;
+	const key = `${image.mimeType}:${image.data.length}:${String(bun.hash(image.data))}`;
 	const cached = imageDecodeFailures.get(key);
 	if (cached !== undefined) return cached;
 	const reason = await imageDecodeFailureReason(image);

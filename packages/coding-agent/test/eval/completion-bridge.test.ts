@@ -1,10 +1,9 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Api, AssistantMessage, Model } from "@oh-my-pi/pi-ai";
 import * as ai from "@oh-my-pi/pi-ai";
 import { Effort } from "@oh-my-pi/pi-ai";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
 import type { ModelRegistry } from "../../src/config/model-registry";
 import { Settings } from "../../src/config/settings";
 import { EVAL_TIMEOUT_PAUSE_OP, EVAL_TIMEOUT_RESUME_OP } from "../../src/eval/bridge-timeout";
@@ -20,11 +19,12 @@ import { runEvalWait } from "../../src/eval/handle-bridge";
 import { IdleTimeout } from "../../src/eval/idle-timeout";
 import { disposeAllVmContexts } from "../../src/eval/js/context-manager";
 import { executeJs } from "../../src/eval/js/executor";
-import { disposeAllKernelSessions, type PythonResult } from "../../src/eval/py/executor";
+import { disposeAllKernelSessions, executePython, type PythonResult } from "../../src/eval/py/executor";
 import type { ToolSession } from "../../src/tools";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
 import { cfgRetryFallbackChains, cfgRetryMaxRetries } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function runEvalCompletionAndWait(
 	args: unknown,
@@ -139,13 +139,7 @@ function assistant(opts: {
 	};
 }
 
-async function runPythonCompletionsInSubprocess(tempDir: TempDir): Promise<PythonResult> {
-	const repoRoot = path.resolve(import.meta.dir, "../../..");
-	const scriptPath = path.join(tempDir.path(), "run-python-completion.ts");
-	const resultPath = path.join(tempDir.path(), "python-completion-result.json");
-	const aiPath = path.resolve(import.meta.dir, "../../../ai/src/index.ts");
-	const executorPath = path.resolve(import.meta.dir, "../../src/eval/py/executor.ts");
-	const settingsPath = path.resolve(import.meta.dir, "../../src/config/settings.ts");
+async function runPythonCompletions(tempDir: TempDir): Promise<PythonResult> {
 	const code = [
 		"import json",
 		'plain = completion("hi", model="smol").wait()',
@@ -153,73 +147,19 @@ async function runPythonCompletionsInSubprocess(tempDir: TempDir): Promise<Pytho
 		'structured = await completion("hi", schema={"type": "object"})',
 		'print(json.dumps({"plain": plain, "structured": structured}))',
 	].join("\n");
-	await Bun.write(
-		scriptPath,
-		`
-import { vi } from "bun:test";
-import * as ai from ${JSON.stringify(aiPath)};
-import { executePython } from ${JSON.stringify(executorPath)};
-import { Settings } from ${JSON.stringify(settingsPath)};
-
-const SMOL = {
-	id: "smol",
-	name: "smol",
-	api: "openai-responses",
-	provider: "p",
-	baseUrl: "https://example.test/v1",
-	reasoning: false,
-	input: ["text"],
-	cost: { input: 1, output: 1, cacheRead: 0, cacheWrite: 1 },
-	contextWindow: 128000,
-	maxTokens: 4096,
-};
-const settings = Settings.isolated({ "async.enabled": false, "task.isolation.enabled": false });
-settings.setModelRole("smol", "p/smol");
-settings.setModelRole("slow", "p/slow");
-const session = {
-	cwd: ${JSON.stringify(tempDir.path())},
-	settings,
-	modelRegistry: {
-		getAvailable: () => [SMOL],
-		getApiKey: async () => "test-key",
-		resolver: () => async () => "test-key",
-	},
-	getActiveModelString: () => "p/smol",
-};
-vi.spyOn(ai, "completeSimple")
-	.mockResolvedValueOnce({
-		role: "assistant",
-		api: "openai-responses",
-		provider: "p",
-		model: "smol",
-		stopReason: "stop",
-		content: [{ type: "text", text: "hello from python" }],
-	})
-	.mockResolvedValueOnce({
-		role: "assistant",
-		api: "openai-responses",
-		provider: "p",
-		model: "smol",
-		stopReason: "stop",
-		content: [{ type: "toolCall", id: "tc-1", name: "respond", arguments: { ok: true } }],
+	// Runs in-process so `vi.spyOn(ai, ...)` can stand in for the model call: the
+	// Python kernel reaches the host bridge in this process, not a child runtime
+	// (a child cannot use Vitest's `vi` without a worker state).
+	vi.spyOn(ai, "completeSimple")
+		.mockResolvedValueOnce(assistant({ text: "hello from python" }))
+		.mockResolvedValueOnce(assistant({ toolCall: { name: "respond", arguments: { ok: true } } }));
+	return await executePython(code, {
+		cwd: tempDir.path(),
+		sessionId: `py-completion:${crypto.randomUUID()}`,
+		sessionFile: path.join(tempDir.path(), "session.jsonl"),
+		toolSession: makeSession({ cwd: tempDir.path(), activeModel: "p/smol", available: [SMOL] }),
+		kernelMode: "per-call",
 	});
-const result = await executePython(${JSON.stringify(code)}, {
-	cwd: ${JSON.stringify(tempDir.path())},
-	sessionId: "py-completion",
-	sessionFile: ${JSON.stringify(path.join(tempDir.path(), "session.jsonl"))},
-	toolSession: session,
-	kernelMode: "per-call",
-});
-await Bun.write(${JSON.stringify(resultPath)}, JSON.stringify(result));
-process.exit(0);
-`,
-	);
-	const child = await $`bun ${scriptPath}`.cwd(repoRoot).quiet().nothrow();
-	const stdout = child.stdout.toString();
-	const stderr = child.stderr.toString();
-	if (child.exitCode !== 0)
-		throw new Error(stderr || stdout || `Python completion subprocess exited with ${child.exitCode}`);
-	return (await Bun.file(resultPath).json()) as PythonResult;
 }
 
 describe("runEvalCompletion", () => {
@@ -957,7 +897,7 @@ describe("runEvalCompletion", () => {
 			const started = Promise.withResolvers<void>();
 			vi.spyOn(ai, "completeSimple").mockImplementation(async () => {
 				started.resolve();
-				await Bun.sleep(200);
+				await bun.sleep(200);
 				return assistant({ text: "the answer" });
 			});
 
@@ -1075,7 +1015,7 @@ describe("completion() through eval runtimes", () => {
 	it("exposes plain and structured completion() in the Python runtime", async () => {
 		const tempDir = TempDir.createSync("@omp-eval-completion-py-");
 		try {
-			const result = await runPythonCompletionsInSubprocess(tempDir);
+			const result = await runPythonCompletions(tempDir);
 			expect(result.exitCode).toBe(0);
 			expect(JSON.parse(result.output.trim())).toEqual({
 				plain: "hello from python",

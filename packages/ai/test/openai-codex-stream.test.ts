@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import { scheduler } from "node:timers/promises";
 import { completeSimple, streamSimple } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
@@ -24,35 +25,51 @@ import { __resetProxyCache } from "@oh-my-pi/pi-ai/utils/proxy";
 import { validateToolArguments } from "@oh-my-pi/pi-ai/utils/validation";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
+import type * as nodeServe from "@oh-my-pi/pi-utils/node-serve";
 import * as piUtils from "@oh-my-pi/pi-utils";
+
+/**
+ * The codex transport imports `WebSocket` from the node-serve shim, so the
+ * `globalThis.WebSocket` replacements below only reach it if the shim delegates
+ * to the current global. Resolve the constructor and its statics at call time.
+ */
+vi.mock("@oh-my-pi/pi-utils/node-serve", async importOriginal => {
+	const actual = await importOriginal<typeof nodeServe>();
+	const WebSocket = new Proxy(actual.WebSocket, {
+		construct: (_target, args) => Reflect.construct(globalThis.WebSocket ?? actual.WebSocket, args),
+		get: (target, property, receiver) => Reflect.get(globalThis.WebSocket ?? target, property, receiver),
+	});
+	return { ...actual, WebSocket };
+});
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const { getAgentDir, setAgentDir, TempDir } = piUtils;
 
 const originalAgentDir = getAgentDir();
 const originalWebSocket = global.WebSocket;
 const originalProxyEnv: Record<string, string | undefined> = {
-	PI_PROXY: Bun.env.PI_PROXY,
-	PI_PROXY_CODEX_PROXY_TEST: Bun.env.PI_PROXY_CODEX_PROXY_TEST,
-	HTTPS_PROXY: Bun.env.HTTPS_PROXY,
-	https_proxy: Bun.env.https_proxy,
-	ALL_PROXY: Bun.env.ALL_PROXY,
-	all_proxy: Bun.env.all_proxy,
-	NO_PROXY: Bun.env.NO_PROXY,
-	no_proxy: Bun.env.no_proxy,
+	PI_PROXY: bun.env.PI_PROXY,
+	PI_PROXY_CODEX_PROXY_TEST: bun.env.PI_PROXY_CODEX_PROXY_TEST,
+	HTTPS_PROXY: bun.env.HTTPS_PROXY,
+	https_proxy: bun.env.https_proxy,
+	ALL_PROXY: bun.env.ALL_PROXY,
+	all_proxy: bun.env.all_proxy,
+	NO_PROXY: bun.env.NO_PROXY,
+	no_proxy: bun.env.no_proxy,
 };
 const TEST_INSTALLATION_ID = "00000000-0000-4000-8000-000000000001";
 
 function restoreEnv(name: string, value: string | undefined): void {
 	if (value === undefined) {
-		delete Bun.env[name];
+		delete bun.env[name];
 		return;
 	}
-	Bun.env[name] = value;
+	bun.env[name] = value;
 }
 
 beforeEach(() => {
-	for (const key in originalProxyEnv) delete Bun.env[key];
+	for (const key in originalProxyEnv) delete bun.env[key];
 	__resetProxyCache();
 	vi.spyOn(piUtils, "getInstallId").mockReturnValue(TEST_INSTALLATION_ID);
 });
@@ -123,7 +140,7 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
  */
 function decodeCodexRequestBody(body: RequestInit["body"]): string {
 	if (typeof body === "string") return body;
-	if (body instanceof Uint8Array) return new TextDecoder().decode(Bun.zstdDecompressSync(body));
+	if (body instanceof Uint8Array) return new TextDecoder().decode(bun.zstdDecompressSync(body));
 	throw new Error("expected a string or binary Codex request body");
 }
 
@@ -1859,7 +1876,7 @@ describe("openai-codex streaming", () => {
 
 	it("passes the provider proxy to websocket handshakes", async () => {
 		const proxy = "socks5://127.0.0.1:7890";
-		Bun.env.PI_PROXY_CODEX_PROXY_TEST = proxy;
+		bun.env.PI_PROXY_CODEX_PROXY_TEST = proxy;
 		__resetProxyCache();
 		let capturedProxy: string | undefined;
 		class ProxyCaptureWebSocket extends MockWebSocket {
@@ -1885,7 +1902,7 @@ describe("openai-codex streaming", () => {
 			expect(capturedProxy).toBe(proxy);
 		} finally {
 			for (const state of providerSessionState.values()) state.close();
-			delete Bun.env.PI_PROXY_CODEX_PROXY_TEST;
+			delete bun.env.PI_PROXY_CODEX_PROXY_TEST;
 		}
 	});
 
@@ -1896,9 +1913,9 @@ describe("openai-codex streaming", () => {
 		];
 
 		for (const { env, proxy } of cases) {
-			delete Bun.env.HTTPS_PROXY;
-			delete Bun.env.ALL_PROXY;
-			Bun.env[env] = proxy;
+			delete bun.env.HTTPS_PROXY;
+			delete bun.env.ALL_PROXY;
+			bun.env[env] = proxy;
 			let capturedProxy: string | undefined;
 			class StandardProxyWebSocket extends MockWebSocket {
 				constructor(url: string, options?: WsOptions) {
@@ -1928,8 +1945,8 @@ describe("openai-codex streaming", () => {
 	});
 
 	it("bypasses configured proxies for NO_PROXY websocket targets", async () => {
-		Bun.env.PI_PROXY_CODEX_PROXY_TEST = "http://127.0.0.1:7890";
-		Bun.env.NO_PROXY = "chatgpt.com:443";
+		bun.env.PI_PROXY_CODEX_PROXY_TEST = "http://127.0.0.1:7890";
+		bun.env.NO_PROXY = "chatgpt.com:443";
 		__resetProxyCache();
 		let capturedProxy: string | undefined;
 		class NoProxyWebSocket extends MockWebSocket {
@@ -6256,7 +6273,7 @@ describe("openai-codex streaming", () => {
 		}).result();
 
 		// Let both callers reach the handshake before the socket opens.
-		await Bun.sleep(5);
+		await bun.sleep(5);
 		for (const socket of sockets) socket.open();
 
 		await prewarmPromise;

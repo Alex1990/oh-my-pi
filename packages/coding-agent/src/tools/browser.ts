@@ -56,6 +56,10 @@ import {
 	cfgBrowserTern,
 } from "./browser/settings";
 import { cfgToolsMaxTimeout } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 export type { AriaSnapshotOptions } from "./browser/aria/aria-snapshot";
 
@@ -676,7 +680,7 @@ async function saveBrowserOutputArtifact(session: ToolSession, fullText: string)
 	try {
 		const alloc = await session.allocateOutputArtifact?.("browser-original");
 		if (!alloc?.path || !alloc.id) return undefined;
-		await Bun.write(alloc.path, fullText);
+		await bun.write(alloc.path, fullText);
 		return alloc.id;
 	} catch {
 		return undefined;

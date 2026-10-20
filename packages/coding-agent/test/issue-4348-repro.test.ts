@@ -17,7 +17,7 @@
  * that own their tool results, not into orphan `⎿` toolResult lines.
  */
 
-import { beforeAll, describe, expect, it, vi } from "bun:test";
+import { beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, Usage } from "@oh-my-pi/pi-ai";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -26,6 +26,7 @@ import type { InteractiveModeContext, RenderSessionContextOptions } from "@oh-my
 import { UiHelpers } from "@oh-my-pi/pi-coding-agent/modes/utils/ui-helpers";
 import type { SessionContext } from "@oh-my-pi/pi-coding-agent/session/session-context";
 import { Container } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(() => {
 	initTheme();
@@ -165,7 +166,7 @@ describe("issue #4348: cursor exec-channel tool results pair with synthesized to
 		// ReadToolGroupComponent for the synthesized read block. Absent the
 		// synthesis (pre-fix), neither would exist — both results would fall
 		// through `addMessageToChat` (a no-op for `toolResult`) and vanish.
-		const rendered = Bun.stripANSI(chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(chatContainer.render(120).join("\n"));
 		expect(rendered).toContain("Reading and listing:");
 		// Bash result is fully surfaced inside the ToolExecutionComponent —
 		// header carries the command, body carries the output.

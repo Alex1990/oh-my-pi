@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleGitHub, parseGitHubUrl, stripActionsLogTimestamps } from "@oh-my-pi/pi-coding-agent/web/scrapers/github";
 import { handleGitHubGist } from "@oh-my-pi/pi-coding-agent/web/scrapers/github-gist";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 // =============================================================================
 // GitHub Tests

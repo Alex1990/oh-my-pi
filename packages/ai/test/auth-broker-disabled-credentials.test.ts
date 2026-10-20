@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,7 @@ import {
 	startAuthBroker,
 } from "@oh-my-pi/pi-ai/auth-broker";
 import { removeWithRetries } from "../../utils/src/temp";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const DISABLE_CAUSE =
 	'oauth refresh failed: OAuthError: Anthropic token refresh request failed. url=https://api.anthropic.com/v1/oauth/token; body={"error": "invalid_grant", "error_description": "Refresh token expired"}';
@@ -87,7 +88,7 @@ describe("disabled credential tombstones", () => {
 
 	test("client maps a broker without the endpoint (404) to an empty list", async () => {
 		const fetchImpl: typeof fetch = Object.assign(async () => new Response("not found", { status: 404 }), {
-			preconnect: fetch.preconnect,
+			preconnect: preconnectOf(fetch),
 		});
 		const client = new AuthBrokerClient({ url: "http://127.0.0.1:9", token: "unused", fetchImpl });
 		expect(await client.listDisabledCredentials()).toEqual([]);
@@ -107,7 +108,7 @@ describe("broker /v1/credentials/disabled round-trip", () => {
 		serverStore = await SqliteAuthCredentialStore.open(path.join(tempDir, "broker.db"));
 		serverStorage = new AuthStorage(serverStore);
 		await serverStorage.credentials.reload();
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage: serverStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],

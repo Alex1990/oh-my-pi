@@ -9,7 +9,7 @@
  * - The last-seen marker is a plain file in the agent dir.
  */
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Buffer } from "node:buffer";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -38,12 +38,13 @@ import {
 
 import { cfgStartupChangelogMode } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import { CURRENT_SETUP_VERSION } from "@oh-my-pi/pi-tui/setup/setup-version";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CURRENT_VERSION = "2.0.0";
-const repoRoot = path.resolve(import.meta.dir, "..", "..", "..", "..");
+const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..", "..");
 const cliEntry = path.join(repoRoot, "packages", "coding-agent", "src", "cli.ts");
 const packageDir = path.join(repoRoot, "packages", "coding-agent");
-const hasPtyHarness = process.platform === "linux" && (await Bun.file("/usr/bin/script").exists());
+const hasPtyHarness = process.platform === "linux" && (await bun.file("/usr/bin/script").exists());
 const PTY_STARTUP_OUTPUT_CEILING = 512 * 1024;
 /**
  * Upper bound for a cold `bun src/cli.ts` to persist the first-run marker. Only
@@ -72,7 +73,7 @@ describe("startup changelog mode settings", () => {
 				[true, "summary"],
 				[false, "expanded"],
 			] as const) {
-				await Bun.write(configPath, `collapseChangelog: ${legacyValue}\n`);
+				await bun.write(configPath, `collapseChangelog: ${legacyValue}\n`);
 				const settings = await Settings.loadReadOnly({ cwd: agentDir, agentDir });
 				expect(cfgStartupChangelogMode.get(settings)).toBe(expectedMode);
 			}
@@ -81,7 +82,7 @@ describe("startup changelog mode settings", () => {
 
 	test("lets an explicit new mode win over the legacy raw config key", async () => {
 		await withTempAgentDir(async agentDir => {
-			await Bun.write(
+			await bun.write(
 				path.join(agentDir, "config.yml"),
 				"collapseChangelog: false\nstartup:\n  changelogMode: hidden\n",
 			);
@@ -312,7 +313,7 @@ describe("last changelog marker", () => {
 			await writeLastChangelogVersion(CURRENT_VERSION, agentDir);
 
 			expect(await readLastChangelogVersion(agentDir)).toBe(CURRENT_VERSION);
-			expect(await Bun.file(path.join(agentDir, "last-changelog-version")).text()).toBe(CURRENT_VERSION);
+			expect(await bun.file(path.join(agentDir, "last-changelog-version")).text()).toBe(CURRENT_VERSION);
 		});
 	});
 
@@ -346,7 +347,7 @@ describe("last changelog marker", () => {
 			await writeLastChangelogVersion("1.0.0", agentDir);
 			const changelogPath = path.join(agentDir, "CHANGELOG.md");
 			const history = [release(2, 0, 0, "### Added\n\n- Newest."), release(1, 5, 0, "### Fixed\n\n- Last section.")];
-			await Bun.write(changelogPath, `# Changelog\n\n${history.map(entry => entry.content).join("\n\n")}\n`);
+			await bun.write(changelogPath, `# Changelog\n\n${history.map(entry => entry.content).join("\n\n")}\n`);
 
 			const selection = await resolveStartupChangelogForDisplay({
 				mode: "summary",
@@ -403,12 +404,12 @@ describe.skipIf(!hasPtyHarness)("interactive startup changelog PTY smoke", () =>
 					await fs.mkdir(path.join(root, "xdg-data"), { recursive: true });
 					// Setup already completed, so the interactive transcript (where the startup
 					// changelog renders) comes up instead of the animated setup wizard.
-					await Bun.write(
+					await bun.write(
 						path.join(agentDir, "config.yml"),
 						`setupVersion: ${CURRENT_SETUP_VERSION}\ncollapseChangelog: false\n`,
 					);
 
-					const proc = Bun.spawn(["script", "-q", "-c", `bun ${JSON.stringify(cliEntry)}`, "/dev/null"], {
+					const proc = bun.spawn(["script", "-q", "-c", `bun ${JSON.stringify(cliEntry)}`, "/dev/null"], {
 						cwd: repoRoot,
 						stdout: "pipe",
 						stderr: "pipe",
@@ -448,7 +449,7 @@ describe.skipIf(!hasPtyHarness)("interactive startup changelog PTY smoke", () =>
 						if (marker !== undefined) {
 							// Genuine delay: asserting the startup changelog is absent has no event to
 							// await, so give the first frames time to reach the PTY.
-							await Promise.race([proc.exited, Bun.sleep(PTY_POST_MARKER_OBSERVE_MS)]);
+							await Promise.race([proc.exited, bun.sleep(PTY_POST_MARKER_OBSERVE_MS)]);
 						}
 						exitedBeforeStop = exited;
 					} finally {

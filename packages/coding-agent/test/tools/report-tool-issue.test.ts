@@ -1,12 +1,12 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
-import * as reportIssue from "@oh-my-pi/pi-coding-agent/tools/report-tool-issue";
 import {
 	__awaitAutoQaRecordPipelineForTests,
 	__resetAutoQaConsentForTests,
 	__resetAutoQaFlushStateForTests,
+	__setAutoQaDbForTests,
 	dispatchReportIssueDevice,
 	flushGrievances,
 	isAutoQaEnabled,
@@ -14,6 +14,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/tools/report-tool-issue";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { mockFetch } from "../helpers/fetch-mock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function openTempDb(): Database {
 	const db = new Database(":memory:");
@@ -81,10 +82,10 @@ let originalPiAutoQa: string | undefined;
 
 function restoreAutoQaEnv(): void {
 	if (originalPiAutoQa === undefined) {
-		delete Bun.env.PI_AUTO_QA;
+		delete bun.env.PI_AUTO_QA;
 		return;
 	}
-	Bun.env.PI_AUTO_QA = originalPiAutoQa;
+	bun.env.PI_AUTO_QA = originalPiAutoQa;
 }
 
 describe("flushGrievances", () => {
@@ -92,8 +93,8 @@ describe("flushGrievances", () => {
 
 	beforeEach(() => {
 		__resetAutoQaFlushStateForTests();
-		originalPiAutoQa = Bun.env.PI_AUTO_QA;
-		delete Bun.env.PI_AUTO_QA;
+		originalPiAutoQa = bun.env.PI_AUTO_QA;
+		delete bun.env.PI_AUTO_QA;
 		db = openTempDb();
 	});
 
@@ -105,13 +106,13 @@ describe("flushGrievances", () => {
 	});
 
 	it("lets PI_AUTO_QA=false disable auto QA when the setting is enabled", () => {
-		Bun.env.PI_AUTO_QA = "0";
+		bun.env.PI_AUTO_QA = "0";
 
 		expect(isAutoQaEnabled(Settings.isolated({ "dev.autoqa": true }))).toBe(false);
 	});
 
 	it("lets PI_AUTO_QA=true enable auto QA when the setting is disabled", () => {
-		Bun.env.PI_AUTO_QA = "1";
+		bun.env.PI_AUTO_QA = "1";
 
 		expect(isAutoQaEnabled(Settings.isolated({ "dev.autoqa": false }))).toBe(true);
 	});
@@ -218,7 +219,7 @@ describe("flushGrievances", () => {
 		let capturedInit: RequestInit | undefined;
 		const fetchSpy = vi.fn(async (_input: string | URL | Request, init: RequestInit | undefined) => {
 			capturedInit = init;
-			return new Response("", { status: 204 });
+			return new Response(null, { status: 204 });
 		});
 
 		const result = await flushGrievances(db, pushSettings(), { fetch: mockFetch(fetchSpy) });
@@ -457,9 +458,9 @@ describe("dispatchReportIssueDevice", () => {
 	}
 
 	it("records a grievance from `<tool>: <report>` text", async () => {
-		Bun.env.PI_AUTO_QA = "1";
+		bun.env.PI_AUTO_QA = "1";
 		const db = openTempDb();
-		const openSpy = vi.spyOn(reportIssue, "openAutoQaDb").mockReturnValue(db);
+		__setAutoQaDbForTests(db);
 		try {
 			const session = { settings: consentedSettings() } as ToolSession;
 			const { result, xdev } = await dispatchReportIssueDevice(
@@ -475,15 +476,15 @@ describe("dispatchReportIssueDevice", () => {
 			const row = db.prepare("SELECT tool, report FROM grievances").get() as { tool: string; report: string };
 			expect(row).toEqual({ tool: "read", report: "selector parse dropped trailing line" });
 		} finally {
-			openSpy.mockRestore();
+			__setAutoQaDbForTests(null);
 			db.close();
 		}
 	});
 
 	it("accepts the two-line fallback body format", async () => {
-		Bun.env.PI_AUTO_QA = "1";
+		bun.env.PI_AUTO_QA = "1";
 		const db = openTempDb();
-		const openSpy = vi.spyOn(reportIssue, "openAutoQaDb").mockReturnValue(db);
+		__setAutoQaDbForTests(db);
 		try {
 			const session = { settings: consentedSettings() } as ToolSession;
 			await dispatchReportIssueDevice(session, "grep\nreported matches include a deleted file");
@@ -491,15 +492,15 @@ describe("dispatchReportIssueDevice", () => {
 			const row = db.prepare("SELECT tool, report FROM grievances").get() as { tool: string; report: string };
 			expect(row).toEqual({ tool: "grep", report: "reported matches include a deleted file" });
 		} finally {
-			openSpy.mockRestore();
+			__setAutoQaDbForTests(null);
 			db.close();
 		}
 	});
 
 	it("clamps a prose first line so the stored tool stays within the collector limit", async () => {
-		Bun.env.PI_AUTO_QA = "1";
+		bun.env.PI_AUTO_QA = "1";
 		const db = openTempDb();
-		const openSpy = vi.spyOn(reportIssue, "openAutoQaDb").mockReturnValue(db);
+		__setAutoQaDbForTests(db);
 		try {
 			const prose =
 				"eval içindeki tool.glob exact ve var olmayan yolu çağırınca beklenmedik şekilde RuntimeError fırlatıyor, sessizce boş dönmüyor";
@@ -512,17 +513,17 @@ describe("dispatchReportIssueDevice", () => {
 			// The sentence is preserved in the report, not dropped on the floor.
 			expect(row.report).toBe(`${prose}\nglob threw instead of returning empty`);
 		} finally {
-			openSpy.mockRestore();
+			__setAutoQaDbForTests(null);
 			db.close();
 		}
 	});
 
 	it("writes nothing while consent is unresolved", async () => {
-		Bun.env.PI_AUTO_QA = "1";
-		const originalPush = Bun.env.PI_AUTO_QA_PUSH;
-		delete Bun.env.PI_AUTO_QA_PUSH;
+		bun.env.PI_AUTO_QA = "1";
+		const originalPush = bun.env.PI_AUTO_QA_PUSH;
+		delete bun.env.PI_AUTO_QA_PUSH;
 		const db = openTempDb();
-		const openSpy = vi.spyOn(reportIssue, "openAutoQaDb").mockReturnValue(db);
+		__setAutoQaDbForTests(db);
 		try {
 			// Consent unset and no UI handler registered → resolves to false.
 			const session = { settings: Settings.isolated({ "dev.autoqa": true }) } as ToolSession;
@@ -532,9 +533,9 @@ describe("dispatchReportIssueDevice", () => {
 			await settlePipeline();
 			expect(selectIds(db)).toHaveLength(0);
 		} finally {
-			if (originalPush === undefined) delete Bun.env.PI_AUTO_QA_PUSH;
-			else Bun.env.PI_AUTO_QA_PUSH = originalPush;
-			openSpy.mockRestore();
+			if (originalPush === undefined) delete bun.env.PI_AUTO_QA_PUSH;
+			else bun.env.PI_AUTO_QA_PUSH = originalPush;
+			__setAutoQaDbForTests(null);
 			db.close();
 		}
 	});

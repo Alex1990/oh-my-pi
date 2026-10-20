@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 // Relative import: exercise THIS worktree's policy engine, not the symlinked
 // node_modules copy (which resolves to the primary checkout).
 import { resolveModelPolicy } from "../src/compat/resolve";

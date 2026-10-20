@@ -4,13 +4,14 @@
  * inner <output>/<preview> body, while non-envelope result text (bash jobs)
  * passes through unchanged.
  */
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { prompt } from "@oh-my-pi/pi-utils";
 import taskSummaryTemplate from "../../coding-agent/src/prompts/tools/task-summary.md" with { type: "text" };
 import type { NativeChild, NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import { type CoordinationDetails, waitToolRenderer } from "@oh-my-pi/pi-tui/tools/wait";
 import { decodeBench } from "./fixtures/job-widget-views";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Every described node under `children`, depth first. */
 function flatten(children: readonly NativeChild[] | undefined): NativeNode[] {
@@ -64,7 +65,7 @@ describe("job renderer task-result preview", () => {
 			{ expanded: true, isPartial: false },
 			theme,
 		);
-		const output = Bun.stripANSI(component.render(120).join("\n"));
+		const output = bun.stripANSI(component.render(120).join("\n"));
 		expect(output).toContain("Worker");
 		expect(output).toContain("file unlocked");
 	});
@@ -115,7 +116,7 @@ describe("job renderer task-result preview", () => {
 			mergeSummary: "",
 		});
 
-		const output = Bun.stripANSI(renderLines(summary));
+		const output = bun.stripANSI(renderLines(summary));
 		expect(output).toContain('{ "echo": "alpha", "ok": true }');
 		expect(output.split("\n").some(line => line.trim() === "{")).toBe(false);
 	});
@@ -128,7 +129,7 @@ describe("job renderer task-result preview", () => {
 	it("drops the id column when the label repeats it", () => {
 		// Task jobs label themselves with their agent id; rendering both columns
 		// stutters ("SpawnProbe ⟨task⟩ SpawnProbe").
-		const output = Bun.stripANSI(renderLines("done"));
+		const output = bun.stripANSI(renderLines("done"));
 		const header = output.split("\n").find(line => line.includes("SpawnProbe"));
 		expect(header).toBeDefined();
 		expect(header!.match(/SpawnProbe/g)).toHaveLength(1);
@@ -170,7 +171,7 @@ describe("job renderer task-result preview", () => {
 				{ expanded: true, isPartial: true } as Parameters<typeof waitToolRenderer.renderResult>[1],
 				theme,
 			);
-			const output = Bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
+			const output = bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
 			expect(output).toContain("Job1 running");
 			expect(output).toContain("Job2 completed");
 			expect(output).toContain("Job3 running");
@@ -187,7 +188,7 @@ describe("job renderer task-result preview", () => {
 				{ expanded: true, isPartial: false } as Parameters<typeof waitToolRenderer.renderResult>[1],
 				theme,
 			);
-			const output = Bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
+			const output = bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
 			expect(output).toContain("Job1 running");
 			expect(output).toContain("Job2 completed");
 			expect(output).toContain("Job3 running");
@@ -214,7 +215,7 @@ describe("job renderer task-result preview", () => {
 				theme,
 			);
 			const lines = component.render(120) as readonly string[];
-			expect(Bun.stripANSI(lines.join("\n"))).toContain("Job1 running");
+			expect(bun.stripANSI(lines.join("\n"))).toContain("Job1 running");
 		});
 
 		it("retains the running job in the sealed native wait card", () => {
@@ -306,7 +307,7 @@ describe("job renderer task-result preview", () => {
 				{ expanded: true, isPartial: false } as Parameters<typeof waitToolRenderer.renderResult>[1],
 				theme,
 			);
-			const output = Bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
+			const output = bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
 			expect(output).toContain("1 running agent — no jobs");
 			expect(output).toContain("Worker");
 			expect(output).toContain("grepping the tree");
@@ -322,7 +323,7 @@ describe("job renderer task-result preview", () => {
 				{ expanded: true, isPartial: false } as Parameters<typeof waitToolRenderer.renderResult>[1],
 				theme,
 			);
-			const output = Bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
+			const output = bun.stripANSI((component.render(120) as readonly string[]).join("\n"));
 			expect(output).toContain("Worker");
 			// A ref claiming `running` with no turn in flight is flagged, not shown
 			// as live work.
@@ -388,13 +389,13 @@ describe("job renderer task-result preview", () => {
 		it("draws a widget job's ANSI row as its tile and keeps it on a sealed card", () => {
 			for (const isPartial of [true, false]) {
 				const component = waitToolRenderer.renderResult(widgetResult(), { expanded: false, isPartial }, theme);
-				const lines = (component.render(100) as readonly string[]).map(line => Bun.stripANSI(line));
+				const lines = (component.render(100) as readonly string[]).map(line => bun.stripANSI(line));
 				const row = lines.findIndex(line => line.includes("bg_3"));
 				expect(row).toBeGreaterThan(0);
 				expect(lines[row]).toContain("verb-bench · decode throughput bg_3");
 				expect(lines[row]).toMatch(/decode 186 tok\/s ▲ 15% {2}42\.0s$/);
 				expect(lines[row + 1]).toMatch(/[▁▂▃▄▅▆▇█]+ {2}186 tok\/s {2}┄ target 200 tok\/s/);
-				for (const line of lines) expect(Bun.stringWidth(line)).toBeLessThanOrEqual(100);
+				for (const line of lines) expect(bun.stringWidth(line)).toBeLessThanOrEqual(100);
 			}
 		});
 	});

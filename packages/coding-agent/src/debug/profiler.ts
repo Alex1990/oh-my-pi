@@ -2,7 +2,8 @@
  * CPU profiling and aggregate memory statistics for debug reports.
  */
 
-import { type HeapStats, heapStats } from "bun:jsc";
+import { type HeapStats, heapStats } from "@oh-my-pi/pi-utils/jsc-compat";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface CpuProfile {
 	data: string;
@@ -152,21 +153,12 @@ export async function startCpuProfile(): Promise<ProfilerSession> {
 /** Numeric-only process and heap statistics for memory reports, without heap contents. */
 export interface MemoryStats {
 	process: NodeJS.MemoryUsage;
-	heap: Pick<
-		HeapStats,
-		| "heapSize"
-		| "heapCapacity"
-		| "extraMemorySize"
-		| "objectCount"
-		| "protectedObjectCount"
-		| "globalObjectCount"
-		| "protectedGlobalObjectCount"
-	>;
+	heap: Pick<HeapStats, "heapSize" | "heapCapacity" | "extraMemorySize" | "objectCount" | "protectedObjectCount">;
 }
 
 /** Collect post-GC memory counters for reports without capturing credentials or other live strings. */
 export function collectMemoryStats(): MemoryStats {
-	Bun.gc(true);
+	bun.gc(true);
 	const heap = heapStats();
 
 	// Never serialize a heap snapshot or runtime-derived type names: both can contain secrets.
@@ -178,8 +170,6 @@ export function collectMemoryStats(): MemoryStats {
 			extraMemorySize: heap.extraMemorySize,
 			objectCount: heap.objectCount,
 			protectedObjectCount: heap.protectedObjectCount,
-			globalObjectCount: heap.globalObjectCount,
-			protectedGlobalObjectCount: heap.protectedGlobalObjectCount,
 		},
 	};
 }

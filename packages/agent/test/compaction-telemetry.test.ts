@@ -7,7 +7,7 @@
  * while exercising the chat-span lifecycle (`startChatSpan` →
  * `runInActiveSpan` → `finishChatSpan` / `failChatSpan`).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type CompactionPreparation,
 	compact,

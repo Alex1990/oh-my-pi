@@ -5,6 +5,8 @@ import {
 	type TerminalOutputWorkerRequest,
 	type TerminalOutputWorkerResult,
 } from "./terminal-output-worker-protocol";
+import { WORKER_SELECTOR_KEY } from "@oh-my-pi/pi-utils/worker-host";
+import { Worker, WorkerErrorEvent } from "@oh-my-pi/pi-utils/worker";
 
 /** Replay legacy broker PTY bytes without evaluating xterm in the client process. */
 export async function renderTerminalOutputIsolated(
@@ -13,14 +15,19 @@ export async function renderTerminalOutputIsolated(
 ): Promise<string[] | undefined> {
 	const hostEntry = workerHostEntry();
 	const worker = hostEntry
-		? new Worker(hostEntry, { type: "module", argv: [TERMINAL_OUTPUT_WORKER_ARG] })
-		: new Worker(new URL("./terminal-output-worker.ts", import.meta.url).href, { type: "module" });
+		? new Worker(hostEntry, { workerData: { [WORKER_SELECTOR_KEY]: TERMINAL_OUTPUT_WORKER_ARG } })
+		: new Worker(new URL("./terminal-output-worker.ts", import.meta.url).href);
 	const pending = Promise.withResolvers<string[] | undefined>();
-	const onMessage = (event: MessageEvent<TerminalOutputWorkerResult>): void => {
-		if (event.data.ok) pending.resolve(event.data.rows);
-		else pending.reject(new Error(event.data.error));
+	const onMessage = (event: Event): void => {
+		const data = (event as MessageEvent).data as TerminalOutputWorkerResult;
+		if (data.ok) pending.resolve(data.rows);
+		else pending.reject(new Error(data.error));
 	};
-	const onError = (event: ErrorEvent): void => {
+	const onError = (event: Event): void => {
+		if (!(event instanceof WorkerErrorEvent)) {
+			pending.reject(new Error("Terminal output worker failed"));
+			return;
+		}
 		pending.reject(event.error instanceof Error ? event.error : new Error(event.message));
 	};
 	const onClose = (): void => {

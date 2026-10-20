@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 
 const badFnReturnTypeMessage =
 	'":" must be followed by exactly one return type e.g:\nfn("string", ":", "number")(s => s.length)';

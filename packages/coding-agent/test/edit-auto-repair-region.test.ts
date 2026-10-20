@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { computeRepairRegion } from "@oh-my-pi/pi-coding-agent/edit/auto-repair";
 
 /** `count` functions, blank-line separated so each edited return line is its own hunk. */

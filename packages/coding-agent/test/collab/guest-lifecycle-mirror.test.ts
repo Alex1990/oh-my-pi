@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Contract: a collab guest mirrors lifecycle-relevant host events into the
  * local extension runner. The guest's own agent loop never runs, so the
@@ -12,7 +13,7 @@
  * apply strictly in arrival order, so a barrier after the event frames proves
  * they applied.
  */
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { generateRoomKey, importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabGuestLink } from "@oh-my-pi/pi-coding-agent/collab/guest";
@@ -28,6 +29,8 @@ import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config
 import { createInteractiveModeContext } from "../helpers/interactive-mode-context";
 import * as fsp from "node:fs/promises";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 interface Harness {
 	guest: CollabGuestLink;
@@ -194,7 +197,7 @@ afterEach(() => {
 
 describe("collab guest extension lifecycle mirror", () => {
 	it("mirrors agent_start and a terminal agent_end to the extension runner", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const harness = await makeHarness("lifecycle-mirror-room-1");
 		try {
@@ -218,7 +221,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("distinguishes scheduled continuations from background waits in mirrored agent_end events", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const harness = await makeHarness("lifecycle-mirror-room-2");
 		try {
@@ -247,7 +250,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("resets turn numbering on each agent_start like a local session", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const harness = await makeHarness("lifecycle-mirror-room-4");
 		try {
@@ -303,7 +306,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("detaches message_end payloads from the transcript's live reference", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const harness = await makeHarness("lifecycle-mirror-room-5");
 		try {
@@ -347,7 +350,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("delivers mirrored events to handlers in emission order", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		// The mock runner resolves agent_start on an externally-gated promise;
 		// unordered fire-and-forget would let the agent_end handler complete
@@ -387,7 +390,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("synthesizes agent_start when joining while the host is mid-run", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		// The host's agent_start predates the join, so no event frame carries
 		// it — the welcome's `isStreaming` is the only signal the mirror gets.
@@ -402,7 +405,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	});
 
 	it("synthesizes a terminal agent_end when leaving mid-run", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const harness = await makeHarness("lifecycle-mirror-room-8");
 		try {
@@ -427,7 +430,7 @@ describe("collab guest extension lifecycle mirror", () => {
 		// The controller reads global settings (speech) when it enqueues a stream delta.
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true });
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const controller = new EventController(createInteractiveModeContext());
 		const updateGate = Promise.withResolvers<void>();
@@ -491,7 +494,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	it("coalesces a mirrored message_update burst into one handled latest snapshot", async () => {
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true });
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const controller = new EventController(createInteractiveModeContext());
 		const handledUpdates: string[] = [];
@@ -524,7 +527,7 @@ describe("collab guest extension lifecycle mirror", () => {
 	it("drops a pending coalesced message_update when the guest leaves", async () => {
 		resetSettingsForTest();
 		await Settings.init({ inMemory: true });
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const controller = new EventController(createInteractiveModeContext());
 		const handled: string[] = [];

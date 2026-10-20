@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { readFileSync } from "node:fs";
 
 const templateJs = readFileSync(new URL("../src/export/html/template.js", import.meta.url), "utf8");

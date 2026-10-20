@@ -1,9 +1,10 @@
 import { createAgentHubRuntime } from "@oh-my-pi/pi-coding-agent/modes/agent-hub-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Regression: the agent hub keeps its initial status/recency order while open,
  * regardless of heartbeats; newly spawned agents appear above existing rows.
  */
-import { afterEach, beforeAll, describe, expect, it, setSystemTime, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, setSystemTime, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { IrcBus } from "@oh-my-pi/pi-coding-agent/irc/bus";
@@ -69,7 +70,7 @@ function rosterEntryMatch(cell: string | undefined): RegExpExecArray | null {
 }
 
 function rosterCell(raw: string): string | undefined {
-	const line = Bun.stripANSI(raw);
+	const line = bun.stripANSI(raw);
 	if (!line.startsWith("│ ")) return undefined;
 	const divider = line.indexOf("│", Math.max(2, Math.floor(line.length / 3)));
 	if (divider < 0) return undefined;
@@ -143,7 +144,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(new AgentRegistry());
 
 		try {
-			const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+			const rendered = bun.stripANSI(hub.render(120).join("\n"));
 			expect(rendered).toContain("No agents in this session");
 			expect(rendered).toContain("Finished, parked, and killed subagents remain with the session");
 			expect(rendered).toContain("Resume that session with omp-dev --continue, or spawn a task here.");
@@ -301,7 +302,7 @@ describe("Agent hub row ordering", () => {
 			expect(getSessions).not.toHaveBeenCalled();
 			expect(getSession.mock.calls.length).toBeLessThanOrEqual(8);
 
-			const text = Bun.stripANSI(hub.render(120).join("\n"));
+			const text = bun.stripANSI(hub.render(120).join("\n"));
 			expect(text).toContain("10000 parked");
 			expect(text).toMatch(/… \d+ more/);
 
@@ -363,7 +364,7 @@ describe("Agent hub row ordering", () => {
 			expect(visibleIds.length).toBeGreaterThan(0);
 			expect(visibleIds.length).toBeLessThanOrEqual(3);
 			expect(getSession.mock.calls.length).toBeLessThanOrEqual(6);
-			const text = Bun.stripANSI(hub.render(120).join("\n"));
+			const text = bun.stripANSI(hub.render(120).join("\n"));
 			expect(text).toContain("task for");
 		} finally {
 			hub.dispose();
@@ -402,7 +403,7 @@ describe("Agent hub row ordering", () => {
 		const lines = hub.render(80);
 		expect(lines.join("\n")).not.toContain("\u0007");
 		for (const line of lines) {
-			const cleanLine = Bun.stripANSI(line);
+			const cleanLine = bun.stripANSI(line);
 			expect(cleanLine.includes("\n")).toBe(false);
 			expect(cleanLine.includes("\r")).toBe(false);
 			const width = visibleWidth(line);
@@ -436,7 +437,7 @@ describe("Agent hub row ordering", () => {
 			const lines = hub.render(80);
 			expect(lines.length).toBe(10);
 			expect(sessions.mock.calls.length).toBeLessThan(agents.list().length);
-			expect(Bun.stripANSI(lines.join("\n"))).toContain("…");
+			expect(bun.stripANSI(lines.join("\n"))).toContain("…");
 		} finally {
 			hub.dispose();
 		}
@@ -466,7 +467,7 @@ describe("Agent hub row ordering", () => {
 			expect(selectedAgentId(hub)).toBe("Beta");
 
 			const frame = hub.render(120);
-			const alphaRow = frame.findIndex(line => /^│ {3}\S+ Alpha/u.test(Bun.stripANSI(line)));
+			const alphaRow = frame.findIndex(line => /^│ {3}\S+ Alpha/u.test(bun.stripANSI(line)));
 			expect(alphaRow).toBeGreaterThanOrEqual(0);
 			hub.handleInput(`\x1b[<0;110;${alphaRow + 1}M`);
 			expect(selectedAgentId(hub)).toBe("Beta");
@@ -504,7 +505,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → openai/gpt-4o");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → openai/gpt-4o");
 		} finally {
 			hub.dispose();
 		}
@@ -527,7 +528,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers: new SessionObserverRegistry() });
 
 		try {
-			const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+			const rendered = bun.stripANSI(hub.render(120).join("\n"));
 			expect(rendered).toContain("claude-sonnet-5");
 			expect(rendered).not.toContain("gpt-5.6-sol");
 			expect(rendered).not.toContain("fallback →");
@@ -554,7 +555,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers: new SessionObserverRegistry() });
 
 		try {
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → openai-codex/gpt-5.6-sol");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → openai-codex/gpt-5.6-sol");
 		} finally {
 			hub.dispose();
 		}
@@ -586,7 +587,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → fireworks/kimi-k2");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("fallback → fireworks/kimi-k2");
 		} finally {
 			hub.dispose();
 		}
@@ -696,7 +697,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			const rendered = Bun.stripANSI(hub.render(140).join("\n"));
+			const rendered = bun.stripANSI(hub.render(140).join("\n"));
 			expect(rendered).toContain("1 running");
 			expect(rendered).toContain("Flat");
 			expect(rendered).toContain("By parent");
@@ -720,12 +721,12 @@ describe("Agent hub row ordering", () => {
 			const registeredLine = `Registered ${localDateTime} ${offset}`;
 			expect(rendered).toContain(registeredLine);
 			expect(rendered).not.toMatch(/Registered \d{4}-\d{2}-\d{2} \d{2}:\d{2}Z/u);
-			expect(Bun.stripANSI(hub.render(96).join("\n"))).toContain(registeredLine);
+			expect(bun.stripANSI(hub.render(96).join("\n"))).toContain(registeredLine);
 			expect(rendered).toContain("Shared workspace · per-agent LoC not attributable");
 			expect(rendered).toContain("Output /tmp/Reviewer.md");
 			expect(rendered).toContain("Patch /tmp/Reviewer.patch");
 			hub.handleInput("\x1b[6~");
-			expect(Bun.stripANSI(hub.render(140).join("\n"))).toContain("Worktree branch omp/task/Reviewer");
+			expect(bun.stripANSI(hub.render(140).join("\n"))).toContain("Worktree branch omp/task/Reviewer");
 		} finally {
 			hub.dispose();
 		}
@@ -794,7 +795,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			const rendered = Bun.stripANSI(hub.render(160).join("\n"));
+			const rendered = bun.stripANSI(hub.render(160).join("\n"));
 			expect(rendered).toContain("2/3 measured");
 			expect(rendered).toContain("$0.580");
 			expect(rendered).toContain("3.7K tok");
@@ -879,7 +880,7 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			const rendered = Bun.stripANSI(hub.render(160).join("\n"));
+			const rendered = bun.stripANSI(hub.render(160).join("\n"));
 			expect(rendered).toContain("0/2 measured");
 			expect(renderedRosterEntry(hub, "Incomplete", 160)).toMatch(/usage\s+·/);
 			expect(renderedRosterEntry(hub, "NonFinite", 160)).toMatch(/usage\s+·/);
@@ -983,7 +984,7 @@ describe("Agent hub row ordering", () => {
 		try {
 			expect(renderedAgentIds(hub)).toEqual(["Child", "Peer", "Parent"]);
 			expect(selectedAgentId(hub)).toBe("Child");
-			const flat = Bun.stripANSI(hub.render(120).join("\n"));
+			const flat = bun.stripANSI(hub.render(120).join("\n"));
 			expect(flat).toContain("Flat");
 			expect(flat).toContain("By parent");
 
@@ -993,7 +994,7 @@ describe("Agent hub row ordering", () => {
 			const byParentIds = renderedAgentIds(hub);
 			expect(byParentIds).toEqual(["Parent", "Child", "Peer"]);
 			expect(selectedAgentId(hub)).toBe("Child");
-			const byParent = Bun.stripANSI(hub.render(120).join("\n"));
+			const byParent = bun.stripANSI(hub.render(120).join("\n"));
 			expect(byParent).toContain("Flat");
 			expect(byParent).toContain("By parent");
 			expect(byParentIds.indexOf("Parent")).toBeLessThan(byParentIds.indexOf("Child"));
@@ -1036,7 +1037,7 @@ describe("Agent hub row ordering", () => {
 
 			expect(renderedAgentIds(hub)).toEqual(["N", "P2", "P1", "C1", "C0"]);
 			expect(selectedAgentId(hub)).toBe("P2");
-			expect(Bun.stripANSI(renderedRosterHeaderLineRaw(hub, "C1", 120))).toContain("├──");
+			expect(bun.stripANSI(renderedRosterHeaderLineRaw(hub, "C1", 120))).toContain("├──");
 			setSystemTime(5_000);
 			agents.register({ id: "M", displayName: "Newest root", kind: "sub", parentId: "Main", session: null });
 			vi.advanceTimersByTime(100);
@@ -1067,9 +1068,9 @@ describe("Agent hub row ordering", () => {
 
 		try {
 			hub.handleInput("t");
-			expect(Bun.stripANSI(renderedRosterHeaderLineRaw(hub, "First", 120))).toContain("├── ⟳ First");
-			expect(Bun.stripANSI(renderedRosterHeaderLineRaw(hub, "Grandchild", 120))).toContain("│   └── ⟳ Grandchild");
-			expect(Bun.stripANSI(renderedRosterHeaderLineRaw(hub, "Last", 120))).toContain("└── ⟳ Last");
+			expect(bun.stripANSI(renderedRosterHeaderLineRaw(hub, "First", 120))).toContain("├── ⟳ First");
+			expect(bun.stripANSI(renderedRosterHeaderLineRaw(hub, "Grandchild", 120))).toContain("│   └── ⟳ Grandchild");
+			expect(bun.stripANSI(renderedRosterHeaderLineRaw(hub, "Last", 120))).toContain("└── ⟳ Last");
 		} finally {
 			hub.dispose();
 		}
@@ -1122,7 +1123,7 @@ describe("Agent hub row ordering", () => {
 
 		try {
 			hub.handleInput("t");
-			const rendered = Bun.stripANSI(hub.render(120).join("\n"));
+			const rendered = bun.stripANSI(hub.render(120).join("\n"));
 			expect(rendered).toContain("CycleA");
 			expect(rendered).toContain("CycleB");
 		} finally {
@@ -1160,20 +1161,20 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { observers });
 
 		try {
-			const roster = Bun.stripANSI(hub.render(80).join("\n"));
+			const roster = bun.stripANSI(hub.render(80).join("\n"));
 			expect(roster).not.toContain("Registered ");
 
 			hub.handleInput("\t");
-			const details = Bun.stripANSI(hub.render(80).join("\n"));
+			const details = bun.stripANSI(hub.render(80).join("\n"));
 			expect(details).toContain("Agent Hub · NarrowAgent");
 			expect(details).toContain("Usage");
 			expect(details).toContain("$0.0000 · 2.0s active · 2 req · 3 tools · 900 tok");
 			hub.handleInput("\x1b[6~");
-			expect(Bun.stripANSI(hub.render(80).join("\n"))).toContain("Changes");
+			expect(bun.stripANSI(hub.render(80).join("\n"))).toContain("Changes");
 			for (const line of hub.render(80)) expect(visibleWidth(line)).toBeLessThanOrEqual(80);
 
 			hub.handleInput("\x1b");
-			expect(Bun.stripANSI(hub.render(80).join("\n"))).toContain("Roster");
+			expect(bun.stripANSI(hub.render(80).join("\n"))).toContain("Roster");
 		} finally {
 			hub.dispose();
 		}
@@ -1212,13 +1213,13 @@ describe("Agent hub row ordering", () => {
 		const hub = makeHub(agents, { activity, initialSection: "activity" });
 
 		try {
-			const initial = Bun.stripANSI(hub.render(120).join("\n"));
+			const initial = bun.stripANSI(hub.render(120).join("\n"));
 			expect(initial).toContain("2 Activity");
 			expect(initial).toContain("src/auth.ts");
 			expect(initial).toContain("Reviewed the authentication boundary");
 
 			hub.handleInput("f");
-			const errors = Bun.stripANSI(hub.render(120).join("\n"));
+			const errors = bun.stripANSI(hub.render(120).join("\n"));
 			expect(errors).toContain("errors");
 			expect(errors).toContain("src/auth.ts");
 			expect(errors).not.toContain("Reviewed the authentication boundary");
@@ -1227,7 +1228,7 @@ describe("Agent hub row ordering", () => {
 			hub.handleInput("/");
 			for (const key of "authentication") hub.handleInput(key);
 			hub.handleInput("\r");
-			const searched = Bun.stripANSI(hub.render(120).join("\n"));
+			const searched = bun.stripANSI(hub.render(120).join("\n"));
 			expect(searched).toContain("responses");
 			expect(searched).toContain("authentication");
 			expect(searched).not.toContain("src/auth.ts");
@@ -1236,9 +1237,9 @@ describe("Agent hub row ordering", () => {
 			hub.handleInput("\r");
 			expect(open).toHaveBeenCalledWith("Worker", "entry-42");
 			hub.handleInput(" ");
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("paused");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("paused");
 			hub.handleInput("1");
-			expect(Bun.stripANSI(hub.render(120).join("\n"))).toContain("Roster");
+			expect(bun.stripANSI(hub.render(120).join("\n"))).toContain("Roster");
 		} finally {
 			hub.dispose();
 		}

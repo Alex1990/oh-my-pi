@@ -25,6 +25,7 @@ import { createHash } from "node:crypto";
 import { VERSION } from "@oh-my-pi/pi-utils/dirs";
 import { DISCARDED_TABS_PROTOCOL_VERSION } from "./protocol";
 import type { ExtToRelayMessage, RelayRpcRequest, RelayToExtMessage, TabSnapshot } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Transport-agnostic websocket surface the bridge writes to. */
 export interface RelaySocket {
@@ -921,7 +922,7 @@ export class RelayBridge {
 			// Chrome fails the root session's command in flight before it reports the detach. Hold the failure
 			// until the detach is reported, so the client gets `OMP.debuggerDetached` first and knows why.
 			if (realSessionId === undefined && tab.attached && DETACHED_COMMAND_ERROR.test(message)) {
-				await Promise.race([tab.chromeDetach.promise, Bun.sleep(CHROME_DETACH_REPORT_MS)]);
+				await Promise.race([tab.chromeDetach.promise, bun.sleep(CHROME_DETACH_REPORT_MS)]);
 			}
 			this.#replyError(conn, msg, message);
 			return false;

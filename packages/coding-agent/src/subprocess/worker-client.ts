@@ -4,7 +4,7 @@ import * as path from "node:path";
 import {
 	$env,
 	$which,
-	isBunTestRuntime,
+	isTestRuntime,
 	isCompiledBinary,
 	isExecutable,
 	isFullyQualifiedPath,
@@ -16,7 +16,9 @@ import {
 	workerHostEntry,
 } from "@oh-my-pi/pi-utils";
 import { stripGitRepoLocationEnv } from "@oh-my-pi/pi-utils/env";
-import type { Subprocess } from "bun";
+import { pathToFileURL } from "node:url";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Shared lifecycle scaffolding for the ONNX inference subprocess clients
@@ -26,7 +28,7 @@ import type { Subprocess } from "bun";
  * destructors segfault Bun on shutdown (issues #1606 / #1607 / #3031).
  *
  * Only the genuinely identical pieces live here: the worker-handle shape, the
- * spawn-command resolution, the parent-env snapshot, the `Bun.spawn` wiring,
+ * spawn-command resolution, the parent-env snapshot, the `bun.spawn` wiring,
  * the inline "worker unavailable" stub, and the ping/pong smoke probe. Each
  * client keeps its own divergent request/response correlation, streaming, and
  * teardown semantics.
@@ -73,7 +75,7 @@ export interface RefCountedWorkerHandle<Inbound, Outbound> extends WorkerHandle<
 
 /** The raw spawned subprocess plus the parent-side fan-out sets. */
 export interface SpawnedSubprocess<Outbound> {
-	proc: Subprocess<"ignore", "ignore", number | "ignore">;
+	proc: Subprocess;
 	inbound: Set<(message: Outbound) => void>;
 	errors: Set<(error: Error) => void>;
 	/**
@@ -113,6 +115,17 @@ export interface WorkerSpawnCommand {
 export const SMOKE_TEST_TIMEOUT_MS = 30_000;
 
 /**
+ * Test-only override for `process.argv0`, which Node defines as a
+ * non-configurable read-only value (Bun allowed redefining it).
+ */
+let argv0OverrideForTests: string | undefined;
+
+/** Test-only: override `process.argv0`; pass `undefined` to restore. */
+export function __setSpawnArgv0ForTests(value: string | undefined): void {
+	argv0OverrideForTests = value;
+}
+
+/**
  * Resolve the current executable path, falling back to finding the binary on
  * PATH if the original physical path was unlinked on disk (e.g. Homebrew or a
  * package manager pruned the prior version directory during an in-flight
@@ -121,7 +134,7 @@ export const SMOKE_TEST_TIMEOUT_MS = 30_000;
 export function resolveExecutablePath(): string {
 	const executable = stripWindowsExtendedLengthPathPrefix(process.execPath);
 	if (isCompiledBinary() && !isExecutable(executable)) {
-		const argv0 = stripWindowsExtendedLengthPathPrefix(process.argv0);
+		const argv0 = stripWindowsExtendedLengthPathPrefix(argv0OverrideForTests ?? process.argv0);
 		const isPath = argv0.includes("/") || argv0.includes("\\") || argv0.includes(":");
 		const candidates = [
 			// Prefer the original launcher when invoked with an absolute path
@@ -140,6 +153,25 @@ export function resolveExecutablePath(): string {
 }
 
 /**
+ * Node flags needed to execute this repository's TypeScript sources directly:
+ * type stripping plus the ESM hooks that supply extensionless specifiers and
+ * `with { type: "text" }` imports (Bun provided both natively). The JS eval
+ * worker additionally builds its module graph with `vm.SourceTextModule`, which
+ * Node only exposes under `--experimental-vm-modules`. Empty when the runtime
+ * is not Node (a compiled binary, or a Bun shim).
+ */
+export function nodeSourceFlags(): string[] {
+	if (!/^node(?:\.exe)?$/i.test(path.basename(process.execPath))) return [];
+	// Bundled distributions are plain JavaScript; the loader path below only
+	// exists in a source checkout.
+	if (process.env.PI_COMPILED === "true" || process.env.PI_BUNDLED === "true") return [];
+	const loader = pathToFileURL(
+		path.resolve(import.meta.dirname, "..", "..", "..", "..", "scripts", "node-runtime-loader.mjs"),
+	).href;
+	return ["--no-warnings", "--experimental-vm-modules", "--experimental-transform-types", "--import", loader];
+}
+
+/**
  * Resolve the command that re-enters this CLI's entrypoint: the compiled
  * binary itself, or the runtime plus the declared worker-host entry. Used by
  * the TUI `/restart` relaunch; workers go through {@link resolveWorkerSpawnCmd},
@@ -151,8 +183,8 @@ export function resolveCliEntryCmd(): string[] {
 	const executable = resolveExecutablePath();
 	if (isCompiledBinary()) return [executable];
 	const hostEntry = workerHostEntry();
-	if (hostEntry) return [executable, hostEntry];
-	return [executable, path.resolve(import.meta.dir, "..", "cli.ts")];
+	if (hostEntry) return [executable, ...nodeSourceFlags(), hostEntry];
+	return [executable, ...nodeSourceFlags(), path.resolve(import.meta.dirname, "..", "cli.ts")];
 }
 
 /**
@@ -171,15 +203,18 @@ export function resolveWorkerSpawnCmd(workerArg: string): WorkerSpawnCommand {
 	if (isCompiledBinary()) return { cmd: [executable, workerArg] };
 	const hostEntry = workerHostEntry();
 	if (hostEntry) {
-		return { cmd: [executable, hostEntry, workerArg] };
+		// A host entry written in TypeScript (tests, SDK embeds) needs the same
+		// loader flags as the cwd-relative fallback below; compiled binaries are
+		// exempted by `nodeSourceFlags()`.
+		return { cmd: [executable, ...nodeSourceFlags(), hostEntry, workerArg] };
 	}
-	const packageRoot = path.resolve(import.meta.dir, "..", "..");
-	return { cmd: [executable, "src/cli.ts", workerArg], cwd: packageRoot };
+	const packageRoot = path.resolve(import.meta.dirname, "..", "..");
+	return { cmd: [executable, ...nodeSourceFlags(), "src/cli.ts", workerArg], cwd: packageRoot };
 }
 
 /**
  * Snapshot the parent environment for the child. `process.env` carries
- * `undefined` slots that `Bun.spawn` rejects, so filter them out; an optional
+ * `undefined` slots that `bun.spawn` rejects, so filter them out; an optional
  * `overlay` (e.g. the tiny-model device/dtype vars) wins over inherited keys.
  */
 export function workerEnvFromParent(overlay?: Record<string, string>): Record<string, string> {
@@ -269,7 +304,7 @@ export function createWorkerSubprocess<Outbound>(options: {
 		stderrDrainStarted = true;
 		void drainStderrCapture(stderrCapture, options.exitLabel, stderrTail).finally(() => stderrDrained.resolve());
 	};
-	const proc = Bun.spawn({
+	const proc = bun.spawn({
 		cmd: options.spawnCommand.cmd,
 		cwd: options.spawnCommand.cwd,
 		detached: options.detached,
@@ -325,7 +360,7 @@ export function createWorkerSubprocess<Outbound>(options: {
 	// Don't keep the parent event loop alive on an idle worker; the dispose
 	// path calls `terminate()` explicitly. Bun's test runner starves IPC for
 	// unref'd subprocesses, so keep it referenced only under tests.
-	if (!isBunTestRuntime() && options.unref !== false) proc.unref();
+	if (!isTestRuntime() && options.unref !== false) proc.unref();
 	return { proc, inbound, errors, intentionalExit, stderrDrained: stderrDrained.promise };
 }
 

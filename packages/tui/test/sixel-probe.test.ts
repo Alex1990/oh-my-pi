@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ImageProtocol, resolveImageProtocol, setTerminalImageProtocol, TERMINAL, TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
 import {
@@ -7,6 +7,7 @@ import {
 } from "./process-terminal-render-harness";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { withFakeTmux } from "./helpers/fake-tmux";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type MutableTerminalInfo = {
 	imageProtocol: ImageProtocol | null;
@@ -18,10 +19,10 @@ const SIXEL_SUPPORTED_REPLY = "\x1b[?2;0;1692;432S";
 
 const terminalInfo = TERMINAL as unknown as MutableTerminalInfo;
 const originalProtocol = TERMINAL.imageProtocol;
-const originalWtSession = Bun.env.WT_SESSION;
-const originalWslDistro = Bun.env.WSL_DISTRO_NAME;
-const originalWslInterop = Bun.env.WSL_INTEROP;
-const originalForcedProtocol = Bun.env.PI_FORCE_IMAGE_PROTOCOL;
+const originalWtSession = bun.env.WT_SESSION;
+const originalWslDistro = bun.env.WSL_DISTRO_NAME;
+const originalWslInterop = bun.env.WSL_INTEROP;
+const originalForcedProtocol = bun.env.PI_FORCE_IMAGE_PROTOCOL;
 const stdinIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 const stdoutIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 
@@ -37,8 +38,8 @@ function restoreIsTty(
 }
 
 function restoreEnv(name: string, value: string | undefined): void {
-	if (value === undefined) delete Bun.env[name];
-	else Bun.env[name] = value;
+	if (value === undefined) delete bun.env[name];
+	else bun.env[name] = value;
 }
 
 function startProbe(terminal: VirtualTerminal, protocol: ImageProtocol | null = null): TUI {
@@ -80,9 +81,9 @@ describe("TUI SIXEL capability probe", () => {
 		// TERM=foot and COLORTERM=truecolor only) resolved the `trueColor`
 		// capability row, kept imageProtocol null, and rendered every image as the
 		// `[Image: …]` text card.
-		delete Bun.env.WT_SESSION;
-		delete Bun.env.WSL_DISTRO_NAME;
-		delete Bun.env.WSL_INTEROP;
+		delete bun.env.WT_SESSION;
+		delete bun.env.WSL_DISTRO_NAME;
+		delete bun.env.WSL_INTEROP;
 		const terminal = new VirtualTerminal(80, 24);
 		const tui = startProbe(terminal);
 
@@ -153,8 +154,8 @@ describe("TUI SIXEL capability probe", () => {
 		// process.platform === "win32" never negotiated SIXEL there. The probe no
 		// longer gates on the host at all; WSL is one covered environment of many.
 		if (process.platform !== "linux") return;
-		Bun.env.WT_SESSION = "test-wt-session";
-		Bun.env.WSL_DISTRO_NAME = "Ubuntu";
+		bun.env.WT_SESSION = "test-wt-session";
+		bun.env.WSL_DISTRO_NAME = "Ubuntu";
 		const terminal = new VirtualTerminal(80, 24);
 		const tui = startProbe(terminal);
 
@@ -167,7 +168,7 @@ describe("TUI SIXEL capability probe", () => {
 	it("respects the PI_FORCE_IMAGE_PROTOCOL kill switch", () => {
 		// `off` resolves imageProtocol to null on purpose; the probe must not
 		// re-enable images behind the user's back.
-		Bun.env.PI_FORCE_IMAGE_PROTOCOL = "off";
+		bun.env.PI_FORCE_IMAGE_PROTOCOL = "off";
 		const terminal = new VirtualTerminal(80, 24);
 		const tui = startProbe(terminal);
 
@@ -186,11 +187,11 @@ describe("ProcessTerminal DA1 SIXEL detection", () => {
 
 	beforeEach(() => {
 		vi.useFakeTimers();
-		for (const key of envKeys) previousEnv.set(key, Bun.env[key]);
-		delete Bun.env.PI_FORCE_IMAGE_PROTOCOL;
-		delete Bun.env.TERM_PROGRAM;
-		Bun.env.PI_TUI_NATIVE = "0";
-		Bun.env.PI_NO_GLYPH_PROTOCOL = "1";
+		for (const key of envKeys) previousEnv.set(key, bun.env[key]);
+		delete bun.env.PI_FORCE_IMAGE_PROTOCOL;
+		delete bun.env.TERM_PROGRAM;
+		bun.env.PI_TUI_NATIVE = "0";
+		bun.env.PI_NO_GLYPH_PROTOCOL = "1";
 		setTerminalImageProtocol(null);
 	});
 
@@ -282,10 +283,10 @@ describe("ProcessTerminal DA1 SIXEL detection", () => {
 				"show-messages -T -t /dev/pts/3": `Terminal 0: st-256color for /dev/pts/3, flags=0x0:\n${capability}`,
 			};
 			await withFakeTmux(replies, async binDir => {
-				const previousPath = Bun.env.PATH;
+				const previousPath = bun.env.PATH;
 				try {
-					Bun.env.PATH = `${binDir}:${previousPath ?? ""}`;
-					Bun.env.TMUX = `/tmp/tmux-1000/default,${socket},0`;
+					bun.env.PATH = `${binDir}:${previousPath ?? ""}`;
+					bun.env.TMUX = `/tmp/tmux-1000/default,${socket},0`;
 					harness = createProcessTerminalRenderHarness(80, 24, { conpty: false });
 					const received: string[] = [];
 					harness.tui.addInputListener(data => {
@@ -346,7 +347,7 @@ describe("ProcessTerminal DA1 SIXEL detection", () => {
 
 	for (const override of ["off", "none"]) {
 		it(`keeps graphics disabled by an explicit ${override} override`, () => {
-			Bun.env.PI_FORCE_IMAGE_PROTOCOL = override;
+			bun.env.PI_FORCE_IMAGE_PROTOCOL = override;
 			harness = createProcessTerminalRenderHarness(80, 24, { conpty: true, nativeWindowsConsole: false });
 
 			process.stdin.emit("data", "\x1b[?61;4;6;22c");

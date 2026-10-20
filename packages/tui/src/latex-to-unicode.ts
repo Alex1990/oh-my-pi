@@ -1,5 +1,7 @@
 import { mathSpanAt } from "@oh-my-pi/pi-utils/math-delimiters";
 import { TERMINAL } from "./terminal-capabilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { colorToRgb, colorToString } from "./theme/color";
 
 // LaTeX → Unicode/ANSI converter.
 //
@@ -1265,9 +1267,9 @@ function normalizeCssColor(spec: string, allowMix: boolean): string | null {
 	}
 	const named = LATEX_NAMED_COLORS[trimmed] ?? LATEX_NAMED_COLORS[trimmed.toLowerCase()];
 	if (named !== undefined) return named;
-	if (Bun.color(trimmed, "css") !== null) return trimmed;
+	if (bun.color(trimmed, "css") !== null) return trimmed;
 	const lower = trimmed.toLowerCase();
-	return lower !== trimmed && Bun.color(lower, "css") !== null ? lower : null;
+	return lower !== trimmed && bun.color(lower, "css") !== null ? lower : null;
 }
 
 function resolveModeledColor(model: string, spec: string): string | null {
@@ -1308,7 +1310,7 @@ function resolveMixedColor(spec: string): string | null {
 	if (parts.length < 2) return null;
 	const first = normalizeCssColor(parts[0] ?? "", false);
 	if (first === null) return null;
-	let current = Bun.color(first, "{rgb}");
+	let current = colorToRgb(first);
 	if (current === null) return null;
 	for (let i = 1; i < parts.length; i += 2) {
 		const percent = parseNumber(parts[i] ?? "");
@@ -1316,7 +1318,7 @@ function resolveMixedColor(spec: string): string | null {
 		const nextSpec = parts[i + 1] ?? "white";
 		const nextColor = normalizeCssColor(nextSpec, false);
 		if (nextColor === null) return null;
-		const next = Bun.color(nextColor, "{rgb}");
+		const next = colorToRgb(nextColor);
 		if (next === null) return null;
 		const t = clamp01(percent / 100);
 		current = {
@@ -1331,7 +1333,7 @@ function resolveMixedColor(spec: string): string | null {
 function ansiColor(model: string | null, spec: string): AnsiColor | null {
 	const css = resolveLatexColor(model, spec);
 	if (css === null) return null;
-	const foreground = Bun.color(css, colorFormat());
+	const foreground = colorToString(css, colorFormat());
 	if (foreground === null || !foreground.startsWith("\x1b[38;")) return null;
 	return { foreground, background: foreground.replace("\x1b[38;", "\x1b[48;") };
 }

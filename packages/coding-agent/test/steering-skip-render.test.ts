@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
 import { formatStatusIcon } from "@oh-my-pi/pi-tui/render/render-utils";
 import { TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -30,7 +31,7 @@ function renderTool(
 	component.updateResult(result, false);
 	component.setExpanded(options.expanded ?? false);
 	component.setTranscriptAllocation(options.rows ?? 20, { tick: 0, now: 0 });
-	return Bun.stripANSI(component.render(120).join("\n"));
+	return bun.stripANSI(component.render(120).join("\n"));
 }
 
 describe("mid-turn steering skip rendering", () => {
@@ -51,7 +52,7 @@ describe("mid-turn steering skip rendering", () => {
 	it("preserves other skipped tool cards and real wait results", async () => {
 		const uiTheme = await getThemeByName("dark");
 		if (!uiTheme) throw new Error("dark theme missing");
-		const infoIcon = Bun.stripANSI(formatStatusIcon("info", uiTheme));
+		const infoIcon = bun.stripANSI(formatStatusIcon("info", uiTheme));
 		const skippedEdit = renderTool("edit", {
 			content: [{ type: "text", text: SKIP_TEXT }],
 			details: { __synthetic: true, source: "interrupt_skipped", executed: false },
@@ -69,7 +70,7 @@ describe("mid-turn steering skip rendering", () => {
 	it("still renders a genuine edit failure as an error", async () => {
 		const uiTheme = await getThemeByName("dark");
 		if (!uiTheme) throw new Error("dark theme missing");
-		const errorIcon = Bun.stripANSI(formatStatusIcon("error", uiTheme));
+		const errorIcon = bun.stripANSI(formatStatusIcon("error", uiTheme));
 
 		const rendered = renderTool("edit", { content: [{ type: "text", text: SKIP_TEXT }], details: {}, isError: true });
 

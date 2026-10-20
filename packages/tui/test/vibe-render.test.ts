@@ -12,7 +12,7 @@
  *    repaint the block without re-invoking renderCall/renderResult.
  * 4. Every emitted line respects the render width (sanitized, truncated).
  */
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 import { createVibeToolRenderer, type VibeToolDetails } from "@oh-my-pi/pi-tui/tools/vibe";
 import type { VibeScreenSnapshot } from "@oh-my-pi/pi-tui/tools/vibe";

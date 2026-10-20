@@ -5,7 +5,7 @@
  * with its private `extractAnsiCode` helper: CSI (restricted final bytes),
  * OSC and APC with BEL or ST terminators.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripTerminalSequences } from "@oh-my-pi/pi-tui/utils";
 
 const ESC = "\x1b";

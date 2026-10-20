@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import { generateRoomKey, importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabGuestLink } from "@oh-my-pi/pi-coding-agent/collab/guest";
@@ -10,6 +11,8 @@ import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry
 import { TASK_SUBAGENT_LIFECYCLE_CHANNEL } from "@oh-my-pi/pi-coding-agent/task/types";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 // The guest mirrors host EventBus traffic onto the local session and
 // observability buses. When an SDK embedder wires the SAME EventBus into both
@@ -97,7 +100,7 @@ afterEach(() => {
 
 describe("collab guest bus mirror", () => {
 	it("emits an aliased bus frame exactly once", async () => {
-		const writeSpy = spyOn(Bun, "write").mockResolvedValue(0);
+		const writeSpy = spyOn(bun, "write").mockResolvedValue(0);
 		const renameSpy = spyOn(fsp, "rename").mockResolvedValue(undefined);
 		const roomId = "bus-mirror-room-1";
 		const roomKey = generateRoomKey();
@@ -150,7 +153,7 @@ describe("collab guest bus mirror", () => {
 			} as CollabFrame);
 			await firstFrame.promise;
 			// Give any duplicate emit a tick to land before counting.
-			await Bun.sleep(25);
+			await bun.sleep(25);
 
 			expect(mirrored.length).toBe(1);
 			expect(mirrored[0]?.id).toBe("MirroredScout");

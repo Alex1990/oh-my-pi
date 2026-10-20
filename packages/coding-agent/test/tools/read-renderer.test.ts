@@ -1,8 +1,9 @@
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import type { TUI } from "@oh-my-pi/pi-tui";
 import { theme as activeTheme, initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -30,7 +31,7 @@ describe("read ToolExecutionComponent framing", () => {
 		);
 
 		try {
-			const lines = component.render(80).map(line => Bun.stripANSI(line));
+			const lines = component.render(80).map(line => bun.stripANSI(line));
 			const topBorderIndex = lines.findIndex(
 				line => line.includes(activeTheme.boxRound.topLeft) && line.includes("Read"),
 			);

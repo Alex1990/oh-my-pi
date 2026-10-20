@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ownedDebuggerTabs } from "../../../browser-relay/extension/debugger-ownership";
 
 it("reports only tabs the extension's own debugger is attached to", async () => {

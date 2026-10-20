@@ -1,5 +1,5 @@
 import type { WriteToolDetails } from "@oh-my-pi/pi-tui/tools/write";
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -76,6 +76,7 @@ import {
 	cfgLspFormatOnWrite,
 	cfgLspRequestTimeout,
 } from "../lsp/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXECUTABLE_NOTICE = "[Notice: Made executable via chmod +x]";
 const URI_LIKE_WRITE_PATH_RE = /^([a-z][a-z0-9+.-]*):\/{1,2}(.*)$/i;
@@ -257,7 +258,7 @@ async function readCurrentWriteSource(
 ): Promise<string | undefined> {
 	const readDisk = async (): Promise<string | undefined> => {
 		try {
-			return await Bun.file(absolutePath).text();
+			return await bun.file(absolutePath).text();
 		} catch (error) {
 			if (isEnoent(error)) return undefined;
 			throw error;
@@ -558,7 +559,7 @@ export class WriteTool implements AgentTool<typeof writeSchema, WriteToolDetails
 		for (const candidate of candidates) {
 			const absolutePath = await resolvePlanPath(this.session, candidate.archivePath, signal);
 			try {
-				const stat = await Bun.file(absolutePath).stat();
+				const stat = await bun.file(absolutePath).stat();
 				if (stat.isDirectory()) {
 					continue;
 				}
@@ -671,7 +672,7 @@ export class WriteTool implements AgentTool<typeof writeSchema, WriteToolDetails
 			const target = parseSqliteWriteTarget(candidate.subPath, candidate.queryString);
 			const absolutePath = await resolvePlanPath(this.session, candidate.sqlitePath, signal);
 			try {
-				const stat = await Bun.file(absolutePath).stat();
+				const stat = await bun.file(absolutePath).stat();
 				if (stat.isDirectory()) {
 					continue;
 				}
@@ -740,7 +741,7 @@ export class WriteTool implements AgentTool<typeof writeSchema, WriteToolDetails
 			} else {
 				let parsedContent: unknown;
 				try {
-					parsedContent = Bun.JSON5.parse(content);
+					parsedContent = bun.JSON5.parse(content);
 				} catch (error) {
 					throw new ToolError(
 						`SQLite write content must be valid JSON5: ${error instanceof Error ? error.message : String(error)}`,

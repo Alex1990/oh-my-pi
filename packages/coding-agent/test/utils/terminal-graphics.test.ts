@@ -1,7 +1,8 @@
 import { deflateSync } from "node:zlib";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { TerminalGraphicsDecoder, encodeTerminalImage } from "@oh-my-pi/pi-coding-agent/utils/terminal-graphics";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
@@ -13,7 +14,10 @@ function kitty(controls: string, payload = "", c1 = false): string {
 }
 
 async function metadata(image: { data: string }): Promise<{ width: number; height: number; format?: string }> {
-	return new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+	// `metadata()` returns the decoder's whole descriptor; project the fields
+	// this suite asserts on so `toEqual` comparisons stay precise.
+	const { width, height, format } = await new Image(Buffer.from(image.data, "base64")).metadata();
+	return { width, height, format };
 }
 
 async function decodeByCodeUnit(stream: string): Promise<{ text: string; images: ImageContent[] }> {
@@ -151,7 +155,7 @@ describe("encodeTerminalImage", () => {
 	});
 
 	it("converts non-PNG input before declaring f=100", async () => {
-		const jpeg = await new Bun.Image(RED_1X1_PNG).jpeg({ quality: 90 }).toBase64();
+		const jpeg = await new Image(RED_1X1_PNG).jpeg({ quality: 90 }).toBase64();
 		const encoded = await encodeTerminalImage({ type: "image", data: jpeg, mimeType: "image/jpeg" });
 		const result = await decodeByCodeUnit(encoded);
 

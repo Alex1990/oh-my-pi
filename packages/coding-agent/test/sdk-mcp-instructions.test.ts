@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -21,6 +21,9 @@ import {
 	SERVER_INSTRUCTIONS,
 	TOOL_RESULT,
 } from "./fixtures/instructions-mcp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 // Contract: a deferred interactive (`hasUI`) session runs MCP discovery off the
 // first-paint path. Once the background connection completes, the resulting
@@ -29,7 +32,7 @@ import {
 // Any supplied server instructions join their separately framed section for the
 // rest of the session. Regression guards cover both previously dropped deferred
 // instructions and the installed Context Mode server's absent instructions.
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "instructions-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "instructions-mcp.ts");
 const MCP_TOOL_NAME = "mcp__instr_do_thing";
 /** Route line for the fixture's backtick-named tool: escaped label, normalized mount path. */
 const DO_THING_ROUTE = '- "do\\u0060thing" → `xd://mcp__instr_do_thing`';
@@ -61,7 +64,7 @@ async function eventually<T>(read: () => T, done: (value: T) => boolean): Promis
 	const deadline = Date.now() + 12_000;
 	let value = read();
 	while (!done(value) && Date.now() < deadline) {
-		await Bun.sleep(10);
+		await bun.sleep(10);
 		value = read();
 	}
 	return value;
@@ -124,7 +127,7 @@ describe("createAgentSession MCP server instructions (deferred UI)", () => {
 	});
 
 	it("omits an opted-out server's instructions and the empty heading, and keeps its tools", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {
@@ -160,7 +163,7 @@ describe("createAgentSession MCP server instructions (deferred UI)", () => {
 	}, 20_000);
 
 	it("keeps other servers' instructions when one server opts out", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {
@@ -415,7 +418,7 @@ describe("createAgentSession MCP server instructions (deferred UI)", () => {
 	}, 20_000);
 
 	it("lists an inline-policy MCP tool whose docs overflow the cap once, on its route line", async () => {
-		await Bun.write(
+		await bun.write(
 			path.join(tempDir, ".mcp.json"),
 			JSON.stringify({
 				mcpServers: {

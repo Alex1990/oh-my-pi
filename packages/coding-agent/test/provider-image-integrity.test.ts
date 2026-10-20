@@ -6,7 +6,7 @@
  * including images with unusual-but-decodable framing, and images whose bytes
  * never travel because a reference does — byte-identical.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type {
 	Context,
 	ImageContent,

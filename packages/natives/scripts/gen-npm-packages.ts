@@ -2,6 +2,8 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface LeafTarget {
 	tag: string;
@@ -57,7 +59,7 @@ export const LEAF_TARGETS: readonly LeafTarget[] = [
 	{ tag: "win32-arm64", os: "win32", cpu: "arm64" },
 ];
 
-const packageDirDefault = path.join(import.meta.dir, "..");
+const packageDirDefault = path.join(import.meta.dirname, "..");
 const NATIVE_LEAF_LEGAL_FILES = ["LICENSE", "THIRD-PARTY-NOTICES.txt"] as const;
 
 function expectedAddonFilenames(tag: string): string[] {
@@ -69,7 +71,7 @@ function expectedAddonFilenames(tag: string): string[] {
 function discoverAddonFiles(nativeDir: string, tag: string): Promise<string[]> {
 	return Promise.all(
 		expectedAddonFilenames(tag).map(async filename =>
-			(await Bun.file(path.join(nativeDir, filename)).exists()) ? filename : null,
+			(await bun.file(path.join(nativeDir, filename)).exists()) ? filename : null,
 		),
 	).then(files => files.filter(file => file !== null));
 }
@@ -127,9 +129,9 @@ function selectTargets(tags: readonly string[] | undefined): readonly LeafTarget
 
 async function resolveLegalPayload(packageDir: string, file: string): Promise<string | undefined> {
 	const local = path.join(packageDir, file);
-	if (await Bun.file(local).exists()) return local;
+	if (await bun.file(local).exists()) return local;
 	const repository = path.resolve(packageDir, "../..", file);
-	return (await Bun.file(repository).exists()) ? repository : undefined;
+	return (await bun.file(repository).exists()) ? repository : undefined;
 }
 
 export async function generateNpmPackages({
@@ -139,7 +141,7 @@ export async function generateNpmPackages({
 	tags,
 }: GenerateNpmPackagesInput = {}): Promise<GeneratedLeafPackage[]> {
 	const manifestVersion =
-		version ?? ((await Bun.file(path.join(packageDir, "package.json")).json()) as { version: string }).version;
+		version ?? ((await bun.file(path.join(packageDir, "package.json")).json()) as { version: string }).version;
 	const nativeDir = path.join(packageDir, "native");
 	const npmDir = path.join(packageDir, "npm");
 	const leaves: GeneratedLeafPackage[] = [];
@@ -170,8 +172,8 @@ export async function generateNpmPackages({
 			if (!source) throw new Error(`Missing legal payload ${file} for generated native leaf ${target.tag}`);
 			await fs.copyFile(source, path.join(leafDir, file));
 		}
-		await Bun.write(path.join(leafDir, "package.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
-		await Bun.write(path.join(leafDir, "README.md"), buildReadme(target.tag, manifest));
+		await bun.write(path.join(leafDir, "package.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
+		await bun.write(path.join(leafDir, "README.md"), buildReadme(target.tag, manifest));
 	}
 
 	return leaves;
@@ -194,7 +196,7 @@ function parseTagArgs(argv: readonly string[]): readonly string[] | undefined {
 	return tags.length > 0 ? tags : undefined;
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const argv = process.argv.slice(2);
 	await generateNpmPackages({ dryRun: argv.includes("--dry-run"), tags: parseTagArgs(argv) });
 }

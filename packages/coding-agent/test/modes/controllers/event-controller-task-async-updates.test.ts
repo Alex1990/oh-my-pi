@@ -13,7 +13,7 @@
  * 2. A final async frame arriving AFTER an end that parked the block as
  *    background ("running") finalizes and untracks it.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, ToolResultMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
@@ -26,6 +26,7 @@ import type { TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { type BashToolDetails, formatBackgroundNotice } from "@oh-my-pi/pi-tui/tools/bash";
 import type { CoordinationDetails } from "@oh-my-pi/pi-tui/tools/wait";
 import { createInteractiveModeContext } from "../../helpers/interactive-mode-context";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function taskResult(asyncState: "running" | "completed" | "failed" | undefined, text: string) {
 	const details: TaskToolDetails = {
@@ -215,7 +216,7 @@ describe("EventController async update finalization", () => {
 					args: {},
 					partialResult: taskResult(state, outcome),
 				});
-				expect(Bun.stripANSI(chatContainer.render(120).join("\n"))).toContain(outcome);
+				expect(bun.stripANSI(chatContainer.render(120).join("\n"))).toContain(outcome);
 				expect(pendingTools.has("tc-task")).toBe(false);
 				expect(component.isTranscriptBlockFinalized()).toBe(true);
 			});
@@ -363,7 +364,7 @@ describe("EventController async update finalization", () => {
 		)!;
 		sealed.push(component);
 		component.setExpanded(true);
-		expect(Bun.stripANSI(chatContainer.render(120).join("\n"))).toContain("Job1 Finished work");
+		expect(bun.stripANSI(chatContainer.render(120).join("\n"))).toContain("Job1 Finished work");
 		expect(pendingTools.has("tc-wait")).toBe(false);
 		expect(component.isTranscriptBlockFinalized()).toBe(true);
 	});

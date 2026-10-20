@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let counter = 0;
 function makeMessageNode(message: AgentMessage, parentId: string | null = null, label?: string): SessionTreeNode {
@@ -25,7 +26,7 @@ function render(tree: SessionTreeNode[], width = 120): string {
 		() => {},
 		() => {},
 	);
-	return Bun.stripANSI(selector.render(width).join("\n"));
+	return bun.stripANSI(selector.render(width).join("\n"));
 }
 
 describe("TreeSelectorComponent developer message rendering", () => {

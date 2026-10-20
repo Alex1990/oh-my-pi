@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, type AgentMessage, type StreamFn } from "@oh-my-pi/pi-agent-core";
 import * as compactionModule from "@oh-my-pi/pi-agent-core/compaction";
@@ -29,6 +29,7 @@ import {
 	cfgCompactionThresholdPercent,
 	cfgContextPromotionEnabled,
 } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HANDOFF_SECRET = "HANDOFF_SECRET_TOKEN_12345";
 const UNRENDERABLE_SNAPCOMPACT_TEXT = "\uE000\uE001\uE002\uE003\uE004\uE005\uE006\uE007\uE008\uE009";
@@ -55,7 +56,7 @@ describe("AgentSession handoff", () => {
 	 *  its decision and register any compaction pass as a tracked post-prompt task, then
 	 *  `waitForIdle()` drains that task to completion. */
 	async function drainMaintenance(): Promise<void> {
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await session.waitForIdle();
 	}
 
@@ -999,7 +1000,7 @@ describe("AgentSession handoff", () => {
 		if (compaction?.type !== "compaction") throw new Error("Expected handoff compaction entry");
 		expect(compaction.summary).toContain(handoffText);
 		expect(session.agent.state.messages.some(message => message.role === "compactionSummary")).toBe(true);
-		const persistedSessionText = await Bun.file(sessionFile).text();
+		const persistedSessionText = await bun.file(sessionFile).text();
 		expect(persistedSessionText).toContain(JSON.stringify(handoffText));
 	});
 
@@ -1330,7 +1331,7 @@ describe("AgentSession handoff", () => {
 		expect(result?.savedPath).toBeDefined();
 		if (!result?.savedPath) throw new Error("Expected handoff document path");
 		expect(result.savedPath.endsWith(".md")).toBe(true);
-		const savedText = await Bun.file(result.savedPath).text();
+		const savedText = await bun.file(result.savedPath).text();
 		expect(savedText).toContain(handoffText);
 	});
 

@@ -25,7 +25,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
 import { prompt, TempDir } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { diffLines } from "diff";
 import { formatContent } from "./formatter";
 import {
@@ -47,7 +47,7 @@ import structuralTaskTemplate from "./prompts/structural-task.md" with { type: "
 
 const SUPPORTED_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
 using DEFAULT_SOURCE_REPO_DIR = TempDir.createSync("@pi-mono-source");
-const DEFAULT_OUTPUT = path.join(import.meta.dir, "../fixtures.tar.gz");
+const DEFAULT_OUTPUT = path.join(import.meta.dirname, "../fixtures.tar.gz");
 /** Default when no `--typescript-dir` is passed: shallow-clone this repo and scan `packages/`. */
 const DEFAULT_SOURCE_REPO_URL = "https://github.com/badlogic/pi-mono.git";
 
@@ -239,7 +239,7 @@ async function collectFiles(typescriptDir: string): Promise<string[]> {
 }
 
 async function readFileAsync(filePath: string): Promise<string> {
-	return Bun.file(filePath).text();
+	return bun.file(filePath).text();
 }
 
 function findRepeatedLines(content: string, minRepeats = 2): Map<string, number[]> {
@@ -1064,7 +1064,7 @@ async function writeTarball(entries: TarEntry[], outputPath: string): Promise<vo
 	for (const entry of entries) {
 		data[entry.name] = entry.content;
 	}
-	await Bun.Archive.write(outputPath, data, { compress: "gzip" });
+	await new Archive(data, { compress: "gzip" }).write(outputPath);
 }
 
 async function buildCaseEntries(result: CaseResult, typescriptDir: string): Promise<TarEntry[]> {
@@ -1271,3 +1271,5 @@ async function main(): Promise<number> {
 }
 
 process.exit(await main());
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";

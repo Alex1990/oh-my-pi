@@ -1,15 +1,17 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { setGeneratedHeader } from "@oh-my-pi/pi-coding-agent/mcp/transports/header-policy";
 import { HttpTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/http";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const REQUEST_TIMEOUT_MS = 1_000;
 
-let servers: Bun.Server<undefined>[] = [];
+let servers: Server<undefined>[] = [];
 
-function serve(
-	fetchHandler: (req: Request, server: Bun.Server<undefined>) => Response | Promise<Response>,
-): Bun.Server<undefined> {
-	const server = Bun.serve({ port: 0, fetch: fetchHandler });
+async function startServer(
+	fetchHandler: (req: Request, server: Server<undefined>) => Response | Promise<Response>,
+): Promise<Server<undefined>> {
+	const server = await serve({ port: 0, fetch: fetchHandler });
 	servers.push(server);
 	return server;
 }
@@ -38,7 +40,7 @@ describe("setGeneratedHeader", () => {
 describe("MCP transport header policy", () => {
 	it("keeps generated protocol headers when configured headers collide by casing", async () => {
 		let received: Headers | null = null;
-		const server = serve(async req => {
+		const server = await startServer(async req => {
 			received = req.headers;
 			return rpcResult(req);
 		});
@@ -57,7 +59,7 @@ describe("MCP transport header policy", () => {
 
 	it("follows same-origin redirects with configured headers when origin-locked", async () => {
 		let received: Headers | null = null;
-		const server = serve(async (req, self) => {
+		const server = await startServer(async (req, self) => {
 			const url = new URL(req.url);
 			if (url.pathname === "/mcp") {
 				return new Response(null, {
@@ -85,11 +87,11 @@ describe("MCP transport header policy", () => {
 
 	it("strips configured headers on cross-origin redirects when origin-locked", async () => {
 		let received: Headers | null = null;
-		const target = serve(async req => {
+		const target = await startServer(async req => {
 			received = req.headers;
 			return rpcResult(req);
 		});
-		const origin = serve(
+		const origin = await startServer(
 			async () =>
 				new Response(null, {
 					status: 307,
@@ -114,7 +116,7 @@ describe("MCP transport header policy", () => {
 	});
 
 	it("refuses method-changing redirects of POST requests when origin-locked", async () => {
-		const server = serve(
+		const server = await startServer(
 			async (_req, self) =>
 				new Response(null, {
 					status: 302,

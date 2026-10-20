@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SttClient } from "@oh-my-pi/pi-coding-agent/stt/asr-client";
 import type { SttWorkerInbound, SttWorkerOutbound } from "@oh-my-pi/pi-coding-agent/stt/asr-protocol";
 import { TinyTitleClient } from "@oh-my-pi/pi-coding-agent/tiny/title-client";

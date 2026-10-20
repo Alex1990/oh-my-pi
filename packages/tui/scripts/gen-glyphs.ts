@@ -18,14 +18,16 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { decodeSimpleGlyph, encodeSimpleGlyph, TrueTypeFont } from "./truetype";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 const NERD_FONTS_VERSION = "v3.5.1";
 const NERD_FONTS_ARCHIVE = `https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONTS_VERSION}/JetBrainsMono.tar.xz`;
 const NERD_FONTS_MEMBER = "JetBrainsMonoNerdFontMono-Regular.ttf";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCAN_ROOTS = ["packages/tui/src", "packages/coding-agent/src"].map(dir => path.join(REPO_ROOT, dir));
 const OUTPUT = path.join(REPO_ROOT, "packages/tui/src/theme/glyph-bundle.json");
 
@@ -44,12 +46,12 @@ function isPrivateUse(cp: number): boolean {
 
 /** Every PUA codepoint referenced by source under the scan roots, literal or escaped. */
 async function collectCodepoints(): Promise<number[]> {
-	const glob = new Bun.Glob("**/*.{ts,tsx,json}");
+	const glob = new Glob("**/*.{ts,tsx,json}");
 	const found = new Set<number>();
 	for (const root of SCAN_ROOTS) {
 		for await (const rel of glob.scan({ cwd: root })) {
 			if (rel.endsWith(".test.ts") || rel.endsWith("glyph-bundle.json")) continue;
-			const text = await Bun.file(path.join(root, rel)).text();
+			const text = await bun.file(path.join(root, rel)).text();
 			for (const ch of text) {
 				const cp = ch.codePointAt(0)!;
 				if (isPrivateUse(cp)) found.add(cp);
@@ -67,13 +69,13 @@ async function resolveFont(explicit: string | undefined): Promise<string> {
 	if (explicit) return path.resolve(explicit);
 	const cacheDir = path.join(os.homedir(), ".cache", "omp", "gen-glyphs");
 	const cached = path.join(cacheDir, `${NERD_FONTS_VERSION}-${NERD_FONTS_MEMBER}`);
-	if (await Bun.file(cached).exists()) return cached;
+	if (await bun.file(cached).exists()) return cached;
 	console.error(`fetching ${NERD_FONTS_ARCHIVE}`);
 	const response = await fetch(NERD_FONTS_ARCHIVE);
 	if (!response.ok) throw new Error(`download failed: ${response.status} ${response.statusText}`);
 	await fs.mkdir(cacheDir, { recursive: true });
 	const archive = path.join(cacheDir, "JetBrainsMono.tar.xz");
-	await Bun.write(archive, await response.arrayBuffer());
+	await bun.write(archive, await response.arrayBuffer());
 	const result = await $`tar -xJf ${archive} -C ${cacheDir} ${NERD_FONTS_MEMBER}`.quiet().nothrow();
 	if (result.exitCode !== 0) throw new Error(`tar failed: ${result.stderr.toString()}`);
 	await fs.rename(path.join(cacheDir, NERD_FONTS_MEMBER), cached);
@@ -84,7 +86,7 @@ async function resolveFont(explicit: string | undefined): Promise<string> {
 async function main(): Promise<void> {
 	const fontIndex = process.argv.indexOf("--font");
 	const fontPath = await resolveFont(fontIndex >= 0 ? process.argv[fontIndex + 1] : undefined);
-	const font = new TrueTypeFont(new Uint8Array(await Bun.file(fontPath).arrayBuffer()));
+	const font = new TrueTypeFont(new Uint8Array(await bun.file(fontPath).arrayBuffer()));
 	const { unitsPerEm, ascender, descender } = font.metrics;
 	console.error(`font: ${font.fullName} (${font.version}) upm=${unitsPerEm} asc=${ascender} desc=${descender}`);
 
@@ -138,7 +140,7 @@ async function main(): Promise<void> {
 		lh: ascender - descender,
 		glyphs,
 	};
-	await Bun.write(OUTPUT, `${JSON.stringify(bundle, null, "\t")}\n`);
+	await bun.write(OUTPUT, `${JSON.stringify(bundle, null, "\t")}\n`);
 	const bytes = Object.values(glyphs).reduce((sum, entry) => sum + entry.glyf.length, 0);
 	console.error(
 		`wrote ${Object.keys(glyphs).length} glyphs (${bytes} base64 bytes) to ${path.relative(REPO_ROOT, OUTPUT)}`,

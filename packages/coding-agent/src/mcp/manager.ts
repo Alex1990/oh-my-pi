@@ -61,6 +61,7 @@ import type {
 	MCPTransport,
 } from "./types";
 import { MCPNotificationMethods } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type McpCatalogChangeEvent = { serverName: string; kind: "resources" | "prompts" };
 export type MCPConfigLoader = (cwd: string, options?: LoadMCPConfigsOptions) => Promise<LoadMCPConfigsResult>;
@@ -989,7 +990,7 @@ export class MCPManager {
 			const initialLoads = Promise.allSettled(connectionTasks.map(task => task.tracked.promise));
 			const windowMs = resolveMCPStartupTimeoutMs(startupTimeoutMs);
 			if (windowMs === 0) await initialLoads;
-			else await Promise.race([initialLoads, Bun.sleep(windowMs)]);
+			else await Promise.race([initialLoads, bun.sleep(windowMs)]);
 
 			const cachedTools = new Map<string, MCPToolDefinition[]>();
 			const pendingTasks = connectionTasks.filter(task => task.tracked.status === "pending");
@@ -1646,7 +1647,7 @@ export class MCPManager {
 						attempt: attempt + 1,
 						error: msg,
 					});
-					await Bun.sleep(delays[attempt]);
+					await bun.sleep(delays[attempt]);
 				} else if (scheduled) {
 					logger.debug("MCP scheduled reconnect attempt failed", { path: `mcp:${name}`, error: msg });
 				} else {

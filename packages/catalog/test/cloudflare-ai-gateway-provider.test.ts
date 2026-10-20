@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { modelsDevCatalogFallback } from "@oh-my-pi/pi-catalog/provider-models";
 import { CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL } from "@oh-my-pi/pi-catalog/wire/cloudflare-ai-gateway";
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Api, Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -8,8 +8,10 @@ import { modelKind } from "@oh-my-pi/pi-catalog/types";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const probePath = path.join(import.meta.dir, "fixtures", "model-registry-construction-build-probe.ts");
+const probePath = path.join(import.meta.dirname, "fixtures", "model-registry-construction-build-probe.ts");
 
 function modelKeys(models: readonly Model<Api>[]): string[] {
 	return models.map(model => `${model.provider}\0${model.id}`);
@@ -34,8 +36,8 @@ describe("ModelRegistry lazy bundled composition", () => {
 	});
 
 	test("construction does not materialize bundled or cached models", async () => {
-		const proc = Bun.spawn([process.execPath, probePath], {
-			cwd: path.join(import.meta.dir, "../../.."),
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
+			cwd: path.join(import.meta.dirname, "../../.."),
 			stdout: "pipe",
 			stderr: "pipe",
 		});

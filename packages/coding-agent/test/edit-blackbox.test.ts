@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { formatHashlineHeader } from "@oh-my-pi/pi-tui/tools/hashline-format";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import type { EditMode } from "@oh-my-pi/pi-tui/tools/edit";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MODEL = "openai/gpt-5.6";
 const SOURCE = "export function value(): number {\n\treturn 1;\n}\n";
@@ -55,7 +56,7 @@ afterEach(async () => {
 
 async function writeFixture(name: string): Promise<string> {
 	const absolutePath = path.join(tempDir, name);
-	await Bun.write(absolutePath, SOURCE);
+	await bun.write(absolutePath, SOURCE);
 	return absolutePath;
 }
 
@@ -76,8 +77,8 @@ describe("edit parse-regression blackbox", () => {
 			new_string: "return (;",
 		});
 
-		expect(await Bun.file(filePath).text()).toContain("return (;");
-		expect(await Bun.file(logPath).exists()).toBe(false);
+		expect(await bun.file(filePath).text()).toContain("return (;");
+		expect(await bun.file(logPath).exists()).toBe(false);
 		// The parse-regression warning is independent of blackbox recording.
 		const text = result.content.map(part => (part.type === "text" ? part.text : "")).join("\n");
 		expect(text).toMatch(/no longer parses after this edit/);
@@ -110,7 +111,7 @@ describe("edit parse-regression blackbox", () => {
 		await new EditTool(session, "replace").execute("replace", replaceArg);
 		expected.push({
 			prev: SOURCE,
-			new: await Bun.file(replacePath).text(),
+			new: await bun.file(replacePath).text(),
 			model: MODEL,
 			variant: "replace",
 			arg: replaceArg,
@@ -124,7 +125,7 @@ describe("edit parse-regression blackbox", () => {
 		await new EditTool(session, "patch").execute("patch", patchArg);
 		expected.push({
 			prev: SOURCE,
-			new: await Bun.file(patchPath).text(),
+			new: await bun.file(patchPath).text(),
 			model: MODEL,
 			variant: "patch",
 			arg: patchArg,
@@ -145,7 +146,7 @@ describe("edit parse-regression blackbox", () => {
 		await new EditTool(session, "apply_patch").execute("apply-patch", applyPatchArg);
 		expected.push({
 			prev: SOURCE,
-			new: await Bun.file(applyPatchPath).text(),
+			new: await bun.file(applyPatchPath).text(),
 			model: MODEL,
 			variant: "apply_patch",
 			arg: applyPatchArg,
@@ -159,7 +160,7 @@ describe("edit parse-regression blackbox", () => {
 		await new EditTool(session, "hashline").execute("hashline", hashlineArg);
 		expected.push({
 			prev: SOURCE,
-			new: await Bun.file(hashlinePath).text(),
+			new: await bun.file(hashlinePath).text(),
 			model: MODEL,
 			variant: "hashline",
 			arg: hashlineArg,
@@ -172,13 +173,13 @@ describe("edit parse-regression blackbox", () => {
 		await new EditTool(session, "sloppy").execute("sloppy", sloppyArg);
 		expected.push({
 			prev: SOURCE,
-			new: await Bun.file(sloppyPath).text(),
+			new: await bun.file(sloppyPath).text(),
 			model: MODEL,
 			variant: "sloppy",
 			arg: sloppyArg,
 		});
 
-		const lines = (await Bun.file(logPath).text()).trimEnd().split("\n");
+		const lines = (await bun.file(logPath).text()).trimEnd().split("\n");
 		expect(JSON.parse(lines[0])).toEqual({ seed: true });
 		expect(lines.slice(1).map(line => JSON.parse(line))).toEqual(expected);
 	});
@@ -191,14 +192,14 @@ describe("edit parse-regression blackbox", () => {
 			new_string: "return 2;",
 		});
 
-		await Bun.write(path.join(tempDir, "invalid.ts"), "export const value = (;\n");
+		await bun.write(path.join(tempDir, "invalid.ts"), "export const value = (;\n");
 		await new EditTool(session, "replace").execute("already-invalid", {
 			path: "invalid.ts",
 			old_string: "value",
 			new_string: "next",
 		});
 
-		expect(await Bun.file(logPath).exists()).toBe(false);
+		expect(await bun.file(logPath).exists()).toBe(false);
 	});
 
 	test("treats an empty supported source as parseable", async () => {
@@ -209,7 +210,7 @@ describe("edit parse-regression blackbox", () => {
 			new_string: "",
 		});
 
-		expect(await Bun.file(path.join(tempDir, "empty.ts")).text()).toBe("");
-		expect(await Bun.file(logPath).exists()).toBe(false);
+		expect(await bun.file(path.join(tempDir, "empty.ts")).text()).toBe("");
+		expect(await bun.file(logPath).exists()).toBe(false);
 	});
 });

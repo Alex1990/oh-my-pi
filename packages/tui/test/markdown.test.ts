@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import {
 	clearRenderCache,
@@ -17,6 +17,7 @@ import { Chalk } from "@oh-my-pi/pi-utils/chalk";
 import { mathStartIndex } from "@oh-my-pi/pi-utils/math-delimiters";
 import { defaultMarkdownTheme } from "./test-themes.js";
 import { VirtualTerminal } from "./virtual-terminal.js";
+import { colorToString } from "@oh-my-pi/pi-tui/theme/color";
 
 // Force full color in CI so ANSI assertions are deterministic
 const chalk = new Chalk({ level: 3 });
@@ -1978,13 +1979,13 @@ bar`,
 describe("Inline color swatches", () => {
 	const FMT = TERMINAL.trueColor ? "ansi-16m" : "ansi-256";
 	// defaultMarkdownTheme supplies no `colorSwatch` symbol, so the renderer uses its ■ default.
-	const swatchFor = (hex: string, glyph = "■"): string => `${Bun.color(`#${hex}`, FMT)}${glyph}`;
+	const swatchFor = (hex: string, glyph = "■"): string => `${colorToString(`#${hex}`, FMT) ?? ""}${glyph}`;
 	// The `#hex` token itself is painted with the color as background and a
 	// YIQ-contrast foreground (VS Code's Color.isLighter rule).
 	const BLACK_FG = TERMINAL.trueColor ? "\x1b[38;2;0;0;0m" : "\x1b[38;5;16m";
 	const WHITE_FG = TERMINAL.trueColor ? "\x1b[38;2;255;255;255m" : "\x1b[38;5;231m";
 	const paintedFor = (hex: string, fg: string, text = `#${hex}`): string =>
-		`${Bun.color(`#${hex}`, FMT)!.replace("[38;", "[48;")}${fg}${text}\x1b[39m\x1b[49m`;
+		`${(colorToString(`#${hex}`, FMT) ?? "").replace("[38;", "[48;")}${fg}${text}\x1b[39m\x1b[49m`;
 
 	it("paints a colored swatch before a bare hex color in prose", () => {
 		const out = new Markdown("Accent is #C5FFD6 today.", 0, 0, defaultMarkdownTheme).render(80).join("\n");

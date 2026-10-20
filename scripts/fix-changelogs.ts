@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
 
 import * as path from "node:path";
-import { $, Glob } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHANGELOG_GLOB = "packages/*/CHANGELOG.md";
 const ORDERED_SECTION_TITLES = ["Breaking Changes", "Added", "Changed", "Fixed", "Removed"] as const;
@@ -933,7 +936,7 @@ export async function runChangelogFixer(options: RunChangelogFixerOptions = {}):
 
 	for (const changelogPath of paths) {
 		const absolutePath = path.join(repoRoot, changelogPath);
-		const rawContent = await Bun.file(absolutePath).text();
+		const rawContent = await bun.file(absolutePath).text();
 		const { body: currentContent, archiveLink: existingArchiveLink } = splitArchiveFooter(rawContent);
 		const historicalRecovery = historicalRecoveryByPath.get(changelogPath);
 		const recoveredContent =
@@ -980,7 +983,7 @@ export async function runChangelogFixer(options: RunChangelogFixerOptions = {}):
 		});
 
 		if (options.write !== false) {
-			await Bun.write(absolutePath, finalContent);
+			await bun.write(absolutePath, finalContent);
 		}
 	}
 
@@ -1140,6 +1143,6 @@ async function main(): Promise<void> {
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }

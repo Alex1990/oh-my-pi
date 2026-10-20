@@ -22,7 +22,7 @@
  *      still runs for providers without a validating `UsageProvider`), but is
  *      skipped when OAuth refresh fails.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type AuthCredential,
 	type AuthCredentialStore,

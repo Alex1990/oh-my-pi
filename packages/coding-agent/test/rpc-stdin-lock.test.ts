@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { isRecord, readJsonl } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function expectRpcOwnsStdin(): Promise<void> {
-	const cliPath = path.join(import.meta.dir, "..", "src", "cli.ts");
-	const extensionPath = path.join(import.meta.dir, "fixtures", "locked-stdin-reader.ts");
-	const child = Bun.spawn(
+	const cliPath = path.join(import.meta.dirname, "..", "src", "cli.ts");
+	const extensionPath = path.join(import.meta.dirname, "fixtures", "locked-stdin-reader.ts");
+	const child = bun.spawn(
 		[
 			"bun",
 			cliPath,
@@ -19,8 +20,8 @@ async function expectRpcOwnsStdin(): Promise<void> {
 			"claude-sonnet-4-5",
 		],
 		{
-			cwd: path.join(import.meta.dir, ".."),
-			env: { ...Bun.env, PI_NO_TITLE: "1" },
+			cwd: path.join(import.meta.dirname, ".."),
+			env: { ...bun.env, PI_NO_TITLE: "1" },
 			stdin: "pipe",
 			stdout: "pipe",
 			stderr: "pipe",

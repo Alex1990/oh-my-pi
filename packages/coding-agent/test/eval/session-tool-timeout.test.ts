@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
@@ -10,6 +10,7 @@ import { disposePyToolBridge } from "../../src/eval/py/tool-bridge";
 import type { ToolSession } from "../../src/tools";
 import { EvalTool } from "../../src/tools/eval";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "../helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDir: TempDir;
 let settingsState: SettingsTestState;
@@ -36,7 +37,7 @@ function makeSession(...tools: AgentTool[]): ToolSession {
 		settings: Settings.isolated({
 			"async.enabled": false,
 			"eval.autoProvision": false,
-			"python.interpreter": Bun.env.PYTHON ?? $which("python3") ?? $which("python") ?? "",
+			"python.interpreter": bun.env.PYTHON ?? $which("python3") ?? $which("python") ?? "",
 		}),
 		getSessionFile: () => null,
 		getSessionSpawns: () => "*",
@@ -93,7 +94,7 @@ async function warmEval(evalTool: EvalTool, language: "js" | "py"): Promise<void
 }
 
 // Real Python kernels only under PI_PYTHON_INTEGRATION=1, like the other real-kernel suites.
-const PYTHON_INTEGRATION = Bun.env.PI_PYTHON_INTEGRATION === "1";
+const PYTHON_INTEGRATION = bun.env.PI_PYTHON_INTEGRATION === "1";
 
 // Real timers throughout: neither isolated runtime shares the host's fake clock.
 describe("eval cell budget and delegated session tools", () => {

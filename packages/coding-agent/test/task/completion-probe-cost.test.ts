@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, Model, Usage } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -12,6 +12,7 @@ import { startCompletionProbe } from "@oh-my-pi/pi-coding-agent/task/completion-
 import { TempDir } from "@oh-my-pi/pi-utils";
 import * as path from "node:path";
 import { mkdir } from "node:fs/promises";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function usage(cost: number): Usage {
 	return {
@@ -59,7 +60,7 @@ describe("completion probe cost persistence", () => {
 		using tempDir = TempDir.createSync("@omp-completion-probe-cost-");
 		const rootSessionFile = path.join(tempDir.path(), "main.jsonl");
 		const agentDir = path.join(tempDir.path(), "main");
-		await Bun.write(rootSessionFile, "");
+		await bun.write(rootSessionFile, "");
 		await mkdir(agentDir, { recursive: true });
 		const sessionManager = SessionManager.create(tempDir.path(), agentDir);
 		let session: AgentSession | undefined;

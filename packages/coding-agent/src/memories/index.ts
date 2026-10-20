@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import type * as fsNode from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -66,6 +66,8 @@ import {
 	cfgMemoriesThreadScanLimit,
 } from "./settings";
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface MemoryRuntimeConfig {
 	enabled: boolean;
@@ -201,7 +203,7 @@ async function readMemoryToolDeveloperInstructionsSnapshot(
 
 	let summary = "";
 	try {
-		summary = (await Bun.file(path.join(memoryRoot, "memory_summary.md")).text()).trim();
+		summary = (await bun.file(path.join(memoryRoot, "memory_summary.md")).text()).trim();
 	} catch {
 		// Missing or unreadable summary — injection is best-effort; fall through
 		// so any captured lessons still surface on their own.
@@ -695,13 +697,13 @@ export async function collectThreads(session: AgentSession, currentThreadId?: st
 			let isLarge = stat.size > HEAD_CAP;
 			let fileText = isLarge
 				? await peekFile(fullPath, HEAD_CAP, bytes => new TextDecoder().decode(bytes))
-				: await Bun.file(fullPath).text();
+				: await bun.file(fullPath).text();
 			let lines = fileText.split(/\r?\n/);
 			let sawTitleSlot = false;
 			for (let i = 0; i < lines.length; i++) {
 				// If the slice was cut before this line terminated, fall back to full read
 				if (isLarge && i === lines.length - 1) {
-					fileText = await Bun.file(fullPath).text();
+					fileText = await bun.file(fullPath).text();
 					lines = fileText.split(/\r?\n/);
 					isLarge = false;
 				}
@@ -771,7 +773,7 @@ function extractPersistableMessages(payload: string): AgentMessage[] {
 const STAGE1_ROLLOUT_WINDOW_BYTES = 1024 * 1024;
 
 /** Persistable messages from the start of the rollout, in file order, read window by window. */
-async function* persistableMessagesFromFront(file: Bun.BunFile, size: number): AsyncGenerator<AgentMessage> {
+async function* persistableMessagesFromFront(file: NodeFile, size: number): AsyncGenerator<AgentMessage> {
 	const decoder = new TextDecoder();
 	let carry: Uint8Array | undefined;
 	let offset = 0;
@@ -787,7 +789,7 @@ async function* persistableMessagesFromFront(file: Bun.BunFile, size: number): A
 }
 
 /** Persistable messages from the end of the rollout, in reverse file order, read window by window. */
-async function* persistableMessagesFromBack(file: Bun.BunFile, size: number): AsyncGenerator<AgentMessage> {
+async function* persistableMessagesFromBack(file: NodeFile, size: number): AsyncGenerator<AgentMessage> {
 	const decoder = new TextDecoder();
 	let carry: Uint8Array | undefined;
 	let end = size;
@@ -817,8 +819,8 @@ async function* persistableMessagesFromBack(file: Bun.BunFile, size: number): As
  * JSONL record (a record spanning windows is carried until its newline), not by rollout size.
  */
 export async function buildStage1RolloutItems(rolloutPath: string, tokenLimit: number): Promise<string> {
-	const file = Bun.file(rolloutPath);
-	// stat() throws for a missing rollout, matching the previous Bun.file().text() failure.
+	const file = bun.file(rolloutPath);
+	// stat() throws for a missing rollout, matching the previous bun.file().text() failure.
 	const { size } = await file.stat();
 	if (tokenLimit <= 0) return "";
 	const maxChars = tokenLimit * 4;
@@ -953,7 +955,7 @@ async function syncPhase2Artifacts(memoryRoot: string, outputs: Stage1OutputRow[
 		const body = [`thread_id: ${row.threadId}`, `updated_at: ${row.sourceUpdatedAt}`, "", row.rolloutSummary].join(
 			"\n",
 		);
-		await Bun.write(path.join(summariesDir, filename), `${body.trim()}\n`);
+		await bun.write(path.join(summariesDir, filename), `${body.trim()}\n`);
 	}
 
 	const currentFiles = await fs.readdir(summariesDir).catch(() => [] as string[]);
@@ -964,7 +966,7 @@ async function syncPhase2Artifacts(memoryRoot: string, outputs: Stage1OutputRow[
 	}
 
 	const rawBody = buildRawMemoriesMarkdown(outputs);
-	await Bun.write(path.join(memoryRoot, "raw_memories.md"), rawBody);
+	await bun.write(path.join(memoryRoot, "raw_memories.md"), rawBody);
 }
 
 async function cleanupConsolidatedArtifacts(memoryRoot: string): Promise<void> {
@@ -993,7 +995,7 @@ async function readRolloutSummaries(memoryRoot: string): Promise<string> {
 
 	const blocks: string[] = [];
 	for (const name of summaryNames) {
-		const text = await Bun.file(path.join(summariesDir, name))
+		const text = await bun.file(path.join(summariesDir, name))
 			.text()
 			.catch(() => "");
 		if (!text.trim()) continue;
@@ -1021,7 +1023,7 @@ async function runConsolidationModel(options: {
 	}>;
 }> {
 	const { memoryRoot, model, apiKey } = options;
-	const rawMemories = await Bun.file(path.join(memoryRoot, "raw_memories.md")).text();
+	const rawMemories = await bun.file(path.join(memoryRoot, "raw_memories.md")).text();
 	const rolloutSummaries = await readRolloutSummaries(memoryRoot);
 	const input = prompt.render(consolidationTemplate, {
 		raw_memories: truncateByApproxTokens(rawMemories, 20_000),
@@ -1105,8 +1107,8 @@ async function applyConsolidation(
 		}>;
 	},
 ): Promise<void> {
-	await Bun.write(path.join(memoryRoot, "MEMORY.md"), `${consolidated.memoryMd.trim()}\n`);
-	await Bun.write(path.join(memoryRoot, "memory_summary.md"), `${consolidated.memorySummary.trim()}\n`);
+	await bun.write(path.join(memoryRoot, "MEMORY.md"), `${consolidated.memoryMd.trim()}\n`);
+	await bun.write(path.join(memoryRoot, "memory_summary.md"), `${consolidated.memorySummary.trim()}\n`);
 	const skillsDir = path.join(memoryRoot, "skills");
 	await fs.mkdir(skillsDir, { recursive: true });
 	const keep = new Set<string>();
@@ -1127,7 +1129,7 @@ async function applyConsolidation(
 		}
 
 		for (const [relativePath, content] of [...files.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-			await Bun.write(path.join(dir, ...relativePath.split("/")), content);
+			await bun.write(path.join(dir, ...relativePath.split("/")), content);
 		}
 
 		const keepFiles = new Set(files.keys());
@@ -1484,7 +1486,7 @@ export async function saveLearnedLesson(
 async function appendLearnedLine(filePath: string, line: string): Promise<void> {
 	let existing = "";
 	try {
-		existing = await Bun.file(filePath).text();
+		existing = await bun.file(filePath).text();
 	} catch (err) {
 		if (!isEnoent(err)) throw err;
 	}
@@ -1512,7 +1514,7 @@ async function appendLearnedLine(filePath: string, line: string): Promise<void> 
 			lessonCount--;
 		}
 	}
-	await Bun.write(filePath, `${out.join("\n")}\n`);
+	await bun.write(filePath, `${out.join("\n")}\n`);
 }
 
 /**
@@ -1523,7 +1525,7 @@ async function appendLearnedLine(filePath: string, line: string): Promise<void> 
 async function readLearnedLessons(memoryRoot: string): Promise<string> {
 	let raw = "";
 	try {
-		raw = (await Bun.file(path.join(memoryRoot, LEARNED_LESSONS_FILE)).text()).trim();
+		raw = (await bun.file(path.join(memoryRoot, LEARNED_LESSONS_FILE)).text()).trim();
 	} catch {
 		return "";
 	}

@@ -9,8 +9,9 @@
  * transient) through `AuthStorage.remove(credentialId)` and suppresses the
  * Bearer injection, so the next request surfaces a clean auth error instead.
  */
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, setSystemTime, test, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, setSystemTime, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +20,8 @@ import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import * as oauthFlow from "@oh-my-pi/pi-coding-agent/mcp/oauth-flow";
 import type { MCPServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CREDENTIAL_ID = "mcp_oauth_test_1908";
 const TOKEN_URL = "https://example.com/oauth/token";
@@ -45,7 +48,7 @@ type ControlledSleep = {
 
 function installControlledBunSleep(): ControlledSleep[] {
 	const calls: ControlledSleep[] = [];
-	vi.spyOn(Bun, "sleep").mockImplementation((ms: number | Date) => {
+	vi.spyOn(bun, "sleep").mockImplementation((ms: number | Date) => {
 		const { promise, resolve } = Promise.withResolvers<void>();
 		const delayMs = typeof ms === "number" ? ms : Math.max(0, ms.getTime() - Date.now());
 		const call = {
@@ -75,7 +78,7 @@ async function waitForControlledSleep(calls: ControlledSleep[], ms: number): Pro
 		if (call) return call;
 		await Promise.resolve();
 	}
-	throw new Error(`Timed out waiting for Bun.sleep(${ms})`);
+	throw new Error(`Timed out waiting for bun.sleep(${ms})`);
 }
 
 function resolvePendingControlledSleeps(calls: ControlledSleep[]): void {
@@ -232,7 +235,7 @@ describe("MCPManager OAuth refresh failure", () => {
 		let preparedSettled = false;
 		const releaseSpy = vi.spyOn(store, "releaseCredentialRefreshLease");
 		const fetchImpl = Object.assign(
-			async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit): Promise<Response> => {
+			async (_input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 				capturedSignal = init?.signal ?? undefined;
 				if (!capturedSignal) throw new Error("token refresh fetch did not receive an AbortSignal");
 				fetchCalled.resolve();
@@ -246,7 +249,7 @@ describe("MCPManager OAuth refresh failure", () => {
 				await allowFetchReject.promise;
 				throw capturedSignal.reason ?? new Error("fetch aborted");
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchImpl);
 
@@ -303,7 +306,7 @@ describe("MCPManager shared SQLite OAuth refresh", () => {
 			const allowRefreshResponse = Promise.withResolvers<void>();
 			const refreshTokens: string[] = [];
 			let refreshRequests = 0;
-			const tokenServer = Bun.serve({
+			const tokenServer = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				async fetch(req) {
@@ -385,7 +388,7 @@ describe("MCPManager shared SQLite OAuth refresh", () => {
 			const allowRefreshResponse = Promise.withResolvers<void>();
 			const refreshTokens: string[] = [];
 			let refreshRequests = 0;
-			const tokenServer = Bun.serve({
+			const tokenServer = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				async fetch(req) {
@@ -464,7 +467,7 @@ describe("MCPManager shared SQLite OAuth refresh", () => {
 			const allowInvalidGrant = Promise.withResolvers<void>();
 			const refreshTokens: string[] = [];
 			let refreshRequests = 0;
-			const tokenServer = Bun.serve({
+			const tokenServer = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				async fetch(req) {

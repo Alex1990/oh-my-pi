@@ -4,7 +4,7 @@
  * any parent message or extra poll — on the initial run, on a follow-up turn,
  * and on an autonomous IRC wake turn.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
@@ -30,6 +30,7 @@ import { WaitTool } from "@oh-my-pi/pi-coding-agent/tools/wait";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const AGENT_ID = "accepted-result";
 
@@ -408,8 +409,8 @@ describe("runSubprocess result acceptance", () => {
 
 		try {
 			// A completed first run left a structured payload on disk.
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), '{"reports":[{"verdict":"round-1"}]}');
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), '{"reports":[{"verdict":"round-1"}]}');
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), '{"reports":[{"verdict":"round-1"}]}');
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), '{"reports":[{"verdict":"round-1"}]}');
 			const finish = observer([
 				{
 					role: "custom",
@@ -461,8 +462,8 @@ describe("runSubprocess result acceptance", () => {
 		const accepted = '{"report":"accepted verdict"}';
 
 		try {
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
 			const finish = observer([
 				{
 					role: "custom",
@@ -476,8 +477,8 @@ describe("runSubprocess result acceptance", () => {
 			]);
 			harness.emitAssistantText("line 42 is fine");
 			await finish?.(undefined);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
 		} finally {
 			tempDir.removeSync();
 		}
@@ -510,7 +511,7 @@ describe("runSubprocess result acceptance", () => {
 
 		try {
 			// The initial run died on a provider error before reporting.
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), "");
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), "");
 			const finish = observer([
 				{
 					role: "user",
@@ -559,8 +560,8 @@ describe("runSubprocess result acceptance", () => {
 		const accepted = '{"report":"accepted verdict"}';
 
 		try {
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
 			const finish = observer([
 				{
 					role: "custom",
@@ -575,8 +576,8 @@ describe("runSubprocess result acceptance", () => {
 			harness.emitAssistantText("cancelled answer");
 			expect(manager.cancel(AGENT_ID)).toBe(true);
 			await finish?.(undefined);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
 		} finally {
 			await manager.dispose({ timeoutMs: 1000 });
 			tempDir.removeSync();
@@ -642,8 +643,8 @@ describe("runSubprocess result acceptance", () => {
 		const accepted = '{"report":"accepted verdict"}';
 
 		try {
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
-			await Bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.md`), accepted);
+			await bun.write(path.join(artifactsDir, `${AGENT_ID}.json`), accepted);
 			const result = await runSubagentFollowUpTurn({
 				id: AGENT_ID,
 				agent: baseAgent,
@@ -653,8 +654,8 @@ describe("runSubprocess result acceptance", () => {
 				signal: AbortSignal.abort("cancelled"),
 			});
 			expect(result.aborted).toBe(true);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
-			expect(await Bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.md`)).text()).toBe(accepted);
+			expect(await bun.file(path.join(artifactsDir, `${AGENT_ID}.json`)).text()).toBe(accepted);
 		} finally {
 			tempDir.removeSync();
 		}

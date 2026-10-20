@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/m
 import type { PluginRuntimeState } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression for #11090: `omp-plugins.lock.json` can diverge from the package
 // version in node_modules. `plugin doctor` must surface the stale copy instead
@@ -37,16 +38,16 @@ describe("PluginManager.doctor version drift", () => {
 	async function seed(name: string, diskVersion: string, lockVersion: string): Promise<void> {
 		const installedDir = path.join(pluginsNodeModules, name);
 		await fs.mkdir(installedDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(installedDir, "package.json"),
 			JSON.stringify({ name, version: diskVersion, omp: { version: diskVersion } }, null, 2),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "package.json"),
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: { [name]: `^${lockVersion}` } }, null, 2),
 		);
 		const state: PluginRuntimeState = { version: lockVersion, enabledFeatures: null, enabled: true };
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "omp-plugins.lock.json"),
 			JSON.stringify({ plugins: { [name]: state }, settings: {} }, null, 2),
 		);
@@ -70,14 +71,14 @@ describe("PluginManager.doctor version drift", () => {
 		await seed(name, "1.0.2", expectedVersion);
 		const packagePath = path.join(pluginsNodeModules, name, "package.json");
 		const reinstalled = JSON.stringify({ name, version: expectedVersion, omp: { version: expectedVersion } });
-		const install = Bun.spawn(["bun", "-e", ""], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+		const install = bun.spawn(["bun", "-e", ""], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
 		Object.defineProperty(install, "exited", {
 			get: async () => {
-				await Bun.write(packagePath, reinstalled);
+				await bun.write(packagePath, reinstalled);
 				return 0;
 			},
 		});
-		const spawnSpy = vi.spyOn(Bun, "spawn").mockReturnValue(install);
+		const spawnSpy = vi.spyOn(bun, "spawn").mockReturnValue(install);
 
 		const checks = await new PluginManager(tmpRoot).doctor({ fix: true });
 
@@ -100,12 +101,12 @@ describe("PluginManager.doctor version drift", () => {
 	test("restores the stale package when repair fails", async () => {
 		const name = "@scope/plugin";
 		await seed(name, "1.0.2", "1.0.3");
-		const install = Bun.spawn(["bun", "-e", "process.exit(1)"], {
+		const install = bun.spawn(["bun", "-e", "process.exit(1)"], {
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
 		});
-		vi.spyOn(Bun, "spawn").mockReturnValue(install);
+		vi.spyOn(bun, "spawn").mockReturnValue(install);
 
 		const checks = await new PluginManager(tmpRoot).doctor({ fix: true });
 
@@ -113,7 +114,7 @@ describe("PluginManager.doctor version drift", () => {
 			status: "error",
 			fixed: false,
 		});
-		expect(await Bun.file(path.join(pluginsNodeModules, name, "package.json")).json()).toMatchObject({
+		expect(await bun.file(path.join(pluginsNodeModules, name, "package.json")).json()).toMatchObject({
 			version: "1.0.2",
 		});
 	});
@@ -129,14 +130,14 @@ describe("PluginManager.doctor version drift", () => {
 			version: expectedVersion,
 			omp: { version: expectedVersion, tools: "./missing.js" },
 		});
-		const install = Bun.spawn(["bun", "-e", ""], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+		const install = bun.spawn(["bun", "-e", ""], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
 		Object.defineProperty(install, "exited", {
 			get: async () => {
-				await Bun.write(packagePath, reinstalled);
+				await bun.write(packagePath, reinstalled);
 				return 0;
 			},
 		});
-		vi.spyOn(Bun, "spawn").mockReturnValue(install);
+		vi.spyOn(bun, "spawn").mockReturnValue(install);
 
 		const checks = await new PluginManager(tmpRoot).doctor({ fix: true });
 
@@ -153,14 +154,14 @@ describe("PluginManager.doctor version drift", () => {
 		await seed(name, "1.0.2", "1.0.2");
 		const sourcePath = path.join(tmpRoot, "linked-plugin");
 		await fs.mkdir(sourcePath, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(sourcePath, "package.json"),
 			JSON.stringify({ name, version: "1.0.3", omp: { version: "1.0.3" } }),
 		);
 		const installedPath = path.join(pluginsNodeModules, name);
 		await fs.rm(installedPath, { recursive: true });
 		await fs.symlink(sourcePath, installedPath);
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "package.json"),
 			JSON.stringify({ name: "omp-plugins", private: true, dependencies: {} }),
 		);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { retryTransientCompletion } from "@oh-my-pi/pi-ai/oneshot-retry";
 import type { AssistantMessage, Usage } from "@oh-my-pi/pi-ai/types";
 

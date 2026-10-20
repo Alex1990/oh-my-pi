@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleHuggingFace } from "@oh-my-pi/pi-coding-agent/web/scrapers/huggingface";
 import { handleSpotify } from "@oh-my-pi/pi-coding-agent/web/scrapers/spotify";
 import { handleVimeo } from "@oh-my-pi/pi-coding-agent/web/scrapers/vimeo";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleVimeo", () => {
 	it("returns null for non-Vimeo URLs", async () => {

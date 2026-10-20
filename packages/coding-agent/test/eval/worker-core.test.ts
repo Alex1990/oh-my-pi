@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,8 @@ import type {
 	WorkerOutbound,
 } from "@oh-my-pi/pi-coding-agent/eval/js/worker-protocol";
 import { postmortem } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 interface WorkerHarness {
 	send(message: WorkerInbound): void;
@@ -190,7 +192,7 @@ describe("WorkerCore", () => {
 			});
 
 			// Drain microtasks so a latent fatal would surface.
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(fatal).toEqual([]);
 		} finally {
 			uninstall();
@@ -277,7 +279,7 @@ describe("WorkerCore", () => {
 				error: { message: "Cannot run code while another same-realm JS runtime is running" },
 			});
 
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(fatal).toEqual([]);
 		} finally {
 			uninstall();
@@ -462,8 +464,8 @@ describe("WorkerCore", () => {
 	it("reads artifact:// from the artifacts dir of the run's snapshot, not the first one", async () => {
 		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-a-"));
 		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-b-"));
-		await Bun.write(path.join(dirA, "5.eval.log"), "from A");
-		await Bun.write(path.join(dirB, "5.eval.log"), "from B");
+		await bun.write(path.join(dirA, "5.eval.log"), "from A");
+		await bun.write(path.join(dirB, "5.eval.log"), "from B");
 		const harness = createWorkerHarness();
 		const probe = globalThis as { __omp_artifact_probe?: unknown };
 		const run = async (runId: string, artifacts: string) => {
@@ -497,8 +499,8 @@ describe("WorkerCore", () => {
 	it("keeps a suspended run on its own artifact root while an overlapping run uses another", async () => {
 		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-a-"));
 		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-b-"));
-		await Bun.write(path.join(dirA, "5.eval.log"), "from A");
-		await Bun.write(path.join(dirB, "5.eval.log"), "from B");
+		await bun.write(path.join(dirA, "5.eval.log"), "from A");
+		await bun.write(path.join(dirB, "5.eval.log"), "from B");
 		const harness = createWorkerHarness();
 		const gate = Promise.withResolvers<void>();
 		const entered = Promise.withResolvers<void>();
@@ -555,8 +557,8 @@ describe("WorkerCore", () => {
 		// Process-level oracle: the production crash was postmortem killing the process
 		// after an unhandled rejection from concurrent inline setCwd. This must stay green
 		// even when postmortem's fatal handlers are installed.
-		const postmortemUrl = pathToFileURL(path.resolve(import.meta.dir, "../../../utils/src/postmortem.ts")).href;
-		const runtimeUrl = pathToFileURL(path.resolve(import.meta.dir, "../../src/eval/js/shared/runtime.ts")).href;
+		const postmortemUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../../utils/src/postmortem.ts")).href;
+		const runtimeUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../src/eval/js/shared/runtime.ts")).href;
 
 		const probe = `import { pathToFileURL } from "node:url";
 
@@ -587,7 +589,10 @@ queueMicrotask(() => {
 	first.setCwd(process.cwd() + "/child-pending-2");
 });
 await Promise.resolve();
-await Bun.sleep(0);
+// Yield one event-loop turn so a deferred fatal surfaces without a wall-clock wait.
+const nextTurn = Promise.withResolvers<void>();
+setImmediate(nextTurn.resolve);
+await nextTurn.promise;
 
 gate.resolve();
 await hold;
@@ -600,8 +605,8 @@ process.exit(0);
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-same-realm-"));
 		const probePath = path.join(root, "probe.ts");
 		try {
-			await Bun.write(probePath, probe);
-			const proc = Bun.spawn([process.execPath, probePath], {
+			await bun.write(probePath, probe);
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probePath], {
 				cwd: process.cwd(),
 				stdout: "pipe",
 				stderr: "pipe",

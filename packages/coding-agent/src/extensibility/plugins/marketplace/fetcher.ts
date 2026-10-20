@@ -16,6 +16,7 @@ import {
 	type MarketplaceCatalog,
 	type MarketplaceSourceType,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const GIT_CLONE_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -218,7 +219,7 @@ async function readMarketplaceCatalog(
 		const displayPath = options.relativeDisplayPaths ? rel : catalogPath;
 		tried.push(displayPath);
 		try {
-			const content = await Bun.file(catalogPath).text();
+			const content = await bun.file(catalogPath).text();
 			return { catalogPath, displayPath, content };
 		} catch (err) {
 			if (isEnoent(err)) continue;

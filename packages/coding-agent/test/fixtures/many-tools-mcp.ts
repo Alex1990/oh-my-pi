@@ -14,9 +14,11 @@
  *
  * Speaks newline-delimited JSON-RPC 2.0 (the wire format of `StdioTransport`),
  * same shape as `instructions-mcp.ts`. Exported constants are imported by the
- * test; the server only starts when run as the entry module (`import.meta.main`).
+ * test; the server only starts when run as the entry module (`isMainModule(import.meta.url)`).
  */
 import * as readline from "node:readline";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Enough tools to push any small session past TOOL_DISCOVERY_AUTO_THRESHOLD (40). */
 export const MANY_TOOL_COUNT = 45;
@@ -74,7 +76,7 @@ function startServer(): void {
 			// Notifications (no `id`) get no response.
 			if (msg.id === undefined || msg.id === null) return;
 			if (msg.method === "initialize" && initializeDelayMs > 0) {
-				await Bun.sleep(initializeDelayMs);
+				await bun.sleep(initializeDelayMs);
 			}
 			const response = { jsonrpc: "2.0" as const, id: msg.id, result: buildResult(msg.method) };
 			process.stdout.write(`${JSON.stringify(response)}\n`);
@@ -83,6 +85,6 @@ function startServer(): void {
 	rl.on("close", () => process.exit(0));
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	startServer();
 }

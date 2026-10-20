@@ -1,10 +1,21 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
+import type * as NodeOsModule from "node:os";
 import * as path from "node:path";
 import { CmuxSocketClient } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/socket-client";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { testSocketPath } from "./socket-path";
+
+// Node module namespaces are frozen; drive `os.homedir()` through a mock factory.
+const osHome = vi.hoisted(() => ({ override: undefined as string | undefined }));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof NodeOsModule>();
+	return { ...actual, homedir: () => osHome.override ?? actual.homedir() };
+});
 
 type RequestLine = {
 	id?: unknown;
@@ -33,7 +44,7 @@ async function withSocketServer(
 	run: (socketPath: string) => Promise<void>,
 ): Promise<void> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cmux-browser-test-"));
-	const socketPath = path.join(dir, "cmux.sock");
+	const socketPath = testSocketPath(dir, "cmux");
 	const server = net.createServer(socket => {
 		readSocketLines(socket, handleLine);
 	});
@@ -88,6 +99,7 @@ async function withTcpRelayServer(
 }
 
 afterEach(() => {
+	osHome.override = undefined;
 	vi.restoreAllMocks();
 });
 
@@ -175,7 +187,7 @@ describe("CmuxSocketClient", () => {
 
 	it("loads TCP relay credentials from the cmux auth file", async () => {
 		const home = await fs.mkdtemp(path.join(os.tmpdir(), "cmux-relay-home-"));
-		spyOn(os, "homedir").mockReturnValue(home);
+		osHome.override = home;
 		const lines: string[] = [];
 		try {
 			await withTcpRelayServer(
@@ -189,7 +201,7 @@ describe("CmuxSocketClient", () => {
 					socket.write(`${JSON.stringify({ ok: true, result: {} })}\n`);
 				},
 				async (socketPath, port) => {
-					await Bun.write(
+					await bun.write(
 						path.join(home, ".cmux", "relay", `${port}.auth`),
 						JSON.stringify({
 							relay_id: "relay-1",

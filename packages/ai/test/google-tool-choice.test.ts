@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildGoogleGenerateContentParams } from "@oh-my-pi/pi-ai/providers/google-shared";
 import { mapGoogleToolChoice } from "@oh-my-pi/pi-ai/stream";
 import type { Context, Tool, ToolChoice } from "@oh-my-pi/pi-ai/types";

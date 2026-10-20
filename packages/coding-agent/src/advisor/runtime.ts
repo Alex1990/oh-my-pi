@@ -18,6 +18,7 @@ import {
 } from "../session/session-history-format";
 import { ADVISOR_RENDER_OPTIONS, advisorToolIOTransform, renderAdvisorDeltaChunks } from "./delta-split";
 import { fingerprintMessage } from "./message-fingerprint";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Minimal slice of `Agent` the runtime drives — satisfied by pi-agent-core
@@ -1644,10 +1645,10 @@ export class AdvisorRuntime {
 								overflowRecovery: recoveringOverflow || undefined,
 							});
 							if (this.retryDelayMs <= 0) {
-								await Bun.sleep(0);
+								await bun.sleep(0);
 							} else {
 								try {
-									await raceWithSignal(Bun.sleep(this.retryDelayMs), iterationAbort.signal);
+									await raceWithSignal(bun.sleep(this.retryDelayMs), iterationAbort.signal);
 								} catch (sleepError) {
 									if (!iterationAbort.signal.aborted) throw sleepError;
 								}

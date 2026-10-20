@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type BlockState,
 	flushOpenToolCalls,
@@ -29,6 +29,7 @@ import {
 	WriteArgsSchema,
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, fromBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EDIT_ID = "tool_7aef3020-f275-4579-887c-34106e146f7";
 const ENVELOPE_ID = "call-edit-1";
@@ -290,7 +291,7 @@ describe("cursor native editToolCall (StrReplace)", () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-edit-full-"));
 		try {
 			const target = path.join(dir, "big.txt");
-			await Bun.write(target, fullText);
+			await bun.write(target, fullText);
 			const output = cursorAssistantMessage();
 			const stream = new AssistantMessageEventStream();
 			const state = newBlockState();

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,8 @@ import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-storage-state-"));
@@ -27,7 +29,7 @@ const session: ToolSession = {
 };
 const prelude = createBrowserPrelude(session);
 const context = { session, toolCallId: "browser-storage-state-test" };
-let server: Bun.Server<undefined>;
+let server: Server<undefined>;
 let pageUrl = "";
 
 async function invoke(parameters: unknown) {
@@ -44,8 +46,8 @@ async function call(name: string, method: string, args: unknown[] = []): Promise
 	return valueFrom(await invoke({ action: "call", name, chain: [{ method, args }] }));
 }
 
-beforeAll(() => {
-	server = Bun.serve({
+beforeAll(async () => {
+	server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch() {

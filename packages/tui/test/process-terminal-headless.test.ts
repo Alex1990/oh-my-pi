@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { isTerminalHeadless, setTerminalHeadless } from "@oh-my-pi/pi-utils";

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { dlopen, FFIType, ptr } from "@oh-my-pi/pi-utils/ffi";
 import {
 	type AltGrHost,
 	createRightAltLatch,

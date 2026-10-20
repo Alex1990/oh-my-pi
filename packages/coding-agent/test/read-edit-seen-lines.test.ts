@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import { EditTool } from "@oh-my-pi/pi-coding-agent/edit";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // A call whose arguments span several lines, so a structural read elides the
 // inner rows (3-4) and displays the rest.
@@ -52,7 +53,7 @@ describe("read → edit seen-line guard under default settings", () => {
 	beforeEach(async () => {
 		cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-seen-lines-"));
 		file = path.join(cwd, "draw.py");
-		await Bun.write(file, SOURCE);
+		await bun.write(file, SOURCE);
 	});
 
 	afterEach(async () => {
@@ -71,7 +72,7 @@ describe("read → edit seen-line guard under default settings", () => {
 		});
 
 		expect(textOutput(result)).toContain("never displayed");
-		expect(await Bun.file(file).text()).toBe(SOURCE);
+		expect(await bun.file(file).text()).toBe(SOURCE);
 	});
 
 	it("applies a hunk anchored on a line the read displayed", async () => {
@@ -83,6 +84,6 @@ describe("read → edit seen-line guard under default settings", () => {
 			input: `${read.split("\n")[0]}\nPUT 7.=7:\n+        callout_xy=(0.240, 0.258))\n`,
 		});
 
-		expect(await Bun.file(file).text()).toBe(SOURCE.replace("0.230", "0.240"));
+		expect(await bun.file(file).text()).toBe(SOURCE.replace("0.230", "0.240"));
 	});
 });

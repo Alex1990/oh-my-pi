@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 	setProfile,
 } from "@oh-my-pi/pi-utils/dirs";
 import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ENV_KEYS = [
 	"OMP_PROFILE",
@@ -80,19 +81,19 @@ describe("XDG-aware runtime paths", () => {
 	it.skipIf(!xdgPlatform)("adopts legacy predict state once when XDG relocates it", async () => {
 		const legacy = path.join(defaultAgentDir, "predict", "ngram");
 		await fs.mkdir(legacy, { recursive: true });
-		await Bun.write(path.join(legacy, "cursor.json"), JSON.stringify({ historyId: 42 }));
+		await bun.write(path.join(legacy, "cursor.json"), JSON.stringify({ historyId: 42 }));
 		const xdgData = path.join(tempRoot, "data");
 		await fs.mkdir(path.join(xdgData, "omp"), { recursive: true });
 		process.env.XDG_DATA_HOME = xdgData;
 		setAgentDir(defaultAgentDir);
 
 		const stateDir = getPredictStateDir(defaultAgentDir, "ngram");
-		expect(await Bun.file(path.join(stateDir, "cursor.json")).json()).toEqual({ historyId: 42 });
+		expect(await bun.file(path.join(stateDir, "cursor.json")).json()).toEqual({ historyId: 42 });
 
 		// Once adopted, XDG state is authoritative: later legacy writes by older versions are not re-copied.
-		await Bun.write(path.join(legacy, "cursor.json"), JSON.stringify({ historyId: 7 }));
+		await bun.write(path.join(legacy, "cursor.json"), JSON.stringify({ historyId: 7 }));
 		getPredictStateDir(defaultAgentDir, "ngram");
-		expect(await Bun.file(path.join(stateDir, "cursor.json")).json()).toEqual({ historyId: 42 });
+		expect(await bun.file(path.join(stateDir, "cursor.json")).json()).toEqual({ historyId: 42 });
 	});
 
 	it.skipIf(!xdgPlatform)("shares the global daemon runtime dir across profiles and custom agent dirs", async () => {

@@ -62,6 +62,7 @@ import type {
 	DapWriteMemoryArguments,
 	DapWriteMemoryResponse,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface DapSession {
 	id: string;
@@ -1378,7 +1379,7 @@ export class DapSessionManager {
 				cwd: path.resolve(session.cwd, args.cwd ?? "."),
 				stdin: "pipe",
 				env: {
-					...Bun.env,
+					...bun.env,
 					...NON_INTERACTIVE_ENV,
 					...env,
 				},

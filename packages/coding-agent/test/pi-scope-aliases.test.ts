@@ -15,23 +15,24 @@
  *   - `Key` runtime helper from `pi-tui` (used by plannotator + rpiv-*).
  *   - `pi-ai/oauth` subpath (used by runfusion's bundled extension).
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { loadExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const canonicalCodingAgent = Bun.resolveSync("@oh-my-pi/pi-coding-agent", import.meta.dir);
-const canonicalCodingAgentExtensions = Bun.resolveSync(
+const canonicalCodingAgent = bun.resolveSync("@oh-my-pi/pi-coding-agent", import.meta.dirname);
+const canonicalCodingAgentExtensions = bun.resolveSync(
 	"@oh-my-pi/pi-coding-agent/extensibility/extensions",
-	import.meta.dir,
+	import.meta.dirname,
 );
-const canonicalUtils = Bun.resolveSync("@oh-my-pi/pi-utils", import.meta.dir);
-const canonicalTui = Bun.resolveSync("@oh-my-pi/pi-tui", import.meta.dir);
+const canonicalUtils = bun.resolveSync("@oh-my-pi/pi-utils", import.meta.dirname);
+const canonicalTui = bun.resolveSync("@oh-my-pi/pi-tui", import.meta.dirname);
 // Subpath: upstream `pi-ai/oauth` re-exported `utils/oauth/index`; our pi-ai now
 // exposes the same surface at the real `@oh-my-pi/pi-ai/oauth` export, so the
 // legacy `@mariozechner/pi-ai/oauth` specifier canonicalizes straight to it.
-const canonicalAiOauth = Bun.resolveSync("@oh-my-pi/pi-ai/oauth", import.meta.dir);
+const canonicalAiOauth = bun.resolveSync("@oh-my-pi/pi-ai/oauth", import.meta.dirname);
 
 interface AliasCase {
 	id: string;

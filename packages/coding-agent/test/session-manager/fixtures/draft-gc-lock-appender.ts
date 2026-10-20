@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import { withFileLockSync } from "@oh-my-pi/pi-utils/file-lock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const sessionPath = process.argv[2];
 const deleteAttemptPath = process.argv[3];
@@ -14,7 +15,7 @@ try {
 			if (Date.now() >= deadline) throw new Error("Timed out waiting for conditional delete attempt");
 			// Cross-process lock integration requires the child to hold ownership until
 			// the parent reaches the competing critical section.
-			Bun.sleepSync(1);
+			bun.sleepSync(1);
 		}
 		fs.writeSync(
 			fd,

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,11 +10,14 @@ import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream"
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import {
 	calculateCost,
+	type GeneratedProvider,
 	getBundledModel,
 	getBundledModels,
 	getBundledProviders,
+	isGeneratedProvider,
 	modelsAreEqual,
 } from "@oh-my-pi/pi-catalog/models";
+import type { Usage } from "@oh-my-pi/pi-catalog/types";
 import { Type as TypeBoxShimType } from "@oh-my-pi/pi-coding-agent/extensibility/legacy-typebox";
 import { isRetryableAssistantError } from "@oh-my-pi/pi-coding-agent/extensibility/legacy-pi-ai-shim";
 import {
@@ -23,6 +26,7 @@ import {
 	loadLegacyPiModule,
 } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // pi-ai 15.1.0 removed the runtime `Type` export from `@oh-my-pi/pi-ai`'s
 // package root. Legacy extensions (and their aliased-scope variants such as
@@ -118,26 +122,48 @@ describe("legacy-pi @(scope)/pi-ai root `Type` remap (issue #1437)", () => {
 			),
 		)) as {
 			helpers: {
-				calculateCost: unknown;
-				getBundledModel: unknown;
-				getBundledModels: unknown;
-				getBundledProviders: unknown;
-				getModel: unknown;
-				getModels: unknown;
-				modelsAreEqual: unknown;
+				calculateCost: (model: Model<Api>, usage: Usage) => unknown;
+				getBundledModel: (provider: GeneratedProvider, modelId: string) => Model<Api>;
+				getBundledModels: (provider: GeneratedProvider) => Model<Api>[];
+				getBundledProviders: () => GeneratedProvider[];
+				getModel: (provider: GeneratedProvider, modelId: string) => Model<Api>;
+				getModels: (provider: GeneratedProvider) => Model<Api>[];
+				modelsAreEqual: (a: Model<Api> | null, b: Model<Api> | null) => boolean;
 			};
 			supported: string;
 			disabled: string;
 			schema: { safeParse: (input: unknown) => { success: boolean }; toJSON?: () => any };
 		};
 
-		expect(loaded.helpers.calculateCost).toBe(calculateCost);
-		expect(loaded.helpers.getModel).toBe(getBundledModel);
-		expect(loaded.helpers.getModels).toBe(getBundledModels);
-		expect(loaded.helpers.getBundledModel).toBe(getBundledModel);
-		expect(loaded.helpers.getBundledModels).toBe(getBundledModels);
-		expect(loaded.helpers.getBundledProviders).toBe(getBundledProviders);
-		expect(loaded.helpers.modelsAreEqual).toBe(modelsAreEqual);
+		// The extension graph runs through Node's loader, so its catalog module is
+		// a second evaluation of `@oh-my-pi/pi-catalog/models` rather than the
+		// runner's. Bun shared one module registry, so identity was observable
+		// there; here the contract is that the root re-exports working helpers
+		// with the same results and keeps the historical aliases identical.
+		expect(loaded.helpers.getModel).toBe(loaded.helpers.getBundledModel);
+		expect(loaded.helpers.getModels).toBe(loaded.helpers.getBundledModels);
+		const candidateProvider = getBundledProviders()[0];
+		if (!isGeneratedProvider(candidateProvider)) throw new Error("no generated provider with bundled models");
+		const provider: GeneratedProvider = candidateProvider;
+		const model = getBundledModels(provider)[0];
+		expect(model).toBeDefined();
+		const usage: Usage = {
+			input: 1_000_000,
+			output: 1_000_000,
+			cacheRead: 0,
+			cacheWrite: 0,
+			totalTokens: 2_000_000,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		};
+		expect(loaded.helpers.getBundledProviders()).toEqual(getBundledProviders());
+		expect(loaded.helpers.getBundledModels(provider)).toEqual(getBundledModels(provider));
+		expect(loaded.helpers.getModels(provider)).toEqual(getBundledModels(provider));
+		expect(loaded.helpers.getBundledModel(provider, model.id)).toEqual(getBundledModel(provider, model.id));
+		expect(loaded.helpers.getModel(provider, model.id)).toEqual(getBundledModel(provider, model.id));
+		expect(loaded.helpers.calculateCost(model, structuredClone(usage))).toEqual(
+			calculateCost(model, structuredClone(usage)),
+		);
+		expect(loaded.helpers.modelsAreEqual(model, model)).toBe(modelsAreEqual(model, model));
 		expect(loaded.supported).toBe("high");
 		expect(loaded.disabled).toBe("off");
 		expect(loaded.schema.safeParse("red").success).toBe(true);
@@ -191,9 +217,15 @@ describe("legacy-pi @(scope)/pi-ai root `Type` remap (issue #1437)", () => {
 
 describe("legacy pi package root remaps (issue #1474)", () => {
 	it("loads @earendil-works/pi-coding-agent root imports when host package resolution is unavailable", async () => {
-		const realResolveSync = Bun.resolveSync.bind(Bun);
-		vi.spyOn(Bun, "resolveSync").mockImplementation((specifier: string, from: string) => {
-			if (specifier === "@oh-my-pi/pi-coding-agent" && from.endsWith(path.join("src", "extensibility", "plugins"))) {
+		// The canonical lookup memoizes process-wide; a warm entry would bypass
+		// the mock below and hide the fallback this test pins.
+		__resetLegacyPiResolutionCache();
+		const realResolveSync = bun.resolveSync;
+		vi.spyOn(bun, "resolveSync").mockImplementation((specifier: string, from?: string) => {
+			if (
+				specifier === "@oh-my-pi/pi-coding-agent" &&
+				from?.endsWith(path.join("src", "extensibility", "plugins"))
+			) {
 				throw new Error("compiled binary host package resolution unavailable");
 			}
 			return realResolveSync(specifier, from);
@@ -319,8 +351,11 @@ describe("legacy pi package root remaps (issue #1474)", () => {
 	});
 
 	it("falls back to legacy-scoped subpath peers for direct plugin imports", async () => {
-		const realResolveSync = Bun.resolveSync.bind(Bun);
-		vi.spyOn(Bun, "resolveSync").mockImplementation((specifier: string, from: string) => {
+		// Earlier host loads memoized `@oh-my-pi/pi-ai/oauth`; the mock must be
+		// what the resolver observes for the simulated missing peer.
+		__resetLegacyPiResolutionCache();
+		const realResolveSync = bun.resolveSync;
+		vi.spyOn(bun, "resolveSync").mockImplementation((specifier: string, from?: string) => {
 			if (specifier === "@oh-my-pi/pi-ai/oauth") {
 				throw new Error(`canonical peer unavailable from ${from}`);
 			}
@@ -350,20 +385,20 @@ describe("legacy pi package root remaps (issue #1474)", () => {
 		expect(loaded.loadedMarker).toBe("legacy-oauth");
 	});
 
-	it("routes @earendil-works/pi-utils through canonical Bun.resolveSync in non-compiled mode", async () => {
+	it("routes @earendil-works/pi-utils through canonical bun.resolveSync in non-compiled mode", async () => {
 		// Regression: when omp runs from a node_modules install (not the monorepo
 		// and not a compiled binary), the bundled packages live at
 		// `node_modules/@oh-my-pi/pi-*`, not next to the source tree. Hardcoding
 		// a sibling `packages/<pkg>/src/index.ts` path would miss them, so the
-		// non-compiled branch must delegate to `Bun.resolveSync` against the
+		// non-compiled branch must delegate to `bun.resolveSync` against the
 		// canonical specifier.
 		// The resolver memoizes canonical lookups process-wide; clear it so this
-		// assertion observes the Bun.resolveSync delegation rather than a warm
+		// assertion observes the bun.resolveSync delegation rather than a warm
 		// cache populated by an earlier test in the full suite.
 		__resetLegacyPiResolutionCache();
-		const realResolveSync = Bun.resolveSync.bind(Bun);
+		const realResolveSync = bun.resolveSync;
 		let canonicalLookupSeen = false;
-		vi.spyOn(Bun, "resolveSync").mockImplementation((specifier: string, from: string) => {
+		vi.spyOn(bun, "resolveSync").mockImplementation((specifier: string, from?: string) => {
 			if (specifier === "@oh-my-pi/pi-utils") {
 				canonicalLookupSeen = true;
 			}

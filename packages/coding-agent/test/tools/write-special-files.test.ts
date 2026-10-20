@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { hasFsCode, removeWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createSession(cwd: string): ToolSession {
 	return {
@@ -40,9 +41,9 @@ async function writeInChild(
 			process.exitCode = 1;
 		}
 	`;
-	const child = Bun.spawn({
+	const child = bun.spawn({
 		cmd: [process.execPath, "--eval", script],
-		cwd: path.resolve(import.meta.dir, "../.."),
+		cwd: path.resolve(import.meta.dirname, "../.."),
 		stdin: "ignore",
 		stdout: "pipe",
 		stderr: "pipe",
@@ -72,7 +73,7 @@ describe.skipIf(process.platform === "win32")("write on non-regular files", () =
 		testDir = path.join(os.tmpdir(), `write-special-${Snowflake.next()}`);
 		fs.mkdirSync(testDir, { recursive: true });
 		fifo = path.join(testDir, "input.fifo");
-		expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+		expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 	});
 
 	afterEach(async () => {
@@ -100,7 +101,7 @@ describe.skipIf(process.platform === "win32")("write on non-regular files", () =
 				() => "RESOLVED" as const,
 				(error: unknown) => error,
 			);
-		const outcome = await Promise.race([pending, Bun.sleep(1500).then(() => "HUNG" as const)]);
+		const outcome = await Promise.race([pending, bun.sleep(1500).then(() => "HUNG" as const)]);
 		if (outcome === "HUNG") {
 			// Let the released write finish inside testDir so afterEach removes whatever it creates.
 			releaseFifoReader(sqlitePath);

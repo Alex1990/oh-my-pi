@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { hashAuthGatewayToken } from "@oh-my-pi/pi-ai/auth-gateway";
 import { createAuthGatewayClientsReloader } from "@oh-my-pi/pi-coding-agent/cli/auth-gateway-cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("auth-gateway serve --clients reload", () => {
 	let dir = "";
@@ -19,7 +20,7 @@ describe("auth-gateway serve --clients reload", () => {
 	it("applies edits, refuses every client while the file is invalid, and recovers once it is fixed", async () => {
 		const file = path.join(dir, "clients.json");
 		const original = JSON.stringify({ ci: { tokenSha256: hashAuthGatewayToken("ci-token") } });
-		await Bun.write(file, original);
+		await bun.write(file, original);
 		const applied: string[][] = [];
 		const reload = createAuthGatewayClientsReloader(file, original, clients => {
 			applied.push(clients.map(client => client.name));
@@ -28,7 +29,7 @@ describe("auth-gateway serve --clients reload", () => {
 		await reload();
 		expect(applied).toEqual([]);
 
-		await Bun.write(
+		await bun.write(
 			file,
 			JSON.stringify({
 				ci: { tokenSha256: hashAuthGatewayToken("ci-token") },
@@ -38,13 +39,13 @@ describe("auth-gateway serve --clients reload", () => {
 		await reload();
 		expect(applied).toEqual([["ci", "ops"]]);
 
-		await Bun.write(file, '{ "ci": { "tokenSha256": "');
+		await bun.write(file, '{ "ci": { "tokenSha256": "');
 		await reload();
 		await reload();
 		expect(applied).toEqual([["ci", "ops"], []]);
 
 		// The file the gateway started with is applied again after a failure.
-		await Bun.write(file, original);
+		await bun.write(file, original);
 		await reload();
 		expect(applied).toEqual([["ci", "ops"], [], ["ci"]]);
 	});

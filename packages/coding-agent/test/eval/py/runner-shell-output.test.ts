@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { $which } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface RunnerFrame {
 	type?: string;
@@ -9,9 +10,9 @@ interface RunnerFrame {
 	status?: string;
 }
 
-const pythonPath = Bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
-const runnerPath = path.resolve(import.meta.dir, "../../../src/eval/py/runner.py");
-const repoRoot = path.resolve(import.meta.dir, "../../../../..");
+const pythonPath = bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
+const runnerPath = path.resolve(import.meta.dirname, "../../../src/eval/py/runner.py");
+const repoRoot = path.resolve(import.meta.dirname, "../../../../..");
 const encoder = new TextEncoder();
 
 function shellQuote(value: string): string {
@@ -30,7 +31,7 @@ async function runCell(code: string): Promise<RunnerFrame[]> {
 
 /** Runs each cell on one runner, sending the next request only after the previous cell's done frame. */
 async function runCells(codes: string[]): Promise<RunnerFrame[][]> {
-	const proc = Bun.spawn([pythonPath, "-u", runnerPath], {
+	const proc = bun.spawn([pythonPath, "-u", runnerPath], {
 		cwd: repoRoot,
 		stdin: "pipe",
 		stdout: "pipe",

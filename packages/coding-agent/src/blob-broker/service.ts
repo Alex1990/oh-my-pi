@@ -45,6 +45,9 @@ import {
 	cfgImagesUrls,
 	cfgImagesUrlsTtlHours,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import {serve} from "@oh-my-pi/pi-utils/node-serve";
 
 /**
  * Render-on-fetch hook handed to the snapcompact inline transformer: returns
@@ -73,7 +76,7 @@ const contentHashByBlock = new WeakMap<ImageContent, BlockContentHash>();
 function blockContentHash(block: ImageContent): string {
 	const memo = contentHashByBlock.get(block);
 	if (memo?.data === block.data && memo.mimeType === block.mimeType) return memo.hash;
-	const hash = new Bun.CryptoHasher("sha256").update(block.mimeType).update("\n").update(block.data).digest("hex");
+	const hash = new bun.CryptoHasher("sha256").update(block.mimeType).update("\n").update(block.data).digest("hex");
 	contentHashByBlock.set(block, { data: block.data, mimeType: block.mimeType, hash });
 	return hash;
 }
@@ -153,7 +156,7 @@ export class ImageUrlService {
 	#publicationByUrl = new Map<string, BlobPublication>();
 	/** Backend range and content key retained by URL for ordered fallback. */
 	#publicationSourceByUrl = new Map<string, { rangeStart: number; rangeEnd: number; hash: string }>();
-	#callback: { port: number; token: string; server: Bun.Server<undefined> } | null | undefined;
+	#callback: { port: number; token: string; server: Server<undefined> } | null | undefined;
 	#daemonEnabled: boolean;
 	#providerFiles: ProviderFileManager | undefined;
 	#providerFilePosition: number;
@@ -232,11 +235,11 @@ export class ImageUrlService {
 	 * Loopback server the daemon renders lazy blobs through. Started once, on
 	 * the first lazy registration against a daemon backend.
 	 */
-	#ensureCallbackServer(): { port: number; token: string } | null {
+	async #ensureCallbackServer(): Promise<{ port: number; token: string } | null> {
 		if (this.#callback !== undefined) return this.#callback;
 		try {
 			const token = crypto.randomUUID();
-			const server = Bun.serve({
+			const server = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				fetch: async request => {
@@ -255,7 +258,7 @@ export class ImageUrlService {
 			server.unref();
 			const port = server.port;
 			if (port === undefined) {
-				server.stop(true);
+				await server.stop(true);
 				this.#callback = null;
 				return null;
 			}
@@ -444,8 +447,8 @@ export class ImageUrlService {
 				const total = snapcompact.frames(text, { shape });
 				const count = maxFrames === undefined ? total : Math.min(total, maxFrames);
 				if (count <= 0) return null;
-				const textHash = Bun.hash(text).toString(16);
-				const shapeHash = Bun.hash(JSON.stringify(shape)).toString(16);
+				const textHash = bun.hash(text).toString(16);
+				const shapeHash = bun.hash(JSON.stringify(shape)).toString(16);
 				// One render covers every frame of this text; shared lazily across
 				// the per-frame fetchers and dropped once settled frames age out of
 				// the backend's byte budget.
@@ -605,14 +608,14 @@ function destinationOptions(
 
 /** Deterministic durable provider-file cache path for one project. */
 export function providerFileCachePath(settings: Settings, projectDir: string): string {
-	const projectHash = Bun.hash.wyhash(path.resolve(projectDir)).toString(16);
+	const projectHash = bun.hash.wyhash(path.resolve(projectDir)).toString(16);
 	return path.join(getBlobsDir(settings.getAgentDir()), `provider-files-index-${projectHash}.json`);
 }
 
 /** Resolve configured URL destinations without constructing their runtimes. */
 export function resolveBlobBrokerConfigs(settings: Settings, projectDir: string): BlobBrokerWorkerConfig[] {
 	const blobsDir = getBlobsDir(settings.getAgentDir());
-	const projectHash = Bun.hash.wyhash(path.resolve(projectDir)).toString(16);
+	const projectHash = bun.hash.wyhash(path.resolve(projectDir)).toString(16);
 	const savingsPath = blobBrokerSavingsJournalPath(settings, projectDir);
 	const optionsByDestination = cfgImagesUrlsOptions.get(settings);
 	const credentialsByDestination = cfgImagesUrlsCredentials.get(settings);

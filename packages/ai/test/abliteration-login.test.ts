@@ -1,29 +1,30 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ORIGINAL_ENV = {
-	ABLITERATION_API_KEY: Bun.env.ABLITERATION_API_KEY,
-	ABLIT_KEY: Bun.env.ABLIT_KEY,
+	ABLITERATION_API_KEY: bun.env.ABLITERATION_API_KEY,
+	ABLIT_KEY: bun.env.ABLIT_KEY,
 } as const;
 
 afterEach(() => {
 	for (const [name, value] of Object.entries(ORIGINAL_ENV)) {
-		if (value === undefined) delete Bun.env[name];
-		else Bun.env[name] = value;
+		if (value === undefined) delete bun.env[name];
+		else bun.env[name] = value;
 	}
 	vi.restoreAllMocks();
 });
 
 describe("Abliteration login wiring", () => {
 	test("resolves ABLITERATION_API_KEY and ABLIT_KEY from environment", () => {
-		delete Bun.env.ABLITERATION_API_KEY;
-		Bun.env.ABLIT_KEY = "abliteration-alias-key";
+		delete bun.env.ABLITERATION_API_KEY;
+		bun.env.ABLIT_KEY = "abliteration-alias-key";
 		expect(getEnvApiKey("abliteration")).toBe("abliteration-alias-key");
 
-		Bun.env.ABLITERATION_API_KEY = "abliteration-env-key";
+		bun.env.ABLITERATION_API_KEY = "abliteration-env-key";
 		expect(getEnvApiKey("abliteration")).toBe("abliteration-env-key");
 	});
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { compileCompatRules, renderAuthIds } from "../scripts/compat-compiler";
 import { compileAuth } from "../scripts/compat-compiler/compile-auth";
@@ -8,10 +8,11 @@ import { compileProviders } from "../scripts/compat-compiler/compile-providers";
 import { compileTaxonomy } from "../scripts/compat-compiler/compile-taxonomy";
 import { cursorModelParameters } from "../src/compat/behavior";
 import committed from "../src/compat/rules.json";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const AUTH_IDS_PATH = path.join(import.meta.dir, "../src/compat/auth-ids.ts");
+const AUTH_IDS_PATH = path.join(import.meta.dirname, "../src/compat/auth-ids.ts");
 
-const RULES_DIR = path.join(import.meta.dir, "../src/compat/rules");
+const RULES_DIR = path.join(import.meta.dirname, "../src/compat/rules");
 
 function taxonomySources(text: string) {
 	return [
@@ -627,6 +628,6 @@ describe("committed rules.json", () => {
 	test("matches a fresh compile of rules/ (run `bun run gen:compat` after editing KDL)", async () => {
 		const fresh = await compileCompatRules(RULES_DIR);
 		expect(fresh).toEqual(committed);
-		expect(await Bun.file(AUTH_IDS_PATH).text()).toBe(renderAuthIds(fresh.auth));
+		expect(await bun.file(AUTH_IDS_PATH).text()).toBe(renderAuthIds(fresh.auth));
 	});
 });

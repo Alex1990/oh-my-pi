@@ -11,6 +11,7 @@
 import { BlobStore } from "../src/session/blob-store";
 import { prepareEntryForPersistence } from "../src/session/session-persistence";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 using tempDir = TempDir.createSync("@persist-truncate-bench-");
 const blobStore = new BlobStore(tempDir.path());
@@ -38,11 +39,11 @@ const entries = Array.from({ length: N }, (_, i) => cleanEntry(i));
 // Warm blob store / caches.
 for (const e of entries) prepareEntryForPersistence(e, blobStore);
 
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 for (let r = 0; r < 5; r++) {
 	for (const e of entries) prepareEntryForPersistence(e, blobStore);
 }
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 console.log(
 	`prepareEntryForPersistence x${N * 5} clean entries: ${ms.toFixed(1)}ms total (${((ms / (N * 5)) * 1000).toFixed(1)}us/op)`,
 );

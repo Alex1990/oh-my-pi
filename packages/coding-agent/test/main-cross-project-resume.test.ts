@@ -6,7 +6,7 @@
  * recorded directory no longer exists, `--resume <id>` offers to *move*
  * (re-root) the session rather than opening against a missing directory.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -29,6 +29,7 @@ import {
 	setAgentDir,
 	setProjectDir,
 } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalPiProfile = process.env.PI_PROFILE;
@@ -96,7 +97,7 @@ describe("createSessionManager — cross-project --resume", () => {
 	beforeEach(async () => {
 		existingProject = await fsp.mkdtemp(path.join(os.tmpdir(), "omp-xproj-"));
 		const match = buildGlobalMatch(existingProject);
-		await Bun.write(
+		await bun.write(
 			match.session.path,
 			`${JSON.stringify({
 				type: "session",
@@ -137,7 +138,7 @@ describe("SessionManager.open — recorded cwd adoption", () => {
 		const deniedProject = path.join(root, "denied");
 		await fsp.mkdir(launchProject);
 		const match = buildGlobalMatch(deniedProject);
-		await Bun.write(
+		await bun.write(
 			match.session.path,
 			`${JSON.stringify({
 				type: "session",
@@ -181,7 +182,7 @@ describe("SessionManager.open — recorded cwd adoption", () => {
 		await fsp.mkdir(launchProject);
 		await fsp.mkdir(deniedProject);
 		const match = buildGlobalMatch(deniedProject);
-		await Bun.write(
+		await bun.write(
 			match.session.path,
 			`${JSON.stringify({
 				type: "session",
@@ -227,7 +228,7 @@ describe("runRootCommand — cross-project --resume", () => {
 		resumedProject = path.join(root, "resumed");
 		await Promise.all([fsp.mkdir(launchProject), fsp.mkdir(resumedProject)]);
 		const match = buildGlobalMatch(resumedProject);
-		await Bun.write(
+		await bun.write(
 			match.session.path,
 			`${JSON.stringify({
 				type: "session",

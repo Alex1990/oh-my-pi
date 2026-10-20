@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { SingleResult, TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
 import { taskToolRenderer } from "@oh-my-pi/pi-tui/tools/task";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression for PR #11343 review: sanitizing the isolation artifact rows
 // (shortenPath + width bound) dropped the `Patch:` / `Branch:` /
@@ -46,7 +47,7 @@ describe("task renderer: isolation artifact row labels", () => {
 			{ expanded: false, isPartial: false, spinnerFrame: 0 },
 			theme,
 		);
-		return Bun.stripANSI(component.render(160).join("\n"));
+		return bun.stripANSI(component.render(160).join("\n"));
 	}
 
 	it("keeps the Patch and Nested patch labels on sanitized artifact rows", async () => {

@@ -261,7 +261,8 @@ export class AnthropicHttpClient {
 		const timeoutMs = options?.timeout ?? opts.timeout ?? DEFAULT_TIMEOUT_MS;
 		const maxRetries = Math.max(0, options?.maxRetries ?? opts.maxRetries ?? DEFAULT_MAX_RETRIES);
 		const maxRetryDelayMs = options?.maxRetryDelayMs ?? opts.maxRetryDelayMs ?? 60_000;
-		const url = `${this.baseURL}${path}`;
+		// A trailing slash on the base URL must not double the path separator.
+		const url = `${this.baseURL.replace(/\/+$/, "")}${path}`;
 		const headers = this.#buildHeaders(options?.headers);
 		const body = params === undefined ? undefined : JSON.stringify(params);
 

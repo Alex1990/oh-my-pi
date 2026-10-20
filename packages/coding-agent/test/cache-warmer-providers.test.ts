@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage, AssistantMessageEvent, Context, FetchImpl, Model, Usage } from "@oh-my-pi/pi-ai/types";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
 import { encodeBedrockFrame as encodeBedrockTestFrame } from "../../ai/test/helpers/bedrock-stream";

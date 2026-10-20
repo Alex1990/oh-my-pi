@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -26,6 +26,7 @@ import { GrepTool } from "../../src/tools/grep";
 
 import { cfgCompactionExperimentalContextManagement } from "@oh-my-pi/pi-coding-agent/session/context-settings";
 import { cfgReadSummarizeEnabled } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function getResultText(result: { content: Array<{ type: string; text?: string }> }): string {
 	return result.content
@@ -119,9 +120,9 @@ describe("GrepTool internal URL resolution", () => {
 	async function registerSkillDirectory(): Promise<string> {
 		const skillDir = path.join(tmpDir, "skills", "demo");
 		await fs.mkdir(path.join(skillDir, "references", "docs"), { recursive: true });
-		await Bun.write(path.join(skillDir, "SKILL.md"), "# Demo\n");
-		await Bun.write(path.join(skillDir, "references", "index.md"), "install needle\n");
-		await Bun.write(path.join(skillDir, "references", "docs", "guide.md"), "deep needle\n");
+		await bun.write(path.join(skillDir, "SKILL.md"), "# Demo\n");
+		await bun.write(path.join(skillDir, "references", "index.md"), "install needle\n");
+		await bun.write(path.join(skillDir, "references", "docs", "guide.md"), "deep needle\n");
 		setActiveSkills([
 			{
 				name: "demo",
@@ -240,7 +241,7 @@ describe("GrepTool internal URL resolution", () => {
 
 	it("greps artifact:// with regex pattern", async () => {
 		const content = "ERROR: connection refused\nWARN: timeout\nERROR: disk full\nINFO: ok\n";
-		await Bun.write(path.join(artifactsDir, "3.python.log"), content);
+		await bun.write(path.join(artifactsDir, "3.python.log"), content);
 
 		const session = createSession();
 		const tool = new GrepTool(session);
@@ -409,7 +410,7 @@ describe("GrepTool internal URL resolution", () => {
 
 	it("suppresses hashline anchors when searching immutable artifact:// sources", async () => {
 		const content = "alpha line\nbeta needle line\ngamma line\n";
-		await Bun.write(path.join(artifactsDir, "9.bash.log"), content);
+		await bun.write(path.join(artifactsDir, "9.bash.log"), content);
 
 		const session = createSession({ hasEditTool: true });
 		const tool = new GrepTool(session);
@@ -429,7 +430,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("resolves local:// URLs before file-name lookup", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
-		await Bun.write(path.join(localRoot, "PLAN.md"), "# Plan\n");
+		await bun.write(path.join(localRoot, "PLAN.md"), "# Plan\n");
 
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
@@ -447,7 +448,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("walks local:// directory subpaths for read and find", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(path.join(localRoot, "notes"), { recursive: true });
-		await Bun.write(path.join(localRoot, "notes", "PLAN.md"), "# Plan\n");
+		await bun.write(path.join(localRoot, "notes", "PLAN.md"), "# Plan\n");
 
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
@@ -469,7 +470,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("keeps hashline anchors when searching mutable local:// sources", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
-		await Bun.write(path.join(localRoot, "plan.md"), "alpha line\nbeta needle line\ngamma line\n");
+		await bun.write(path.join(localRoot, "plan.md"), "alpha line\nbeta needle line\ngamma line\n");
 
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
@@ -491,7 +492,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("accepts the single-slash local:/ spelling in find and search like read", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(path.join(localRoot, "notes"), { recursive: true });
-		await Bun.write(path.join(localRoot, "notes", "plan.md"), "beta needle line\n");
+		await bun.write(path.join(localRoot, "notes", "plan.md"), "beta needle line\n");
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 		const session = createSession();
 
@@ -508,7 +509,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("honors a line selector on the single-slash local:/ spelling in search", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
-		await Bun.write(path.join(localRoot, "notes.md"), "first needle\nsecond needle\nthird needle\n");
+		await bun.write(path.join(localRoot, "notes.md"), "first needle\nsecond needle\nthird needle\n");
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
 		const text = getResultText(
@@ -524,7 +525,7 @@ describe("GrepTool internal URL resolution", () => {
 	});
 
 	it("names the unknown artifact id and the available ones when find cannot locate it", async () => {
-		await Bun.write(path.join(artifactsDir, "4.bash.log"), "log\n");
+		await bun.write(path.join(artifactsDir, "4.bash.log"), "log\n");
 
 		await expect(
 			new GlobTool(createSession()).execute("find-missing-artifact", { path: "artifact://9" }),
@@ -544,8 +545,8 @@ describe("GrepTool internal URL resolution", () => {
 	it("greps a local:// directory, naming hits by URL with anchors on the backing file", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(path.join(localRoot, "notes"), { recursive: true });
-		await Bun.write(path.join(localRoot, "notes", "a b.md"), "alpha\nbeta needle\n");
-		await Bun.write(path.join(localRoot, "notes", "c.txt"), "no match\n");
+		await bun.write(path.join(localRoot, "notes", "a b.md"), "alpha\nbeta needle\n");
+		await bun.write(path.join(localRoot, "notes", "c.txt"), "no match\n");
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
 		const result = await new GrepTool(createSession({ hasEditTool: true })).execute("local-dir", {
@@ -563,7 +564,7 @@ describe("GrepTool internal URL resolution", () => {
 	it("runs ast_grep over a local:// file", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
-		await Bun.write(path.join(localRoot, "util.ts"), "export function greet() {\n\treturn 1;\n}\n");
+		await bun.write(path.join(localRoot, "util.ts"), "export function greet() {\n\treturn 1;\n}\n");
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
 		const result = await new AstGrepTool(createSession()).execute("ast-local", {
@@ -578,8 +579,8 @@ describe("GrepTool internal URL resolution", () => {
 	it("expands a glob in the first local:// segment for find and search", async () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
-		await Bun.write(path.join(localRoot, "draft-plan.md"), "gamma needle\n");
-		await Bun.write(path.join(localRoot, "notes.txt"), "gamma needle\n");
+		await bun.write(path.join(localRoot, "draft-plan.md"), "gamma needle\n");
+		await bun.write(path.join(localRoot, "notes.txt"), "gamma needle\n");
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 		const session = createSession();
 
@@ -598,13 +599,13 @@ describe("GrepTool internal URL resolution", () => {
 		const localRoot = path.join(artifactsDir, "local");
 		await fs.mkdir(localRoot, { recursive: true });
 		// Base file targeted by `local://notes.md`; selector should slice this one.
-		await Bun.write(
+		await bun.write(
 			path.join(localRoot, "notes.md"),
 			`${Array.from({ length: 10 }, (_, i) => `url-target line ${i + 1}`).join("\n")}\n`,
 		);
 		// Sibling literal `notes.md:1-2` under the same local root — must NOT
 		// shadow the URL selector semantics of `local://notes.md:1-2`.
-		await Bun.write(path.join(localRoot, "notes.md:1-2"), "sibling literal shadow\n");
+		await bun.write(path.join(localRoot, "notes.md:1-2"), "sibling literal shadow\n");
 
 		LocalProtocolHandler.setOverride({ getArtifactsDir: () => artifactsDir, getSessionId: () => "session" });
 
@@ -625,8 +626,8 @@ describe("GrepTool internal URL resolution", () => {
 
 	it("keeps hashlines on mutable files when mixed with immutable artifact:// inputs", async () => {
 		const content = "alpha line\nbeta needle line\ngamma line\n";
-		await Bun.write(path.join(artifactsDir, "11.bash.log"), content);
-		await Bun.write(path.join(tmpDir, "mixed.txt"), "mixed needle line\n");
+		await bun.write(path.join(artifactsDir, "11.bash.log"), content);
+		await bun.write(path.join(tmpDir, "mixed.txt"), "mixed needle line\n");
 
 		const session = createSession({ hasEditTool: true });
 		const tool = new GrepTool(session);
@@ -687,7 +688,7 @@ describe("GrepTool internal URL resolution", () => {
 	});
 
 	it("applies an RE2 inline-flag pattern across mixed local and virtual scopes", async () => {
-		await Bun.write(path.join(tmpDir, "local.txt"), "needle local\n");
+		await bun.write(path.join(tmpDir, "local.txt"), "needle local\n");
 		registerVirtualDocs(new Map([["doc.md", "needle virtual\n"]]));
 		const tool = new GrepTool(createSession());
 		const result = await tool.execute("re2-mixed", {
@@ -700,8 +701,8 @@ describe("GrepTool internal URL resolution", () => {
 	});
 
 	it("reports 'No more results' instead of 'No matches found' when skip is past the end", async () => {
-		await Bun.write(path.join(tmpDir, "a.txt"), "needle in a\n");
-		await Bun.write(path.join(tmpDir, "b.txt"), "needle in b\n");
+		await bun.write(path.join(tmpDir, "a.txt"), "needle in a\n");
+		await bun.write(path.join(tmpDir, "b.txt"), "needle in b\n");
 
 		const session = createSession();
 		const tool = new GrepTool(session);

@@ -3,9 +3,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { untilAborted, withTimeout } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
-import type { BunFile } from "bun";
+import type { BunFile as NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 import type { ElementHandle, Page, Realm } from "puppeteer-core";
 import { throwIfAborted } from "../tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 declare module "puppeteer-core" {
 	interface Frame {
@@ -30,7 +31,7 @@ export interface FilePayload extends UploadFileInfo {
 /** A file to upload, opened for reading in slices. */
 export interface UploadSource {
 	path: string;
-	file: BunFile;
+	file: NodeFile;
 	size: number;
 	/** A folder, which only a browser reading its path can expand (for a `webkitdirectory` input). */
 	directory: boolean;
@@ -59,7 +60,7 @@ const ROUTE_CHECK_READ_MS = 2_000;
 
 /** Open a file for upload; rejects when it cannot be read. */
 export async function openUploadSource(absolute: string): Promise<UploadSource> {
-	const file = Bun.file(absolute);
+	const file = bun.file(absolute);
 	// A missing file reports size 0; stat rejects instead of uploading it empty.
 	const stats = await file.stat();
 	const bunType = file.type.split(";")[0];
@@ -310,7 +311,7 @@ export class UploadStaging {
 		const checkDirectory = await fs.mkdtemp(path.join(os.tmpdir(), `omp-uploads-${process.pid}-check-`));
 		try {
 			const tokenPath = path.join(checkDirectory, "route-check");
-			await Bun.write(tokenPath, token);
+			await bun.write(tokenPath, token);
 			const picker = await page.mainFrame().isolatedRealm().evaluateHandle(createFilePicker);
 			try {
 				const input = picker.asElement();

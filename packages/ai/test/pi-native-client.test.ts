@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, type Mock, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, type Mock, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamPiNative } from "@oh-my-pi/pi-ai/providers/pi-native-client";
 import { streamSimple } from "@oh-my-pi/pi-ai/stream";
@@ -12,6 +12,7 @@ import type {
 	ProviderResponseMetadata,
 } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function sseBytes(events: AssistantMessageEvent[]): Uint8Array {
 	const encoder = new TextEncoder();
@@ -426,8 +427,8 @@ describe("streamPiNative event flow", () => {
 	});
 
 	it("uses PI_STREAM_FIRST_EVENT_TIMEOUT_MS for silent pi-native streams", async () => {
-		const previous = Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS;
-		Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = "20";
+		const previous = bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS;
+		bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = "20";
 		try {
 			const fetchImpl: FetchImpl = (async () =>
 				new Response(stalledBody(), {
@@ -440,9 +441,9 @@ describe("streamPiNative event flow", () => {
 			await expect(stream.result()).rejects.toThrow(/first event/);
 		} finally {
 			if (previous === undefined) {
-				delete Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS;
+				delete bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS;
 			} else {
-				Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = previous;
+				bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = previous;
 			}
 		}
 	});
@@ -552,7 +553,7 @@ describe("streamPiNative event flow", () => {
 			signal: controller.signal,
 		});
 
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(captured.signal?.aborted).toBe(false);
 		controller.abort(new Error("caller aborted"));
 

@@ -13,7 +13,7 @@
  * `VcsGitRepo.defaultBranch` (the same entry point `#isDefaultBranch` awaits) and
  * asserting `#onBranchChange` never fires post-dispose.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { StatusLineSettings } from "@oh-my-pi/pi-tui/status-line";
 import { StatusLineComponent } from "@oh-my-pi/pi-tui/status-line";

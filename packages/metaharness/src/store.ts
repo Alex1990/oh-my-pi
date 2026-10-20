@@ -7,11 +7,12 @@
  * config, lifecycle status. `syncRun` re-reads a job dir and upserts.
  */
 
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { readBenchmarkSnapshot } from "./benchmarks";
 import { readJobResult } from "./runner";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type RunStatus = "running" | "complete" | "failed" | "cancelled";
 
@@ -172,7 +173,7 @@ function enableWal(db: Database): void {
 			return;
 		} catch (err) {
 			if (attempt < attempts && isBusyLock(err)) {
-				Bun.sleepSync(100);
+				bun.sleepSync(100);
 				continue;
 			}
 			throw err;

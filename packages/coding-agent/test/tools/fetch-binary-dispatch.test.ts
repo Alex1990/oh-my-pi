@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,8 @@ import * as scrapers from "@oh-my-pi/pi-coding-agent/web/scrapers/types";
 import * as scraperUtils from "@oh-my-pi/pi-coding-agent/web/scrapers/utils";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { encodeArchive } from "@oh-my-pi/pi-utils/ar";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 function makeSession(testDir: string): ToolSession {
 	const sessionFile = path.join(testDir, "session.jsonl");
@@ -77,7 +79,7 @@ async function createSqliteFixtureBytes(testDir: string): Promise<Uint8Array> {
 	} finally {
 		db.close();
 	}
-	return Bun.file(dbPath).bytes();
+	return bun.file(dbPath).bytes();
 }
 
 function createNotebookFixtureBytes(): Uint8Array {
@@ -242,9 +244,9 @@ describe("read URL binary dispatch", () => {
 
 	it("renders HTML when a binary-looking identity response is valid text on refetch", async () => {
 		const html = `<!DOCTYPE html><html><body><h1>ARTICLE_TITLE</h1>${"<p>Readable article paragraph.</p>".repeat(300)}</body></html>`;
-		const compressed = Bun.gzipSync(new TextEncoder().encode(html));
+		const compressed = bun.gzipSync(new TextEncoder().encode(html));
 		const encodings: string[] = [];
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch(request) {
@@ -279,8 +281,8 @@ describe("read URL binary dispatch", () => {
 	] as const) {
 		it(`renders refetched ${charset} HTML using its HTTP charset`, async () => {
 			const html = `<!DOCTYPE html><html><body><h1>${title}</h1>${"<p>Readable article paragraph.</p>".repeat(300)}</body></html>`;
-			const compressed = Bun.gzipSync(Buffer.from(html, encoding));
-			const server = Bun.serve({
+			const compressed = bun.gzipSync(Buffer.from(html, encoding));
+			const server = await serve({
 				hostname: "127.0.0.1",
 				port: 0,
 				fetch(request) {

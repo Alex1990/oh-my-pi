@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { validateAgentAccountPools } from "@oh-my-pi/pi-coding-agent/config/account-pools";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { cfgTaskAgentAccountPools } from "@oh-my-pi/pi-coding-agent/task/settings";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("task.agentAccountPools", () => {
 	it("keeps an empty provider list as a deny-all pool and lets null clear an agent", () => {
@@ -46,7 +47,7 @@ describe("task.agentAccountPools", () => {
 		const tempDir = TempDir.createSync("@pi-account-pools-");
 		try {
 			const overlay = tempDir.join("overlay.yml");
-			await Bun.write(overlay, "task:\n  agentAccountPools:\n    __proto__:\n      anthropic: []\n");
+			await bun.write(overlay, "task:\n  agentAccountPools:\n    __proto__:\n      anthropic: []\n");
 			const settings = await Settings.loadIsolated({
 				inMemory: true,
 				configFiles: [overlay],

@@ -7,7 +7,7 @@
  * Regression: bash/eval/ssh/browser/read all printed the same `[Showing …]`
  * string twice — once from the body content, once as the styled warning line.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type OutputMeta, stripGeneratedOutputNotice, stripOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { formatOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { outputMeta } from "@oh-my-pi/pi-coding-agent/tools/output-meta";

@@ -10,7 +10,7 @@
  */
 
 import * as os from "node:os";
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import * as attach from "@oh-my-pi/pi-coding-agent/tools/browser/attach";
@@ -24,6 +24,7 @@ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { Browser } from "puppeteer-core";
 import { TimeoutError } from "puppeteer-core";
 import { rejectionOf } from "../helpers/rejection";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(): ToolSession {
 	return {
@@ -270,7 +271,7 @@ describe("browser open — an abandoned browser acquisition does not hold up the
 
 	it("waits until a spawned app's abandoned acquisition has killed the app before looking for one to reuse", async () => {
 		// A long-lived stand-in app that exists on every platform: this Bun binary sleeping.
-		const kind = { kind: "spawned" as const, path: process.execPath, args: ["-e", "await Bun.sleep(30_000)"] };
+		const kind = { kind: "spawned" as const, path: process.execPath, args: ["-e", "await bun.sleep(30_000)"] };
 		const cwd = os.tmpdir();
 		const events: string[] = [];
 		let lookups = 0;

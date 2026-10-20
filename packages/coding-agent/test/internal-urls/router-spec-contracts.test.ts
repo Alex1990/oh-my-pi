@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { resolveApproval } from "@oh-my-pi/pi-coding-agent/tools/approval";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const resolveNothing = async (): Promise<InternalResource> => {
 	throw new Error("fixture:// never resolves");
@@ -143,7 +144,7 @@ describe("InternalUrlRouter.requireLocal diagnostics", () => {
 	it("surfaces the handler's not-found detail for an unknown artifact id", async () => {
 		const artifactsDir = await fs.mkdtemp(path.join(os.tmpdir(), "router-require-local-"));
 		try {
-			await Bun.write(path.join(artifactsDir, "4.bash.log"), "log\n");
+			await bun.write(path.join(artifactsDir, "4.bash.log"), "log\n");
 			const context = {
 				localProtocolOptions: { getArtifactsDir: () => artifactsDir, getSessionId: () => "s" },
 			};

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { RenderResultOptions } from "../src/tools/renderer";
@@ -7,6 +7,7 @@ import { bashToolRenderer, formatBackgroundNotice } from "@oh-my-pi/pi-tui/tools
 import { previewWindowRows } from "@oh-my-pi/pi-tui/render/render-utils";
 import { ImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui";
 import { sanitizeText } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type MutableTerminalInfo = {
 	imageProtocol: ImageProtocol | null;
@@ -96,7 +97,7 @@ describe("bashToolRenderer", () => {
 			{ expanded: false, isPartial: true },
 			uiTheme,
 		);
-		const lines = Bun.stripANSI(component.render(60).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(60).join("\n")).split("\n");
 		// A block frames the command: a header bar, the command row, and a bottom border.
 		expect(lines.length).toBeGreaterThanOrEqual(3);
 		const header = lines[0]!;

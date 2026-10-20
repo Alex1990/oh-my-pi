@@ -1,0 +1,36 @@
+name: Warm pnpm store cache
+
+# Produces the shared pnpm store entry PR jobs restore (keyed by the OS and the
+# pnpm lockfile hash). Main CI jobs run on omp-kata (mounted store PVC, no
+# GitHub cache), so without this workflow the GitHub Actions cache would only
+# ever hold ref-scoped copies saved by individual PR runs — each of those
+# duplicates the store against the shared 10 GB repo cache quota. Warming main
+# gives every PR job a stable entry to restore. Triggers only on pushes that
+# can change the entry.
+
+on:
+   push:
+      branches: [main]
+      paths:
+         - "pnpm-lock.yaml"
+         - "pnpm-workspace.yaml"
+         - ".github/actions/bun-install/**"
+         - ".github/workflows/pnpm-cache-warm.yml"
+   workflow_dispatch:
+
+permissions:
+   contents: read
+
+# No cancel-in-progress: a cancelled warm saves nothing. Superseded queued runs
+# still collapse to the newest one.
+concurrency:
+   group: pnpm-cache-warm
+   cancel-in-progress: false
+
+jobs:
+   warm_pnpm:
+      name: Seed pnpm store cache
+      runs-on: ubuntu-22.04
+      steps:
+         - uses: actions/checkout@v4
+         - uses: ./.github/actions/bun-install

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { isEmptyErrorTurn, sanitizeAssistantForReparentedHistory } from "@oh-my-pi/pi-coding-agent/session/messages";
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import type {
 } from "@oh-my-pi/pi-coding-agent/cleanse/types";
 import { createProgressReporter } from "@oh-my-pi/pi-coding-agent/cli/progress-reporter";
 import { resolveCliArgv } from "@oh-my-pi/pi-coding-agent/cli-commands";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -68,14 +69,14 @@ describe("cleanse diagnostics", () => {
 	test("discovers package test scripts only when test mode is enabled", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cleanse-tests-"));
 		try {
-			await Bun.write(
+			await bun.write(
 				path.join(root, "package.json"),
 				JSON.stringify({
 					packageManager: "bun@1.3.14",
 					scripts: { test: `bun -e "process.exit(3)"` },
 				}),
 			);
-			await Bun.write(path.join(root, "src", "index.ts"), "export const value = 1;\n");
+			await bun.write(path.join(root, "src", "index.ts"), "export const value = 1;\n");
 
 			const withoutTests = await cleanseCheckers.discoverCleanseDiagnosticSuite(root);
 			const withTests = await cleanseCheckers.discoverCleanseDiagnosticSuite(root, { includeTests: true });
@@ -96,8 +97,8 @@ describe("cleanse diagnostics", () => {
 	test("excludes generated Bazel trees from checker discovery", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cleanse-ignore-"));
 		try {
-			await Bun.write(path.join(root, "src", "index.ts"), "export const value = 1;\n");
-			await Bun.write(
+			await bun.write(path.join(root, "src", "index.ts"), "export const value = 1;\n");
+			await bun.write(
 				path.join(root, "bazel-output", "fixture", "package.json"),
 				JSON.stringify({ scripts: { test: `bun -e "process.exit(3)"` } }),
 			);
@@ -606,7 +607,7 @@ describe("cleanse custom suite", () => {
 	test("builds runnable plans from discovery specs and skips unrunnable ones", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cleanse-custom-"));
 		try {
-			await Bun.write(path.join(root, "src", "a.ts"), "export const value = 1;\n");
+			await bun.write(path.join(root, "src", "a.ts"), "export const value = 1;\n");
 			const suite = await cleanseCheckers.buildCustomCleanseSuite(root, [
 				{
 					label: "fake tsc",
@@ -651,8 +652,8 @@ describe("cleanse custom suite", () => {
 	test("streams partial diagnostics before a long-running checker exits", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cleanse-stream-"));
 		try {
-			await Bun.write(path.join(root, "f.ts"), "export const a = 1;\n");
-			await Bun.write(path.join(root, "g.ts"), "export const b = 2;\n");
+			await bun.write(path.join(root, "f.ts"), "export const a = 1;\n");
+			await bun.write(path.join(root, "g.ts"), "export const b = 2;\n");
 			// Integration test of real streaming: the child sleeps to keep the
 			// checker alive across flush ticks; fake timers cannot drive a
 			// subprocess clock.
@@ -662,7 +663,7 @@ describe("cleanse custom suite", () => {
 					command: [
 						"bun",
 						"-e",
-						"console.log('f.ts:1:1: error: first'); await Bun.sleep(700); console.log('g.ts:1:1: error: second')",
+						"console.log('f.ts:1:1: error: first'); await bun.sleep(700); console.log('g.ts:1:1: error: second')",
 					],
 				},
 			]);

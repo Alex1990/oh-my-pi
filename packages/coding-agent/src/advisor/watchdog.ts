@@ -8,6 +8,7 @@ import contextFilesTemplate from "../prompts/advisor/context-files.md" with { ty
 import memoryContextTemplate from "../prompts/advisor/memory-context.md" with { type: "text" };
 import type { ActiveRepoContext } from "@oh-my-pi/pi-tui/status-line/host";
 import { normalizePromptPath } from "../utils/prompt-path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export function formatActiveRepoWatchdogPrompt(activeRepoContext: ActiveRepoContext): string {
 	return prompt
@@ -105,7 +106,7 @@ export async function collectConfigCandidates(
 	const items: ConfigCandidate[] = [];
 	for (const candidate of candidates) {
 		try {
-			const content = await Bun.file(candidate).text();
+			const content = await bun.file(candidate).text();
 			const parent = path.dirname(candidate);
 			const baseName = parent.split(path.sep).pop() ?? "";
 			const isUser = userPaths.has(candidate);

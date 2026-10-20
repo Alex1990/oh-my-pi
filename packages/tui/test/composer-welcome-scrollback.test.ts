@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Composer } from "@oh-my-pi/pi-tui/prompt/composer";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -6,6 +6,7 @@ import { Text } from "@oh-my-pi/pi-tui";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 beforeAll(async () => {
@@ -38,7 +39,7 @@ it("makes an oversized startup changelog available in scrollback after the intro
 		now = 3200;
 		vi.advanceTimersByTime(33);
 		await scheduler.settle(terminal);
-		const rows = terminal.getScrollBuffer().map(row => Bun.stripANSI(row).trimEnd());
+		const rows = terminal.getScrollBuffer().map(row => bun.stripANSI(row).trimEnd());
 		expect(rows.filter(row => row.startsWith("Changelog entry "))).toEqual(entries);
 		expect(terminal.getViewport().at(-1)?.trimEnd()).toBe("EDITOR");
 	} finally {

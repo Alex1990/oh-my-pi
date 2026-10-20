@@ -1,15 +1,17 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { HistoryStorage } from "@oh-my-pi/pi-coding-agent/session/history-storage";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 let tempDir = "";
-const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const HISTORY_STORAGE_MODULE = path.resolve(import.meta.dir, "../src/session/history-storage.ts");
-const AGENT_STORAGE_MODULE = path.resolve(import.meta.dir, "../src/session/agent-storage.ts");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const HISTORY_STORAGE_MODULE = path.resolve(import.meta.dirname, "../src/session/history-storage.ts");
+const AGENT_STORAGE_MODULE = path.resolve(import.meta.dirname, "../src/session/agent-storage.ts");
 
 async function freshStorage(prefix = "omp-history-write-through-"): Promise<HistoryStorage> {
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -72,7 +74,7 @@ describe("storage process-exit cleanup", () => {
 			'void agent.recordModelPerf("openai/repro", { outputTokens: 10, durationMs: 1000 });',
 			"process.exit(0);",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "ignore",
@@ -83,8 +85,8 @@ describe("storage process-exit cleanup", () => {
 		const historyCheckpoint = path.join(tempDir, "history-checkpoint.db");
 		const agentCheckpoint = path.join(tempDir, "agent-checkpoint.db");
 		await Promise.all([
-			Bun.write(historyCheckpoint, Bun.file(historyDbPath)),
-			Bun.write(agentCheckpoint, Bun.file(agentDbPath)),
+			bun.write(historyCheckpoint, bun.file(historyDbPath)),
+			bun.write(agentCheckpoint, bun.file(agentDbPath)),
 		]);
 
 		// Read copies of the main database files without their WALs. Both rows are
@@ -132,7 +134,7 @@ describe("storage process-exit cleanup", () => {
 			"AgentStorage.close();",
 			"console.log(JSON.stringify({ prompts, commands }));",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "pipe",
@@ -167,7 +169,7 @@ describe("storage process-exit cleanup", () => {
 			"await cleanup;",
 			"process.exit(0);",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "ignore",
@@ -180,7 +182,7 @@ describe("storage process-exit cleanup", () => {
 		// the deferred sample and checkpoints it into this copy.
 		// Writable open: SQLite rejects read-only access to a WAL-mode file with no
 		// -shm/-wal beside it; the copy still exposes only main-file content.
-		await Bun.write(checkpointed, Bun.file(agentDbPath));
+		await bun.write(checkpointed, bun.file(agentDbPath));
 		const agentDb = new Database(checkpointed);
 		try {
 			expect(
@@ -209,7 +211,7 @@ describe("storage process-exit cleanup", () => {
 			'void agent.recordModelPerf("openai/rearm", { outputTokens: 20, durationMs: 2000 });',
 			"process.exit(0);",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "ignore",
@@ -249,7 +251,7 @@ describe("storage process-exit cleanup", () => {
 			'console.log(JSON.stringify(agent.listUsage("command")));',
 			"process.exit(0);",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
+		const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "--eval", script], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "pipe",

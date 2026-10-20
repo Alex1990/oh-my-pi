@@ -401,6 +401,7 @@ import {
 	cfgWorkspaceAdditionalDirectories,
 } from "./session/context-settings";
 import { cfgTaskBatch, cfgTaskDisabledAgents, cfgTaskEager, cfgTaskMaxConcurrency } from "./task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Agent-level tool-call switches, snapshotted by the agent loop per prompt run. */
 const cfgToolCallSwitches = combine({
@@ -535,7 +536,7 @@ function logMCPLoadErrors(errors: MCPLoadResult["errors"]): void {
 
 function applyMCPEnvironment(result: { exaApiKeys: string[] }): void {
 	if (result.exaApiKeys.length > 0 && !$env.EXA_API_KEY) {
-		Bun.env.EXA_API_KEY = result.exaApiKeys[0];
+		bun.env.EXA_API_KEY = result.exaApiKeys[0];
 	}
 }
 
@@ -1619,7 +1620,7 @@ export function createAutoLearnCaptureRunner(
 		const captureModel = options.sourceAgent.state.model;
 		if (!captureModel) return;
 
-		const captureSessionId = options.createSessionId?.() ?? Bun.randomUUIDv7();
+		const captureSessionId = options.createSessionId?.() ?? bun.randomUUIDv7();
 		const captureProviderSessionState = new Map<string, ProviderSessionState>();
 		const stripInheritedReasoning =
 			captureModel.api === "openai-responses" ||
@@ -1723,7 +1724,7 @@ export function createAutoLearnCaptureRunner(
  * // Full control
  * const { session } = await createAgentSession({
  *   model: myModel,
- *   getApiKey: async () => Bun.env.MY_KEY,
+ *   getApiKey: async () => bun.env.MY_KEY,
  *   systemPrompt: ['You are helpful.'],
  *   tools: codingTools({ cwd: getProjectDir() }),
  *   skills: [],

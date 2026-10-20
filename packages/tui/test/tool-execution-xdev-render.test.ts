@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "bun:test";
+import { beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import { Text } from "@oh-my-pi/pi-tui";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";

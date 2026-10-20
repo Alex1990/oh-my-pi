@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolvePromptCacheKey } from "@oh-my-pi/pi-ai/auth-gateway/http";
 
 describe("resolvePromptCacheKey", () => {

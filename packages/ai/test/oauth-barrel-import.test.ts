@@ -1,11 +1,13 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeTsArgs } from "./helpers/node-ts";
 
-const STATIC_IMPORT_FIXTURE = `${import.meta.dir}/fixtures/oauth-barrel-import.ts`;
+const STATIC_IMPORT_FIXTURE = `${import.meta.dirname}/fixtures/oauth-barrel-import.ts`;
 
 describe("OAuth barrel imports", () => {
 	it("loads with the Anthropic provider and auth storage while preserving public exports", async () => {
-		const child = Bun.spawn([process.execPath, STATIC_IMPORT_FIXTURE], {
-			cwd: import.meta.dir,
+		const child = bun.spawn(nodeTsArgs(STATIC_IMPORT_FIXTURE), {
+			cwd: import.meta.dirname,
 			stdout: "pipe",
 			stderr: "pipe",
 		});

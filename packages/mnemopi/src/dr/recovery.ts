@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import {
 	copyFileSync,
 	existsSync,
@@ -15,6 +15,7 @@ import { basename, dirname, extname, join } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { dataDir as configuredDataDir, dbPath as configuredDbPath, type Env } from "../config";
 import { closeQuietly, openDatabase } from "../db";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type SerializableDatabase = Database & { serialize(): Uint8Array };
 const SQLITE_HEADER = new Uint8Array([83, 81, 76, 105, 116, 101, 32, 102, 111, 114, 109, 97, 116, 32, 51, 0]);
@@ -90,7 +91,7 @@ function timestampForBackup(now = new Date()): string {
 }
 
 function sha256Hex16(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex").slice(0, 16);
+	return bun.SHA256.hash(bytes, "hex").slice(0, 16);
 }
 
 function nextUniqueToken(): string {

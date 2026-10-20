@@ -5,11 +5,11 @@ This page defines the public JS/TS boundary between `@oh-my-pi/pi-natives` calle
 ## Contract layers
 
 1. `crates/pi-natives/src/**/*.rs` defines `#[napi]` functions, classes, objects, and enums.
-2. `bun --cwd=packages/natives run build:bindings` runs napi-rs, installs the host addon and generated `native/index.d.ts`, then runs `gen-enums.ts`.
+2. `pnpm --dir packages/natives run build:bindings` runs napi-rs, installs the host addon and generated `native/index.d.ts`, then runs `gen-enums.ts`.
 3. `gen-enums.ts` reads the declarations, rewrites napi-rs `const enum` declarations to runtime-usable declarations, and replaces the marked block in `native/index.js` with explicit class/function exports and literal enum objects.
 4. `native/index.js` loads the addon and binds that generated root surface. `DesktopSession` is routed through `desktop-adapter.js` for compatibility with older desktop ABIs; current classes pass through unchanged.
 
-There is no `NativeBindings` declaration-merging lifecycle or `packages/natives/src/<module>` wrapper convention. The loader checks release identity for install/compiled loads (with a narrow pre-sentinel compatibility exception), not every public symbol; a function export the loaded addon omits is `missingNativeExport(name)` — `undefined` on a current addon, and on a stale workspace addon a throwing stub that names the addon and the rebuild command (`bun run build:native`).
+There is no `NativeBindings` declaration-merging lifecycle or `packages/natives/src/<module>` wrapper convention. The loader checks release identity for install/compiled loads (with a narrow pre-sentinel compatibility exception), not every public symbol; a function export the loaded addon omits is `missingNativeExport(name)` — `undefined` on a current addon, and on a stale workspace addon a throwing stub that names the addon and the rebuild command (`pnpm run build:native`).
 
 ## Public entrypoints
 
@@ -111,7 +111,7 @@ Numeric and string enum declarations constrain TypeScript callers but do not by 
 ## Binding-change checklist
 
 1. Add or change the owning Rust `#[napi]` item; register a new module in `crates/pi-natives/src/lib.rs`.
-2. Run `bun --cwd=packages/natives run build:bindings` when the exported type surface changes. The default Cargo-backed `build` also regenerates declarations/exports; Bazel-backed and explicit-target artifact builds leave them unchanged.
+2. Run `pnpm --dir packages/natives run build:bindings` when the exported type surface changes. The default Cargo-backed `build` also regenerates declarations/exports; Bazel-backed and explicit-target artifact builds leave them unchanged.
 3. Confirm `native/index.d.ts` has the intended JS name, types, optionality, callback shape, and sync/promise return.
 4. Confirm the marked block in `native/index.js` contains the class/function and any enum runtime object.
 5. Add a lazy subpath wrapper only when deferred loading is required, and then add matching `package.json#exports` runtime/types entries.

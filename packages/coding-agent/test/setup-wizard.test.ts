@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, vi } from "bun:test";
+import { afterEach, describe, expect, it, mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { runOnboardingSetup } from "@oh-my-pi/pi-coding-agent/commands/setup";
@@ -21,6 +21,7 @@ import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 
 import { cfgSetupVersion, cfgSymbolPreset } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type SetupApplicationSceneHost = Omit<SetupSceneHost, "ctx"> & { ctx: InteractiveModeContext };
 
@@ -337,7 +338,7 @@ describe("setup wizard mouse routing", () => {
 		try {
 			void component.run();
 			component.handleInput("\r"); // splash → scene
-			await Bun.sleep(500); // let the splash→scene dissolve (420ms) finish so the frame is the scene
+			await bun.sleep(500); // let the splash→scene dissolve (420ms) finish so the frame is the scene
 			const frame = component.render(80);
 			const row = frame.findIndex(line => line.includes("MARKER-ROW"));
 			expect(row).toBeGreaterThan(0);
@@ -403,7 +404,7 @@ describe("setup wizard short terminals", () => {
 			// assume ten visible rows and the wizard clipped the cursor off).
 			for (const key of [...Array(45).fill("\x1b[B"), "\x1b[A", "\x1b[A"]) {
 				component.handleInput(key);
-				const frame = component.render(80).map(line => Bun.stripANSI(line));
+				const frame = component.render(80).map(line => bun.stripANSI(line));
 				expect(frame.length).toBe(24);
 				expect(frame.some(line => line.includes(`${theme.nav.cursor} `))).toBe(true);
 			}
@@ -420,7 +421,7 @@ describe("setup wizard short terminals", () => {
 		component.handleInput("\r"); // splash → scene
 		const nowSpy = skipDissolve();
 		try {
-			const frame = component.render(80).map(line => Bun.stripANSI(line));
+			const frame = component.render(80).map(line => bun.stripANSI(line));
 			expect(frame.length).toBe(24);
 			expect(frame.some(line => line.trimStart().startsWith(theme.nav.cursor))).toBe(true);
 			for (const label of ["Match terminal", "Titanium", "Light", "Colorblind colors", "ANSI-safe", "Browse all"]) {
@@ -456,11 +457,11 @@ describe("setup wizard theme previews", () => {
 
 		const controller = setupScene!.mount(host);
 		controller.handleInput?.("5");
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		expect(theme.getSymbolPreset()).toBe("ascii");
 
 		controller.handleInput?.("2");
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		expect(cfgSymbolPreset.get(settings)).toBe("nerd");
 		expect(theme.getSymbolPreset()).toBe("nerd");
 	});
@@ -490,11 +491,11 @@ describe("setup wizard glyph scene", () => {
 		const controller = scene!.mount(host);
 		// Row "1" is now Nerd Font (it must lead the list).
 		controller.handleInput?.("1");
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		expect(theme.getSymbolPreset()).toBe("nerd");
 
 		controller.handleInput?.("\n");
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		expect(cfgSymbolPreset.get(settings)).toBe("nerd");
 		expect(finished).toBe(true);
 	});

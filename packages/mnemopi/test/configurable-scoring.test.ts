@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { normalizedRecallWeights } from "@oh-my-pi/pi-mnemopi/config";
 import { BeamMemory } from "@oh-my-pi/pi-mnemopi/core/beam";
 

@@ -3,7 +3,7 @@
  * tool approval through the extension runner's) end the computer turn's display hold while they wait, and the turn
  * holds again after the answer.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

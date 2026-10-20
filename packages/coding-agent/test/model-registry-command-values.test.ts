@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
@@ -177,7 +178,7 @@ describe("ModelRegistry command-resolved models.yml values", () => {
 		const counterFile = path.join(tempDir, "counter.txt");
 		fs.writeFileSync(tokenFile, "configured-key");
 		fs.writeFileSync(counterFile, "");
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			JSON.stringify({
 				providers: {
@@ -197,7 +198,7 @@ describe("ModelRegistry command-resolved models.yml values", () => {
 
 		expect(await registry.getApiKey(model)).toBe("runtime-key");
 		expect(await registry.getApiKeyForProvider("custom-proxy")).toBe("runtime-key");
-		expect(await Bun.file(counterFile).text()).toBe("");
+		expect(await bun.file(counterFile).text()).toBe("");
 	});
 
 	test("401 reruns a command-backed API key and updates live auth headers", async () => {

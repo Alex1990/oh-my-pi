@@ -2,12 +2,13 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getSecretPlaceholderKeyPath, isEnoent, logger } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import { type SecretEntry, SecretObfuscator } from "./obfuscator";
 import { CREDENTIAL_PATTERNS } from "./patterns";
 import { sanitizeSecretFriendlyName, secretEntriesNeedPlaceholderKey } from "./placeholder";
 import { compileSecretRegex } from "./regex";
 import { regexHasUnresolvableShortMatchFallback } from "./replacement";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PLACEHOLDER_KEY_RE = /^[A-Za-z0-9_-]{43}$/;
 const cachedPlaceholderKeys = new Map<string, string>();
@@ -131,9 +132,9 @@ async function readPlaceholderKeyFile(keyPath: string, retry: boolean): Promise<
 	const attempts = retry ? 50 : 1;
 	let invalidValue: string | undefined;
 	for (let attempt = 0; attempt < attempts; attempt++) {
-		if (attempt > 0) await Bun.sleep(10);
+		if (attempt > 0) await bun.sleep(10);
 		try {
-			const value = (await Bun.file(keyPath).text()).trim();
+			const value = (await bun.file(keyPath).text()).trim();
 			if (PLACEHOLDER_KEY_RE.test(value)) return value;
 			if (value.length > 0) invalidValue = value;
 		} catch (err) {
@@ -294,7 +295,7 @@ export async function buildSecretObfuscator(
 
 async function loadSecretsFile(filePath: string): Promise<SecretEntry[]> {
 	try {
-		const text = await Bun.file(filePath).text();
+		const text = await bun.file(filePath).text();
 		const raw = YAML.parse(text);
 		if (!Array.isArray(raw)) {
 			logger.warn("secrets.yml must be a YAML array", { path: filePath });

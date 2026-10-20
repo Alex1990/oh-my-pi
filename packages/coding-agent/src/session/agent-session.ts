@@ -96,7 +96,7 @@ import {
 	escapeXmlText,
 	formatDuration,
 	getAgentDbPath,
-	isBunTestRuntime,
+	isTestRuntime,
 	isInteractiveHost,
 	isRecord,
 	logger,
@@ -466,6 +466,7 @@ import { ToolChoiceQueue } from "./tool-choice-queue";
 import { planTurnPersistence, sameMessageContent, sessionMessagePersistenceKey } from "./turn-persistence";
 import { TurnRecovery, type TurnRecoveryHost } from "./turn-recovery";
 import { YieldQueue } from "./yield-queue";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export * from "./agent-session-events";
 export * from "./agent-session-types";
@@ -824,10 +825,10 @@ function isEvalActivity(message: AgentMessage): boolean {
 
 /** A retry supersedes a failed operation only when its intent matches, allowing a missing append phase to be supplied. */
 function todoRetryMatches(failed: Record<string, unknown>, retry: Record<string, unknown>): boolean {
-	if (Bun.deepEquals(failed, retry)) return true;
+	if (bun.deepEquals(failed, retry)) return true;
 	if (failed.op !== "append" || Object.hasOwn(failed, "phase") || typeof retry.phase !== "string") return false;
 	for (const key in failed) {
-		if (!Object.hasOwn(retry, key) || !Bun.deepEquals(failed[key], retry[key])) return false;
+		if (!Object.hasOwn(retry, key) || !bun.deepEquals(failed[key], retry[key])) return false;
 	}
 	for (const key in retry) {
 		if (key !== "phase" && !Object.hasOwn(failed, key)) return false;
@@ -1226,7 +1227,7 @@ export class AgentSession implements SettingsScope {
 	}
 
 	#acquirePowerAssertion(): void {
-		if (isBunTestRuntime()) return;
+		if (isTestRuntime()) return;
 		if (this.#powerAssertion) return;
 		const options = powerAssertionOptions(cfgPowerSleepPrevention.get(this.settings));
 		if (!options) return;
@@ -5568,7 +5569,7 @@ export class AgentSession implements SettingsScope {
 	 * the cache key: model, system prompt, tool set, thinking level, retention.
 	 */
 	#cacheWarmingShape(model: Model | undefined): number | bigint {
-		return Bun.hash(
+		return bun.hash(
 			JSON.stringify([
 				model?.provider,
 				model?.id,
@@ -6185,7 +6186,7 @@ export class AgentSession implements SettingsScope {
 		const previousSessionId = this.sessionId;
 		const closedProviderSessions = this.#providerSessionState.size;
 		this.#closeAllProviderSessions("fresh session");
-		this.#freshProviderSessionId = Bun.randomUUIDv7();
+		this.#freshProviderSessionId = bun.randomUUIDv7();
 		this.#syncAgentSessionId();
 		this.#memory.rekeyForCurrentSessionId();
 		this.agent.appendOnlyContext?.invalidateForModelChange();
@@ -6265,7 +6266,7 @@ export class AgentSession implements SettingsScope {
 		// history server-side starts a brand-new exchange rather than resuming the
 		// context we just dropped (mirrors freshSession()).
 		this.#closeAllProviderSessions("reset context");
-		this.#freshProviderSessionId = Bun.randomUUIDv7();
+		this.#freshProviderSessionId = bun.randomUUIDv7();
 		this.#syncAgentSessionId();
 		this.#memory.rekeyForCurrentSessionId();
 		this.agent.appendOnlyContext?.invalidateForModelChange();
@@ -6914,7 +6915,7 @@ export class AgentSession implements SettingsScope {
 
 	/** Register post-prompt work in tests without driving a full agent turn. */
 	trackPostPromptTaskForTests(task: Promise<unknown>): void {
-		if (!isBunTestRuntime()) throw new Error("trackPostPromptTaskForTests is test-only");
+		if (!isTestRuntime()) throw new Error("trackPostPromptTaskForTests is test-only");
 		this.#trackPostPromptTask(task);
 	}
 
@@ -9994,7 +9995,7 @@ export class AgentSession implements SettingsScope {
 		if (this.#titleProviderParentSessionId === parentSessionId && this.#titleProviderSessionId) {
 			return this.#titleProviderSessionId;
 		}
-		const titleSessionId = Bun.randomUUIDv7();
+		const titleSessionId = bun.randomUUIDv7();
 		this.#titleProviderParentSessionId = parentSessionId;
 		this.#titleProviderSessionId = titleSessionId;
 		return titleSessionId;
@@ -13883,7 +13884,7 @@ export class AgentSession implements SettingsScope {
 		const messages = this.messages;
 		if (messages.length === 0) return undefined;
 		const filePath = path.join(os.tmpdir(), `omp-llm-request-${Snowflake.next()}.json`);
-		await Bun.write(filePath, await this.#formatLlmRequestJson(messages));
+		await bun.write(filePath, await this.#formatLlmRequestJson(messages));
 		return filePath;
 	}
 

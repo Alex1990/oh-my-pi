@@ -7,6 +7,7 @@ import { CustomEditor } from "../../../src/prompt/custom-editor";
 import { getEditorTheme, initTheme } from "../../../src/theme/theme";
 import { becomesCollectible, collectGarbage } from "../../gc";
 import { TspHarness } from "../tsp-harness";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
 
@@ -30,7 +31,7 @@ function uploaded(harness: TspHarness, index: number, data: string): { id: strin
 	assert.equal(typeof id, "string");
 	const blob = getNativeBlob(id!);
 	assert.ok(blob);
-	assert.deepEqual(harness.terminal.blobs.get(id!), Buffer.from(data, "base64"));
+	assert.deepEqual(harness.terminal.blobs.get(id!), Uint8Array.from(Buffer.from(data, "base64")));
 	return { id: id!, reference: new WeakRef(blob.bytes) };
 }
 
@@ -55,7 +56,7 @@ function replay(harness: TspHarness, id: string, data: string): void {
 	harness.terminal.blobs.clear();
 	harness.event({ ev: "gone", ids: [surface] });
 	assert.equal(harness.terminal.log.filter(message => message.verb === "b").length, uploads + 1);
-	assert.deepEqual(harness.terminal.blobs.get(id), Buffer.from(data, "base64"));
+	assert.deepEqual(harness.terminal.blobs.get(id), Uint8Array.from(Buffer.from(data, "base64")));
 }
 
 await initTheme(false);
@@ -88,7 +89,7 @@ try {
 	await collect();
 	replay(harness, restored.id, PNG);
 
-	const otherPng = await new Bun.Image(Buffer.from(PNG, "base64")).resize(2, 1).png().toBase64();
+	const otherPng = await new Image(Buffer.from(PNG, "base64")).resize(2, 1).png().toBase64();
 	stageImage(editor, otherPng);
 	stageImage(editor, PNG);
 	await harness.render();

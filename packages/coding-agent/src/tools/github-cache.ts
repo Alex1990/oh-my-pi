@@ -16,7 +16,7 @@
  *   Past hard TTL → treat as miss and fetch fresh.
  */
 
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,6 +25,7 @@ import type { Settings } from "../config/settings";
 import { defaultGhHost, parseRepoRef } from "./gh-common";
 import { cfgGithubCacheEnabled, cfgGithubCacheHardTtlSec, cfgGithubCacheSoftTtlSec } from "./settings";
 import { ToolAbortError } from "./tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Storage layer
@@ -175,7 +176,7 @@ function getGhConfigDir(): string {
 }
 
 function hashCacheIdentity(parts: string[]): string {
-	return Bun.hash(parts.map(part => `${part.length}:${part}`).join("|")).toString(36);
+	return bun.hash(parts.map(part => `${part.length}:${part}`).join("|")).toString(36);
 }
 
 /**

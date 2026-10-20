@@ -5,7 +5,7 @@
  * Left/Esc ascend before Esc cancels, and turns without prose fall back to
  * their blocks.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -13,6 +13,7 @@ import { CopySelectorComponent, type CopyPickSource } from "@oh-my-pi/pi-tui/ove
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import type { SessionMessageEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { setKeybindings, type TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const UP = "\x1b[A";
 const LEFT = "\x1b[D";
@@ -219,7 +220,7 @@ describe("CopySelectorComponent", () => {
 	it("folds lazily created grouped reads into the assistant turn so Enter copies the yield", () => {
 		const picks: Array<{ content: string; label: string }> = [];
 		const selector = makeSelector(picks, () => {}, undefined, makeGroupedReadEntries());
-		const lines = selector.render(100).map(line => Bun.stripANSI(line));
+		const lines = selector.render(100).map(line => bun.stripANSI(line));
 
 		// The newest target must span the yield AND the lazily created Read group.
 		// A fold that keeps previous.end unchanged can still copy yield while
@@ -280,7 +281,7 @@ describe("CopySelectorComponent", () => {
 	/** Locate `needle` in the rendered frame: 0-based row and the visible column where it starts. */
 	function locate(lines: readonly string[], needle: string): { row: number; col: number } {
 		for (let row = 0; row < lines.length; row++) {
-			const plain = Bun.stripANSI(lines[row]!);
+			const plain = bun.stripANSI(lines[row]!);
 			const at = plain.indexOf(needle);
 			if (at !== -1) return { row, col: at };
 		}
@@ -294,7 +295,7 @@ describe("CopySelectorComponent", () => {
 		selector.render(100);
 		selector.handleInput(RIGHT);
 		const frame = selector.render(100);
-		const plain = frame.map(line => Bun.stripANSI(line));
+		const plain = frame.map(line => bun.stripANSI(line));
 
 		// The bash command is block 3 of 4 and is not the outlined block; its own control still targets it.
 		const captionRow = plain.findIndex(line => line.includes("3/4 · bash command"));
@@ -315,7 +316,7 @@ describe("CopySelectorComponent", () => {
 		selector.render(100);
 		selector.handleInput(RIGHT);
 		const frame = selector.render(100);
-		const plain = frame.map(line => Bun.stripANSI(line));
+		const plain = frame.map(line => bun.stripANSI(line));
 
 		const linkRow = plain.findIndex(line => line.includes("2/4 · link · the PR"));
 		const codeRow = plain.findIndex(line => line.includes("1/4 · ts code"));
@@ -341,7 +342,7 @@ describe("CopySelectorComponent", () => {
 		// Split embedded newlines exactly as the terminal does before reporting an SGR mouse row.
 		const physicalFrame = selector.render(100).join("\n").split("\n");
 		const { row } = locate(physicalFrame, `2/3${theme.sep.dot}bash command`);
-		const copyCol = Bun.stripANSI(physicalFrame[row]!).indexOf(`${theme.cmd.copy} copy`);
+		const copyCol = bun.stripANSI(physicalFrame[row]!).indexOf(`${theme.cmd.copy} copy`);
 		expect(copyCol).toBeGreaterThan(0);
 		selector.handleInput(click(row, copyCol + 1));
 		selector.dispose();
@@ -386,7 +387,7 @@ describe("CopySelectorComponent", () => {
 		const selector = makeSelector([]);
 		selector.render(100);
 		selector.handleInput(RIGHT);
-		const lines = selector.render(100).map(line => Bun.stripANSI(line));
+		const lines = selector.render(100).map(line => bun.stripANSI(line));
 		selector.handleInput(LEFT);
 		selector.dispose();
 
@@ -467,7 +468,7 @@ describe("CopySelectorComponent", () => {
 		const selector = pickerOver(entries, picks);
 		try {
 			expect(selector.targetCount).toBeLessThan(entries.length);
-			expect(Bun.stripANSI(selector.render(100).join("\n"))).toContain("a earlier turns");
+			expect(bun.stripANSI(selector.render(100).join("\n"))).toContain("a earlier turns");
 
 			// Step off the newest turn: the reload must restore this turn, not
 			// fall back to the last target of the fuller transcript.
@@ -475,7 +476,7 @@ describe("CopySelectorComponent", () => {
 			selector.handleInput(UP);
 			selector.handleInput("a");
 			expect(selector.targetCount).toBe(entries.length);
-			const loaded = Bun.stripANSI(selector.render(100).join("\n"));
+			const loaded = bun.stripANSI(selector.render(100).join("\n"));
 			expect(loaded).not.toContain("a earlier turns");
 			expect(loaded).toContain(`${entries.length - 2}/${entries.length}`);
 
@@ -544,7 +545,7 @@ describe("CopySelectorComponent", () => {
 		try {
 			// The single user turn is the only boundary, so the whole branch replays.
 			expect(selector.targetCount).toBeGreaterThan(0);
-			expect(Bun.stripANSI(selector.render(100).join("\n"))).not.toContain("a earlier turns");
+			expect(bun.stripANSI(selector.render(100).join("\n"))).not.toContain("a earlier turns");
 
 			selector.handleInput(ENTER);
 			expect(picks).toHaveLength(1);
@@ -574,7 +575,7 @@ describe("CopySelectorComponent", () => {
 		const selector = pickerOver(entries, []);
 		try {
 			expect(selector.targetCount).toBeLessThan(700);
-			expect(Bun.stripANSI(selector.render(100).join("\n"))).toContain("a earlier turns");
+			expect(bun.stripANSI(selector.render(100).join("\n"))).toContain("a earlier turns");
 		} finally {
 			selector.dispose();
 		}

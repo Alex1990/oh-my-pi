@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { FileEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import * as sessionLoader from "@oh-my-pi/pi-coding-agent/session/session-loader";
 import { serializeTitleSlot } from "@oh-my-pi/pi-coding-agent/session/session-title-slot";
+import { bun, type NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
-// Parity contract for the ≥8MiB streaming loader (now Bun.JSONL-based): it must
+// Parity contract for the ≥8MiB streaming loader (now bun.JSONL-based): it must
 // produce the SAME entries + titleSlot as the common-path parser
 // (parseSessionContent, which uses parseJsonlLenient) on identical content —
 // including a first-line title slot, blank lines, and malformed JSON lines that
@@ -75,7 +76,7 @@ function messageTexts(entries: FileEntry[]): string[] {
 	return texts;
 }
 
-describe("loadEntriesFromFileStream (Bun.JSONL parity)", () => {
+describe("loadEntriesFromFileStream (bun.JSONL parity)", () => {
 	it("visits entries incrementally while skipping malformed lines", async () => {
 		const slotLine = serializeTitleSlot({ title: "Visitor", source: "user", updatedAt: ISO });
 		const content = [
@@ -297,14 +298,14 @@ describe("loadEntriesFromFileStream (Bun.JSONL parity)", () => {
 		// the parser, so the record cap has to be enforced before buffering or the
 		// whole journal is read despite a zero budget.
 		const content = `{"type":"session","version":3,"id":"s1","timestamp":"${ISO}","cwd":"/tmp","pad":"${"z".repeat(4 * 1024 * 1024)}"}`;
-		expect(content).not.toInclude("\n");
+		expect(content).not.toContain("\n");
 		const file = await writeTemp(content);
 
 		let bytesRead = 0;
 		let firstChunkBytes = 0;
-		const realBunFile = Bun.file.bind(Bun);
-		const bunFileSpy = spyOn(Bun, "file").mockImplementation((arg: unknown, opts?: BlobPropertyBag) => {
-			const handle = realBunFile(arg as string, opts);
+		const realBunFile = bun.file.bind(bun);
+		const bunFileSpy = spyOn(bun, "file").mockImplementation((target: string | URL | NodeFile) => {
+			const handle = realBunFile(target);
 			const realStream = handle.stream.bind(handle);
 			// An async generator, not a piped stream: it is strictly pull-driven, so
 			// the count reflects what the loader asked for and not read-ahead.

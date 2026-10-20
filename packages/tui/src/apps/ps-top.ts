@@ -37,6 +37,7 @@ import {
 	TERMINAL_STATES,
 	tableCells,
 } from "./ps-data";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REFRESH_MS = 2_000;
 const LOGS_POLL_MS = 1_000;
@@ -633,7 +634,7 @@ export class PsTopComponent implements Component {
 		const age = this.#lastRefresh ? `updated ${formatDuration(Date.now() - this.#lastRefresh)} ago` : "updating…";
 		const left = ` ${chalk.bold("omp ps")} ${chalk.dim("·")} ${title}`;
 		const right = chalk.dim(age);
-		const pad = Math.max(1, width - Bun.stringWidth(left) - Bun.stringWidth(right) - 1);
+		const pad = Math.max(1, width - bun.stringWidth(left) - bun.stringWidth(right) - 1);
 		return truncateToWidth(`${left}${" ".repeat(pad)}${right}`, width);
 	}
 
@@ -658,7 +659,7 @@ export class PsTopComponent implements Component {
 
 		const cells = this.#flat.map(entry => tableCells(entry.row));
 		const widths = TABLE_HEADER.map((title, column) =>
-			Math.max(title.length, ...cells.map(row => Bun.stringWidth(row[column]))),
+			Math.max(title.length, ...cells.map(row => bun.stringWidth(row[column]))),
 		);
 		const columns: TableColumn[] = widths.map((columnWidth): TableColumn => ({
 			width: columnWidth,
@@ -699,7 +700,7 @@ export class PsTopComponent implements Component {
 		const selectedLine = body.findIndex(line => line.flat === this.#selected);
 		const display = body.map(entry => {
 			if (entry.flat === this.#selected) {
-				const plain = ` ❯${Bun.stripANSI(entry.text).slice(2)}`;
+				const plain = ` ❯${bun.stripANSI(entry.text).slice(2)}`;
 				return truncateToWidth(chalk.inverse(plain.padEnd(width)), width);
 			}
 			return truncateToWidth(entry.text, width);

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage, MemorySessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: TempDir[] = [];
 const LARGE_SESSION_BYTES = 9 * 1024 * 1024;
@@ -136,7 +137,7 @@ describe("SessionManager.peekSessionInit", () => {
 		]
 			.map(entry => JSON.stringify(entry))
 			.join("\n");
-		await Bun.write(file, `${content}\n`);
+		await bun.write(file, `${content}\n`);
 
 		const peek = await SessionManager.peekSessionInit(file);
 		expect(peek?.init?.systemPrompt).toEqual(["base\n\nrules"]);
@@ -173,7 +174,7 @@ describe("SessionManager.peekSessionInit", () => {
 		]
 			.map(entry => JSON.stringify(entry))
 			.join("\n");
-		await Bun.write(file, `${content}\n`);
+		await bun.write(file, `${content}\n`);
 
 		expect(await SessionManager.peekSessionInit(file)).toBeNull();
 		expect(await SessionManager.peekSessionInit(file, new LargeFileSessionStorage())).toBeNull();

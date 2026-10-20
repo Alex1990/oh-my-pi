@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/task";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempPaths: string[] = [];
 
@@ -335,7 +336,7 @@ describe("readRpcSubagentTranscript", () => {
 			timestamp: "2026-06-09T00:00:00.000Z",
 			message: { role: "user", content: [{ type: "text", text: "hello" }] },
 		})}\n`;
-		await Bun.write(sessionFile, `${headerLine}${messageLine}{"type":"message"`);
+		await bun.write(sessionFile, `${headerLine}${messageLine}{"type":"message"`);
 
 		const result = await readRpcSubagentTranscript(sessionFile);
 
@@ -367,7 +368,7 @@ describe("RpcClient subagent frames", () => {
 	test("dispatches subagent frames and session-specific events", async () => {
 		const scriptPath = path.join(os.tmpdir(), `omp-rpc-subagent-client-${Date.now()}.js`);
 		tempPaths.push(scriptPath);
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`
 let buffer = "";

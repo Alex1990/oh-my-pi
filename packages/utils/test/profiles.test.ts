@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +19,14 @@ import {
 	setProfile,
 } from "@oh-my-pi/pi-utils/dirs";
 import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	url.pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 	const reader = stream.getReader();
@@ -281,8 +289,8 @@ describe("dirs module import behavior", () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-dirs-import-"));
 		try {
 			const probePath = path.join(root, "probe.ts");
-			const dirsUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "dirs.ts")).href;
-			await Bun.write(
+			const dirsUrl = url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "dirs.ts")).href;
+			await bun.write(
 				probePath,
 				[
 					`import ${JSON.stringify(dirsUrl)};`,
@@ -298,7 +306,7 @@ describe("dirs module import behavior", () => {
 				MallocStackLogging: "0",
 				MallocStackLoggingNoCompact: "0",
 			};
-			const proc = Bun.spawn([process.execPath, probePath], {
+			const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 				stdout: "pipe",
 				stderr: "pipe",
 				env: childEnv,
@@ -321,19 +329,20 @@ describe("dirs module import behavior", () => {
 	it("exposes worker-host without loading agent env", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-worker-host-import-"));
 		try {
-			const workerHostUrl = import.meta.resolve("@oh-my-pi/pi-utils/worker-host");
+			const workerHostUrl = url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "worker-host.ts")).href;
 			const agentDir = path.join(root, "agent");
 			await fs.mkdir(agentDir, { recursive: true });
-			await Bun.write(path.join(agentDir, ".env"), "OMP_WORKER_HOST_PROBE=from-agent-env\n");
+			await bun.write(path.join(agentDir, ".env"), "OMP_WORKER_HOST_PROBE=from-agent-env\n");
 			const probePath = path.join(root, "probe.ts");
-			await Bun.write(
+			await bun.write(
 				probePath,
 				[
 					`import { declareWorkerHostEntry, workerHostEntry } from ${JSON.stringify(workerHostUrl)};`,
+					`import { bun } from ${JSON.stringify(url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "node-runtime.ts")).href)};`,
 					"declareWorkerHostEntry();",
 					"process.stdout.write(JSON.stringify({",
 					"	envProbe: process.env.OMP_WORKER_HOST_PROBE ?? null,",
-					"	hostDeclared: workerHostEntry() === Bun.main,",
+					"	hostDeclared: workerHostEntry() === bun.main,",
 					"}));",
 				].join("\n"),
 			);
@@ -343,7 +352,7 @@ describe("dirs module import behavior", () => {
 				PI_CODING_AGENT_DIR: agentDir,
 			};
 			delete childEnv.OMP_WORKER_HOST_PROBE;
-			const proc = Bun.spawn([process.execPath, probePath], {
+			const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 				stdout: "pipe",
 				stderr: "pipe",
 				env: childEnv,
@@ -368,13 +377,13 @@ describe("dirs module import behavior", () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-dirs-default-profile-"));
 		const probeConfigDir = `.omp-default-profile-${Snowflake.next()}`;
 		try {
-			const dirsUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "dirs.ts")).href;
+			const dirsUrl = url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "dirs.ts")).href;
 			const workAgentDir = path.join(os.homedir(), probeConfigDir, "profiles", "work", "agent");
 			const defaultAgentDir = path.join(os.homedir(), probeConfigDir, "agent");
 
 			for (const ompProfile of ["", "default"]) {
 				const probePath = path.join(root, `default-profile-${ompProfile || "empty"}.ts`);
-				await Bun.write(
+				await bun.write(
 					probePath,
 					[
 						`import { getActiveProfile, getAgentDir } from ${JSON.stringify(dirsUrl)};`,
@@ -392,7 +401,7 @@ describe("dirs module import behavior", () => {
 					PI_PROFILE: "work",
 					PI_CODING_AGENT_DIR: workAgentDir,
 				};
-				const proc = Bun.spawn([process.execPath, probePath], {
+				const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 					stdout: "pipe",
 					stderr: "pipe",
 					env: childEnv,
@@ -422,20 +431,20 @@ describe("dirs module import behavior", () => {
 		const xdgStateRoot = path.join(root, "xdg-state");
 		const profileConfigDir = `.omp-env-xdg-${Snowflake.next()}`;
 		try {
-			const envUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "env.ts")).href;
-			const dirsUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "dirs.ts")).href;
+			const envUrl = url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "env.ts")).href;
+			const dirsUrl = url.pathToFileURL(path.join(import.meta.dirname, "..", "src", "dirs.ts")).href;
 			const agentDir = path.join(homeDir, profileConfigDir, "profiles", "work", "agent");
 			await fs.mkdir(agentDir, { recursive: true });
 			// The profile's agent .env sets a directory-affecting key. env.ts parses
 			// and applies it to the environment *after* dirs.ts froze the resolver at
 			// import time — the exact ordering refreshDirsFromEnv() guards.
-			await Bun.write(path.join(agentDir, ".env"), `XDG_STATE_HOME=${xdgStateRoot}\n`);
+			await bun.write(path.join(agentDir, ".env"), `XDG_STATE_HOME=${xdgStateRoot}\n`);
 			// Named profiles only adopt XDG when their own XDG path already exists.
 			const xdgProfileRoot = path.join(xdgStateRoot, "omp", "profiles", "work");
 			await fs.mkdir(xdgProfileRoot, { recursive: true });
 
 			const probePath = path.join(root, "probe.ts");
-			await Bun.write(
+			await bun.write(
 				probePath,
 				[
 					`import ${JSON.stringify(envUrl)};`,
@@ -459,7 +468,7 @@ describe("dirs module import behavior", () => {
 			delete childEnv.XDG_DATA_HOME;
 			delete childEnv.XDG_STATE_HOME;
 			delete childEnv.XDG_CACHE_HOME;
-			const proc = Bun.spawn([process.execPath, probePath], {
+			const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 				cwd: root,
 				stdout: "pipe",
 				stderr: "pipe",

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { readArj, sniffArj } from "../../src/ar/arj";
 import { ArchiveError } from "../../src/ar/error";
 import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
@@ -6,6 +6,7 @@ import { readLzh, sniffLzh } from "../../src/ar/lzh";
 import { memoryByteSource } from "../../src/ar/source";
 import type { ArchiveIndexEntry, FormatReader } from "../../src/ar/types";
 import { arFixture as fixtureBytes } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REPEAT_SHA256 = "6c569d00a8d8d31338d7f1ac134f0d6cbd014446568063ac0b919ab042e0dcf5";
 
@@ -21,7 +22,7 @@ async function extract(entries: ArchiveIndexEntry[], path: string): Promise<Uint
 }
 
 function sha256(bytes: Uint8Array): string {
-	return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+	return new bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
 describe("LZH/LHA", () => {
@@ -34,7 +35,7 @@ describe("LZH/LHA", () => {
 		["lzh-level0-lh5.lzh", "lh5"],
 		["lzh-level1-lh6.lzh", "lh6"],
 		["lzh-level2-lh7.lzh", "lh7"],
-	] as const)("indexes header levels and nested entries: %s (%s)", async fixture => {
+	] as const)("indexes header levels and nested entries: %s (%s)", async (fixture, _level) => {
 		const entries = await readFixture(fixture, readLzh);
 		expect(entries.map(entry => entry.path)).toEqual(["hello.txt", "nested", "nested/mode.sh", "nested/repeat.txt"]);
 		expect(entries.find(entry => entry.path === "nested")?.isDirectory).toBe(true);

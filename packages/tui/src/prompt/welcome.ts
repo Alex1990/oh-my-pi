@@ -9,6 +9,7 @@ import { compactText, plainText } from "../native/spans";
 import { isNativeRendering } from "../native/state";
 import { isHyperlinkEnabled, urlHyperlink, urlLinkSpan } from "../render/hyperlink";
 import { TERMINAL } from "../terminal-capabilities";
+import { colorToString } from "../theme/color";
 import { theme } from "../theme/theme";
 import type { Component } from "../tui";
 import { padding, replaceTabs, visibleWidth, wrapTextWithAnsi } from "../utils";
@@ -75,7 +76,7 @@ function renderNewTag(phase: number, encoding: ColorEncoding): string {
 	let prev = "";
 	for (let i = 0; i < chars.length; i++) {
 		const hue = Math.round(((i / chars.length + wrapped) % 1) * 360);
-		const color = Bun.color(`hsl(${hue}, 95%, 60%)`, encoding) ?? "";
+		const color = colorToString(`hsl(${hue}, 95%, 60%)`, encoding) ?? "";
 		if (color !== prev) {
 			out += color;
 			prev = color;

@@ -7,7 +7,7 @@
  * 3. Exiting unregisters the vibe tools and restores the pre-vibe active toolset
  *    exactly, including the legitimate empty set.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool, type StreamFn } from "@oh-my-pi/pi-agent-core";
@@ -28,6 +28,7 @@ import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { VibeSessionRegistry } from "@oh-my-pi/pi-coding-agent/vibe/runtime";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage, createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function stubTool(name: string): AgentTool {
 	return {
@@ -53,7 +54,7 @@ async function registerOrderSkill(
 	body = "Do it in order.",
 ): Promise<void> {
 	const filePath = path.join(tempDir.path(), `${name}.md`);
-	await Bun.write(filePath, `---\nname: ${name}\n---\n${body}\n`);
+	await bun.write(filePath, `---\nname: ${name}\n---\n${body}\n`);
 	const skill: Skill = {
 		name,
 		description: "",

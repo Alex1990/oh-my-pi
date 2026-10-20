@@ -10,7 +10,7 @@
  * fell back to a different cache shard), its shared `providerSessionState`,
  * and its explicit websocket preference.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type StreamFn } from "@oh-my-pi/pi-agent-core";
 import type { FetchImpl, Model, SimpleStreamOptions } from "@oh-my-pi/pi-ai";
 import { streamSimple } from "@oh-my-pi/pi-ai";

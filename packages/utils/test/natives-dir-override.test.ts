@@ -1,8 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
+import type * as NodeOs from "node:os";
 import * as path from "node:path";
 import { __resetDirsFromEnvForTests, getAgentDir, getNativesDir } from "@oh-my-pi/pi-utils/dirs";
+
+const osMock = vi.hoisted(() => ({ home: "" }));
+
+// Node's ESM namespace objects are frozen, so wrap `homedir` instead of
+// spying on the export.
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof NodeOs>();
+	return { ...actual, homedir: () => osMock.home };
+});
 
 const ENV_KEYS = [
 	"HOME",
@@ -34,7 +45,7 @@ describe("native directory override", () => {
 		await fs.mkdir(home);
 		process.env.HOME = home;
 		process.env.USERPROFILE = home;
-		vi.spyOn(os, "homedir").mockReturnValue(home);
+		osMock.home = home;
 		__resetDirsFromEnvForTests();
 	});
 

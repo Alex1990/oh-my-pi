@@ -2,7 +2,7 @@
  * Alt+Up restores one queued message into the current composer. A focused view
  * must leave the main session's steering and compaction queues untouched.
  */
-import { beforeAll, describe, expect, mock, test } from "bun:test";
+import { beforeAll, describe, expect, mock, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { CompactionQueuedMessage, InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";

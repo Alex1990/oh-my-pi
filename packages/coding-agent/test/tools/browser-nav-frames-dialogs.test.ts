@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
@@ -7,9 +7,11 @@ import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supe
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import type { Page, WaitForOptions } from "puppeteer-core";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	// `/never-ends` must outlive the run budget instead of Bun's 10s idle cut.
 	idleTimeout: 0,
@@ -514,7 +516,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser navigation, frames, dialogs, and t
 
 	test("stops the page load when a run is cancelled mid-goto", async () => {
 		const requested = Promise.withResolvers<AbortSignal>();
-		const slow = Bun.serve({
+		const slow = await serve({
 			port: 0,
 			idleTimeout: 0,
 			fetch(request) {
@@ -539,7 +541,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser navigation, frames, dialogs, and t
 				if (request.aborted) resolve("stopped");
 				request.addEventListener("abort", () => resolve("stopped"));
 			});
-			expect(await Promise.race([dropped, Bun.sleep(5_000).then(() => "still loading")])).toBe("stopped");
+			expect(await Promise.race([dropped, bun.sleep(5_000).then(() => "still loading")])).toBe("stopped");
 		} finally {
 			slow.stop(true);
 		}
@@ -548,7 +550,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser navigation, frames, dialogs, and t
 	test("leaves the page's in-flight fetches alone when a run that is not navigating is cancelled", async () => {
 		const pending = Promise.withResolvers<AbortSignal>();
 		const waiting = Promise.withResolvers<void>();
-		const slow = Bun.serve({
+		const slow = await serve({
 			port: 0,
 			idleTimeout: 0,
 			fetch(request) {
@@ -584,7 +586,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser navigation, frames, dialogs, and t
 				request.addEventListener("abort", () => resolve("dropped"));
 			});
 			// Proving the fetch survives needs real time: nothing signals "Chrome did not cancel it".
-			expect(await Promise.race([dropped, Bun.sleep(1_000).then(() => "pending")])).toBe("pending");
+			expect(await Promise.race([dropped, bun.sleep(1_000).then(() => "pending")])).toBe("pending");
 		} finally {
 			slow.stop(true);
 		}
@@ -592,7 +594,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser navigation, frames, dialogs, and t
 
 	test("does not call a cancelled run's page listeners for the requests the cancel stops", async () => {
 		const requested = Promise.withResolvers<void>();
-		const slow = Bun.serve({
+		const slow = await serve({
 			port: 0,
 			idleTimeout: 0,
 			fetch() {

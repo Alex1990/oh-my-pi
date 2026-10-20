@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { NativeOAuthCallback } from "../native/index.js";
 
 test("native OAuth validates schemes before starting a receiver", async () => {

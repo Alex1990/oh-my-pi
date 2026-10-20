@@ -1,7 +1,8 @@
-import { describe, expect, it, mock, vi } from "bun:test";
+import { describe, expect, it, mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { MacOSSpellingProvider, type SpellingBackend } from "@oh-my-pi/pi-tui/prompt/macos-spelling";
 import type { SpellingDecorationContext } from "@oh-my-pi/pi-tui/prompt/prose-gate";
 import { setMagicKeywords } from "@oh-my-pi/pi-tui/prompt/magic-keywords";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function backend(overrides: Partial<SpellingBackend>): SpellingBackend {
 	return {
@@ -67,11 +68,11 @@ describe("macOS spelling feature gates", () => {
 		provider.decorateTypos("other", decorationContext(editorText, 1));
 		const painted = provider.decorateTypos("{ #each", decorationContext(editorText, 0));
 		expect(painted).toContain("\x1b[4:3m"); // transitional projected undercurl on "eac"
-		await Bun.sleep(0); // let the queued "other" check start
+		await bun.sleep(0); // let the queued "other" check start
 		expect(requests.map(request => request.text)).toEqual(["{ #eac", "other"]);
 
 		requests[1]?.result.resolve([]);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		// The queued verification for "{ #each" must survive the projected paint.
 		expect(requests.map(request => request.text)).toEqual(["{ #eac", "other", "{ #each"]);
 
@@ -314,7 +315,7 @@ describe("macOS spelling feature gates", () => {
 		// call that never returns leaves the promise pending forever. A pending
 		// promise never reaches a catch: the provider stayed available, nothing was
 		// logged, and the typo queue stayed frozen for the rest of the session.
-		// Fake timers because the fix must use setTimeout — Bun.sleep is not
+		// Fake timers because the fix must use setTimeout — bun.sleep is not
 		// intercepted by vi.useFakeTimers().
 		vi.useFakeTimers();
 		try {

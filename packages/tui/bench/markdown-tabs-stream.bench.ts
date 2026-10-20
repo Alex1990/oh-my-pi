@@ -11,6 +11,7 @@
  */
 import { Markdown } from "../src/components/markdown";
 import { defaultMarkdownTheme } from "../test/test-themes";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WIDTH = 100;
 const BASE = "# T\n\nSome prose with\ttabs in it.\n\n- item one\n- item two\n\n```ts\nconst x = 1;\n```\n\n";
@@ -19,14 +20,14 @@ const CHUNK = "more streamed text with a\ttab ";
 function streamOnce(doc: string, frames: number): number {
 	const component = new Markdown("", 0, 0, defaultMarkdownTheme);
 	component.transientRenderCache = true;
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	let current = doc;
 	for (let i = 0; i < frames; i++) {
 		current += CHUNK;
 		component.setText(current);
 		component.render(WIDTH);
 	}
-	return (Bun.nanoseconds() - start) / 1e6;
+	return (bun.nanoseconds() - start) / 1e6;
 }
 
 const doc = BASE.repeat(40);

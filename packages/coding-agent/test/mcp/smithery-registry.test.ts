@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { searchSmitheryRegistry } from "../../src/mcp/smithery-registry";
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 describe("searchSmitheryRegistry fetch cancellation", () => {
 	afterEach(() => {
@@ -38,7 +39,7 @@ describe("searchSmitheryRegistry fetch cancellation", () => {
 					tools: [],
 				});
 			},
-			{ preconnect: globalThis.fetch.preconnect },
+			{ preconnect: preconnectOf(globalThis.fetch) },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 

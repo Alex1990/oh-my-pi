@@ -1,15 +1,29 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { syncAllSessions } from "@oh-my-pi/omp-stats/aggregator";
 import { getOverallStats } from "@oh-my-pi/omp-stats/rollup";
 import { getSessionsDir } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const workerProbe = vi.hoisted(() => ({ constructions: 0, error: null as Error | null }));
+vi.mock("@oh-my-pi/pi-utils/worker", () => ({
+	Worker: class {
+		constructor() {
+			workerProbe.constructions++;
+			if (workerProbe.error) throw workerProbe.error;
+		}
+	},
+}));
 
 installStatsTestIsolation("@pi-stats-sync-serial-");
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	workerProbe.constructions = 0;
+	workerProbe.error = null;
 });
 
 async function writeSessionFile(options?: { includeCost?: boolean }): Promise<void> {
@@ -43,20 +57,20 @@ async function writeSessionFile(options?: { includeCost?: boolean }): Promise<vo
 			ttft: 5,
 		},
 	};
-	await Bun.write(sessionFile, `${JSON.stringify(assistant)}\n`);
+	await bun.write(sessionFile, `${JSON.stringify(assistant)}\n`);
 }
 
 describe("stats sync serial mode", () => {
 	it("honors workers: 1 without spawning a worker", async () => {
 		await writeSessionFile();
-		const workerSpy = vi.spyOn(globalThis, "Worker");
+		const workerSpy = workerProbe;
 
 		const synced = await syncAllSessions({ workers: 1 });
 		const overall = getOverallStats();
 
 		expect(synced.files).toBe(1);
 		expect(overall.totalRequests).toBe(1);
-		expect(workerSpy).not.toHaveBeenCalled();
+		expect(workerSpy.constructions).toBe(0);
 	});
 
 	it("skips gc compress scratch copies but keeps transcripts in other dot directories", async () => {
@@ -88,25 +102,25 @@ describe("stats sync serial mode", () => {
 	it("uses the serial parser by default on macOS", async () => {
 		await writeSessionFile();
 		vi.spyOn(process, "platform", "get").mockReturnValue("darwin");
-		const workerSpy = vi.spyOn(globalThis, "Worker");
+		const workerSpy = workerProbe;
 
 		const synced = await syncAllSessions();
 		const overall = getOverallStats();
 
 		expect(synced.files).toBe(1);
 		expect(overall.totalRequests).toBe(1);
-		expect(workerSpy).not.toHaveBeenCalled();
+		expect(workerSpy.constructions).toBe(0);
 	});
 
 	it("spawns no worker when every transcript is unchanged", async () => {
 		await writeSessionFile();
 		await syncAllSessions({ workers: 1 });
-		const workerSpy = vi.spyOn(globalThis, "Worker");
+		const workerSpy = workerProbe;
 
 		const synced = await syncAllSessions({ workers: 2 });
 
 		expect(synced).toEqual({ processed: 0, files: 0 });
-		expect(workerSpy).not.toHaveBeenCalled();
+		expect(workerSpy.constructions).toBe(0);
 	});
 
 	it("parses a few already-tracked transcripts inline by default", async () => {
@@ -115,21 +129,19 @@ describe("stats sync serial mode", () => {
 		const sessionFile = path.join(getSessionsDir(), "--tmp--sync-serial", "session.jsonl");
 		await fs.appendFile(sessionFile, "\n");
 		vi.spyOn(process, "platform", "get").mockReturnValue("linux");
-		const workerSpy = vi.spyOn(globalThis, "Worker");
+		const workerSpy = workerProbe;
 
 		await syncAllSessions({ files: [sessionFile] });
 
-		expect(workerSpy).not.toHaveBeenCalled();
+		expect(workerSpy.constructions).toBe(0);
 	});
 
 	it("spawns a worker pool when callers explicitly request workers: 2 with a single file", async () => {
 		await writeSessionFile();
-		const workerProbe = new Error("worker probe");
-		const workerSpy = vi.spyOn(globalThis, "Worker").mockImplementation(() => {
-			throw workerProbe;
-		});
+		const workerError = new Error("worker probe");
+		workerProbe.error = workerError;
 
-		await expect(syncAllSessions({ workers: 2 })).rejects.toBe(workerProbe);
-		expect(workerSpy).toHaveBeenCalled();
+		await expect(syncAllSessions({ workers: 2 })).rejects.toBe(workerError);
+		expect(workerProbe.constructions).toBeGreaterThan(0);
 	});
 });

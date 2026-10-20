@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -21,6 +21,7 @@ import {
 	cfgTuiMaxInlineImageColumns,
 	cfgTuiMaxInlineImageRows,
 } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function extractAnyTerminatorLinkUri(text: string): string | undefined {
 	return text.match(/\x1b\]8;[^;]*;([^\x1b\x07]+)(?:\x1b\\|\x07)/)?.[1];
@@ -147,8 +148,8 @@ describe("resource links in chat markdown", () => {
 	it("expands labeled, reference, and table links to real local and artifact files", async () => {
 		const localFile = path.join(tempDir, "local", "reviewed findings#.json");
 		const artifactFile = path.join(tempDir, "42.txt");
-		await Bun.write(localFile, '{"reviewed":true}');
-		await Bun.write(artifactFile, "artifact output");
+		await bun.write(localFile, '{"reviewed":true}');
+		await bun.write(artifactFile, "artifact output");
 		const href = "local://reviewed%20findings%23.json";
 		const text = [
 			`[Reviewed findings](${href})`,
@@ -179,7 +180,7 @@ describe("resource links in chat markdown", () => {
 
 	it("links ordinary paths against the session cwd while preserving displayed paths and source anchors", async () => {
 		const file = path.join(tempDir, "src", "my file.ts");
-		await Bun.write(file, "export const value = 1;");
+		await bun.write(file, "export const value = 1;");
 		const relative = "src/my%20file.ts#L7";
 		const absolute = file.replaceAll("\\", "/").replaceAll(" ", "%20");
 		const text = `[Source](${relative}) and [Absolute](${absolute}) and [Missing](src/missing.ts) and [Heading](#heading)`;
@@ -228,7 +229,7 @@ describe("resource links in chat markdown", () => {
 
 	it("stops linking a file once it is deleted", async () => {
 		const file = path.join(tempDir, "gone.txt");
-		await Bun.write(file, "x");
+		await bun.write(file, "x");
 		const text = "[Gone](gone.txt)";
 		expect([
 			...(await resolveMarkdownLinkHrefs(terminalCaps.getMarkdownLinkUrls(text), { cwd: tempDir })).keys(),
@@ -240,8 +241,8 @@ describe("resource links in chat markdown", () => {
 	});
 
 	it("leaves missing, escaping, remote, and non-link destinations unexpanded", async () => {
-		await Bun.write(path.join(tempDir, "local", "report.json"), "{}");
-		await Bun.write(path.join(tempDir, "outside.json"), "{}");
+		await bun.write(path.join(tempDir, "local", "report.json"), "{}");
+		await bun.write(path.join(tempDir, "outside.json"), "{}");
 		await fs.symlink(path.join(tempDir, "outside.json"), path.join(tempDir, "local", "escape.json"));
 		const text = [
 			"`[code](local://report.json)`",
@@ -274,7 +275,7 @@ describe("resource links in chat markdown", () => {
 		for (const session of ["a", "b"]) {
 			const artifactsDir = path.join(tempDir, session);
 			const file = path.join(artifactsDir, "local", "report.json");
-			await Bun.write(file, session);
+			await bun.write(file, session);
 			const targets = await resolveMarkdownLinkHrefs(terminalCaps.getMarkdownLinkUrls(text), {
 				localProtocolOptions: { getArtifactsDir: () => artifactsDir },
 			});

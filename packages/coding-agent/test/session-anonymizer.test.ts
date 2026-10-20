@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { SessionAnonymizer } from "../src/session/session-anonymizer";
 
 const SECRET_WORDS = ["acme", "hunter2", "invoiceParser", "Probe", "alice", "launch codes"];

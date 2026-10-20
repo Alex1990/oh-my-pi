@@ -8,6 +8,7 @@ import { omptypeCandidate } from "./candidates/omptype";
 import { typeboxCandidate } from "./candidates/typebox";
 import { FIXTURES, generateUniqueDefs } from "./fixtures";
 import type { Def } from "./ir";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const registry: Candidate[] = [omptypeCandidate, arktypeCandidate, typeboxCandidate];
 const filter = process.argv.slice(2);
@@ -65,13 +66,13 @@ for (const candidate of candidates) {
 				candidateFailed = true;
 				continue;
 			}
-			if (!Bun.deepEquals(result, expectation.output, true)) {
+			if (!bun.deepEquals(result, expectation.output, true)) {
 				console.error(
 					`✗ ${candidate.name}/${fixture.name}: morph output mismatch: got ${JSON.stringify(result)}, want ${JSON.stringify(expectation.output)}`,
 				);
 				candidateFailed = true;
 			}
-			if (!Bun.deepEquals(input, expectation.input, true)) {
+			if (!bun.deepEquals(input, expectation.input, true)) {
 				console.error(`✗ ${candidate.name}/${fixture.name}: schema mutated its input: ${JSON.stringify(input)}`);
 				candidateFailed = true;
 			}
@@ -120,15 +121,15 @@ function rewriteUnique(
 	const count = 400;
 	const rows: Row[] = [];
 	for (const candidate of candidates) {
-		Bun.gc(true);
+		bun.gc(true);
 		const repetitions: number[] = [];
 		for (let repetition = 0; repetition < 5; repetition++) {
 			const definitions = generateUniqueDefs(count).map((entry, index) =>
 				rewriteUnique(entry, `r${repetition}_${index}`),
 			);
-			const start = Bun.nanoseconds();
+			const start = bun.nanoseconds();
 			for (const definition of definitions) candidate.type(definition.def);
-			repetitions.push((Bun.nanoseconds() - start) / count);
+			repetitions.push((bun.nanoseconds() - start) / count);
 		}
 		rows.push({ candidate: candidate.name, perOperation: Math.min(...repetitions) });
 	}
@@ -139,19 +140,19 @@ function rewriteUnique(
 	const count = 400;
 	const rows: Row[] = [];
 	for (const candidate of candidates) {
-		Bun.gc(true);
+		bun.gc(true);
 		const repetitions: number[] = [];
 		for (let repetition = 0; repetition < 5; repetition++) {
 			const definitions = generateUniqueDefs(count).map((entry, index) =>
 				rewriteUnique(entry, `c${repetition}_${index}`),
 			);
-			const start = Bun.nanoseconds();
+			const start = bun.nanoseconds();
 			for (const definition of definitions) {
 				const schema = candidate.type(definition.def);
 				schema(definition.valid);
 				schema(definition.invalid);
 			}
-			repetitions.push((Bun.nanoseconds() - start) / count);
+			repetitions.push((bun.nanoseconds() - start) / count);
 		}
 		rows.push({ candidate: candidate.name, perOperation: Math.min(...repetitions) });
 	}
@@ -166,14 +167,14 @@ function rewriteUnique(
 		for (const candidate of candidates) {
 			const schema = candidate.type(fixture.def);
 			for (let index = 0; index < 2_000; index++) schema(inputs[index % inputs.length]);
-			Bun.gc(true);
+			bun.gc(true);
 			let sink = 0;
-			const start = Bun.nanoseconds();
+			const start = bun.nanoseconds();
 			for (let index = 0; index < iterations; index++) {
 				const result = schema(inputs[index % inputs.length]);
 				if (candidate.isErrors(result)) sink++;
 			}
-			const duration = Bun.nanoseconds() - start;
+			const duration = bun.nanoseconds() - start;
 			if (sink === 0) throw new Error("benchmark sink was not observed");
 			rows.push({ candidate: candidate.name, perOperation: duration / iterations });
 		}
@@ -192,13 +193,13 @@ function rewriteUnique(
 			validate = (value: unknown) => !candidate.isErrors(schema(value));
 		}
 		for (let index = 0; index < 20_000; index++) validate(fixture.valid[index % fixture.valid.length]);
-		Bun.gc(true);
+		bun.gc(true);
 		let sink = 0;
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		for (let index = 0; index < iterations; index++) {
 			if (validate(fixture.valid[index % fixture.valid.length])) sink++;
 		}
-		const duration = Bun.nanoseconds() - start;
+		const duration = bun.nanoseconds() - start;
 		if (sink === 0) throw new Error("benchmark sink was not observed");
 		rows.push({ candidate: candidate.name, perOperation: duration / iterations });
 	}

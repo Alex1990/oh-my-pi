@@ -2,7 +2,7 @@
 
 > Execute one Python or JavaScript cell in a persistent language runtime. One tool call is one cell; state survives later calls.
 
-> **Notice:** Do not shell out to `python -c`, `bun -e`, or `node -e` through `bash` for ad-hoc code. `eval` provides retained state, rich `print` rendering, tool/subagent bridges, streaming, cancellation, and artifact-backed truncation.
+> **Notice:** Do not shell out to `python -c` or `node -e` through `bash` for ad-hoc code. `eval` provides retained state, rich `print` rendering, tool/subagent bridges, streaming, cancellation, and artifact-backed truncation.
 
 ## Source
 - Entry and dynamic schema: `packages/coding-agent/src/tools/eval.ts`
@@ -23,7 +23,7 @@ The params object is one cell. There is no `cells` array, header parser, languag
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `language` | `"py" \| "js"` | Yes | Explicit backend token. Normally the live schema includes only enabled runtimes. |
-| `code` | `string` | Yes | Inline code, or one standalone `%load` / `%pip install` (py) / `%bun add` / `%environment` (js) command. |
+| `code` | `string` | Yes | Inline code, or one standalone `%load` / `%pip install` (py) / `%npm add` / `%environment` (js) command. |
 | `title` | `string` | No | Short transcript label. |
 | `timeout` | `number` | No | Active-runtime timeout window in seconds. Default 30; `0` disables it. Nonzero values are clamped by the tool timeout policy (`TOOL_TIMEOUTS.eval`: 1–3600 s) and `tools.maxTimeout`. Paused host waits resume with a fresh window, not the unused remainder. |
 | `reset` | `boolean` | No | Recreate this language's retained runtime before execution. Other language runtimes are untouched. Default `false`. |
@@ -54,7 +54,7 @@ Later cells reuse its definitions. Calling `%load` again executes the current fi
 
 Python dependencies install with `%pip install pillow`: the runner's pip magic runs `python -m pip` for the kernel's own interpreter, pauses the cell watchdog while it runs, and keeps kernel variables. A missing-module error reminds that distribution names can differ from import names (`PIL` belongs to `pillow`).
 
-JavaScript dependencies install with `%bun add csv-parse` into an OMP-managed package environment shared by sessions in the same project; each worker keeps its own variables. Installation does not restart the worker; already imported modules stay cached until an explicit reset. Lifecycle scripts are disabled; packages needing native builds/postinstall must be prepared explicitly. `%environment project` selects the repository itself for package/lockfile changes; `%environment managed` returns to OMP-managed dependencies. The selection persists for later calls through that eval tool.
+JavaScript dependencies install with `%npm add csv-parse` into an OMP-managed package environment shared by sessions in the same project; each worker keeps its own variables. Installation does not restart the worker; already imported modules stay cached until an explicit reset. Lifecycle scripts are disabled; packages needing native builds/postinstall must be prepared explicitly. `%environment project` selects the repository itself for package/lockfile changes; `%environment managed` returns to OMP-managed dependencies. The selection persists for later calls through that eval tool.
 
 Percent commands are standalone cells, not extra tool arguments; quote requirements containing spaces.
 
@@ -69,11 +69,11 @@ Compaction receives a bounded live-kernel snapshot with environment and successf
 | Token | Runtime | Setting/default | Environment override | Additional prerequisite |
 | --- | --- | --- | --- | --- |
 | `py` | retained IPython-style Python kernel | `eval.py=true` | `PI_PY` | usable configured Python interpreter/kernel |
-| `js` | retained Bun worker VM | `eval.js=true` | `PI_JS` | bundled JS runtime |
+| `js` | retained JavaScript worker VM | `eval.js=true` | `PI_JS` | bundled JS runtime |
 
 When at least one runtime is enabled, disabled runtimes are removed from the session-scoped wire schema and model prompt. A requested unavailable runtime raises `ToolError`; the tool never substitutes another language. `eval.tools.enabled=true` (default) independently controls whether kernel-defined tools and the `tools` subagent fields are advertised and usable.
 
-`eval.autoProvision=true` lets the first `%bun add` create the managed JavaScript package environment; turning it off requires an existing environment or `%environment project`. Package installation pauses the compute watchdog but has its own ten-minute deadline and remains cancellable.
+`eval.autoProvision=true` lets the first `%npm add` create the managed JavaScript package environment; turning it off requires an existing environment or `%environment project`. Package installation pauses the compute watchdog but has its own ten-minute deadline and remains cancellable.
 
 ## Outputs
 
@@ -124,7 +124,7 @@ With `eval.autoBackground.enabled` (default `false`), a cell that outlives `eval
 ### JavaScript (`js`)
 
 - Persistent worker VM keyed by `js:${sessionId}`; `reset` recreates the VM and is destructive to concurrent users of that session id.
-- Runs under Bun and exposes host globals including `Bun`, `Buffer`, `fetch`, `process`, `require`, `createRequire`, `fs`, and Web Crypto.
+- Runs under Node.js and exposes host globals including `Buffer`, `fetch`, `process`, `require`, `createRequire`, `fs`, and Web Crypto.
 - Top-level `await` and bare `return` work through async wrapping.
 - Static top-level imports and dynamic imports are rewritten through the local module loader. Local filesystem imports are cache-busted between cells; bare package and scheme/URL imports retain normal cache identity.
 - Awaited regions can interleave with another session sharing the executor; synchronous code still blocks the worker event loop.
@@ -242,7 +242,7 @@ With `eval.tools.enabled` (default on), a cell can turn a function into a tool o
 ## Side effects and cancellation
 
 - Prelude helpers may read/write files and call arbitrary registered tools; JS exposes network-capable `fetch`.
-- Python uses a retained subprocess kernel speaking framed local IPC. JavaScript uses an isolated subprocess, with a Bun Worker fallback; if both fail to start, the call fails without executing code on the host thread.
+- Python uses a retained subprocess kernel speaking framed local IPC. JavaScript uses an isolated subprocess, with a Node.js worker fallback; if both fail to start, the call fails without executing code on the host thread.
 - Retained runtimes have no heartbeat or idle timer; they survive calls until reset, owner disposal (`EvalRunner.disposeKernels()` calls `disposeKernelSessionsByOwner` and `disposeVmContextsByOwner` keyed by `kernelOwnerId`, in `packages/coding-agent/src/session/eval-runner.ts`), or process exit.
 - Cancellation is destructive when needed: JS terminates its worker; managed kernels interrupt and may escalate to shutdown. A reset is likewise destructive to concurrent work sharing that backend session.
 - Eval-driven `agent()` children stay registered as keep-alive agents; owner teardown cancels their jobs, releases completion handles/judgment batches, and closes the owner's work pools.

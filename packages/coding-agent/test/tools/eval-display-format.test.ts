@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { EvalToolDetails } from "@oh-my-pi/pi-tui/tools/eval";
 import { getThemeByName, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 import { evalToolRenderer } from "@oh-my-pi/pi-tui/tools/eval";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("eval renderer: display-only streaming formatting", () => {
 	let theme: Theme;
@@ -21,8 +22,8 @@ describe("eval renderer: display-only streaming formatting", () => {
 	});
 
 	it("preserves percent command package identifiers instead of formatting them as JavaScript operators", () => {
-		const command = "%bun add csv-parse@5";
-		const rendered = Bun.stripANSI(
+		const command = "%npm add csv-parse@5";
+		const rendered = bun.stripANSI(
 			evalToolRenderer
 				.renderCall({ language: "js", code: command }, { expanded: true, isPartial: true }, theme)
 				.render(120)
@@ -32,7 +33,7 @@ describe("eval renderer: display-only streaming formatting", () => {
 	});
 
 	it("expands compact source in both pending and completed previews", () => {
-		const pending = Bun.stripANSI(
+		const pending = bun.stripANSI(
 			evalToolRenderer
 				.renderCall({ language: "js", code: source }, { expanded: true, isPartial: true }, theme)
 				.render(120)
@@ -43,7 +44,7 @@ describe("eval renderer: display-only streaming formatting", () => {
 			languages: ["js"],
 			cells: [{ index: 0, code: source, language: "js", output: "", status: "complete" }],
 		};
-		const completed = Bun.stripANSI(
+		const completed = bun.stripANSI(
 			evalToolRenderer
 				.renderResult(
 					{ content: [{ type: "text", text: "" }], details },

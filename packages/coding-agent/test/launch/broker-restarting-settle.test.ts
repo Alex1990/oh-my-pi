@@ -3,7 +3,7 @@
 // `setTimeout` in #settle that resurrects a stopped daemon. Fake timers cannot control the OS
 // process-exit promise or the unix-socket RPC the broker relies on. The embedded broker uses a
 // shorter real backoff here; proving the absence of resurrection still requires crossing it.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Process } from "@oh-my-pi/pi-natives";
@@ -12,6 +12,8 @@ import { type DaemonBrokerStartOptions, startDaemonBrokerFromEnvironment } from 
 import { createDaemonBrokerClient, type DaemonBrokerClient } from "../../src/launch/client";
 import { DAEMON_IDLE_GRACE_ENV, DAEMON_PROJECT_DIR_ENV, DAEMON_RUNTIME_DIR_ENV } from "../../src/launch/protocol";
 import { type DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const RESTART_BACKOFF_BASE_MS = 250;
 const INITIAL_RESTART_DELAY_MS = RESTART_BACKOFF_BASE_MS * 2;
@@ -54,7 +56,7 @@ async function waitForState(
 	while (Date.now() < deadline) {
 		const daemon = await snapshotOf(client, name);
 		if (daemon.state === state) return daemon;
-		await Bun.sleep(25);
+		await bun.sleep(25);
 	}
 	throw new Error(`daemon ${name} never reached state ${state}`);
 }
@@ -109,7 +111,7 @@ describe("daemon broker restart settling", () => {
 			expect(stopped.daemon.state).toBe("exited");
 
 			// Cross the configured initial backoff where a leaked timer would fire #launch.
-			await Bun.sleep(INITIAL_RESTART_DELAY_MS + RESTART_SETTLE_MARGIN_MS);
+			await bun.sleep(INITIAL_RESTART_DELAY_MS + RESTART_SETTLE_MARGIN_MS);
 			const afterStop = await snapshotOf(client, name);
 			expect(afterStop.state).toBe("exited");
 			expect(afterStop.pid).toBeUndefined();
@@ -141,7 +143,7 @@ describe("daemon broker restart settling", () => {
 				spec: {
 					name,
 					application: process.execPath,
-					args: ["-e", 'Bun.serve({ port: 0, fetch() { return new Response("ok"); } })'],
+					args: ["-e", 'serve({ port: 0, fetch() { return new Response("ok"); } })'],
 					env: {},
 					cwd: projectDir,
 					pty: false,

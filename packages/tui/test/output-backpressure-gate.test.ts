@@ -15,7 +15,7 @@
  *    state — frames produced mid-stall never reach the terminal.
  * 3. Terminals that do not report `pendingOutputBytes` are never gated.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type RenderTimer, Text, TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
 

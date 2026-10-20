@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TUI } from "@oh-my-pi/pi-tui";
 import type { PrivateModeReportHandler } from "@oh-my-pi/pi-tui/terminal";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Contract: after TUI.start(), a confirmed DECRPM 2026 “unrecognized”
@@ -40,16 +41,16 @@ describe("TUI Herdr synchronized-output DECRQM carve-out", () => {
 
 	beforeEach(() => {
 		for (const key of SYNC_OVERRIDE_KEYS) {
-			previous.set(key, Bun.env[key]);
-			delete Bun.env[key];
+			previous.set(key, bun.env[key]);
+			delete bun.env[key];
 		}
 	});
 
 	afterEach(() => {
 		for (const key of SYNC_OVERRIDE_KEYS) {
 			const value = previous.get(key);
-			if (value === undefined) delete Bun.env[key];
-			else Bun.env[key] = value;
+			if (value === undefined) delete bun.env[key];
+			else bun.env[key] = value;
 		}
 		previous.clear();
 	});
@@ -57,7 +58,7 @@ describe("TUI Herdr synchronized-output DECRQM carve-out", () => {
 	it("keeps synchronized output on in Herdr after a DECRPM unrecognized ?2026 report", () => {
 		// If this regresses, Herdr panes tear: the live viewport's top stays frozen
 		// while only the bottom refreshes after the startup DECRQM probe.
-		Bun.env.HERDR_ENV = "1";
+		bun.env.HERDR_ENV = "1";
 		const terminal = new ReportingTerminal(80, 24);
 		const tui = new TUI(terminal);
 		try {
@@ -71,7 +72,7 @@ describe("TUI Herdr synchronized-output DECRQM carve-out", () => {
 	});
 
 	it("turns synchronized output off after a confirmed unsupported ?2026 report outside Herdr", () => {
-		Bun.env.TERM_FEATURES = "Sy";
+		bun.env.TERM_FEATURES = "Sy";
 		const terminal = new ReportingTerminal(80, 24);
 		const tui = new TUI(terminal);
 		try {
@@ -87,7 +88,7 @@ describe("TUI Herdr synchronized-output DECRQM carve-out", () => {
 	it("turns synchronized output off in Herdr when a three-argument unsupported ?2026 report omits DECRPM status", () => {
 		// Custom Terminals may still call (2026, false, true) without status.
 		// That is a definitive unsupported, not Herdr's unrecognized (status 0).
-		Bun.env.HERDR_ENV = "1";
+		bun.env.HERDR_ENV = "1";
 		const terminal = new ReportingTerminal(80, 24);
 		const tui = new TUI(terminal);
 		try {
@@ -103,7 +104,7 @@ describe("TUI Herdr synchronized-output DECRQM carve-out", () => {
 	it("turns synchronized output off in Herdr when DECRPM reports 2026 permanently reset", () => {
 		// Status 4 means the terminal cannot enable the mode. Wrapping paints in
 		// CSI ?2026 would emit a mode the host has permanently disabled.
-		Bun.env.HERDR_ENV = "1";
+		bun.env.HERDR_ENV = "1";
 		const terminal = new ReportingTerminal(80, 24);
 		const tui = new TUI(terminal);
 		try {

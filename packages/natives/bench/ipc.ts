@@ -14,9 +14,10 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { IpcConnection, IpcServer, ipcEndpoint } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SCALE = Number(Bun.env.IPC_BENCH_SCALE ?? "1");
-const RUNS = Number(Bun.env.IPC_BENCH_RUNS ?? "5");
+const SCALE = Number(bun.env.IPC_BENCH_SCALE ?? "1");
+const RUNS = Number(bun.env.IPC_BENCH_RUNS ?? "5");
 const n = (count: number): number => Math.max(1, Math.round(count * SCALE));
 
 interface Pair {
@@ -156,14 +157,14 @@ interface Sample {
 
 /** Sequential request/response: one frame out, wait for its echo, repeat. */
 async function roundTrip(pair: Pair, count: number, frame: string): Promise<Sample> {
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < count; i++) {
 		const { promise, resolve } = Promise.withResolvers<void>();
 		pair.onClientLine(() => resolve());
 		pair.send(frame);
 		await promise;
 	}
-	return { ns: Bun.nanoseconds() - start, count, bytes: frame.length + 1 };
+	return { ns: bun.nanoseconds() - start, count, bytes: frame.length + 1 };
 }
 
 /** One-way stream: blast `count` frames, resolve when the server saw them all. */
@@ -173,12 +174,12 @@ async function stream(pair: Pair, count: number, frame: string): Promise<Sample>
 	pair.onServerLine(() => {
 		if (++seen === count) done.resolve();
 	});
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < count; i++) {
 		if (!pair.send(frame)) await pair.drained();
 	}
 	await done.promise;
-	return { ns: Bun.nanoseconds() - start, count, bytes: frame.length + 1 };
+	return { ns: bun.nanoseconds() - start, count, bytes: frame.length + 1 };
 }
 
 function describe(sample: Sample, latency: boolean): string {

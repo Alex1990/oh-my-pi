@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { disposeAllVmContexts } from "@oh-my-pi/pi-coding-agent/eval/js/context-manager";
 import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
@@ -15,10 +15,18 @@ import {
 } from "@oh-my-pi/pi-coding-agent/tools/browser/webmcp";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import type { Server, ServeOptions } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 // Every case includes a real Chromium lifecycle, including process launch and shutdown.
 const BROWSER_TEST_TIMEOUT_MS = 30_000;
+
+/** `serve()` resolves to a Server without `Symbol.dispose`; adapt it for `using`. */
+async function disposableServer<T = unknown>(options: ServeOptions<T>): Promise<Server<T> & Disposable> {
+	const server = await serve(options);
+	return Object.assign(server, { [Symbol.dispose]: () => void server.stop(true) });
+}
 
 function createBrowserHost() {
 	const session: ToolSession = {
@@ -157,13 +165,13 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser WebMCP helpers", () => {
 		async () => {
 			const invoke = createBrowserHost();
 			// Same site, other origin: the iframe shares the parent's renderer.
-			using child = Bun.serve({
+			using child = await disposableServer({
 				port: 0,
 				hostname: "localhost",
 				fetch: () =>
 					new Response("<!doctype html><title>child</title>child", { headers: { "content-type": "text/html" } }),
 			});
-			using parent = Bun.serve({
+			using parent = await disposableServer({
 				port: 0,
 				hostname: "localhost",
 				fetch: () =>
@@ -307,7 +315,7 @@ ModelContext.prototype.registerTool = window.pageRegister;`,
 		"restores only its own methods on dispose after the page $change",
 		async ({ afterAttach, check }) => {
 			// A secure context, so Chromium exposes its own ModelContext.
-			using server = Bun.serve({
+			using server = await disposableServer({
 				port: 0,
 				hostname: "localhost",
 				fetch: () =>
@@ -336,7 +344,7 @@ ModelContext.prototype.registerTool = window.pageRegister;`,
 	it(
 		"keeps an attached page alive whose document is replaced through a javascript: URL",
 		async () => {
-			using server = Bun.serve({
+			using server = await disposableServer({
 				port: 0,
 				hostname: "localhost",
 				fetch: () =>
@@ -394,7 +402,7 @@ Object.defineProperty(document, "modelContext", { configurable: true, value: pag
 	])(
 		"mirrors a tool registered after attach through a native modelContext $setup",
 		async ({ define }) => {
-			using server = Bun.serve({
+			using server = await disposableServer({
 				port: 0,
 				hostname: "localhost",
 				fetch: () =>

@@ -1,9 +1,10 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ToolExecutionComponent } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { ImageBudget } from "@oh-my-pi/pi-tui/components/image";
 import { ImageProtocol, setTerminalImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { writeToolRenderer } from "@oh-my-pi/pi-tui/tools/write";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 const SVG = "<svg viewBox='0 0 160 40'><rect width='160' height='40' fill='#3b82f6'/></svg>";
@@ -35,7 +36,7 @@ function streamingWrite(path: string, content: string) {
 	};
 }
 
-const plain = (rows: readonly string[]): string => Bun.stripANSI(rows.join("\n"));
+const plain = (rows: readonly string[]): string => bun.stripANSI(rows.join("\n"));
 const hasImage = (rows: readonly string[]): boolean => rows.some(row => TERMINAL.isImageLine(row));
 
 beforeAll(async () => {

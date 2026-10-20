@@ -5,7 +5,7 @@
  * permanently disables a healthy account, so the 403 / rate-limit / 5xx cases
  * below are load-bearing, not cosmetic.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isDefinitiveOAuthFailure } from "@oh-my-pi/pi-ai/error";
 
 describe("isDefinitiveOAuthFailure", () => {

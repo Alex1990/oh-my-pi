@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { EvalArgsStreamDecoder, MAX_EVAL_STREAM_ARGUMENT_BYTES } from "../../src/eval/speculation/eval-args-stream";
 
 function snapshotsForUtf8Split(raw: string, boundary: number) {

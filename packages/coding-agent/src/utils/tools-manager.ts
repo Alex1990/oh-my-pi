@@ -1,15 +1,17 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { ReadableStreamReadResult } from "node:stream/web";
 import { $env, $which, getToolsDir, logger, ptree, TempDir, USER_AGENT } from "@oh-my-pi/pi-utils";
 import { extractArchive } from "@oh-my-pi/pi-utils/ar";
 import { type DownloadTracker, trackDownload, withDownload } from "../downloads/activity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOOLS_DIR = getToolsDir();
 const TOOL_DOWNLOAD_TIMEOUT_MS = 120_000;
 const TOOL_METADATA_TIMEOUT_MS = 5000;
 
-type BodyReadResult = Bun.ReadableStreamDefaultReadResult<Uint8Array>;
+type BodyReadResult = ReadableStreamReadResult<Uint8Array>;
 type BodyReader = {
 	read(): Promise<BodyReadResult>;
 	cancel(reason?: unknown): Promise<void>;
@@ -44,7 +46,7 @@ async function writeResponseBody(
 	onChunk: ((bytes: number) => void) | undefined,
 ): Promise<void> {
 	const reader = body.getReader();
-	const sink = Bun.file(dest).writer();
+	const sink = bun.file(dest).writer();
 	let completed = false;
 
 	try {
@@ -210,7 +212,7 @@ export interface DownloadFileOptions {
 	onProgress?: (loaded: number, total: number | undefined) => void;
 }
 
-/** Download a tool asset without handing the streaming Response to Bun.write. */
+/** Download a tool asset without handing the streaming Response to bun.write. */
 export async function downloadFile(url: string, dest: string, options: DownloadFileOptions = {}): Promise<void> {
 	const { signal, timeoutMs = TOOL_DOWNLOAD_TIMEOUT_MS, onProgress } = options;
 	const downloadSignal = ptree.combineSignals(signal, timeoutMs);

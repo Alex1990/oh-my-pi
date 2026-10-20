@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderFormula } from "./ci-update-brew-formula";
 
 const BASE = "https://build.stencil.so/d/omp/20261010-171748-fa5ff4a";

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
@@ -18,6 +18,7 @@ import { EvalTool } from "@oh-my-pi/pi-coding-agent/tools/eval";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStorage: AuthStorage = createInMemoryAuthStorage();
 for (const provider of ["anthropic", "mock"]) authStorage.keys.setRuntime(provider, "test-key");
@@ -130,9 +131,9 @@ describe("TTSR eval near-miss controls", () => {
 		await session.waitForIdle();
 
 		for (const file of files.slice(0, 3)) {
-			expect(await Bun.file(file.path).exists()).toBe(true);
+			expect(await bun.file(file.path).exists()).toBe(true);
 		}
-		expect(await Bun.file(files[3].path).exists()).toBe(false);
+		expect(await bun.file(files[3].path).exists()).toBe(false);
 		expect(JSON.stringify(agent.state.messages)).toContain(`near-miss-${kind}`);
 		await session.dispose();
 	});

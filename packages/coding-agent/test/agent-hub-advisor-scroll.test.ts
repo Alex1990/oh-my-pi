@@ -1,4 +1,5 @@
 import { agentTranscriptSource } from "@oh-my-pi/pi-coding-agent/modes/agent-hub-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Regression: the fullscreen transcript viewer must align the header, body, and
  * footer on a single shared gutter. The transcript components carry their own
@@ -7,7 +8,7 @@ import { agentTranscriptSource } from "@oh-my-pi/pi-coding-agent/modes/agent-hub
  * (the reported "first char off / title shift"). Scrolling must also move the
  * visible window.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -29,6 +30,8 @@ import {
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgTerminalShowImages } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 const TS = new Date().toISOString();
 
@@ -168,7 +171,7 @@ function makeViewer(file: string, remote?: AgentHubRemote, ui?: TUI) {
 
 /** Leading-space count of a stripped line (its content gutter). */
 function gutter(line: string): number {
-	const stripped = Bun.stripANSI(line);
+	const stripped = bun.stripANSI(line);
 	return stripped.length - stripped.trimStart().length;
 }
 
@@ -216,7 +219,7 @@ function renderSyntheticAssistant(usage?: { input: number; output: number }): st
 			viewer.handleInput("g");
 			return viewer
 				.render(80)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 		} finally {
 			viewer.dispose();
@@ -264,7 +267,7 @@ describe("AgentTranscriptViewer", () => {
 		withViewer(viewer => {
 			viewer.render(80); // populate the scroll view before navigating
 			viewer.handleInput("g"); // scroll to top so the first message is visible
-			const lines = viewer.render(80).map(l => Bun.stripANSI(l));
+			const lines = viewer.render(80).map(l => bun.stripANSI(l));
 			const titleLine = lines.find(l => l.includes("Agent Hub"));
 			const bodyLine = lines.find(l => l.includes("PROMPTMARKER"));
 			expect(titleLine).toBeDefined();
@@ -329,7 +332,7 @@ describe("AgentTranscriptViewer", () => {
 		try {
 			viewer.render(80);
 			viewer.handleInput("g"); // scroll to top
-			const collapsed = viewer.render(80).map(l => Bun.stripANSI(l));
+			const collapsed = viewer.render(80).map(l => bun.stripANSI(l));
 			const collapsedBody = collapsed.join("\n");
 			// The synthetic body is not laid out; only the summary row shows.
 			expect(collapsedBody).not.toContain("SYNTHBODYMARKER");
@@ -341,7 +344,7 @@ describe("AgentTranscriptViewer", () => {
 			viewer.handleInput("g");
 			const expandedBody = viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 			expect(expandedBody).toContain("SYNTHBODYMARKER");
 		} finally {
@@ -354,12 +357,12 @@ describe("AgentTranscriptViewer", () => {
 		withViewer(viewer => {
 			const atBottom = viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 			viewer.handleInput("g");
 			const atTop = viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 			expect(atTop).not.toEqual(atBottom);
 			expect(atTop).toContain("PROMPTMARKER");
@@ -407,7 +410,7 @@ describe("AgentTranscriptViewer", () => {
 		const body = () =>
 			viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 		try {
 			viewer.render(80);
@@ -436,7 +439,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			vi.advanceTimersByTime(250);
 			expect(body()).toContain("TAILMARKER");
@@ -486,7 +489,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			vi.advanceTimersByTime(250);
 			expect(body()).toContain("BASEMARK");
@@ -510,7 +513,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			expect(body()).toContain("OLDMARKER");
 			fs.writeFileSync(file, `${buildJsonl()}${messageLine("same", "NEWMARKER")}\n`);
@@ -546,7 +549,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			await settleRemoteRefresh();
 			expect(body()).toContain("No messages yet.");
@@ -574,7 +577,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			// First entry renders; the headless trailing line stays buffered.
 			expect(body()).toContain("FIRSTMARK");
@@ -613,7 +616,7 @@ describe("AgentTranscriptViewer", () => {
 			await settleRemoteRefresh();
 			const body = viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 			expect(calls.filter(offset => offset === 0).length).toBe(1);
 			expect(body).toContain("entry exceeds transcript fetch cap");
@@ -652,7 +655,7 @@ describe("AgentTranscriptViewer", () => {
 			vi.advanceTimersByTime(400);
 			const body = viewer
 				.render(80)
-				.map(l => Bun.stripANSI(l))
+				.map(l => bun.stripANSI(l))
 				.join("\n");
 			expect(body).toContain("BEFORE_OVERSIZED");
 			expect(body).toContain(error);
@@ -700,7 +703,7 @@ describe("AgentTranscriptViewer", () => {
 			const body = () =>
 				viewer
 					.render(80)
-					.map(l => Bun.stripANSI(l))
+					.map(l => bun.stripANSI(l))
 					.join("\n");
 			await settleRemoteRefresh();
 			vi.advanceTimersByTime(250);

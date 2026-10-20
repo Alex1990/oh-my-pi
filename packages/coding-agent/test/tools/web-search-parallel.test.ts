@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, setSystemTime, vi } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, it, setSystemTime, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, type FetchImpl } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resolveConfigValue } from "@oh-my-pi/pi-coding-agent/config/resolve-config-value";

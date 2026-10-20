@@ -6,6 +6,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { isFsError } from "./fs-error";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 export const MIN_TAB_WIDTH = 1;
 export const MAX_TAB_WIDTH = 16;
 export const DEFAULT_TAB_WIDTH = 3;
@@ -82,7 +84,7 @@ function buildGlobPattern(globStr: string, recursive: boolean): string {
 
 function globMatches(pattern: string, relativePath: string): boolean {
 	try {
-		const g = new Bun.Glob(pattern);
+		const g = new Glob(pattern);
 		return g.match(relativePath);
 	} catch {
 		return false;

@@ -23,11 +23,15 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Server, Subprocess } from "bun";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import { BENCHMARK_DEFINITIONS } from "./benchmarks";
 import { buildExperiments, experimentDetail, experimentOf } from "./experiments";
 import { defaultJobName, harborRunnerArgs, type LaunchRequest } from "./launch-args";
 import { type LaunchRecord, type RunRole, type RunRow, RunStore } from "./store";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** PUT /api/experiments/:id body — goal and per-run role/note/label metadata. */
 export interface ExperimentMetaUpdate {
@@ -42,10 +46,10 @@ export interface CreateExperimentRequest {
 	goal?: string;
 }
 
-import indexHtml from "./web/index.html";
+import { dashboardAssets } from "./web/dashboard";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..");
-const PKG_DIR = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
+const PKG_DIR = path.resolve(import.meta.dirname, "..");
 const DEFAULT_JOBS_DIR = path.join(REPO_ROOT, "runs", "harbor");
 
 export type { LaunchRequest } from "./launch-args";
@@ -190,7 +194,7 @@ export class ManagerServer {
 	#children = new Map<string, ManagedChild>();
 	#sse = new Set<SseClient>();
 	#lastSnapshot = "";
-	#syncTimer: Timer | undefined;
+	#syncTimer: NodeJS.Timeout | undefined;
 	#server: Server<undefined> | null = null;
 	#stopped = false;
 	readonly jobsDir: string;
@@ -204,20 +208,14 @@ export class ManagerServer {
 		return this.#store;
 	}
 
-	start(port: number): Server<undefined> {
+	async start(port: number): Promise<Server<undefined>> {
 		this.#store.discover();
 		this.#store.syncAll();
 		this.#syncTimer = setInterval(() => this.#tick(), 2000);
-		this.#server = Bun.serve({
+		this.#server = await serve({
 			port,
 			idleTimeout: 0,
-			// Bun bundles the dashboard (React + TSX) from the HTML import and
-			// serves it on the same port as the API — one process, no Vite.
-			routes: { "/": indexHtml },
-			// Only `hmr`: the `console: true` mirror adds another dev-client
-			// stream with the same teardown hazard (see isDevStreamTeardown)
-			// for little value.
-			development: process.env.NODE_ENV !== "production" && { hmr: true },
+			development: process.env.NODE_ENV !== "production",
 			fetch: request => this.#route(request),
 		});
 		return this.#server;
@@ -233,7 +231,7 @@ export class ManagerServer {
 			} catch {}
 		}
 		this.#sse.clear();
-		this.#server?.stop(true);
+		await this.#server?.stop(true);
 		this.#store.close();
 	}
 
@@ -263,6 +261,12 @@ export class ManagerServer {
 		const url = new URL(request.url);
 		const p = url.pathname;
 		try {
+			if (request.method === "GET" && (p === "/" || p === "/app.js")) {
+				const { html, js } = await dashboardAssets();
+				return p === "/"
+					? new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } })
+					: new Response(js, { headers: { "content-type": "text/javascript; charset=utf-8" } });
+			}
 			if (p === "/api/events") return this.#sseResponse();
 			if (p === "/api/benchmarks" && request.method === "GET") {
 				return Response.json(BENCHMARK_DEFINITIONS);
@@ -481,7 +485,7 @@ export class ManagerServer {
 		const logDir = path.join(this.jobsDir, "_manager", "logs");
 		fs.mkdirSync(logDir, { recursive: true });
 		const logFile = fs.openSync(path.join(logDir, `${jobName}.log`), "w");
-		const proc = Bun.spawn(argv, {
+		const proc = bun.spawn(argv, {
 			cwd,
 			stdout: logFile,
 			stderr: logFile,
@@ -750,7 +754,7 @@ function isDevStreamTeardown(err: unknown): boolean {
 	return err instanceof Error && (err as Error & { code?: string }).code === "ERR_STREAM_RELEASE_LOCK";
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	// `bun --hot` re-evaluates this module in-place: retire the previous
 	// instance first, or its sync ticker and sqlite connection leak per reload.
 	const host = globalThis as typeof globalThis & {
@@ -761,7 +765,7 @@ if (import.meta.main) {
 	const { port, jobsDir } = parseServerArgs(process.argv.slice(2));
 	const manager = new ManagerServer(jobsDir);
 	host.__metaharnessServer = manager;
-	const server = manager.start(port);
+	const server = await manager.start(port);
 	process.stdout.write(`metaharness listening on http://localhost:${server.port} (jobs: ${jobsDir})\n`);
 	// Process-wide hooks register once; `--hot` re-evals reuse them via `host`.
 	if (!host.__metaharnessHooks) {

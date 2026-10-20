@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ArtifactManager } from "@oh-my-pi/pi-coding-agent/session/artifacts";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ArtifactManager concurrent first-use", () => {
 	const dirs: string[] = [];
@@ -34,8 +35,8 @@ describe("ArtifactManager concurrent first-use", () => {
 		const pathB = await mgr.getPath(idB);
 		expect(pathA).not.toBeNull();
 		expect(pathB).not.toBeNull();
-		expect(await Bun.file(pathA as string).text()).toBe("CONTENT-A");
-		expect(await Bun.file(pathB as string).text()).toBe("CONTENT-B");
+		expect(await bun.file(pathA as string).text()).toBe("CONTENT-A");
+		expect(await bun.file(pathB as string).text()).toBe("CONTENT-B");
 	});
 
 	// Different toolTypes turn a duplicate id into two coexisting files
@@ -50,8 +51,8 @@ describe("ArtifactManager concurrent first-use", () => {
 
 		const pathA = await mgr.getPath(idA);
 		const pathB = await mgr.getPath(idB);
-		expect(await Bun.file(pathA as string).text()).toBe("BASH-BYTES");
-		expect(await Bun.file(pathB as string).text()).toBe("ASYNC-BYTES");
+		expect(await bun.file(pathA as string).text()).toBe("BASH-BYTES");
+		expect(await bun.file(pathB as string).text()).toBe("ASYNC-BYTES");
 	});
 
 	// The race also re-opens on a fresh manager over a directory that already
@@ -66,7 +67,7 @@ describe("ArtifactManager concurrent first-use", () => {
 		const [idA, idB] = await Promise.all([mgr.save("NEW-A", "bash"), mgr.save("NEW-B", "bash")]);
 
 		expect(idA).not.toBe(idB);
-		expect(await Bun.file((await mgr.getPath(idA)) as string).text()).toBe("NEW-A");
-		expect(await Bun.file((await mgr.getPath(idB)) as string).text()).toBe("NEW-B");
+		expect(await bun.file((await mgr.getPath(idA)) as string).text()).toBe("NEW-A");
+		expect(await bun.file((await mgr.getPath(idB)) as string).text()).toBe("NEW-B");
 	});
 });

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,9 @@ import {
 	type TerminalLaunchRequest,
 } from "../src/subprocess/terminal-launch";
 import { processCli } from "../src/subprocess/terminal-launch/shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 interface CliCall {
 	argv: string[];
@@ -643,7 +646,7 @@ describe("terminal launch dispatcher", () => {
 			const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "herdr-argv-"));
 			try {
 				const recorder = path.join(tempRoot, "recorder.js");
-				await Bun.write(recorder, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
+				await bun.write(recorder, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
 				const args = [
 					"Ω 雪",
 					"",
@@ -687,7 +690,7 @@ describe("terminal launch dispatcher", () => {
 				const executed = await processCli(["/bin/sh", "-c", typed], tempRoot);
 				expect(executed.exitCode).toBe(0);
 				expect(JSON.parse(executed.stdout)).toEqual(args);
-				expect(await Bun.file(script).exists()).toBe(false);
+				expect(await bun.file(script).exists()).toBe(false);
 			} finally {
 				await fs.rm(tempRoot, { recursive: true, force: true });
 			}
@@ -772,7 +775,7 @@ describe("terminal launch dispatcher", () => {
 			const cwd = path.join(tempRoot, "cwd-Ω-雪");
 			const recorder = path.join(tempRoot, "recorder.js");
 			await fs.mkdir(cwd);
-			await Bun.write(
+			await bun.write(
 				recorder,
 				'process.stdout.write(JSON.stringify({ cwd: process.cwd(), argv: process.argv.slice(2) }) + "\\n");\n',
 			);
@@ -1046,7 +1049,7 @@ describe("terminal launch dispatcher", () => {
 		expect(result).toEqual({ multiplexer: "orca", placement: "pane", id: "term-split" });
 
 		if (process.platform !== "win32") {
-			const executed = Bun.spawnSync(["/bin/sh", "-c", shellCommand], { stdout: "pipe", stderr: "pipe" });
+			const executed = bun.spawnSync(["/bin/sh", "-c", shellCommand], { stdout: "pipe", stderr: "pipe" });
 			expect(executed.exitCode).toBe(0);
 			expect(executed.stdout.toString()).toBe(argument);
 		}

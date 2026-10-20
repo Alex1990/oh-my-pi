@@ -11,7 +11,7 @@
  *     post-prompt recovery, but the loop is already done) must be drained when
  *     the session settles.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -563,7 +563,7 @@ describe("AgentSession queued steer delivery", () => {
 	it("delivers an RPC skill through the default steering queue with its invocation intact", async () => {
 		const { session, mock } = await createSession([{ content: ["initial"] }, { content: ["skill response"] }]);
 		const skillPath = path.join(tempDir, "SKILL.md");
-		await Bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code.\n");
+		await bun.write(skillPath, "---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code.\n");
 		const invocation = "/skill:reviewer  focus on risks\nand correctness";
 		let queued: { steering: readonly string[]; followUp: readonly string[]; liveSteered: number } | undefined;
 		let injected = false;
@@ -824,7 +824,7 @@ describe("AgentSession queued steer delivery", () => {
 		it("cancels a skill queued through RPC by its original invocation before it reaches the model", async () => {
 			const { session, mock } = await createSession([{ content: ["initial"] }]);
 			const skillPath = path.join(tempDir, "SKILL.md");
-			await Bun.write(
+			await bun.write(
 				skillPath,
 				"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code.\n",
 			);
@@ -873,7 +873,7 @@ describe("AgentSession queued steer delivery", () => {
 		it("promotes a skill queued through RPC by its original invocation and delivers it once", async () => {
 			const { session, mock } = await createSession([{ content: ["initial"] }, { content: ["skill response"] }]);
 			const skillPath = path.join(tempDir, "SKILL.md");
-			await Bun.write(
+			await bun.write(
 				skillPath,
 				"---\nname: reviewer\ndescription: Review code\n---\n\nReview the supplied code.\n",
 			);
@@ -1372,3 +1372,4 @@ describe("AgentSession queued steer delivery", () => {
 		}
 	});
 });
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

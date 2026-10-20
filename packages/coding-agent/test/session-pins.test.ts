@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import {
 	sortPinnedFirst,
 	toggleSessionPin,
 } from "@oh-my-pi/pi-coding-agent/session/session-pins";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("session-pins", () => {
 	let tempDir: string;
@@ -26,7 +27,7 @@ describe("session-pins", () => {
 	});
 
 	it("recovers gracefully from a corrupt pins file", async () => {
-		await Bun.write(path.join(tempDir, "session-pins.json"), "invalid json {");
+		await bun.write(path.join(tempDir, "session-pins.json"), "invalid json {");
 		const pins = await loadPinnedSessionIds(tempDir);
 		expect(pins.size).toBe(0);
 	});
@@ -133,7 +134,7 @@ describe("session-pins", () => {
 	});
 
 	it("never exposes a truncated pins file while writes are in flight", async () => {
-		// Regression: Bun.write truncated in place, so a crash mid-write
+		// Regression: bun.write truncated in place, so a crash mid-write
 		// stranded a truncated file the next launch degraded to an empty set.
 		// The sampler observes on-disk states CONCURRENTLY with the toggles:
 		// every observed state must parse (or be absent); a torn write or a

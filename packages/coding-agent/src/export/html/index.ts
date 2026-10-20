@@ -16,12 +16,13 @@ import markedJsPath from "./vendor/marked.min.js" with { type: "file" };
 // run automatically by root `prepare` on install and by `prepack` at publish.
 import toolViewsJsPath from "./tool-views.generated.js" with { type: "file" };
 import { webExportThemeVars } from "./web-palette";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { type ExportThemeNames, parseExportArgs } from "./args";
 
 let cachedTemplate: string | undefined;
 /** Resolve a Bun file-loader value without parsing Windows drive letters as URL schemes. */
-export function resolveBundledHtmlAssetPath(assetPath: string, moduleDir: string = import.meta.dir): string {
+export function resolveBundledHtmlAssetPath(assetPath: string, moduleDir: string = import.meta.dirname): string {
 	if (path.isAbsolute(assetPath) || path.win32.isAbsolute(assetPath)) return assetPath;
 	return path.resolve(moduleDir, assetPath);
 }
@@ -241,7 +242,7 @@ export async function exportSessionToHtml(
 	const html = await generateHtml(sessionData, palette, opts.themeNames, opts.themeName);
 	const outputPath = opts.outputPath || `${APP_NAME}-session-${path.basename(sessionFile, ".jsonl")}.html`;
 
-	await Bun.write(outputPath, html);
+	await bun.write(outputPath, html);
 	return outputPath;
 }
 
@@ -274,6 +275,6 @@ export async function exportFromFile(inputPath: string, options?: ExportOptions 
 	const html = await generateHtml(sessionData, palette, opts.themeNames, opts.themeName);
 	const outputPath = opts.outputPath || `${APP_NAME}-session-${path.basename(inputPath, ".jsonl")}.html`;
 
-	await Bun.write(outputPath, html);
+	await bun.write(outputPath, html);
 	return outputPath;
 }

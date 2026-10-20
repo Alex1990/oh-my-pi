@@ -61,7 +61,7 @@ One honest line is enough:
 > I reviewed the full diff; this change fixes duplicate PR reviews by reusing
 > the existing delivery guard.
 
-You **MUST verify that the change works as intended**. `bun check` and automated
+You **MUST verify that the change works as intended**. `pnpm run check` and automated
 tests are expected where relevant, but they are not proof that the behavior
 works. Exercise the changed path yourself and report the exact scenario and
 result in the pull request:
@@ -71,7 +71,7 @@ result in the pull request:
 - for a feature, launch the product and use the feature end to end; and
 - for a UI change, interact with it and inspect the rendered result.
 
-“`bun check` passes” by itself is not sufficient verification. For coding-agent
+“`pnpm run check` passes” by itself is not sufficient verification. For coding-agent
 development commands and repository structure, see
 [`packages/coding-agent/DEVELOPMENT.md`](packages/coding-agent/DEVELOPMENT.md).
 

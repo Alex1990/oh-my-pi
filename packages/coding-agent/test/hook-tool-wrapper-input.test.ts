@@ -2,7 +2,7 @@
  * Tests for HookToolWrapper `tool_call` control and passive-context results.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Type } from "@oh-my-pi/omptype/typebox";
 import type { AgentTool, AgentToolContext } from "@oh-my-pi/pi-agent-core";

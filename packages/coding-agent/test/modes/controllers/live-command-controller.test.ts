@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { LiveSessionController } from "@oh-my-pi/pi-coding-agent/live/controller";
 import { LiveVisualizer } from "@oh-my-pi/pi-tui/apps/live-visualizer";

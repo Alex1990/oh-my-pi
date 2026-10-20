@@ -15,6 +15,7 @@
  */
 import { VERSION } from "@oh-my-pi/pi-utils/dirs";
 import { RelayBridge } from "./bridge";
+import { type ServerWebSocket, serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** Options for {@link startRelayServer}. */
 export interface RelayServerOptions {
@@ -53,7 +54,7 @@ interface SocketData {
 	connId?: number;
 }
 
-type RelayWebSocket = Bun.ServerWebSocket<SocketData>;
+type RelayWebSocket = ServerWebSocket<SocketData>;
 
 const WS_KEEPALIVE_MS = 30_000;
 /** Screenshots travel base64-encoded through both websocket legs. */
@@ -71,8 +72,8 @@ function isWsAuthority(raw: string): boolean {
 	}
 }
 
-/** Start the relay server on 127.0.0.1. Throws if the port is taken. */
-export function startRelayServer(opts: RelayServerOptions): RelayServer {
+/** Start the relay server on 127.0.0.1. Rejects if the port is taken. */
+export async function startRelayServer(opts: RelayServerOptions): Promise<RelayServer> {
 	const log = opts.log ?? (() => {});
 	const group =
 		opts.group === false ? null : opts.group === true || opts.group === undefined ? DEFAULT_GROUP : opts.group;
@@ -80,7 +81,7 @@ export function startRelayServer(opts: RelayServerOptions): RelayServer {
 	const sockets = new Set<RelayWebSocket>();
 	const startedAt = Date.now();
 
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: "127.0.0.1",
 		port: opts.port,
 		fetch(req, srv): Response | undefined {
@@ -179,7 +180,7 @@ export function startRelayServer(opts: RelayServerOptions): RelayServer {
 		port: opts.port,
 		stop() {
 			clearInterval(keepalive);
-			server.stop(true);
+			void server.stop(true);
 		},
 	};
 }

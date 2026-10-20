@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Chalk, detectColorLevel } from "../src/chalk";
 
 const ESC = "\u001B[";

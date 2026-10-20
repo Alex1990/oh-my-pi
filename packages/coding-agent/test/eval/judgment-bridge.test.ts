@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as vm from "node:vm";
-import * as ai from "@oh-my-pi/pi-ai";
+import * as aiStream from "@oh-my-pi/pi-ai/stream";
 import type { Api, AssistantMessage, ImageContent, Model } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "../../src/config/model-registry";
 import { Settings } from "../../src/config/settings";
@@ -12,6 +12,8 @@ import type { ToolSession } from "../../src/tools";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
 import { asGlobalFetch } from "../helpers/fetch-mock";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const SMOL: Model<Api> = {
 	id: "smol",
@@ -129,7 +131,7 @@ afterEach(() => {
 describe("eval judge() bridge", () => {
 	it("rejects malformed questions before touching any backend", async () => {
 		const session = makeSession();
-		const spy = vi.spyOn(ai, "completeSimple");
+		const spy = vi.spyOn(aiStream, "completeSimple");
 		await expect(
 			runEvalJudgment({ state: "x", questions: { q: { type: "rank", instructions: "?" } } }, { session }),
 		).rejects.toThrow('question "q" type must be "choice", "bool", or "score"');
@@ -155,7 +157,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("answers through the smol chat model and returns typed answers with the backend", async () => {
-		const spy = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("bucket: hard\ntests: yes\ntone: 2"));
+		const spy = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("bucket: hard\ntests: yes\ntone: 2"));
 		const result = await runEvalJudgment(
 			{ state: { request: "please add tests for the parser" }, questions: QUESTIONS },
 			{ session: makeSession() },
@@ -173,7 +175,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("routes to the selected TypeSafe judge and forwards questions verbatim", async () => {
-		const chat = vi.spyOn(ai, "completeSimple");
+		const chat = vi.spyOn(aiStream, "completeSimple");
 		let body: { model: string; state: unknown; questions: unknown } | undefined;
 		vi.spyOn(globalThis, "fetch").mockImplementation(
 			asGlobalFetch(async (url, init) => {
@@ -202,8 +204,8 @@ describe("eval judge() bridge", () => {
 		const tempDir = TempDir.createSync("@omp-eval-judge-image-");
 		const embeddedImage: ImageContent = { ...IMAGE_TWO, detail: "original" };
 		try {
-			await Bun.write(path.join(tempDir.path(), "local.png"), Buffer.from(IMAGE_ONE.data, "base64"));
-			const spy = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));
+			await bun.write(path.join(tempDir.path(), "local.png"), Buffer.from(IMAGE_ONE.data, "base64"));
+			const spy = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("tests: yes"));
 			const result = await runEvalJudgment(
 				{
 					state: "classify this request",
@@ -220,7 +222,7 @@ describe("eval judge() bridge", () => {
 				: [];
 			expect(imageBlocks).toHaveLength(2);
 			for (const [index, image] of imageBlocks.entries()) {
-				const metadata = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+				const metadata = await new Image(Buffer.from(image.data, "base64")).metadata();
 				expect(Math.min(metadata.width, metadata.height)).toBeGreaterThanOrEqual(200);
 				expect(image.data).not.toBe(index === 0 ? IMAGE_ONE.data : embeddedImage.data);
 			}
@@ -231,7 +233,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("rejects image requests when no compatible judge is available without network calls", async () => {
-		const complete = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));
+		const complete = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("tests: yes"));
 		const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected network request"));
 
 		await expect(
@@ -248,8 +250,8 @@ describe("eval judge() bridge", () => {
 	it("rejects malformed local images instead of silently dropping them", async () => {
 		const tempDir = TempDir.createSync("@omp-eval-judge-bad-image-");
 		try {
-			await Bun.write(path.join(tempDir.path(), "broken.png"), "not an image");
-			const complete = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));
+			await bun.write(path.join(tempDir.path(), "broken.png"), "not an image");
+			const complete = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("tests: yes"));
 			const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected network request"));
 
 			await expect(
@@ -318,7 +320,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("honors a pre-aborted caller before loading images or contacting a judge", async () => {
-		const complete = vi.spyOn(ai, "completeSimple");
+		const complete = vi.spyOn(aiStream, "completeSimple");
 		const controller = new AbortController();
 		controller.abort(new Error("caller cancelled"));
 
@@ -332,7 +334,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("keeps image-shaped judgment state as text when no attachments are supplied", async () => {
-		const spy = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));
+		const spy = vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("tests: yes"));
 		await runEvalJudgment({ state: IMAGE_ONE, questions: { tests: QUESTIONS.tests } }, { session: makeSession() });
 
 		const user = spy.mock.calls[0]?.[1].messages.find(message => message.role === "user");
@@ -368,7 +370,7 @@ describe("eval judge() bridge", () => {
 		]);
 	});
 	it("rejects when the chat model answers off-format", async () => {
-		vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("I cannot decide."));
+		vi.spyOn(aiStream, "completeSimple").mockResolvedValue(reply("I cannot decide."));
 		await expect(
 			runEvalJudgment({ state: "x", questions: { tests: QUESTIONS.tests } }, { session: makeSession() }),
 		).rejects.toThrow('judgment "tests"');

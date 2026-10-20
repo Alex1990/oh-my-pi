@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("local:// URL with the working directory prefixed", () => {
 	beforeAll(async () => {
@@ -40,7 +41,7 @@ describe("local:// URL with the working directory prefixed", () => {
 			const read = await new ReadTool(session).execute("r", { path: prefixed });
 			const text = read.content.map(block => (block.type === "text" ? block.text : "")).join("\n");
 
-			expect(await Bun.file(path.join(artifacts, "local", "rules.md")).text()).toBe("shared rules\n");
+			expect(await bun.file(path.join(artifacts, "local", "rules.md")).text()).toBe("shared rules\n");
 			expect(await fs.readdir(cwd)).toEqual([]);
 			expect(text).toContain("shared rules");
 		} finally {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { FrozenMarkdownPrefix } from "../src/components/transcript/Markdown";
 import { Markdown, renderStreamingMarkdown } from "../src/components/transcript/Markdown";

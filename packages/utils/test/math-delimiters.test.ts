@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { Marked, type Token } from "../src/marked";
 import {
 	MathBlockScan,

@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type ChildProcess, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { vi } from "vitest";
 import { type } from "@oh-my-pi/omptype";
 import { Effort } from "@oh-my-pi/pi-ai";
 import { __resetVertexTokenCache } from "@oh-my-pi/pi-ai/providers/google-auth";
@@ -14,6 +15,13 @@ import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { $which } from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "../../utils/src/temp";
 import { e2eApiKey, resolveApiKey } from "./oauth";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const osState = vi.hoisted(() => ({ homedir: undefined as string | undefined }));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof os>();
+	return { ...actual, homedir: () => osState.homedir ?? actual.homedir() };
+});
 
 // Resolve OAuth tokens at module level (async, runs before tests)
 const oauthTokens = await Promise.all([
@@ -230,7 +238,7 @@ async function handleImage<TApi extends Api>(model: Model<TApi>, options?: Optio
 	}
 
 	// Read the test image
-	const imagePath = path.join(import.meta.dir, "data", "red-circle.png");
+	const imagePath = path.join(import.meta.dirname, "data", "red-circle.png");
 	const imageBuffer = await fs.readFile(imagePath);
 	const base64Image = imageBuffer.toBase64();
 
@@ -405,38 +413,38 @@ describe("Generate E2E Tests", () => {
 
 	describe("google-vertex env auth", () => {
 		it("treats GOOGLE_CLOUD_API_KEY as a configured google-vertex credential", () => {
-			const originalApiKey = Bun.env.GOOGLE_CLOUD_API_KEY;
-			const originalProject = Bun.env.GOOGLE_CLOUD_PROJECT;
-			const originalGcloudProject = Bun.env.GCLOUD_PROJECT;
-			const originalLocation = Bun.env.GOOGLE_CLOUD_LOCATION;
-			const originalApplicationCredentials = Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+			const originalApiKey = bun.env.GOOGLE_CLOUD_API_KEY;
+			const originalProject = bun.env.GOOGLE_CLOUD_PROJECT;
+			const originalGcloudProject = bun.env.GCLOUD_PROJECT;
+			const originalLocation = bun.env.GOOGLE_CLOUD_LOCATION;
+			const originalApplicationCredentials = bun.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 			try {
-				Bun.env.GOOGLE_CLOUD_API_KEY = "vertex-test-key";
-				delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				delete Bun.env.GCLOUD_PROJECT;
-				delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+				bun.env.GOOGLE_CLOUD_API_KEY = "vertex-test-key";
+				delete bun.env.GOOGLE_CLOUD_PROJECT;
+				delete bun.env.GCLOUD_PROJECT;
+				delete bun.env.GOOGLE_CLOUD_LOCATION;
+				delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 				expect(getEnvApiKey("google-vertex")).toBe("vertex-test-key");
 			} finally {
-				if (originalApiKey === undefined) delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				else Bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
-				if (originalProject === undefined) delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				else Bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
-				if (originalGcloudProject === undefined) delete Bun.env.GCLOUD_PROJECT;
-				else Bun.env.GCLOUD_PROJECT = originalGcloudProject;
-				if (originalLocation === undefined) delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				else Bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
-				if (originalApplicationCredentials === undefined) delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-				else Bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalApplicationCredentials;
+				if (originalApiKey === undefined) delete bun.env.GOOGLE_CLOUD_API_KEY;
+				else bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
+				if (originalProject === undefined) delete bun.env.GOOGLE_CLOUD_PROJECT;
+				else bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
+				if (originalGcloudProject === undefined) delete bun.env.GCLOUD_PROJECT;
+				else bun.env.GCLOUD_PROJECT = originalGcloudProject;
+				if (originalLocation === undefined) delete bun.env.GOOGLE_CLOUD_LOCATION;
+				else bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
+				if (originalApplicationCredentials === undefined) delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+				else bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalApplicationCredentials;
 			}
 		});
 
 		it("ignores sentinel apiKey values like '<authenticated>' passed from agent loop", async () => {
-			const originalProject = Bun.env.GOOGLE_CLOUD_PROJECT;
-			const originalLocation = Bun.env.GOOGLE_CLOUD_LOCATION;
-			const originalApiKey = Bun.env.GOOGLE_CLOUD_API_KEY;
+			const originalProject = bun.env.GOOGLE_CLOUD_PROJECT;
+			const originalLocation = bun.env.GOOGLE_CLOUD_LOCATION;
+			const originalApiKey = bun.env.GOOGLE_CLOUD_API_KEY;
 			const llm = getBundledModel("google-vertex", "gemini-3-flash-preview");
 			const controller = new AbortController();
 			controller.abort();
@@ -449,9 +457,9 @@ describe("Generate E2E Tests", () => {
 			};
 
 			try {
-				Bun.env.GOOGLE_CLOUD_PROJECT = "test-project";
-				Bun.env.GOOGLE_CLOUD_LOCATION = "us-central1";
-				delete Bun.env.GOOGLE_CLOUD_API_KEY;
+				bun.env.GOOGLE_CLOUD_PROJECT = "test-project";
+				bun.env.GOOGLE_CLOUD_LOCATION = "us-central1";
+				delete bun.env.GOOGLE_CLOUD_API_KEY;
 
 				// The agent loop passes "<authenticated>" as apiKey for credential-less providers.
 				// google-vertex should ignore this sentinel and use ADC (project/location) instead.
@@ -466,12 +474,12 @@ describe("Generate E2E Tests", () => {
 				expect(hasWarning).toBe(false);
 			} finally {
 				console.debug = origDebug;
-				if (originalProject === undefined) delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				else Bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
-				if (originalLocation === undefined) delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				else Bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
-				if (originalApiKey === undefined) delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				else Bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
+				if (originalProject === undefined) delete bun.env.GOOGLE_CLOUD_PROJECT;
+				else bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
+				if (originalLocation === undefined) delete bun.env.GOOGLE_CLOUD_LOCATION;
+				else bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
+				if (originalApiKey === undefined) delete bun.env.GOOGLE_CLOUD_API_KEY;
+				else bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
 			}
 		});
 
@@ -513,19 +521,19 @@ describe("Generate E2E Tests", () => {
 		});
 
 		it("allows explicit Vertex API keys without requiring project or location", async () => {
-			const originalApiKey = Bun.env.GOOGLE_CLOUD_API_KEY;
-			const originalProject = Bun.env.GOOGLE_CLOUD_PROJECT;
-			const originalGcloudProject = Bun.env.GCLOUD_PROJECT;
-			const originalLocation = Bun.env.GOOGLE_CLOUD_LOCATION;
+			const originalApiKey = bun.env.GOOGLE_CLOUD_API_KEY;
+			const originalProject = bun.env.GOOGLE_CLOUD_PROJECT;
+			const originalGcloudProject = bun.env.GCLOUD_PROJECT;
+			const originalLocation = bun.env.GOOGLE_CLOUD_LOCATION;
 			const llm = getBundledModel("google-vertex", "gemini-3-flash-preview");
 			const controller = new AbortController();
 			controller.abort();
 
 			try {
-				delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				delete Bun.env.GCLOUD_PROJECT;
-				delete Bun.env.GOOGLE_CLOUD_LOCATION;
+				delete bun.env.GOOGLE_CLOUD_API_KEY;
+				delete bun.env.GOOGLE_CLOUD_PROJECT;
+				delete bun.env.GCLOUD_PROJECT;
+				delete bun.env.GOOGLE_CLOUD_LOCATION;
 
 				const response = await complete(
 					llm,
@@ -537,14 +545,14 @@ describe("Generate E2E Tests", () => {
 				expect(response.errorMessage).not.toContain("Vertex AI requires a project ID");
 				expect(response.errorMessage).not.toContain("Vertex AI requires a location");
 			} finally {
-				if (originalApiKey === undefined) delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				else Bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
-				if (originalProject === undefined) delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				else Bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
-				if (originalGcloudProject === undefined) delete Bun.env.GCLOUD_PROJECT;
-				else Bun.env.GCLOUD_PROJECT = originalGcloudProject;
-				if (originalLocation === undefined) delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				else Bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
+				if (originalApiKey === undefined) delete bun.env.GOOGLE_CLOUD_API_KEY;
+				else bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
+				if (originalProject === undefined) delete bun.env.GOOGLE_CLOUD_PROJECT;
+				else bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
+				if (originalGcloudProject === undefined) delete bun.env.GCLOUD_PROJECT;
+				else bun.env.GCLOUD_PROJECT = originalGcloudProject;
+				if (originalLocation === undefined) delete bun.env.GOOGLE_CLOUD_LOCATION;
+				else bun.env.GOOGLE_CLOUD_LOCATION = originalLocation;
 			}
 		});
 
@@ -553,21 +561,21 @@ describe("Generate E2E Tests", () => {
 			{ location: "eu", host: "aiplatform.eu.rep.googleapis.com" },
 			{ location: "us", host: "aiplatform.us.rep.googleapis.com" },
 		] as const)("routes Vertex Claude rawPredict to $host for location $location", async ({ location, host }) => {
-			const originalProject = Bun.env.GOOGLE_CLOUD_PROJECT;
-			const originalGcpProject = Bun.env.GCP_PROJECT;
-			const originalGcloudProject = Bun.env.GCLOUD_PROJECT;
-			const originalVertexLocation = Bun.env.GOOGLE_VERTEX_LOCATION;
-			const originalCloudLocation = Bun.env.GOOGLE_CLOUD_LOCATION;
-			const originalLocation = Bun.env.VERTEX_LOCATION;
-			const originalApiKey = Bun.env.GOOGLE_CLOUD_API_KEY;
-			const originalGac = Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-			const originalAppData = Bun.env.APPDATA;
+			const originalProject = bun.env.GOOGLE_CLOUD_PROJECT;
+			const originalGcpProject = bun.env.GCP_PROJECT;
+			const originalGcloudProject = bun.env.GCLOUD_PROJECT;
+			const originalVertexLocation = bun.env.GOOGLE_VERTEX_LOCATION;
+			const originalCloudLocation = bun.env.GOOGLE_CLOUD_LOCATION;
+			const originalLocation = bun.env.VERTEX_LOCATION;
+			const originalApiKey = bun.env.GOOGLE_CLOUD_API_KEY;
+			const originalGac = bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+			const originalAppData = bun.env.APPDATA;
 			// Force the GCE/Cloud Run metadata-server token path: neutralize any host
 			// ADC so resolveAccessTokenUncached() falls through to fetchMetadataToken().
 			// Without this the test reads the user ADC (~/.config/gcloud or %APPDATA%\gcloud)
 			// when present and hangs on the OAuth exchange (form body, not JSON).
 			const absentAdcHome = path.join(os.tmpdir(), `vertex-adc-absent-${location}-${Date.now()}`);
-			const homedirSpy = spyOn(os, "homedir").mockReturnValue(absentAdcHome);
+			osState.homedir = absentAdcHome;
 			const model: Model<"anthropic-messages"> = buildModel({
 				id: "claude-sonnet-4@20250514",
 				name: "Claude Sonnet 4",
@@ -590,15 +598,15 @@ describe("Generate E2E Tests", () => {
 
 			try {
 				__resetVertexTokenCache();
-				Bun.env.GOOGLE_CLOUD_PROJECT = "vertex-project";
-				Bun.env.GOOGLE_VERTEX_LOCATION = location;
-				delete Bun.env.GCP_PROJECT;
-				delete Bun.env.GCLOUD_PROJECT;
-				delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				delete Bun.env.VERTEX_LOCATION;
-				delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-				Bun.env.APPDATA = absentAdcHome;
+				bun.env.GOOGLE_CLOUD_PROJECT = "vertex-project";
+				bun.env.GOOGLE_VERTEX_LOCATION = location;
+				delete bun.env.GCP_PROJECT;
+				delete bun.env.GCLOUD_PROJECT;
+				delete bun.env.GOOGLE_CLOUD_LOCATION;
+				delete bun.env.VERTEX_LOCATION;
+				delete bun.env.GOOGLE_CLOUD_API_KEY;
+				delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+				bun.env.APPDATA = absentAdcHome;
 
 				const events = stream(
 					model,
@@ -651,40 +659,40 @@ describe("Generate E2E Tests", () => {
 				expect(request.betaHeader ?? "").not.toContain("context-management-2025-06-27");
 			} finally {
 				__resetVertexTokenCache();
-				homedirSpy.mockRestore();
-				if (originalProject === undefined) delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				else Bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
-				if (originalGcpProject === undefined) delete Bun.env.GCP_PROJECT;
-				else Bun.env.GCP_PROJECT = originalGcpProject;
-				if (originalGcloudProject === undefined) delete Bun.env.GCLOUD_PROJECT;
-				else Bun.env.GCLOUD_PROJECT = originalGcloudProject;
-				if (originalVertexLocation === undefined) delete Bun.env.GOOGLE_VERTEX_LOCATION;
-				else Bun.env.GOOGLE_VERTEX_LOCATION = originalVertexLocation;
-				if (originalCloudLocation === undefined) delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				else Bun.env.GOOGLE_CLOUD_LOCATION = originalCloudLocation;
-				if (originalLocation === undefined) delete Bun.env.VERTEX_LOCATION;
-				else Bun.env.VERTEX_LOCATION = originalLocation;
-				if (originalApiKey === undefined) delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				else Bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
-				if (originalGac === undefined) delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-				else Bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
-				if (originalAppData === undefined) delete Bun.env.APPDATA;
-				else Bun.env.APPDATA = originalAppData;
+				osState.homedir = undefined;
+				if (originalProject === undefined) delete bun.env.GOOGLE_CLOUD_PROJECT;
+				else bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
+				if (originalGcpProject === undefined) delete bun.env.GCP_PROJECT;
+				else bun.env.GCP_PROJECT = originalGcpProject;
+				if (originalGcloudProject === undefined) delete bun.env.GCLOUD_PROJECT;
+				else bun.env.GCLOUD_PROJECT = originalGcloudProject;
+				if (originalVertexLocation === undefined) delete bun.env.GOOGLE_VERTEX_LOCATION;
+				else bun.env.GOOGLE_VERTEX_LOCATION = originalVertexLocation;
+				if (originalCloudLocation === undefined) delete bun.env.GOOGLE_CLOUD_LOCATION;
+				else bun.env.GOOGLE_CLOUD_LOCATION = originalCloudLocation;
+				if (originalLocation === undefined) delete bun.env.VERTEX_LOCATION;
+				else bun.env.VERTEX_LOCATION = originalLocation;
+				if (originalApiKey === undefined) delete bun.env.GOOGLE_CLOUD_API_KEY;
+				else bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
+				if (originalGac === undefined) delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+				else bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
+				if (originalAppData === undefined) delete bun.env.APPDATA;
+				else bun.env.APPDATA = originalAppData;
 			}
 		});
 
 		it("routes impersonated_service_account ADC through IAM to the Vertex request", async () => {
-			const originalProject = Bun.env.GOOGLE_CLOUD_PROJECT;
-			const originalGcpProject = Bun.env.GCP_PROJECT;
-			const originalGcloudProject = Bun.env.GCLOUD_PROJECT;
-			const originalVertexLocation = Bun.env.GOOGLE_VERTEX_LOCATION;
-			const originalCloudLocation = Bun.env.GOOGLE_CLOUD_LOCATION;
-			const originalLocation = Bun.env.VERTEX_LOCATION;
-			const originalApiKey = Bun.env.GOOGLE_CLOUD_API_KEY;
-			const originalGac = Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+			const originalProject = bun.env.GOOGLE_CLOUD_PROJECT;
+			const originalGcpProject = bun.env.GCP_PROJECT;
+			const originalGcloudProject = bun.env.GCLOUD_PROJECT;
+			const originalVertexLocation = bun.env.GOOGLE_VERTEX_LOCATION;
+			const originalCloudLocation = bun.env.GOOGLE_CLOUD_LOCATION;
+			const originalLocation = bun.env.VERTEX_LOCATION;
+			const originalApiKey = bun.env.GOOGLE_CLOUD_API_KEY;
+			const originalGac = bun.env.GOOGLE_APPLICATION_CREDENTIALS;
 			const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vertex-impersonation-"));
 			const adcPath = path.join(tmpDir, "impersonated-adc.json");
-			await Bun.write(
+			await bun.write(
 				adcPath,
 				JSON.stringify({
 					type: "impersonated_service_account",
@@ -718,14 +726,14 @@ describe("Generate E2E Tests", () => {
 
 			try {
 				__resetVertexTokenCache();
-				Bun.env.GOOGLE_CLOUD_PROJECT = "vertex-project";
-				Bun.env.GOOGLE_VERTEX_LOCATION = "global";
-				delete Bun.env.GCP_PROJECT;
-				delete Bun.env.GCLOUD_PROJECT;
-				delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				delete Bun.env.VERTEX_LOCATION;
-				delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				Bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
+				bun.env.GOOGLE_CLOUD_PROJECT = "vertex-project";
+				bun.env.GOOGLE_VERTEX_LOCATION = "global";
+				delete bun.env.GCP_PROJECT;
+				delete bun.env.GCLOUD_PROJECT;
+				delete bun.env.GOOGLE_CLOUD_LOCATION;
+				delete bun.env.VERTEX_LOCATION;
+				delete bun.env.GOOGLE_CLOUD_API_KEY;
+				bun.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
 
 				const events = stream(
 					model,
@@ -786,22 +794,22 @@ describe("Generate E2E Tests", () => {
 			} finally {
 				__resetVertexTokenCache();
 				await removeWithRetries(tmpDir);
-				if (originalProject === undefined) delete Bun.env.GOOGLE_CLOUD_PROJECT;
-				else Bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
-				if (originalGcpProject === undefined) delete Bun.env.GCP_PROJECT;
-				else Bun.env.GCP_PROJECT = originalGcpProject;
-				if (originalGcloudProject === undefined) delete Bun.env.GCLOUD_PROJECT;
-				else Bun.env.GCLOUD_PROJECT = originalGcloudProject;
-				if (originalVertexLocation === undefined) delete Bun.env.GOOGLE_VERTEX_LOCATION;
-				else Bun.env.GOOGLE_VERTEX_LOCATION = originalVertexLocation;
-				if (originalCloudLocation === undefined) delete Bun.env.GOOGLE_CLOUD_LOCATION;
-				else Bun.env.GOOGLE_CLOUD_LOCATION = originalCloudLocation;
-				if (originalLocation === undefined) delete Bun.env.VERTEX_LOCATION;
-				else Bun.env.VERTEX_LOCATION = originalLocation;
-				if (originalApiKey === undefined) delete Bun.env.GOOGLE_CLOUD_API_KEY;
-				else Bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
-				if (originalGac === undefined) delete Bun.env.GOOGLE_APPLICATION_CREDENTIALS;
-				else Bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
+				if (originalProject === undefined) delete bun.env.GOOGLE_CLOUD_PROJECT;
+				else bun.env.GOOGLE_CLOUD_PROJECT = originalProject;
+				if (originalGcpProject === undefined) delete bun.env.GCP_PROJECT;
+				else bun.env.GCP_PROJECT = originalGcpProject;
+				if (originalGcloudProject === undefined) delete bun.env.GCLOUD_PROJECT;
+				else bun.env.GCLOUD_PROJECT = originalGcloudProject;
+				if (originalVertexLocation === undefined) delete bun.env.GOOGLE_VERTEX_LOCATION;
+				else bun.env.GOOGLE_VERTEX_LOCATION = originalVertexLocation;
+				if (originalCloudLocation === undefined) delete bun.env.GOOGLE_CLOUD_LOCATION;
+				else bun.env.GOOGLE_CLOUD_LOCATION = originalCloudLocation;
+				if (originalLocation === undefined) delete bun.env.VERTEX_LOCATION;
+				else bun.env.VERTEX_LOCATION = originalLocation;
+				if (originalApiKey === undefined) delete bun.env.GOOGLE_CLOUD_API_KEY;
+				else bun.env.GOOGLE_CLOUD_API_KEY = originalApiKey;
+				if (originalGac === undefined) delete bun.env.GOOGLE_APPLICATION_CREDENTIALS;
+				else bun.env.GOOGLE_APPLICATION_CREDENTIALS = originalGac;
 			}
 		});
 	});
@@ -1746,7 +1754,7 @@ describe("Generate E2E Tests", () => {
 	});
 
 	// Ollama tests require PI_LOCAL_LLM=1 and ollama installed
-	const ollamaInstalled = !!Bun.env.PI_LOCAL_LLM && !!$which("ollama");
+	const ollamaInstalled = !!bun.env.PI_LOCAL_LLM && !!$which("ollama");
 
 	describe.skipIf(!ollamaInstalled)("Ollama Provider (gpt-oss-20b via OpenAI Completions)", () => {
 		let llm: Model<"openai-completions"> | undefined;

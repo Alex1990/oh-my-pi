@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { assignLockFilesToPlan } from "../src/commit/agentic/lock-files";
 import type { SplitCommitPlan } from "../src/commit/agentic/state";
 

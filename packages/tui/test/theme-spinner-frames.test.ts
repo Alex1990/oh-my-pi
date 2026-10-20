@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,10 +6,11 @@ import { sharedSpinnerFrame } from "@oh-my-pi/pi-tui/chat/tool-execution";
 import { SPINNER_ADVANCE_MS } from "@oh-my-pi/pi-tui/components/loader";
 import { getThemeByName } from "@oh-my-pi/pi-tui/theme";
 import { getConfigRootDir, getCustomThemesDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Path of the built-in dark theme JSON, used as a known-valid base we can
 // extend with custom `symbols.spinnerFrames` shapes.
-const DARK_THEME_PATH = path.join(import.meta.dir, "..", "src", "theme", "dark.json");
+const DARK_THEME_PATH = path.join(import.meta.dirname, "..", "src", "theme", "dark.json");
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
@@ -17,7 +18,7 @@ const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
 let tmpAgentDir: string;
 
 async function writeCustomTheme(name: string, extraSymbols: Record<string, unknown>): Promise<void> {
-	const dark = (await Bun.file(DARK_THEME_PATH).json()) as Record<string, unknown>;
+	const dark = (await bun.file(DARK_THEME_PATH).json()) as Record<string, unknown>;
 	const base = (dark.symbols ?? {}) as Record<string, unknown>;
 	const themeJson = {
 		...dark,
@@ -26,7 +27,7 @@ async function writeCustomTheme(name: string, extraSymbols: Record<string, unkno
 	};
 	const themesDir = getCustomThemesDir();
 	await fs.mkdir(themesDir, { recursive: true });
-	await Bun.write(path.join(themesDir, `${name}.json`), JSON.stringify(themeJson, null, 2));
+	await bun.write(path.join(themesDir, `${name}.json`), JSON.stringify(themeJson, null, 2));
 }
 
 describe("theme symbols.spinnerFrames", () => {

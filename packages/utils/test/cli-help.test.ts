@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { Args, Command, type CommandEntry, Flags, run } from "../src/cli";
 
 class GoodCommand extends Command {

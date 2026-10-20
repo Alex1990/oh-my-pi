@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import {
 	resetRequestCompressionForTesting,
@@ -6,6 +6,7 @@ import {
 } from "@oh-my-pi/pi-ai/utils/request-compression";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { Api } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages?beta=true";
 const COPILOT_URL = "https://api.individual.githubcopilot.com/chat/completions";
@@ -76,7 +77,7 @@ describe("wrapFetchForRequestCompression", () => {
 		await wrapFetchForRequestCompression(fetch, anthropic)(ANTHROPIC_URL, post());
 
 		expect(calls[0].headers).toEqual({ "Content-Type": "application/json", "Content-Encoding": "gzip" });
-		expect(decode(calls[0].body, Bun.gunzipSync)).toBe(LARGE_BODY);
+		expect(decode(calls[0].body, bun.gunzipSync)).toBe(LARGE_BODY);
 	});
 
 	it("zstd-compresses large bodies to the first-party Copilot API", async () => {
@@ -84,7 +85,7 @@ describe("wrapFetchForRequestCompression", () => {
 		await wrapFetchForRequestCompression(fetch, copilot)(COPILOT_URL, post());
 
 		expect(calls[0].headers["Content-Encoding"]).toBe("zstd");
-		expect(decode(calls[0].body, Bun.zstdDecompressSync)).toBe(LARGE_BODY);
+		expect(decode(calls[0].body, bun.zstdDecompressSync)).toBe(LARGE_BODY);
 	});
 
 	it("leaves proxies, unverified Copilot hosts, providers without rules, and tiny bodies uncompressed", async () => {
@@ -185,7 +186,7 @@ describe("wrapFetchForRequestCompression", () => {
 		await wrapped(COPILOT_URL, post());
 
 		expect(calls.map(call => call.headers["Content-Encoding"])).toEqual(["zstd", undefined, "gzip"]);
-		expect(decode(calls[2].body, Bun.gunzipSync)).toBe(LARGE_BODY);
+		expect(decode(calls[2].body, bun.gunzipSync)).toBe(LARGE_BODY);
 	});
 
 	it("keeps compressing when the uncompressed resend fails the same way", async () => {

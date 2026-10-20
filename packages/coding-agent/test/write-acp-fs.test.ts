@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import type { ClientBridge } from "@oh-my-pi/pi-coding-agent/session/client-brid
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const FILE_CONTENT = "bridge write content\n";
 
@@ -57,7 +58,7 @@ describe("write tool ACP fs routing", () => {
 		await removeWithRetries(tmpDir);
 	});
 
-	it("routes plain text writes through the bridge and does not call Bun.write", async () => {
+	it("routes plain text writes through the bridge and does not call bun.write", async () => {
 		const filePath = path.join(tmpDir, "output.txt");
 
 		const bridge: ClientBridge = {
@@ -66,7 +67,7 @@ describe("write tool ACP fs routing", () => {
 		};
 
 		const bridgeSpy = spyOn(bridge, "writeTextFile");
-		const bunWriteSpy = spyOn(Bun, "write");
+		const bunWriteSpy = spyOn(bun, "write");
 
 		try {
 			const session = createSession(tmpDir, { bridge });
@@ -91,7 +92,7 @@ describe("write tool ACP fs routing", () => {
 		const bridge: ClientBridge = {
 			capabilities: { writeTextFile: true },
 			writeTextFile: async ({ path: target, content }) => {
-				await Bun.write(target, content.replace(/^ {4}/gm, "\t"));
+				await bun.write(target, content.replace(/^ {4}/gm, "\t"));
 			},
 		};
 		const session = createSession(tmpDir, { bridge });
@@ -99,7 +100,7 @@ describe("write tool ACP fs routing", () => {
 		const result = await new WriteTool(session).execute("call-drift", { path: filePath, content: requested });
 		const text = resultText(result);
 
-		expect(await Bun.file(filePath).text()).toBe(persisted);
+		expect(await bun.file(filePath).text()).toBe(persisted);
 		expect(text).toContain(`[formatted.ts#${hashlineFileHash(persisted)}]`);
 		expect(text).not.toContain(`[formatted.ts#${hashlineFileHash(requested)}]`);
 	});
@@ -146,7 +147,7 @@ describe("write tool ACP fs routing", () => {
 
 		expect(bridgeSpy).not.toHaveBeenCalled();
 		expect(
-			await Bun.file(
+			await bun.file(
 				resolveLocalUrlToPath(planPath, {
 					getArtifactsDir: session.getArtifactsDir,
 					getSessionId: session.getSessionId,
@@ -177,7 +178,7 @@ describe("write tool ACP fs routing", () => {
 		// still session-local artifacts and stay on disk under the local sandbox.
 		expect(bridgeSpy).not.toHaveBeenCalled();
 		expect(
-			await Bun.file(
+			await bun.file(
 				resolveLocalUrlToPath(scratchPath, {
 					getArtifactsDir: session.getArtifactsDir,
 					getSessionId: session.getSessionId,
@@ -199,7 +200,7 @@ describe("write tool ACP fs routing", () => {
 			rejection = error;
 		}
 
-		expect(await Bun.file(leakedPath).exists()).toBe(false);
+		expect(await bun.file(leakedPath).exists()).toBe(false);
 		if (!(rejection instanceof Error)) throw new Error("Expected memory:// write to reject");
 		expect(rejection.message).toContain("memory:// URLs are read-only for write");
 	});

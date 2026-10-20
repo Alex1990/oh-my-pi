@@ -19,6 +19,7 @@ import { encodeWav } from "../tts/wav";
 import { formatPathRelativeToCwd, resolveToCwd } from "./path-utils";
 
 import { cfgTtsLocalSpeed, cfgTtsLocalVoice } from "../tts/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Built-in voices per xAI Tier-1 docs (2026-05-16). xAI also accepts custom voice IDs,
 // so the schema does NOT enum-restrict voice_id; this constant only drives the description.
@@ -118,7 +119,7 @@ async function synthesizeCloud(
 			signal,
 		},
 	);
-	await Bun.write(outputPath, result.audio);
+	await bun.write(outputPath, result.audio);
 	const voiceId = params.voice_id ?? (model.api === "xai-tts" ? DEFAULT_XAI_VOICE_ID : "default");
 	const backend: Exclude<TtsBackend, "local-inference"> = model.api === "xai-tts" ? "xai-tts" : "openai-speech";
 	return {
@@ -157,7 +158,7 @@ async function synthesizeLocal(
 
 	const { wavPath, substituted } = resolveLocalWavPath(outputPath);
 	const wav = encodeWav(audio.pcm, audio.sampleRate);
-	await Bun.write(wavPath, wav);
+	await bun.write(wavPath, wav);
 	const displayPath = formatPathRelativeToCwd(wavPath, cwd);
 	const note = substituted
 		? ` No local MP3 encoder is bundled, so WAV (PCM16) was written instead of the requested container.`

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Answer } from "@oh-my-pi/pi-ai";
 import { judgeRequest, planFromAnswers } from "@oh-my-pi/pi-coding-agent/auto-graph/planner";
 import { planChart } from "@oh-my-pi/pi-tui/charts/chart-plan";

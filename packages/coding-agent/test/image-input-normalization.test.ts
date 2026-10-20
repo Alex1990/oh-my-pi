@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { normalizeModelContextImages } from "@oh-my-pi/pi-coding-agent/utils/image-loading";
 import { ensureSupportedImageInput } from "@oh-my-pi/pi-tui/chat/image-loading";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
-// 1x1 red PNG (69 bytes). Bun.Image sniffs format from bytes, so we can pass
+// 1x1 red PNG (69 bytes). Image sniffs format from bytes, so we can pass
 // this with a non-supported MIME type and the conversion path runs over the
 // real native pipeline.
 const RED_1X1_PNG_BASE64 =
@@ -10,12 +11,12 @@ const RED_1X1_PNG_BASE64 =
 
 async function makeRedPng(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
+	const upscaled = await new Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
 	return Buffer.from(upscaled).toBase64();
 }
 
 async function dimensions(image: { data: string }): Promise<{ width: number; height: number }> {
-	const metadata = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+	const metadata = await new Image(Buffer.from(image.data, "base64")).metadata();
 	return { width: metadata.width, height: metadata.height };
 }
 

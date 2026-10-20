@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -30,6 +30,7 @@ import {
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgToolsXdev, cfgToolsXdevDocs } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Mirrors `ToolExecutionComponent#buildRenderContext`: the host state's own
@@ -77,7 +78,7 @@ describe("read and write route xd:// device URLs", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "write-xdev-"));
 		try {
 			const filePath = path.join(tempDir, "legacy.ts");
-			await Bun.write(filePath, "legacyWrap(x, value)\n");
+			await bun.write(filePath, "legacyWrap(x, value)\n");
 			const queue = new ToolChoiceQueue();
 
 			const tools = await createTools(
@@ -128,7 +129,7 @@ describe("read and write route xd:// device URLs", () => {
 			const invoker = queue.peekPendingInvoker();
 			expect(invoker).toBeDefined();
 			await invoker!({ action: "apply", reason: "apply xdev ast edit" });
-			expect(await Bun.file(filePath).text()).toContain("modernWrap(x, value)");
+			expect(await bun.file(filePath).text()).toContain("modernWrap(x, value)");
 		} finally {
 			await removeWithRetries(tempDir);
 		}
@@ -248,15 +249,15 @@ describe("read and write route xd:// device URLs", () => {
 					"Did you mean 'xd://web_search'?",
 				);
 			}
-			expect(await Bun.file(path.join(tempDir, "xdt:/web_search")).exists()).toBe(false);
-			expect(await Bun.file(path.join(tempDir, "xd/web_search")).exists()).toBe(false);
+			expect(await bun.file(path.join(tempDir, "xdt:/web_search")).exists()).toBe(false);
+			expect(await bun.file(path.join(tempDir, "xd/web_search")).exists()).toBe(false);
 
 			const escaped = await write!.execute("write-explicit-path", {
 				path: "./xd/web_search",
 				content: "intentional file",
 			});
 			expect(escaped.isError).toBeUndefined();
-			expect(await Bun.file(path.join(tempDir, "xd/web_search")).text()).toBe("intentional file");
+			expect(await bun.file(path.join(tempDir, "xd/web_search")).text()).toBe("intentional file");
 
 			// conflict:// is a registered write scheme — the guard must let it
 			// reach the conflict handler, not reject it.
@@ -272,7 +273,7 @@ describe("read and write route xd:// device URLs", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "write-xdev-approval-"));
 		try {
 			const filePath = path.join(tempDir, "target.ts");
-			await Bun.write(filePath, "legacyWrap(x, value)\n");
+			await bun.write(filePath, "legacyWrap(x, value)\n");
 			const tools = await createTools(xdevSession(tempDir));
 			const write = tools.find(entry => entry.name === "write");
 			expect(write).toBeDefined();
@@ -340,7 +341,7 @@ describe("read and write route xd:// device URLs", () => {
 		// show a queued card instead of the inner tool's in-flight renderer.
 		const queued = writeToolRenderer.renderCall({ path: "xd://ast_edit", content }, options, uiTheme);
 		expect(queued).toBeDefined();
-		const queuedText = Bun.stripANSI(queued!.render(80).join("\n"));
+		const queuedText = bun.stripANSI(queued!.render(80).join("\n"));
 		expect(queuedText).toContain("queued");
 		expect(queuedText).toContain("ast_edit");
 
@@ -351,7 +352,7 @@ describe("read and write route xd:// device URLs", () => {
 			{ ...options, argsComplete: true },
 			uiTheme,
 		);
-		expect(Bun.stripANSI(argsCompleteOnly!.render(80).join("\n"))).toContain("queued");
+		expect(bun.stripANSI(argsCompleteOnly!.render(80).join("\n"))).toContain("queued");
 
 		// Same payload after tool_execution_start: delegate to the inner renderer
 		// instead of throwing ReferenceError inside a generic Write frame.
@@ -361,7 +362,7 @@ describe("read and write route xd:// device URLs", () => {
 			uiTheme,
 		);
 		expect(executing).toBeDefined();
-		const executingText = Bun.stripANSI(executing!.render(80).join("\n"));
+		const executingText = bun.stripANSI(executing!.render(80).join("\n"));
 		expect(executingText).not.toContain("queued");
 	});
 
@@ -382,7 +383,7 @@ describe("read and write route xd:// device URLs", () => {
 			uiTheme,
 		);
 		expect(queued).toBeDefined();
-		const queuedText = Bun.stripANSI(queued!.render(120).join("\n"));
+		const queuedText = bun.stripANSI(queued!.render(120).join("\n"));
 		expect(queuedText).toContain("queued");
 		expect(queuedText).toContain("ecoport/search");
 		expect(queuedText).toContain("Broken");
@@ -425,7 +426,7 @@ describe("read and write route xd:// device URLs", () => {
 			uiTheme,
 			{ path: "xd://github", content },
 		);
-		const rendered = Bun.stripANSI(component.render(80).join("\n"));
+		const rendered = bun.stripANSI(component.render(80).join("\n"));
 		expect(rendered).toContain("GitHub Repo");
 		expect(rendered).toContain("gh: Not Found (HTTP 404)");
 		expect(rendered).not.toContain("Write");
@@ -464,7 +465,7 @@ describe("read and write route xd:// device URLs", () => {
 			{ path: "xd://weather", content },
 		);
 		const lines = component.render(80);
-		const rendered = Bun.stripANSI(lines.join("\n"));
+		const rendered = bun.stripANSI(lines.join("\n"));
 		const backgroundProbe = uiTheme.bg("toolSuccessBg", "|");
 		const backgroundPrefix = backgroundProbe.slice(0, backgroundProbe.indexOf("|"));
 
@@ -513,7 +514,7 @@ describe("read and write route xd:// device URLs", () => {
 			uiTheme,
 			{ path: "xd://pwsh", content },
 		);
-		const rendered = Bun.stripANSI(component.render(80).join("\n"));
+		const rendered = bun.stripANSI(component.render(80).join("\n"));
 
 		expect(rendered).toContain("TOP-LEVEL-RESULT");
 		// The generic device card would have inlined the args instead.
@@ -717,7 +718,7 @@ describe("xd:// and top-level calls share the canonical tool map", () => {
 	it("dispatches and documents an unmounted top-level tool, and still rejects unknown names", async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "write-xdev-fallback-"));
 		try {
-			await Bun.write(path.join(tempDir, "haystack.txt"), "alpha\nfallback-needle\nomega\n");
+			await bun.write(path.join(tempDir, "haystack.txt"), "alpha\nfallback-needle\nomega\n");
 			const session = xdevSession(tempDir);
 			const tools = await createTools(session);
 			const write = tools.find(entry => entry.name === "write");
@@ -899,7 +900,7 @@ describe("device-only write transport for explicit lists omitting write", () => 
 			await expect(
 				write!.execute("write-pending-full-fs", { path: path.join(tempDir, "nope.txt"), content: "x" }),
 			).rejects.toThrow("Filesystem writes are not available");
-			expect(await Bun.file(path.join(tempDir, "nope.txt")).exists()).toBe(false);
+			expect(await bun.file(path.join(tempDir, "nope.txt")).exists()).toBe(false);
 
 			session.pendingFullWriteDescription = undefined;
 			expect(write!.description).toBe(restrictedDescription);
@@ -963,7 +964,7 @@ describe("device-only write transport for explicit lists omitting write", () => 
 			const filePath = path.join(tempDir, "ok.txt");
 			const result = await write!.execute("write-full-grant", { path: filePath, content: "hello\n" });
 			expect(result.isError).toBeUndefined();
-			expect(await Bun.file(filePath).text()).toBe("hello\n");
+			expect(await bun.file(filePath).text()).toBe("hello\n");
 		} finally {
 			await removeWithRetries(tempDir);
 		}
@@ -982,7 +983,7 @@ describe("device-only write transport for explicit lists omitting write", () => 
 
 			const filePath = path.join(tempDir, "upgraded.txt");
 			await write!.execute("write-upgraded-grant", { path: filePath, content: "upgraded\n" });
-			expect(await Bun.file(filePath).text()).toBe("upgraded\n");
+			expect(await bun.file(filePath).text()).toBe("upgraded\n");
 		} finally {
 			await removeWithRetries(tempDir);
 		}

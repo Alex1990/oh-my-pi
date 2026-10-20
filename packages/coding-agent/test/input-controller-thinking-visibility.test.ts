@@ -1,4 +1,4 @@
-import { describe, expect, it, type Mock, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
@@ -17,7 +17,7 @@ describe("InputController thinking visibility", () => {
 		// user's hideThinkingBlock setting is false. The toggle should refuse
 		// instead of silently no-op'ing or corrupting the setting.
 		const assistant = createAssistant();
-		const setHideThinkingBlock = assistant.setHideThinkingBlock as Mock<(hidden: boolean) => void>;
+		const setHideThinkingBlock = vi.mocked(assistant.setHideThinkingBlock);
 		const settings = Settings.isolated();
 		const showStatus = vi.fn();
 		const resetDisplay = vi.fn();
@@ -45,7 +45,7 @@ describe("InputController thinking visibility", () => {
 
 	it("allows toggling when thinking is off after reasoning content was received", () => {
 		const assistant = createAssistant();
-		const setHideThinkingBlock = assistant.setHideThinkingBlock as Mock<(hidden: boolean) => void>;
+		const setHideThinkingBlock = vi.mocked(assistant.setHideThinkingBlock);
 		const settings = Settings.isolated();
 		const showStatus = vi.fn();
 		const resetOrder: string[] = [];
@@ -82,7 +82,7 @@ describe("InputController thinking visibility", () => {
 
 	it("refuses to toggle when the focused view session has thinking off", () => {
 		const assistant = createAssistant();
-		const setHideThinkingBlock = assistant.setHideThinkingBlock as Mock<(hidden: boolean) => void>;
+		const setHideThinkingBlock = vi.mocked(assistant.setHideThinkingBlock);
 		const settings = Settings.isolated();
 		const showStatus = vi.fn();
 		const resetDisplay = vi.fn();
@@ -114,7 +114,7 @@ describe("InputController thinking visibility", () => {
 		// is true regardless, so any toggle is a no-op — guard it rather than
 		// flipping the persisted preference back to false.
 		const assistant = createAssistant();
-		const setHideThinkingBlock = assistant.setHideThinkingBlock as Mock<(hidden: boolean) => void>;
+		const setHideThinkingBlock = vi.mocked(assistant.setHideThinkingBlock);
 		const settings = Settings.isolated();
 		cfgHideThinkingBlock.set(settings, true);
 		const showStatus = vi.fn();

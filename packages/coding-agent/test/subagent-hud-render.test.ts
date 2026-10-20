@@ -4,7 +4,7 @@
  * sync task calls alike — as numbered `N Id: description` jump-list rows and
  * yields no output once nothing qualifies, so the block self-clears.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, setSystemTime, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, setSystemTime, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Agent, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
@@ -36,6 +36,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgDisplaySubagentLivePreview } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import { cfgTaskShowResolvedModelBadge } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(overrides: Partial<ObservableSession> & { id: string }): ObservableSession {
 	return {
@@ -97,7 +98,7 @@ function makeProgressPayload(
 }
 
 function render(sessions: ObservableSession[], columns = 120, livePreview = false): string {
-	return Bun.stripANSI(renderSubagentHudLines(sessions, columns, false, livePreview).join("\n"));
+	return bun.stripANSI(renderSubagentHudLines(sessions, columns, false, livePreview).join("\n"));
 }
 
 describe("subagent HUD lines", () => {
@@ -195,7 +196,7 @@ describe("subagent HUD lines", () => {
 				expect(row).not.toContain(":high");
 			}
 			for (const line of lines) {
-				expect(Bun.stringWidth(line)).toBeLessThanOrEqual(60);
+				expect(bun.stringWidth(line)).toBeLessThanOrEqual(60);
 			}
 		});
 
@@ -221,7 +222,7 @@ describe("subagent HUD lines", () => {
 						const rows = render(sessions, width).split("\n");
 						expect(rows.find(row => row.includes("LongWorker"))).toStartWith(" 界├ ");
 						expect(rows.find(row => row.includes("ShortWorker"))).toStartWith(" 界界└ ");
-						for (const row of rows) expect(Bun.stringWidth(row)).toBeLessThanOrEqual(width);
+						for (const row of rows) expect(bun.stringWidth(row)).toBeLessThanOrEqual(width);
 						expect(rows.find(row => row.includes("LongWorker"))).toContain("LongWorker");
 						expect(rows.find(row => row.includes("ShortWorker"))).toContain(
 							`${theme.format.bracketLeft}scout${theme.format.bracketRight}`,
@@ -400,7 +401,7 @@ describe("subagent HUD lines", () => {
 		expect(out).toContain("Anna>Bob:");
 		expect(out).not.toContain("end");
 		for (const line of out.split("\n")) {
-			expect(Bun.stringWidth(line)).toBeLessThanOrEqual(60);
+			expect(bun.stringWidth(line)).toBeLessThanOrEqual(60);
 		}
 	});
 
@@ -463,7 +464,7 @@ describe("subagent HUD lines", () => {
 			}),
 		);
 
-		const out = Bun.stripANSI(renderSubagentHudLines(active, 120, true).join("\n"));
+		const out = bun.stripANSI(renderSubagentHudLines(active, 120, true).join("\n"));
 
 		for (const session of active) {
 			expect(out).toContain(`${session.id}: ${session.description}`);
@@ -544,7 +545,7 @@ describe("subagent HUD lines", () => {
 			const toolRow = out.split("\n").find(line => line.includes("bash: npm test"));
 			expect(toolRow).toMatch(/\d+s$/);
 			for (const line of out.split("\n")) {
-				expect(Bun.stringWidth(line)).toBeLessThanOrEqual(columns);
+				expect(bun.stringWidth(line)).toBeLessThanOrEqual(columns);
 			}
 		});
 
@@ -567,7 +568,7 @@ describe("subagent HUD lines", () => {
 			);
 			expect(out).toContain("read: xxxxxxxx");
 			for (const line of out.split("\n")) {
-				expect(Bun.stringWidth(line)).toBeLessThanOrEqual(columns);
+				expect(bun.stringWidth(line)).toBeLessThanOrEqual(columns);
 			}
 		});
 		it("shortens home-directory paths in preview details", () => {
@@ -631,8 +632,8 @@ describe("subagent HUD lines", () => {
 				)
 					.split("\n")
 					.find(line => line.includes("read: a.ts"));
-			const success = Bun.stripANSI(theme.styledSymbol("status.success", "success"));
-			const error = Bun.stripANSI(theme.styledSymbol("status.error", "error"));
+			const success = bun.stripANSI(theme.styledSymbol("status.success", "success"));
+			const error = bun.stripANSI(theme.styledSymbol("status.error", "error"));
 			expect(rowFor(false)).toContain(`${success} read: a.ts`);
 			expect(rowFor(true)).toContain(`${error} read: a.ts`);
 			expect(rowFor(false)).not.toContain(error);
@@ -659,7 +660,7 @@ describe("subagent HUD lines", () => {
 			expect(toolRow).toBeDefined();
 			expect(toolRow).toMatch(/\d+s$/);
 			for (const line of out.split("\n")) {
-				expect(Bun.stringWidth(line)).toBeLessThanOrEqual(columns);
+				expect(bun.stringWidth(line)).toBeLessThanOrEqual(columns);
 			}
 		});
 
@@ -690,9 +691,9 @@ describe("subagent HUD lines", () => {
 					renderSubagentHudLines(sessions, columns, false, true),
 					sessions.map(session => session.id),
 				);
-				const rows = hud.render(columns).map(row => Bun.stripANSI(row));
+				const rows = hud.render(columns).map(row => bun.stripANSI(row));
 				for (const row of rows) {
-					expect(Bun.stringWidth(row)).toBeLessThanOrEqual(columns);
+					expect(bun.stringWidth(row)).toBeLessThanOrEqual(columns);
 				}
 				const elapsedRows = rows.filter(row => /\d+s/.test(row));
 				expect(elapsedRows.length).toBeGreaterThan(0);
@@ -712,7 +713,7 @@ describe("subagent HUD lines", () => {
 				sessions.map(session => session.id),
 				layout.toggleRow,
 			);
-			const rows = hud.render(120).map(row => Bun.stripANSI(row));
+			const rows = hud.render(120).map(row => bun.stripANSI(row));
 			const rowOf = (text: string) => rows.findIndex(row => row.includes(text));
 			expect(hud.getClickAgentAtRow(rowOf("Alpha.ts"))).toBe("Alpha");
 			expect(hud.getClickAgentAtRow(rowOf("Beta"))).toBe("Beta");
@@ -799,8 +800,8 @@ describe("SubagentHudComponent click rows", () => {
 
 		const rendered = hud.render(120);
 		expect(rendered).toHaveLength(lines.length);
-		expect(Bun.stripANSI(rendered[2] ?? "")).toContain("Alpha");
-		expect(Bun.stripANSI(rendered[3] ?? "")).toContain("Beta");
+		expect(bun.stripANSI(rendered[2] ?? "")).toContain("Alpha");
+		expect(bun.stripANSI(rendered[3] ?? "")).toContain("Beta");
 
 		expect(hud.getClickAgentAtRow(0)).toBeUndefined();
 		expect(hud.getClickAgentAtRow(1)).toBeUndefined();
@@ -822,7 +823,7 @@ describe("SubagentHudComponent click rows", () => {
 		const hud = new SubagentHudComponent(["", "Subagents", long, "short"], ["Long", "Short"]);
 		const rendered = hud.render(40);
 		expect(rendered.length).toBeGreaterThan(4);
-		const shortRow = rendered.findIndex(line => Bun.stripANSI(line).includes("short"));
+		const shortRow = rendered.findIndex(line => bun.stripANSI(line).includes("short"));
 		expect(shortRow).toBeGreaterThan(3);
 		expect(hud.getClickAgentAtRow(2)).toBe("Long");
 		expect(hud.getClickAgentAtRow(3)).toBe("Long");
@@ -835,14 +836,14 @@ describe("SubagentHudComponent click rows", () => {
 		expect(hud.getClickAgentAtRow(2)).toBeUndefined();
 
 		const narrowRows = hud.render(40);
-		const narrowShortRow = narrowRows.findIndex(line => Bun.stripANSI(line).includes("short"));
+		const narrowShortRow = narrowRows.findIndex(line => bun.stripANSI(line).includes("short"));
 		expect(narrowShortRow).toBeGreaterThan(3);
 		expect(hud.getClickAgentAtRow(narrowShortRow - 1)).toBe("Long");
 		expect(hud.getClickAgentAtRow(narrowShortRow)).toBe("Short");
 
 		const wideRows = hud.render(120);
 		expect(wideRows.length).toBeLessThan(narrowRows.length);
-		const wideShortRow = wideRows.findIndex(line => Bun.stripANSI(line).includes("short"));
+		const wideShortRow = wideRows.findIndex(line => bun.stripANSI(line).includes("short"));
 		expect(hud.getClickAgentAtRow(wideShortRow)).toBe("Short");
 		expect(hud.getClickAgentAtRow(wideShortRow + 1)).toBeUndefined();
 	});
@@ -852,13 +853,13 @@ describe("SubagentHudComponent click rows", () => {
 		try {
 			const hud = new SubagentHudComponent(["", "Subagents", ` ${"ㅁ".repeat(25)}`, "next"], ["Jamo", "Next"]);
 			const narrowRows = hud.render(40);
-			const narrowNextRow = narrowRows.findIndex(line => Bun.stripANSI(line).includes("next"));
+			const narrowNextRow = narrowRows.findIndex(line => bun.stripANSI(line).includes("next"));
 			expect(hud.getClickAgentAtRow(narrowNextRow)).toBe("Next");
 
 			setHangulCompatibilityJamoWidth(2);
 			expect(hud.getClickAgentAtRow(narrowNextRow)).toBe("Next");
 			const wideRows = hud.render(40);
-			const wideNextRow = wideRows.findIndex(line => Bun.stripANSI(line).includes("next"));
+			const wideNextRow = wideRows.findIndex(line => bun.stripANSI(line).includes("next"));
 			expect(wideNextRow).toBeGreaterThan(narrowNextRow);
 			expect(hud.getClickAgentAtRow(wideNextRow - 1)).toBe("Jamo");
 			expect(hud.getClickAgentAtRow(wideNextRow)).toBe("Next");
@@ -956,7 +957,7 @@ describe("InteractiveMode subagent observer UI sync", () => {
 		vi.runAllTimers();
 		await Promise.resolve();
 
-		const hud = Bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
+		const hud = bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
 		expect(hud).toContain("BurstAgent0: Burst job 0");
 		expect(hud).toContain("BurstAgent2: Burst job 2");
 		expect(hud).not.toContain("BurstAgent3: Burst job 3");
@@ -971,7 +972,7 @@ describe("InteractiveMode subagent observer UI sync", () => {
 			eventBus.emit(TASK_SUBAGENT_LIFECYCLE_CHANNEL, makeLifecycle(`Override${index}`, index, `job ${index}`));
 		}
 		await Promise.resolve();
-		const hudText = () => Bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
+		const hudText = () => bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
 
 		mode.togglePinnedHudExpanded();
 		expect(hudText()).toContain("Override4");
@@ -997,7 +998,7 @@ describe("InteractiveMode subagent observer UI sync", () => {
 		eventBus.emit(TASK_SUBAGENT_PROGRESS_CHANNEL, payload);
 		await Promise.resolve();
 		vi.advanceTimersByTime(100); // observer UI coalesce window
-		const hudText = () => Bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
+		const hudText = () => bun.stripANSI(mode.subagentContainer.render(120).join("\n"));
 		const hud = mode.subagentContainer.children[0];
 		expect(hudText()).toContain("bash: sleep 40 · 20.1s");
 

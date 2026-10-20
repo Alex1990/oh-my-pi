@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type WordCompletionEngine,
 	WordCompletionProvider,

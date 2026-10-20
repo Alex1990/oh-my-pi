@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getProviderDashboardStats, getProviderWindowStats } from "@oh-my-pi/omp-stats/aggregator";
@@ -13,6 +13,7 @@ import {
 } from "@oh-my-pi/omp-stats/usage-windows";
 import { getAgentDbPath } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-providers-");
 
@@ -349,16 +350,18 @@ describe("readUsageSnapshots", () => {
 
 	it("waits for a contended database instead of returning no snapshots", async () => {
 		createAgentDb([snapshot({ recordedAt: T0, usedFraction: 0.3 })]);
-		const locker = Bun.spawn(
+		const locker = bun.spawn(
 			[
 				process.execPath,
 				"-e",
-				`import { Database } from "bun:sqlite";
+				`import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 const db = new Database(process.argv[1]);
 db.run("BEGIN EXCLUSIVE");
 process.stdout.write("locked\\n");
 // This integration probe needs a real SQLite lock lifetime; fake timers cannot advance a separate process.
-await Bun.sleep(100);
+const hold = Promise.withResolvers<void>();
+setTimeout(hold.resolve, 100);
+await hold.promise;
 db.run("COMMIT");
 db.close();`,
 				getAgentDbPath(),

@@ -5,7 +5,7 @@
  * widget author's watch hint, so a mis-parse shows a wrong bar or a stray
  * label, and a reply that parses to nothing leaves the row unchanged.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseCompletionEstimate } from "@oh-my-pi/pi-coding-agent/task/completion-probe";
 
 describe("parseCompletionEstimate", () => {

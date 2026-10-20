@@ -14,6 +14,8 @@ import {
 	type LiveServerEvent,
 	parseLiveServerEvent,
 } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { WebSocket, type WebSocketOptions } from "@oh-my-pi/pi-utils/node-serve";
 
 const SIGNALING_URL = `${CODEX_BASE_URL}/codex/realtime/calls?intent=quicksilver&architecture=avas`;
 const MAX_ERROR_BODY_LENGTH = 2_048;
@@ -115,7 +117,7 @@ export class CodexLiveTransport {
 	readonly #options: LiveTransportOptions;
 	#peer: LiveWebRtcPeer | undefined;
 	readonly #realtimeSessionId = crypto.randomUUID();
-	#sideband: Bun.WebSocket | undefined;
+	#sideband: WebSocket | undefined;
 	#state: Lifecycle = "idle";
 	#connectPromise: Promise<void> | undefined;
 	#closePromise: Promise<void> | undefined;
@@ -237,7 +239,7 @@ export class CodexLiveTransport {
 			} catch (cause) {
 				failure = cause instanceof Error ? cause : new Error(String(cause));
 				if (this.#options.signal?.aborted) throw abortReason(this.#options.signal);
-				if (attempt + 1 < SIDEBAND_CONNECT_ATTEMPTS) await Bun.sleep(200 * 2 ** attempt);
+				if (attempt + 1 < SIDEBAND_CONNECT_ATTEMPTS) await bun.sleep(200 * 2 ** attempt);
 			}
 		}
 		throw failure;
@@ -248,8 +250,8 @@ export class CodexLiveTransport {
 		const options = {
 			headers: liveSessionHeaders(access, this.#options.sessionId, this.#realtimeSessionId, attestation),
 			proxy: getProxyForUrl(LIVE_PROVIDER, new URL(url)),
-		} satisfies Bun.WebSocketOptions;
-		const socket: Bun.WebSocket = Reflect.construct(WebSocket, [url, options]);
+		} satisfies WebSocketOptions;
+		const socket: WebSocket = Reflect.construct(WebSocket, [url, options]);
 		socket.binaryType = "nodebuffer";
 		const { promise, resolve, reject } = Promise.withResolvers<void>();
 		let opened = false;
@@ -291,7 +293,9 @@ export class CodexLiveTransport {
 			this.#handleSidebandEvent(event.data);
 		};
 		socket.onerror = event => {
-			const detail = event instanceof ErrorEvent && event.message ? `: ${event.message}` : "";
+			const message =
+				"message" in event && typeof event.message === "string" ? event.message : "";
+			const detail = message ? `: ${message}` : "";
 			if (!opened) {
 				rejectConnect(new Error(`Codex live sideband connection failed${detail}`));
 				socket.close(1011, "connection failed");

@@ -8,6 +8,7 @@ import {
 import { LRUCache } from "@oh-my-pi/pi-utils/lru";
 import { $env, logger } from "@oh-my-pi/pi-utils";
 import type { FetchImpl, Message } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Infer whether the current request to Copilot is user-initiated or agent-initiated.
  * Accepts `unknown[]` because providers may pass pre-converted message shapes.
@@ -109,7 +110,7 @@ function normalizeCopilotCacheBaseUrl(baseUrl: string | undefined): string {
 
 /**
  * Stable cache key for a raw Copilot API key envelope on one effective host.
- * Hashes the bearer with `Bun.hash` (repo-approved hashing API; same
+ * Hashes the bearer with `bun.hash` (repo-approved hashing API; same
  * credential-scoped pattern as the GitLab Duo and Codex account keys) so token
  * bytes never sit in the map as keys; enterprise/business routing inputs and
  * the normalized effective base URL participate so the same token on two hosts
@@ -121,7 +122,7 @@ export function getCopilotIntegrationCacheKey(apiKeyRaw: string | undefined, bas
 	if (!trimmed) return undefined;
 	const parsed = parseGitHubCopilotApiKey(trimmed);
 	if (!parsed.accessToken) return undefined;
-	const fingerprint = Bun.hash(parsed.accessToken).toString(36);
+	const fingerprint = bun.hash(parsed.accessToken).toString(36);
 	return `${parsed.enterpriseUrl ?? ""}\0${parsed.apiEndpoint ?? ""}\0${normalizeCopilotCacheBaseUrl(baseUrl)}\0${fingerprint}`;
 }
 

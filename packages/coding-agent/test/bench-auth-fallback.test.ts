@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type {
@@ -18,6 +18,8 @@ import { type BenchSummary, runBenchCommand } from "@oh-my-pi/pi-coding-agent/cl
 import { type BenchModelRegistry, resolveBenchTargets } from "@oh-my-pi/pi-coding-agent/cli/bench-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { getModelDbPath, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 function fakeModel(provider: string, id: string): Model<Api> {
 	return buildModel({
@@ -281,8 +283,8 @@ describe("default bench runtime", () => {
 					runtime.close?.();
 				}
 			`;
-			const child = Bun.spawn([process.execPath, "-e", script], {
-				cwd: path.resolve(import.meta.dir, "../../.."),
+			const child = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", script], {
+				cwd: path.resolve(import.meta.dirname, "../../.."),
 				env: {
 					...process.env,
 					NO_COLOR: "1",

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "bun:test";
+import { beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "@oh-my-pi/pi-tui/native/node";
 import {
 	type JobsPanelDetail,
@@ -9,6 +9,7 @@ import {
 } from "@oh-my-pi/pi-tui/overlays/jobs-panel";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { modelEval } from "./fixtures/job-widget-views";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DOWN = "\x1b[B";
 const UP = "\x1b[A";
@@ -180,7 +181,7 @@ describe("JobsSheet", () => {
 		expect(roles.indexOf("omp.jobs.widget")).toBeLessThan(roles.indexOf("omp.jobs.out"));
 		expect(byRole(root, "omp.job.widget.bar")).toHaveLength(3);
 
-		const lines = sheet.render(100).map(line => Bun.stripANSI(line));
+		const lines = sheet.render(100).map(line => bun.stripANSI(line));
 		const head = lines.findIndex(line => line.includes("eval · tests passed per model"));
 		expect(head).toBeGreaterThan(0);
 		expect(lines[head + 2]).toMatch(/^ {5}opus-4\.5 +█+░* +26\/30$/);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Editor, type EditorTextAssistProvider } from "@oh-my-pi/pi-tui";
 import { defaultEditorTheme } from "./test-themes";
 

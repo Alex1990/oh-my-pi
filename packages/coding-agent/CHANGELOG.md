@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- omp now runs on **Node.js** (>= 22.12) instead of Bun: the workspace is managed with **pnpm**, `bun:test` suites run on **Vitest**, and packaged builds start a Node process with the Rust addons loaded through napi
+- Bun-only runtime APIs (`bun:sqlite`, `bun:ffi`, `Bun.serve`, `Bun.$`, `Bun.connect`, …) are replaced by Node implementations under `@oh-my-pi/pi-utils/*`; `Bun.serve`/`Bun.connect` callers must now `await` the async `serve()`/`connect()`
+- Release artifacts are a Node launcher (`omp-<target>` / `omp-<target>.cmd`) plus a shared `cli.js` bundle instead of one compiled executable per platform
+
 ### Added
 
 - Added the **Ask and remember** approval mode (`tools.approvalMode: always-ask-cached`, `--approval-mode always-ask-cached`): it also asks before file reads, and file prompts can remember the folder or the file, for this session or across sessions, through `approval-cache.db` ([#16049](https://github.com/can1357/oh-my-pi/pull/16049) by [@Peribunt](https://github.com/Peribunt))

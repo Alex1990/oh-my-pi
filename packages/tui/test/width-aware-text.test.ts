@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { DescribeContext } from "@oh-my-pi/pi-tui/native/node";
 import { WidthAwareText } from "@oh-my-pi/pi-tui/render/width-aware-text";
 

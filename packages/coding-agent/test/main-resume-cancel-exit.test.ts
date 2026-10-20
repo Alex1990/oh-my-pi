@@ -10,13 +10,14 @@
  * exits; the in-session `/resume` picker (selector-controller.ts) keeps its own
  * onCancel that just closes the overlay.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { runRootCommand } from "@oh-my-pi/pi-coding-agent/main";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class ProcessExitSignal extends Error {
 	constructor(readonly code: number) {
@@ -31,7 +32,7 @@ describe("runRootCommand — startup --resume picker cancellation", () => {
 		const sessionDir = tempDir.path();
 		// One answered session so folderSessions is non-empty and the picker (not the
 		// "No sessions found" probe) is the path under test.
-		await Bun.write(
+		await bun.write(
 			path.join(sessionDir, "existing.jsonl"),
 			[
 				JSON.stringify({

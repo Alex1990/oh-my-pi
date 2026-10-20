@@ -4,6 +4,7 @@
  * Handles `omp update` to check for and install updates.
  * Uses the installer that owns the active omp executable when it can be detected.
  */
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,7 +23,7 @@ import {
 } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { withFileLock } from "@oh-my-pi/pi-utils/file-lock";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { Settings, settings } from "../config/settings";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import {
@@ -52,7 +53,7 @@ const BINARY_DOWNLOAD_TIMEOUT_MS = 15 * 60_000;
 /**
  * Core native addon package. Bumped in lock-step with {@link PACKAGE} so the
  * version sentinel the loader looks up at runtime matches the `.node` on
- * disk; see {@link buildBunInstallArgs} for why this must be installed
+ * disk; see {@link buildPnpmInstallArgs} for why this must be installed
  * explicitly rather than inherited as a transitive dependency.
  */
 const NATIVES_PACKAGE = "@oh-my-pi/pi-natives";
@@ -102,7 +103,7 @@ export interface ReleaseInfo {
 	/** npm names to install, resolved after following any `omp.rename` pointers. */
 	packages: ReleasePackages;
 	/**
-	 * Registry URL the version was resolved from; bun/npm installs pin to it
+	 * Registry URL the version was resolved from; pnpm/npm installs pin to it
 	 * so the install sees the same catalog as the check. See #1686.
 	 */
 	registry: string;
@@ -139,7 +140,7 @@ export function resolveReleaseDist(manifest: unknown): ReleaseDist | undefined {
  * release from the renamed package instead ({@link getLatestRelease});
  * older deployed updaters ignore it and take the `dist: "binary"` escape
  * hatch, replacing the install with the standalone release binary rather than
- * installing the stub via bun/npm.
+ * installing the stub via pnpm/npm.
  *
  * The renamed package's own manifest MUST declare `"dist": "npm"` (so
  * package-manager installs stay package-managed across a major bump) and
@@ -163,13 +164,13 @@ function majorVersion(version: string): number {
 }
 
 /**
- * Whether the update must bypass bun/npm and install the release binary.
+ * Whether the update must bypass pnpm/npm and install the release binary.
  *
  * An explicit `omp.dist` wins in both directions. Without one, a release with
  * a higher major than the running build is assumed not npm-installable: the
  * runtime may have changed out from under the package layout, and the pinned
- * `@oh-my-pi/pi-natives*` companions ({@link buildBunInstallArgs}) may not
- * exist at that version, which would strand bun/npm-managed installs behind a
+ * `@oh-my-pi/pi-natives*` companions ({@link buildPnpmInstallArgs}) may not
+ * exist at that version, which would strand pnpm/npm-managed installs behind a
  * hard install failure. Homebrew and mise installs are unaffected — both
  * already install the standalone release binaries.
  */
@@ -215,7 +216,7 @@ export async function downloadVerifiedBinary(options: VerifiedBinaryDownloadOpti
 		throw new Error(`Download failed: ${response.statusText}`);
 	}
 
-	const hash = new Bun.SHA256();
+	const hash = createHash("sha256");
 	let size = 0;
 	const verifier = new Transform({
 		transform(chunk, _encoding, callback) {
@@ -292,10 +293,10 @@ export function parseUpdateArgs(
 	};
 }
 
-async function getBunGlobalBinDir(): Promise<string | undefined> {
-	if (!$which("bun")) return undefined;
+async function getPnpmGlobalBinDir(): Promise<string | undefined> {
+	if (!$which("pnpm")) return undefined;
 	try {
-		const result = await $`bun pm bin -g`.quiet().nothrow();
+		const result = await $`pnpm bin -g`.quiet().nothrow();
 		if (result.exitCode !== 0) return undefined;
 		const output = result.text().trim();
 		return output.length > 0 ? output : undefined;
@@ -372,13 +373,13 @@ function tryRealpath(p: string): string | undefined {
 }
 
 /**
- * Whether this omp runs from a source checkout (the dev launcher or a `bun link` of
+ * Whether this omp runs from a source checkout (the dev launcher or a `pnpm link` of
  * `src/cli.ts`) rather than a compiled binary or a package-manager install, which
  * always lives under `node_modules`. Checkouts update through git, so update
  * prompts are noise there.
  */
 export function isSourceCheckout(): boolean {
-	return !isCompiledBinary() && !import.meta.dir.split(path.sep).includes("node_modules");
+	return !isCompiledBinary() && !import.meta.dirname.split(path.sep).includes("node_modules");
 }
 
 /**
@@ -394,7 +395,9 @@ export async function managedInstallName(binaryPath: string): Promise<string | u
 	if (!resolved) return undefined;
 	let manifest: unknown;
 	try {
-		manifest = await Bun.file(path.join(path.dirname(path.dirname(resolved)), "manager.json")).json();
+		manifest = JSON.parse(
+			await fs.promises.readFile(path.join(path.dirname(path.dirname(resolved)), "manager.json"), "utf8"),
+		);
 	} catch {
 		return undefined;
 	}
@@ -416,16 +419,6 @@ function isWindowsScriptLauncherPath(launcherPath: string): boolean {
 	return extension === ".cmd" || extension === ".ps1" || extension === ".bat";
 }
 
-/**
- * Path of bun's Windows launcher metadata sidecar for `launcherPath`.
- *
- * `bun install -g` writes a `<name>.bunx` / `<name>.exe` pair: the `.exe` is a
- * generic shim and the `.bunx` names the package entrypoint it launches.
- */
-function bunShimMarkerPath(launcherPath: string): string {
-	const base = path.basename(launcherPath, path.extname(launcherPath));
-	return path.join(path.dirname(launcherPath), `${base}.bunx`);
-}
 function isPathInDirectoryLexical(filePath: string, directoryPath: string): boolean {
 	const normalizedPath = normalizePathForComparison(path.resolve(filePath));
 	const normalizedDirectory = normalizePathForComparison(path.resolve(directoryPath));
@@ -435,10 +428,11 @@ function isPathInDirectoryLexical(filePath: string, directoryPath: string): bool
 
 function isPathInDirectory(filePath: string, directoryPath: string): boolean {
 	if (isPathInDirectoryLexical(filePath, directoryPath)) return true;
-	// Layer realpath resolution on top of the lexical guard. On Windows, ~/.bun
-	// is a junction when Bun is installed via Scoop, so `bun pm bin -g` and the
-	// PATH-resolved omp path can refer to the same directory through different
-	// strings. path.resolve does not traverse junctions/symlinks; realpath does.
+	// Layer realpath resolution on top of the lexical guard. On Windows the
+	// package-manager global dir can be reached through a junction, so
+	// `pnpm bin -g` / `npm prefix -g` and the PATH-resolved omp path may name
+	// the same directory through different strings. path.resolve does not
+	// traverse junctions/symlinks; realpath does.
 	// Resolve both the file and its parent directory: the file catches manager
 	// links like Homebrew's `bin/omp -> Cellar/.../bin/omp`; the parent fallback
 	// still tolerates fresh install paths where the file does not exist yet.
@@ -473,19 +467,19 @@ function isManagerOwnedBinEntry(linkTarget: string | undefined, nodeModulesDir: 
 	return linkTarget === undefined || (nodeModulesDir !== undefined && isPathInManagerRoot(linkTarget, nodeModulesDir));
 }
 
-type UpdateMethod = "brew" | "mise" | "nix" | "bun" | "npm" | "binary";
+type UpdateMethod = "brew" | "mise" | "nix" | "pnpm" | "npm" | "binary";
 
 interface UpdateMethodResolutionOptions {
 	homebrewPrefix?: string;
 	miseBinDirs?: readonly string[];
 	miseDataDir?: string;
 	npmBinDir?: string;
-	/** Bun's configured global package directory, independent of its bin directory. */
-	bunGlobalDir?: string;
+	/** pnpm's global node_modules root (`pnpm root -g`), where its installed packages live. */
+	pnpmGlobalDir?: string;
 	/**
 	 * Whether the resolved omp path is a plain file (the standalone binary)
 	 * rather than a package-manager symlink. Stops a binary install from being
-	 * misrouted to npm/bun when the global bin dir overlaps the installer's
+	 * misrouted to npm/pnpm when the global bin dir overlaps the installer's
 	 * target directory.
 	 */
 	ompIsRegularFile?: boolean;
@@ -495,14 +489,7 @@ interface UpdateMethodResolutionOptions {
 	 */
 	ompLinkTarget?: string;
 	/**
-	 * Whether bun's launcher metadata (`<name>.bunx`) sits beside the resolved
-	 * launcher. Bun writes that sidecar next to every `.exe` shim it installs, so
-	 * its presence is what makes a regular-file launcher in bun's bin dir
-	 * bun-managed rather than a standalone binary that took the launcher over.
-	 */
-	bunShimMarker?: boolean;
-	/**
-	 * Whether package-manager routing (bun/npm) is permitted. Binary-only
+	 * Whether package-manager routing (pnpm/npm) is permitted. Binary-only
 	 * releases pass `false`: a manager launcher then resolves to `"binary"` and
 	 * is taken over in place rather than reinstalled through its manager. Defaults
 	 * to `true` in {@link resolveUpdateMethod} so callers that only classify need
@@ -515,25 +502,24 @@ type UpdateTarget =
 	| { method: "brew" }
 	| { method: "mise" }
 	| { method: "nix" }
-	| { method: "bun"; path?: string }
+	| { method: "pnpm"; path?: string }
 	| { method: "npm"; path?: string }
 	| { method: "binary"; path: string; replacesSymlink: boolean; validateExistingTarget: boolean };
 
 function resolveUpdateMethod(
 	ompPath: string,
-	bunBinDir: string | undefined,
+	pnpmBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions = {},
 ): UpdateMethod {
 	const {
 		allowPackageManagers = true,
-		bunGlobalDir,
-		bunShimMarker = false,
 		homebrewPrefix,
 		miseBinDirs = [],
 		miseDataDir,
 		npmBinDir,
 		ompIsRegularFile = false,
 		ompLinkTarget,
+		pnpmGlobalDir,
 	} = options;
 	const launcherExtension = path.extname(ompPath).toLowerCase();
 	const isWindowsScriptLauncher = isWindowsScriptLauncherPath(ompPath);
@@ -542,33 +528,32 @@ function resolveUpdateMethod(
 	if (miseBinDirs.some(dir => isPathInDirectory(ompPath, dir))) return "mise";
 	if (miseDataDir && isPathInDirectory(ompPath, path.join(miseDataDir, "shims"))) return "mise";
 	// A plain executable file in a package-manager bin dir is the standalone
-	// binary the installer placed there, not an npm/bun-managed install (those
+	// binary the installer placed there, not an npm/pnpm-managed install (those
 	// symlink into node_modules on POSIX). When the global bin dir overlaps the
 	// installer's default (~/.local/bin), classifying by directory alone routes
-	// a binary install through npm/bun, whose reinstall then collides with the
+	// a binary install through npm/pnpm, whose reinstall then collides with the
 	// existing file (npm EEXIST). Fall through to binary replacement instead.
 	// On Windows every launcher is a regular file, so ownership keys off the
-	// manager's own artifacts instead: npm's script shims (`omp`, `omp.cmd`,
-	// `omp.ps1`) and bun's `omp.bunx` sidecar. A bare `.exe` with neither is the
-	// standalone binary a binary-only release installed over the launcher —
-	// routing that back through bun reinstalls a package which no longer owns
-	// the launcher, and bun silently tolerates failing to overwrite the running
-	// `.exe` (EBUSY), so the install would stay pinned to the old version.
+	// manager's own artifacts instead: the shell/batch shims (`omp`, `omp.cmd`,
+	// `omp.ps1`) both npm and pnpm write. A bare `.exe` is the standalone binary
+	// a binary-only release installed over the launcher — routing that back
+	// through pnpm reinstalls a package which no longer owns the launcher, and
+	// Windows cannot replace the running `.exe`, so the install would stay
+	// pinned to the old version.
 	const isWindowsManagedLauncher =
-		process.platform === "win32" && (isWindowsScriptLauncher || launcherExtension === "" || bunShimMarker);
+		process.platform === "win32" && (isWindowsScriptLauncher || launcherExtension === "");
 	const isStandaloneRegularFile = ompIsRegularFile && !isWindowsManagedLauncher;
-	const bunNodeModulesDir = resolveBunGlobalNodeModulesDirFromLocations({
-		globalDir: bunGlobalDir,
-		globalBinDir: bunBinDir,
-	});
+	// pnpm first: its global installs are frequently invisible to npm (its
+	// global dir is PNPM_HOME, not `npm prefix -g`), so the npm branch would
+	// otherwise never see them.
 	if (
 		allowPackageManagers &&
-		bunBinDir &&
-		isPathInDirectory(ompPath, bunBinDir) &&
+		pnpmBinDir &&
+		isPathInDirectory(ompPath, pnpmBinDir) &&
 		!isStandaloneRegularFile &&
-		isManagerOwnedBinEntry(ompLinkTarget, bunNodeModulesDir)
+		isManagerOwnedBinEntry(ompLinkTarget, pnpmGlobalDir)
 	) {
-		return "bun";
+		return "pnpm";
 	}
 	const npmNodeModulesDir = resolveNpmGlobalNodeModulesDir(npmBinDir);
 	if (
@@ -580,29 +565,33 @@ function resolveUpdateMethod(
 	) {
 		return "npm";
 	}
-	if (isWindowsScriptLauncher) return "npm";
+	if (isWindowsScriptLauncher) {
+		// With package-manager routing disabled only the shim shape is known.
+		// Attribute it to the pnpm bin dir when the launcher sits there so
+		// recovery messages name the manager that actually owns it.
+		return pnpmBinDir && isPathInDirectory(ompPath, pnpmBinDir) ? "pnpm" : "npm";
+	}
 	return "binary";
 }
 
 export function resolveUpdateMethodForTest(
 	ompPath: string,
-	bunBinDir: string | undefined,
+	pnpmBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions = {},
 ): UpdateMethod {
-	return resolveUpdateMethod(ompPath, bunBinDir, options);
+	return resolveUpdateMethod(ompPath, pnpmBinDir, options);
 }
 
 /** Resolve an update target from the concrete PATH entry selected by the shell. */
 export function resolveUpdateTargetFromPath(
 	ompPath: string,
-	bunBinDir: string | undefined,
+	pnpmBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions & { allowPackageManagers: boolean },
 ): UpdateTarget {
 	let ompIsRegularFile = false;
 	let ompIsSymlink = false;
 	let ompLinkTarget: string | undefined;
 	let ompRealpath: string | undefined;
-	const bunShimMarker = process.platform === "win32" && fs.existsSync(bunShimMarkerPath(ompPath));
 	try {
 		const stat = fs.lstatSync(ompPath);
 		ompIsRegularFile = stat.isFile() && !stat.isSymbolicLink();
@@ -615,14 +604,13 @@ export function resolveUpdateTargetFromPath(
 		}
 	} catch {}
 
-	const method = resolveUpdateMethod(ompPath, bunBinDir, {
+	const method = resolveUpdateMethod(ompPath, pnpmBinDir, {
 		...options,
-		bunShimMarker,
 		ompIsRegularFile,
 		ompLinkTarget,
 	});
 	if (method === "binary") {
-		// A symlinked launcher created by bun/npm is taken over in place on a
+		// A symlinked launcher created by pnpm/npm is taken over in place on a
 		// binary-only release: routing through the manager is impossible, so the
 		// standalone binary replaces the launcher and keeps the PATH entry live.
 		// Every other symlink — a foreign alias, or an admin symlink into a
@@ -634,10 +622,9 @@ export function resolveUpdateTargetFromPath(
 		const managerLauncher =
 			ompIsSymlink &&
 			!options.allowPackageManagers &&
-			resolveUpdateMethod(ompPath, bunBinDir, {
+			resolveUpdateMethod(ompPath, pnpmBinDir, {
 				...options,
 				allowPackageManagers: true,
-				bunShimMarker,
 				ompIsRegularFile,
 				ompLinkTarget,
 			}) !== "binary";
@@ -649,17 +636,18 @@ export function resolveUpdateTargetFromPath(
 			validateExistingTarget: ompIsSymlink && !managerLauncher,
 		};
 	}
-	if (method === "bun" || method === "npm") return { method, path: ompPath };
+	if (method === "pnpm" || method === "npm") return { method, path: ompPath };
 	return { method };
 }
 /**
  * Resolve how the running install should be updated.
  *
- * `allowPackageManagers: false` disables bun/npm routing — used for
+ * `allowPackageManagers: false` disables pnpm/npm routing — used for
  * binary-only releases, where reinstalling through a package manager is never
- * valid. The `bun pm bin -g` / `npm prefix -g` probes are then skipped unless
- * the launcher is a symlink, whose bin dirs distinguish a manager launcher
- * (taken over in place) from a foreign symlink (resolved to its real binary).
+ * valid. The `pnpm bin -g` / `npm prefix -g` probes are then skipped unless
+ * the launcher is a symlink or a Windows script shim, whose bin dirs
+ * distinguish a manager launcher (taken over in place) from a foreign symlink
+ * (resolved to its real binary).
  * Homebrew/mise detection always runs: both managers install the standalone
  * release binaries and stay valid regardless of how the release is distributed.
  */
@@ -670,19 +658,22 @@ async function resolveUpdateTarget(options: { allowPackageManagers: boolean }): 
 	const miseDataDir = miseAvailable ? getMiseDataDir() : undefined;
 	const ompPath = resolveOmpPath();
 
-	// Binary-only releases skip package-manager routing, but a symlinked
-	// launcher still needs the manager bin dirs to tell a bun/npm launcher
+	// Binary-only releases skip package-manager routing, but a manager-owned
+	// launcher still needs the manager bin dirs to tell a pnpm/npm launcher
 	// (taken over in place) from a foreign symlink (resolved to its real
 	// binary). A plain-file install never needs the distinction, so the common
 	// case stays probe-free.
-	const probeManagers = options.allowPackageManagers || (ompPath !== undefined && isSymlinkPath(ompPath));
-	const bunBinDir = probeManagers ? await getBunGlobalBinDir() : undefined;
+	const probeManagers =
+		options.allowPackageManagers ||
+		(ompPath !== undefined &&
+			(isSymlinkPath(ompPath) || (process.platform === "win32" && isWindowsScriptLauncherPath(ompPath))));
+	const pnpmBinDir = probeManagers ? await getPnpmGlobalBinDir() : undefined;
 	const npmBinDir = probeManagers ? await getNpmGlobalBinDir() : undefined;
 
 	if (ompPath) {
-		return resolveUpdateTargetFromPath(ompPath, bunBinDir, {
+		return resolveUpdateTargetFromPath(ompPath, pnpmBinDir, {
 			allowPackageManagers: options.allowPackageManagers,
-			bunGlobalDir: probeManagers ? process.env.BUN_INSTALL_GLOBAL_DIR : undefined,
+			pnpmGlobalDir: pnpmBinDir ? await getPnpmGlobalNodeModulesDir() : undefined,
 			homebrewPrefix,
 			miseBinDirs,
 			miseDataDir,
@@ -690,7 +681,7 @@ async function resolveUpdateTarget(options: { allowPackageManagers: boolean }): 
 		});
 	}
 
-	if (bunBinDir) return { method: "bun" };
+	if (pnpmBinDir) return { method: "pnpm" };
 
 	throw new Error(`Could not resolve ${APP_NAME} binary path in PATH`);
 }
@@ -787,11 +778,11 @@ async function fetchLatestManifest(
  * Get the latest release info from the npm registry, following `omp.rename`
  * pointers ({@link resolveReleaseRename}) when the package has moved to a new
  * npm name. Version, dist, and install names all come from the final manifest
- * in the chain. This is the version source of package-manager installs (bun,
+ * in the chain. This is the version source of package-manager installs (pnpm,
  * npm, Homebrew, mise, Nix); standalone binaries ask the build service
  * ({@link fetchBuild}) instead.
  *
- * The registry comes from the user's npm/bun configuration
+ * The registry comes from the user's npm configuration
  * ({@link loadNpmRegistryResolver}), so a configured feed is honored.
  */
 export async function getLatestRelease(
@@ -823,232 +814,38 @@ export async function getLatestRelease(
 	};
 }
 
-interface BunInstallCachePruneResult {
-	scannedPackages: number;
-	removedEntries: number;
+/** pnpm's global layout version: `$PNPM_HOME/global/<version>/node_modules`. */
+const PNPM_GLOBAL_LAYOUT_VERSION = "5";
+
+interface PnpmGlobalInstallLocations {
+	/** `pnpm root -g`: the global node_modules root, used verbatim. */
+	globalRoot?: string;
+	/** `$PNPM_HOME` (what `pnpm bin -g` reports), which holds the layout directory. */
+	globalHome?: string;
 }
 
-interface BunCachePackageGroup {
-	actualDirs: Map<string, string[]>;
-	markerDir?: string;
-	markerEntries: Map<string, string[]>;
-}
-
-function stripBunCacheVersionSuffix(name: string): string {
-	const metadataIndex = name.indexOf("@@");
-	return metadataIndex === -1 ? name : name.slice(0, metadataIndex);
-}
-
-async function readdirIfExists(dir: string): Promise<fs.Dirent[]> {
-	try {
-		return await fs.promises.readdir(dir, { withFileTypes: true });
-	} catch (err) {
-		if (isEnoent(err)) return [];
-		throw err;
-	}
-}
-
-function getBunCacheGroup(groups: Map<string, BunCachePackageGroup>, packageName: string): BunCachePackageGroup {
-	let group = groups.get(packageName);
-	if (!group) {
-		group = { actualDirs: new Map(), markerEntries: new Map() };
-		groups.set(packageName, group);
-	}
-	return group;
-}
-
-function addVersionPath(entries: Map<string, string[]>, version: string, entryPath: string): void {
-	const paths = entries.get(version);
-	if (paths) {
-		paths.push(entryPath);
-		return;
-	}
-	entries.set(version, [entryPath]);
-}
-
-async function addBunCacheActualDir(
-	groups: Map<string, BunCachePackageGroup>,
-	dirPath: string,
-	packageNames: Set<string> | undefined,
-): Promise<void> {
-	try {
-		// `fs.promises` rather than `Bun.file().json()`: on Windows, Bun's rejected read of a
-		// missing file holds no loop handle, so the loop can drain mid-await (#13470).
-		const manifest = JSON.parse(await fs.promises.readFile(path.join(dirPath, "package.json"), "utf8")) as Partial<
-			Record<"name" | "version", unknown>
-		>;
-		if (typeof manifest.name !== "string" || typeof manifest.version !== "string") return;
-		if (packageNames && !packageNames.has(manifest.name)) return;
-		const group = getBunCacheGroup(groups, manifest.name);
-		addVersionPath(group.actualDirs, manifest.version, dirPath);
-	} catch (err) {
-		if (isEnoent(err)) return;
-		throw err;
-	}
-}
-
-async function addBunCacheMarkerDir(
-	groups: Map<string, BunCachePackageGroup>,
-	packageName: string,
-	markerDir: string,
-	packageNames: Set<string> | undefined,
-): Promise<void> {
-	if (packageNames && !packageNames.has(packageName)) return;
-	const markerEntries = await readdirIfExists(markerDir);
-	const group = getBunCacheGroup(groups, packageName);
-	group.markerDir = markerDir;
-	for (const entry of markerEntries) {
-		const cacheVersion = stripBunCacheVersionSuffix(entry.name);
-		addVersionPath(group.markerEntries, cacheVersion, path.join(markerDir, entry.name));
-	}
-}
-
-async function collectBunCacheGroups(
-	cacheDir: string,
-	packageNames: Set<string> | undefined,
-): Promise<Map<string, BunCachePackageGroup>> {
-	const groups = new Map<string, BunCachePackageGroup>();
-	for (const entry of await readdirIfExists(cacheDir)) {
-		if (!entry.isDirectory()) continue;
-		const entryPath = path.join(cacheDir, entry.name);
-		if (entry.name.startsWith("@")) {
-			for (const scopedEntry of await readdirIfExists(entryPath)) {
-				if (!scopedEntry.isDirectory()) continue;
-				const scopedEntryPath = path.join(entryPath, scopedEntry.name);
-				const versionSeparator = scopedEntry.name.lastIndexOf("@");
-				if (versionSeparator === -1) {
-					await addBunCacheMarkerDir(groups, `${entry.name}/${scopedEntry.name}`, scopedEntryPath, packageNames);
-				} else {
-					await addBunCacheActualDir(groups, scopedEntryPath, packageNames);
-				}
-			}
-			continue;
-		}
-		const versionSeparator = entry.name.lastIndexOf("@");
-		if (versionSeparator === -1) {
-			await addBunCacheMarkerDir(groups, entry.name, entryPath, packageNames);
-		} else {
-			await addBunCacheActualDir(groups, entryPath, packageNames);
-		}
-	}
-	return groups;
-}
-
-async function removeCacheEntries(paths: string[]): Promise<number> {
-	for (const entryPath of paths) {
-		await fs.promises.rm(entryPath, { recursive: true, force: true });
-	}
-	return paths.length;
-}
-
-/**
- * Prune Bun's package cache so each package keeps only its newest cached version.
- *
- * Bun stores package cache entries as both a package marker directory
- * (`react/19.2.6@@@1`) and a materialized package directory
- * (`react@19.2.6@@@1`). Global `omp` updates can leave one full copy per
- * release. The marker and materialized entries are removed together so the
- * cache stays internally consistent.
- */
-export async function pruneBunInstallCache(
-	cacheDir: string,
-	packageNames?: Set<string>,
-): Promise<BunInstallCachePruneResult> {
-	const groups = await collectBunCacheGroups(cacheDir, packageNames);
-	let scannedPackages = 0;
-	let removedEntries = 0;
-	for (const group of groups.values()) {
-		if (group.actualDirs.size === 0) continue;
-		scannedPackages++;
-		let latestVersion: string | undefined;
-		for (const version of group.actualDirs.keys()) {
-			if (!latestVersion || compareVersions(version, latestVersion) > 0) latestVersion = version;
-		}
-		if (!latestVersion) continue;
-		for (const [version, paths] of group.actualDirs) {
-			if (version !== latestVersion) removedEntries += await removeCacheEntries(paths);
-		}
-		for (const [version, paths] of group.markerEntries) {
-			if (version !== latestVersion) removedEntries += await removeCacheEntries(paths);
-		}
-	}
-	return { scannedPackages, removedEntries };
-}
-
-async function resolveBunInstallCacheDir(): Promise<string | undefined> {
-	try {
-		const result = await $`bun pm cache`.quiet().nothrow();
-		if (result.exitCode !== 0) return undefined;
-		const output = result.text().trim();
-		return output.length > 0 ? output : undefined;
-	} catch {
-		return undefined;
-	}
-}
-
-interface BunGlobalInstallLocations {
-	globalDir?: string;
-	globalBinDir?: string;
-	cacheDir?: string;
-}
-
-/** Resolve Bun's global node_modules root from explicit, default, or cache locations. */
-export function resolveBunGlobalNodeModulesDirFromLocations({
-	globalDir,
-	globalBinDir,
-	cacheDir,
-}: BunGlobalInstallLocations): string | undefined {
-	if (globalDir && globalDir.length > 0) return path.join(globalDir, "node_modules");
-	if (globalBinDir && globalBinDir.length > 0) {
-		return path.join(path.dirname(globalBinDir), "install", "global", "node_modules");
-	}
-	if (cacheDir && cacheDir.length > 0) {
-		return path.join(path.dirname(cacheDir), "global", "node_modules");
+/** Resolve pnpm's global node_modules root from `pnpm root -g` or `$PNPM_HOME`. */
+export function resolvePnpmGlobalNodeModulesDirFromLocations({
+	globalRoot,
+	globalHome,
+}: PnpmGlobalInstallLocations): string | undefined {
+	if (globalRoot && globalRoot.length > 0) return globalRoot;
+	if (globalHome && globalHome.length > 0) {
+		return path.join(globalHome, "global", PNPM_GLOBAL_LAYOUT_VERSION, "node_modules");
 	}
 	return undefined;
 }
 
-async function resolveBunGlobalNodeModulesDir(cacheDir: string): Promise<string | undefined> {
+async function getPnpmGlobalNodeModulesDir(): Promise<string | undefined> {
 	try {
-		const result = await $`bun pm bin -g`.quiet().nothrow();
-		const globalBinDir = result.exitCode === 0 ? result.text().trim() : undefined;
-		return resolveBunGlobalNodeModulesDirFromLocations({
-			globalDir: process.env.BUN_INSTALL_GLOBAL_DIR,
-			globalBinDir,
-			cacheDir,
+		const result = await $`pnpm root -g`.quiet().nothrow();
+		return resolvePnpmGlobalNodeModulesDirFromLocations({
+			globalRoot: result.exitCode === 0 ? result.text().trim() : undefined,
+			globalHome: process.env.PNPM_HOME,
 		});
 	} catch {
-		return resolveBunGlobalNodeModulesDirFromLocations({
-			globalDir: process.env.BUN_INSTALL_GLOBAL_DIR,
-			cacheDir,
-		});
+		return resolvePnpmGlobalNodeModulesDirFromLocations({ globalHome: process.env.PNPM_HOME });
 	}
-}
-
-async function collectInstalledPackageNames(nodeModulesDir: string): Promise<Set<string>> {
-	const packageNames = new Set<string>();
-	for (const entry of await readdirIfExists(nodeModulesDir)) {
-		if (!entry.isDirectory() || entry.name === ".bin") continue;
-		if (entry.name.startsWith("@")) {
-			for (const scopedEntry of await readdirIfExists(path.join(nodeModulesDir, entry.name))) {
-				if (scopedEntry.isDirectory()) packageNames.add(`${entry.name}/${scopedEntry.name}`);
-			}
-			continue;
-		}
-		packageNames.add(entry.name);
-	}
-	return packageNames;
-}
-
-async function pruneBunCacheAfterGlobalInstall(): Promise<BunInstallCachePruneResult | undefined> {
-	const cacheDir = await resolveBunInstallCacheDir();
-	if (!cacheDir) return undefined;
-	const globalNodeModulesDir = await resolveBunGlobalNodeModulesDir(cacheDir);
-	const packageNames = globalNodeModulesDir
-		? await collectInstalledPackageNames(globalNodeModulesDir)
-		: new Set<string>();
-	if (packageNames.size === 0 && !path.basename(cacheDir).toLowerCase().includes("omp")) return undefined;
-	return await pruneBunInstallCache(cacheDir, packageNames.size === 0 ? undefined : packageNames);
 }
 
 /**
@@ -1122,8 +919,14 @@ async function verifyBinaryAtPath(binaryPath: string, expectedVersion: string): 
 
 async function validateExistingUpdateTarget(targetPath: string): Promise<void> {
 	let hasShebang = false;
+	const head = Buffer.alloc(2);
 	try {
-		hasShebang = (await Bun.file(targetPath).slice(0, 2).text()) === "#!";
+		const file = await fs.promises.open(targetPath, "r");
+		try {
+			hasShebang = (await file.read(head, 0, 2, 0)).bytesRead === 2 && head.toString() === "#!";
+		} finally {
+			await file.close();
+		}
 	} catch {}
 
 	if (!hasShebang && (await reportedVersionAtPath(targetPath)) !== undefined) return;
@@ -1344,7 +1147,7 @@ function buildVersionedPackageInstallArgs(
 }
 
 /**
- * Build the bun argv used to globally install a specific omp version.
+ * Build the pnpm argv used to globally install a specific omp version.
  *
  * The version is selected by querying the resolved registry in
  * {@link getLatestRelease} ({@link ReleaseInfo.registry}), so the install
@@ -1352,47 +1155,44 @@ function buildVersionedPackageInstallArgs(
  *
  * - `--registry=<release registry>` pins the install to the registry the
  *   check used. That is the user's configured feed when one is set, and
- *   {@link DEFAULT_NPM_REGISTRY} otherwise, so a bun whose own resolution
- *   differs (project bunfig, lagging mirror) cannot reject a version the
+ *   {@link DEFAULT_NPM_REGISTRY} otherwise, so a pnpm whose own resolution
+ *   differs (project `.npmrc`, lagging mirror) cannot reject a version the
  *   check already advertised.
- * - `--no-cache` tells bun to ignore its on-disk manifest snapshot so it
- *   re-fetches metadata from that registry on every invocation.
+ * - `--config.minimumReleaseAge=0` overrides an ambient `minimumReleaseAge`
+ *   for this invocation: pnpm's global install reads its settings from the
+ *   workspace `.npmrc`/`pnpm-workspace.yaml`, and self-update installs the
+ *   exact pinned manifests the version check just advertised, so a
+ *   supply-chain cooldown must not reject them (same check-vs-installer
+ *   divergence class as #1686). pnpm resolves metadata on every invocation
+ *   — there is no manifest snapshot to bypass, so no cache flag is needed.
  *
- * Together these two flags make `omp update` produce exactly the registry
- * lookup the version check just performed. See #1686.
+ * Together these flags make `omp update` produce exactly the registry lookup
+ * the version check just performed. See #1686.
  *
  * Also pins {@link NATIVES_PACKAGE} and the platform-specific
- * `@oh-my-pi/pi-natives-<tag>` leaf to `expectedVersion`. `bun install -g`
+ * `@oh-my-pi/pi-natives-<tag>` leaf to `expectedVersion`. `pnpm add -g`
  * does not reliably refresh transitive `optionalDependencies` when the
  * top-level package is the only one bumped, so the native addon and its
  * version sentinel can drift out of sync with the freshly installed
  * `@oh-my-pi/pi-coding-agent` and the loader aborts at
  * `validateLoadedBindings` on the next launch
  * (`The .node file on disk is from a different release than this loader`).
- * Listing the natives explicitly forces bun to replace them in lock-step.
+ * Listing the natives explicitly forces pnpm to replace them in lock-step.
  * The leaf is added only on tags the release pipeline actually publishes
  * ({@link SUPPORTED_NATIVE_TAGS}) so unsupported platforms still fail with
  * the original "no matching version" message instead of `EBADPLATFORM`.
  * See #1824.
- *
- * `--minimum-release-age=0` overrides an ambient bunfig `minimumReleaseAge`
- * for this invocation: self-update installs the exact pinned manifests the
- * version check just advertised, so a supply-chain cooldown must not reject
- * them (same check-vs-installer divergence class as #1686). Older bun
- * releases predate the flag and reject unknown options, so callers pass
- * `supportsReleaseAgeOverride` from a help-text probe.
  */
-export function buildBunInstallArgs(
+export function buildPnpmInstallArgs(
 	expectedVersion: string,
 	nativeTag: string = currentNativeTag(),
 	packages: ReleasePackages = CURRENT_PACKAGES,
-	options: { registry?: string; supportsReleaseAgeOverride?: boolean } = {},
+	options: { registry?: string } = {},
 ): string[] {
 	return [
-		"install",
+		"add",
 		"-g",
-		"--no-cache",
-		...(options.supportsReleaseAgeOverride !== false ? ["--minimum-release-age=0"] : []),
+		"--config.minimumReleaseAge=0",
 		`--registry=${options.registry ?? DEFAULT_NPM_REGISTRY}`,
 		...buildVersionedPackageInstallArgs(expectedVersion, nativeTag, packages),
 	];
@@ -1401,7 +1201,7 @@ export function buildBunInstallArgs(
 /**
  * Build the npm argv used to update npm-managed global installs.
  * Pins `--registry` to the checked registry for the same reason as
- * {@link buildBunInstallArgs}.
+ * {@link buildPnpmInstallArgs}.
  *
  * `force` is set only for rename migrations: npm refuses to write the `omp`
  * bin while the old package still owns it (`EEXIST`), and the migration
@@ -1502,25 +1302,25 @@ export interface RenameMigrationSteps {
 	verify(): Promise<InstalledVersionVerification>;
 }
 
-/** Production {@link RenameMigrationSteps}: bun/npm global installs plus PATH verification. */
-function packageManagerMigrationSteps(manager: "bun" | "npm", release: ReleaseInfo): RenameMigrationSteps {
+/** Production {@link RenameMigrationSteps}: pnpm/npm global installs plus PATH verification. */
+function packageManagerMigrationSteps(manager: "pnpm" | "npm", release: ReleaseInfo): RenameMigrationSteps {
 	const nativeTag = currentNativeTag();
 	return {
 		async install() {
-			if (manager === "bun") {
-				const args = buildBunInstallArgs(release.version, nativeTag, release.packages, {
+			if (manager === "pnpm") {
+				const args = buildPnpmInstallArgs(release.version, nativeTag, release.packages, {
 					registry: release.registry,
-					supportsReleaseAgeOverride: await bunSupportsReleaseAgeOverride(),
 				});
-				return (await $`bun ${args}`.nothrow()).exitCode;
+				return (await $`pnpm ${args}`.nothrow()).exitCode ?? 1;
 			}
 			const args = buildNpmInstallArgs(release.version, nativeTag, release.packages, {
 				force: true,
 				registry: release.registry,
 			});
 			return (
-				await $`npm ${args}`.env(buildNpmUpdateEnv(process.env, await npmSupportsReleaseAgeOverride())).nothrow()
-			).exitCode;
+				(await $`npm ${args}`.env(buildNpmUpdateEnv(process.env, await npmSupportsReleaseAgeOverride())).nothrow())
+					.exitCode ?? 1
+			);
 		},
 		async removeOld() {
 			// One invocation per package: a single batched remove fails wholesale
@@ -1529,10 +1329,10 @@ function packageManagerMigrationSteps(manager: "bun" | "npm", release: ReleaseIn
 			let agentExit = 0;
 			for (const pkg of buildRenameCleanupPackages(release.packages, nativeTag)) {
 				const result =
-					manager === "bun"
-						? await $`bun remove -g ${pkg}`.quiet().nothrow()
+					manager === "pnpm"
+						? await $`pnpm remove -g ${pkg}`.quiet().nothrow()
 						: await $`npm uninstall -g ${pkg}`.quiet().nothrow();
-				if (pkg === PACKAGE) agentExit = result.exitCode;
+				if (pkg === PACKAGE) agentExit = result.exitCode ?? 1;
 			}
 			return agentExit;
 		},
@@ -1582,12 +1382,6 @@ export async function migrateRenamedInstall(release: ReleaseInfo, steps: RenameM
 	printVerifiedVersion(release.version);
 }
 
-/** Older bun releases predate `--minimum-release-age` and reject unknown flags, so probe the installed help output before passing it. */
-async function bunSupportsReleaseAgeOverride(): Promise<boolean> {
-	const help = await $`bun install --help`.quiet().nothrow();
-	return help.exitCode === 0 && /--minimum-release-age\b/.test(help.text());
-}
-
 /**
  * npm predating `min-release-age` (11.10.0, npm/cli#8965) warns "Unknown env
  * config" for the overlay key and gains nothing from it. Probed from a neutral
@@ -1606,31 +1400,20 @@ async function npmSupportsReleaseAgeOverride(): Promise<boolean> {
  * the manager left unusable, or `undefined` when a rename migration already
  * verified and reported its own result.
  */
-async function updateViaBun(release: ReleaseInfo): Promise<InstalledVersionVerification | undefined> {
-	console.log(chalk.dim("Updating via bun..."));
-	let verification: InstalledVersionVerification | undefined;
+async function updateViaPnpm(release: ReleaseInfo): Promise<InstalledVersionVerification | undefined> {
+	console.log(chalk.dim("Updating via pnpm..."));
 	if (release.packages.pkg !== PACKAGE) {
-		await migrateRenamedInstall(release, packageManagerMigrationSteps("bun", release));
-	} else {
-		const args = buildBunInstallArgs(release.version, currentNativeTag(), release.packages, {
-			registry: release.registry,
-			supportsReleaseAgeOverride: await bunSupportsReleaseAgeOverride(),
-		});
-		const result = await $`bun ${args}`.nothrow();
-		if (result.exitCode !== 0) {
-			throw new Error(`bun install failed with exit code ${result.exitCode}`);
-		}
-		verification = await verifyInstalledVersion(release.version);
+		await migrateRenamedInstall(release, packageManagerMigrationSteps("pnpm", release));
+		return undefined;
 	}
-	try {
-		const pruneResult = await pruneBunCacheAfterGlobalInstall();
-		if (pruneResult && pruneResult.removedEntries > 0) {
-			console.log(chalk.dim(`Pruned ${pruneResult.removedEntries} stale Bun cache entries`));
-		}
-	} catch (err) {
-		console.log(chalk.yellow(`Warning: could not prune stale Bun cache entries: ${err}`));
+	const args = buildPnpmInstallArgs(release.version, currentNativeTag(), release.packages, {
+		registry: release.registry,
+	});
+	const result = await $`pnpm ${args}`.nothrow();
+	if (result.exitCode !== 0) {
+		throw new Error(`pnpm add failed with exit code ${result.exitCode}`);
 	}
-	return verification;
+	return await verifyInstalledVersion(release.version);
 }
 
 async function updateViaNpm(release: ReleaseInfo): Promise<InstalledVersionVerification | undefined> {
@@ -1668,13 +1451,13 @@ export interface ManagerUpdateSteps {
 }
 
 /**
- * Production {@link ManagerUpdateSteps}: a bun/npm global install plus an
+ * Production {@link ManagerUpdateSteps}: a pnpm/npm global install plus an
  * in-place takeover with the build service's build of the same version.
  */
-function packageManagerUpdateSteps(manager: "bun" | "npm", release: ReleaseInfo): ManagerUpdateSteps {
+function packageManagerUpdateSteps(manager: "pnpm" | "npm", release: ReleaseInfo): ManagerUpdateSteps {
 	return {
 		manager,
-		install: () => (manager === "bun" ? updateViaBun(release) : updateViaNpm(release)),
+		install: () => (manager === "pnpm" ? updateViaPnpm(release) : updateViaNpm(release)),
 		verify: () => verifyInstalledVersion(release.version),
 		repair: async launcherPath => {
 			// The launcher is a manager's script or shim, never a build a patch
@@ -1697,9 +1480,9 @@ function packageManagerUpdateSteps(manager: "bun" | "npm", release: ReleaseInfo)
  *
  * A global reinstall has to replace files the running process still holds open.
  * On Windows that is unavoidable — the launcher image, the loaded native addon,
- * and the package tree being executed are all locked. Bun writes the new
- * `.bunx` metadata before ignoring EBUSY from the launcher replacement, while
- * npm can retire its shims before an install fails.
+ * and the package tree being executed are all locked. pnpm writes fresh bin
+ * shims before the old package tree is replaced, while npm can retire its
+ * shims before an install fails.
  *
  * A successful install whose PATH launcher still reports an older version
  * means the manager no longer controls that launcher, so it is taken over with
@@ -1812,7 +1595,7 @@ export interface BuildDownloadOptions {
 
 /** Size and lowercase hex SHA-256 of a file, streamed. */
 async function fileDigest(filePath: string): Promise<{ size: number; sha256: string }> {
-	const hash = new Bun.SHA256();
+	const hash = createHash("sha256");
 	let size = 0;
 	for await (const chunk of fs.createReadStream(filePath)) {
 		const bytes = chunk as Buffer;
@@ -1939,16 +1722,6 @@ export async function updateViaBinaryAt(
 			expectedVersion: build.version,
 			verifyInstalledVersion: options.verifyInstalledVersion ?? (version => verifyBinaryAtPath(targetPath, version)),
 		});
-		// The launcher is no longer bun-managed: drop bun's metadata sidecar so
-		// the next update classifies this install as a standalone binary instead
-		// of reinstalling a package that can no longer own the launcher (bun
-		// tolerates failing to overwrite the running `.exe`, so that reinstall
-		// would leave the install pinned to the old version). Done after the
-		// verified swap, so a rollback still restores a working bun shim, and
-		// best effort: a leftover sidecar only costs one misrouted classification.
-		try {
-			await unlinkIfExists(bunShimMarkerPath(targetPath));
-		} catch {}
 		// Reclaim backups from earlier updates whose owning process has since exited.
 		await sweepStaleUpdateArtifacts(targetPath);
 		return result;
@@ -2021,8 +1794,8 @@ export async function updateViaShimTakeover(
 			} catch (err) {
 				if (isEnoent(err)) continue;
 				try {
-					const original = await Bun.file(launcher).text();
-					await Bun.write(launcher, SHIM_FORWARDERS[ext]);
+					const original = await fs.promises.readFile(launcher, "utf8");
+					await fs.promises.writeFile(launcher, SHIM_FORWARDERS[ext]);
 					forwarded.push({ launcher, original });
 				} catch {
 					stuck.push(launcher);
@@ -2043,7 +1816,7 @@ export async function updateViaShimTakeover(
 			}
 			for (const { launcher, original } of forwarded) {
 				try {
-					await Bun.write(launcher, original);
+					await fs.promises.writeFile(launcher, original);
 				} catch {}
 			}
 			await unlinkIfExists(exePath);
@@ -2077,8 +1850,9 @@ export async function updateViaShimTakeover(
  * Platform-appropriate installer one-liner for recovery instructions.
  *
  * Forces the installer's binary mode (`--binary` / `-Binary`): the default
- * mode prefers a bun-based install whenever bun is present, which would send
- * a user recovering from a binary-only release straight back through bun.
+ * mode prefers a package-manager install whenever a supported manager is
+ * present, which would send a user recovering from a binary-only release
+ * straight back through one.
  */
 function installerHint(): string {
 	return process.platform === "win32"
@@ -2175,7 +1949,7 @@ async function runBinaryUpdate(
 }
 
 /**
- * Replace a bun/npm install with the standalone binary because npm says the
+ * Replace a pnpm/npm install with the standalone binary because npm says the
  * release is binary-only ({@link shouldForceBinaryUpdate}).
  *
  * The launcher is resolved again without package-manager routing: a manager
@@ -2186,7 +1960,7 @@ async function runBinaryUpdate(
  * downgrading.
  */
 async function updateToStandaloneBinary(
-	manager: "bun" | "npm",
+	manager: "pnpm" | "npm",
 	release: ReleaseInfo,
 	channel: UpdateChannel,
 ): Promise<void> {
@@ -2210,16 +1984,19 @@ async function updateToStandaloneBinary(
 		if (target.replacesSymlink) console.log(chalk.yellow(unmanaged));
 		return;
 	}
-	// Without package-manager routing only a Windows script launcher resolves
-	// to a manager (the bun/npm bin-dir probes are skipped), so its path is known.
-	if (target.method !== "npm" || !target.path) throw new Error(`Could not resolve ${APP_NAME} launcher path in PATH`);
+	// A Windows script shim is the only manager-owned shape that reaches here
+	// without package-manager routing; its path is known, so it can be retired
+	// in favour of the sibling `omp.exe`.
+	if ((target.method !== "pnpm" && target.method !== "npm") || !target.path) {
+		throw new Error(`Could not resolve ${APP_NAME} launcher path in PATH`);
+	}
 	console.log(chalk.dim("This release ships as a standalone binary; replacing the script launcher."));
 	await updateViaShimTakeover(target.path, build);
 	console.log(chalk.yellow(unmanaged));
 }
 
 /**
- * Update a package-manager install (bun, npm, Homebrew, mise, Nix) to npm's
+ * Update a package-manager install (pnpm, npm, Homebrew, mise, Nix) to npm's
  * release for the channel.
  */
 async function runManagedUpdate(
@@ -2246,7 +2023,7 @@ async function runManagedUpdate(
 			request.channel === "canary" &&
 			(target.method === "nix" || target.method === "brew" || target.method === "mise")
 		) {
-			console.log(chalk.yellow("Canary updates are only supported for bun, npm, or binary installs."));
+			console.log(chalk.yellow("Canary updates are only supported for pnpm, npm, or binary installs."));
 			return;
 		}
 		if (target.method === "nix") {

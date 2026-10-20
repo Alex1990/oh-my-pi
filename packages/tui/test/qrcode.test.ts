@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { QrCode, type QrEcLevel, renderQrHalfBlocks } from "../src/chrome/qrcode";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function matrixFingerprint(qr: QrCode): string {
 	let bits = "";
 	for (let y = 0; y < qr.size; y++) for (let x = 0; x < qr.size; x++) bits += qr.module(x, y) ? "1" : "0";
-	return new Bun.CryptoHasher("sha256").update(bits).digest("hex").slice(0, 16);
+	return new bun.CryptoHasher("sha256").update(bits).digest("hex").slice(0, 16);
 }
 
 describe("QR encoder", () => {

@@ -1,5 +1,6 @@
 import { TERMINAL } from "../terminal-capabilities";
 import { hexToOklch, hueDistance, oklchCusp, oklchToHex, relativeLuminance } from "@oh-my-pi/pi-utils";
+import { colorToString } from "./color";
 
 /**
  * Derive a stable 32-bit hash from a string using djb2.
@@ -255,14 +256,14 @@ function computeSessionAccentHex(name: string, theme: SessionAccentTheme): strin
 /**
  * Convert a hex accent color to an ANSI foreground escape sequence matching
  * the detected terminal color depth.
- * Returns `undefined` if `hex` is nullish or Bun.color conversion fails.
+ * Returns `undefined` if `hex` is nullish or color conversion fails.
  */
 export function getSessionAccentAnsi(hex: string | undefined): string | undefined {
 	if (!hex) return undefined;
 	const trueColor = TERMINAL.trueColor;
 	const key = trueColor ? hex : `256:${hex}`;
 	if (accentAnsiCache.has(key)) return accentAnsiCache.get(key);
-	const ansi = Bun.color(hex, trueColor ? "ansi-16m" : "ansi-256") ?? undefined;
+	const ansi = colorToString(hex, trueColor ? "ansi-16m" : "ansi-256") ?? undefined;
 	if (accentAnsiCache.size >= ACCENT_CACHE_LIMIT) accentAnsiCache.clear();
 	accentAnsiCache.set(key, ansi);
 	return ansi;

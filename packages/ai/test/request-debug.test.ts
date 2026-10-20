@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import { createRequestDebugSession } from "@oh-my-pi/pi-ai/utils/request-debug";
 import { transportFetch } from "@oh-my-pi/pi-ai/utils/transport-fetch";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { removeWithRetries } from "../../utils/src/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const enc = new TextEncoder();
 
@@ -18,7 +19,7 @@ let previousCwd: string;
 let tempDir: string | undefined;
 
 beforeEach(async () => {
-	previousDebugFlag = Bun.env.PI_REQ_DEBUG;
+	previousDebugFlag = bun.env.PI_REQ_DEBUG;
 	previousCwd = process.cwd();
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-req-debug-"));
 	process.chdir(tempDir);
@@ -27,8 +28,8 @@ beforeEach(async () => {
 afterEach(async () => {
 	clearCustomApis();
 	process.chdir(previousCwd);
-	if (previousDebugFlag === undefined) delete Bun.env.PI_REQ_DEBUG;
-	else Bun.env.PI_REQ_DEBUG = previousDebugFlag;
+	if (previousDebugFlag === undefined) delete bun.env.PI_REQ_DEBUG;
+	else bun.env.PI_REQ_DEBUG = previousDebugFlag;
 	if (tempDir) await removeWithRetries(tempDir);
 	tempDir = undefined;
 });
@@ -68,7 +69,7 @@ function splitResponseLog(bytes: Uint8Array): { headers: string; body: Uint8Arra
 	expect(separatorIndex).toBeGreaterThanOrEqual(0);
 	return {
 		headers: new TextDecoder().decode(bytes.subarray(0, separatorIndex)),
-		body: bytes.subarray(separatorIndex + separator.length),
+		body: new Uint8Array(bytes.subarray(separatorIndex + separator.length)),
 	};
 }
 
@@ -93,7 +94,7 @@ async function findDebugFiles(): Promise<{ requestPath: string; responsePath: st
 
 describe("PI_REQ_DEBUG request/response recording", () => {
 	it("writes nothing when the flag is disabled", async () => {
-		delete Bun.env.PI_REQ_DEBUG;
+		delete bun.env.PI_REQ_DEBUG;
 		const fetchImpl: FetchImpl = async () => new Response("ok");
 		const response = await transportFetch(debugModel(), fetchImpl)("https://provider.test/off", { method: "POST" });
 		await response.text();
@@ -101,7 +102,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("records every fetch while the env flag is enabled", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		let calls = 0;
 		const fetchImpl: FetchImpl = async () => {
 			calls += 1;
@@ -137,7 +138,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("records request JSON before fetch and raw response bytes after headers", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		const responseBody = new Uint8Array([0x66, 0x69, 0x72, 0x73, 0x74, 0x00, 0xff, 0x0a]);
 		const fetchImpl: FetchImpl = async () => chunkedResponse([responseBody.subarray(0, 5), responseBody.subarray(5)]);
 		const wrapped = transportFetch(debugModel(), fetchImpl);
@@ -167,7 +168,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("redacts credential headers in the request dump and the response log", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		const fetchImpl: FetchImpl = async () =>
 			new Response("ok", { headers: { "set-cookie": "session=cookie-secret", "x-request-id": "resp-2" } });
 		const response = await transportFetch(debugModel(), fetchImpl)("https://provider.test/v1/messages", {
@@ -213,7 +214,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("keeps the partial response log when the response body is cancelled", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		const firstChunk = enc.encode("partial");
 		let sent = false;
 		const fetchImpl: FetchImpl = async () =>
@@ -243,7 +244,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("wraps provider fetch options with request debug recording", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		const fetchMock: FetchImpl = async () => new Response("ok", { headers: { "x-debug": "yes" } });
 		registerDebugApi();
 
@@ -264,7 +265,7 @@ describe("PI_REQ_DEBUG request/response recording", () => {
 	});
 
 	it("records one dump per request when streamSimple re-enters the request path for auth retry", async () => {
-		Bun.env.PI_REQ_DEBUG = "1";
+		bun.env.PI_REQ_DEBUG = "1";
 		let calls = 0;
 		const fetchMock: FetchImpl = async () => {
 			calls += 1;

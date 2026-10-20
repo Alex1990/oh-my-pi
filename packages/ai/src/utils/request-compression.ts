@@ -1,3 +1,4 @@
+import { preconnectOf } from "./fetch-preconnect";
 import { promisify } from "node:util";
 import * as zlib from "node:zlib";
 import {
@@ -7,6 +8,7 @@ import {
 } from "@oh-my-pi/pi-catalog/compat/request-compression";
 import { $flag, logger } from "@oh-my-pi/pi-utils";
 import type { FetchImpl, Model } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const gzip = promisify(zlib.gzip);
 
@@ -75,7 +77,7 @@ function withContentEncoding(headers: RequestHeaders, encoding: RequestBodyEncod
 /** Off the event loop: a synchronous codec stalls the TUI ~120ms on a 9MB body. */
 function compress(body: string | ArrayBufferView, encoding: RequestBodyEncoding): Promise<Uint8Array> {
 	const bytes = typeof body === "string" ? body : new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-	return encoding === "zstd" ? Bun.zstdCompress(bytes, { level: ZSTD_LEVEL }) : gzip(bytes, { level: GZIP_LEVEL });
+	return encoding === "zstd" ? bun.zstdCompress(bytes, { level: ZSTD_LEVEL }) : gzip(bytes, { level: GZIP_LEVEL });
 }
 
 /** Reads a clone of {@link response}'s body; `undefined` when it cannot be read. */

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { LoginDialogComponent } from "@oh-my-pi/pi-tui/overlays/login-dialog";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
@@ -6,6 +6,7 @@ import * as openModule from "@oh-my-pi/pi-coding-agent/utils/open";
 import type { TUI } from "@oh-my-pi/pi-tui";
 
 import { cfgTuiHyperlinks } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -35,10 +36,10 @@ describe("LoginDialogComponent", () => {
 			const linkTarget = `${authorizationUrl}\x07`;
 			const urlRows = dialog
 				.renderContent(40)
-				.filter(line => line.includes(linkTarget) && !Bun.stripANSI(line).includes("click to open"));
+				.filter(line => line.includes(linkTarget) && !bun.stripANSI(line).includes("click to open"));
 
 			expect(urlRows.length).toBeGreaterThan(1);
-			expect(urlRows.map(line => Bun.stripANSI(line).trim()).join("")).toBe(authorizationUrl);
+			expect(urlRows.map(line => bun.stripANSI(line).trim()).join("")).toBe(authorizationUrl);
 			expect(urlRows.every(line => line.includes(linkTarget))).toBe(true);
 			expect(openSpy).toHaveBeenCalledWith(authorizationUrl);
 		} finally {

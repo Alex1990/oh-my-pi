@@ -976,8 +976,8 @@ and optional mTLS material (`CLAUDE_CODE_CLIENT_CERT`, `CLAUDE_CODE_CLIENT_KEY`)
 `NODE_EXTRA_CA_CERTS` (PEM file path or inline PEM, mirroring Node's contract)
 is honoured on every provider fetch — OpenAI-compatible, Codex, Ollama, Azure
 Responses, Google, and Anthropic alike — for corporate relays or private CA
-bundles. Bun's `fetch` does not consume the env var natively, so omp injects
-the bundle into `RequestInit.tls.ca` and seeds the system root store
+bundles. Node's `fetch` does not apply the env var on every request path, so
+omp injects the bundle into each provider fetch and seeds the system root store
 alongside it.
 
 Provider endpoint defaults for the current OpenAI-compatible integrations:

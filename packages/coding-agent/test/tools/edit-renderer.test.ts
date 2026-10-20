@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import { type TUI, visibleWidth } from "@oh-my-pi/pi-tui";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	resetSettingsForTest();
@@ -38,9 +39,9 @@ async function waitForRenderedText(
 	const deadline = Date.now() + 1_000;
 	let rendered = "";
 	while (Date.now() < deadline) {
-		rendered = Bun.stripANSI(component.render(width).join("\n"));
+		rendered = bun.stripANSI(component.render(width).join("\n"));
 		if (rendered.includes(expectedText)) return rendered;
-		await Bun.sleep(10);
+		await bun.sleep(10);
 	}
 	return rendered;
 }
@@ -56,7 +57,7 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("packages/coding-agent/src/edit/renderer.ts");
 	});
 
@@ -70,7 +71,7 @@ describe("editToolRenderer", () => {
 			const makeDiff = (length: number): string =>
 				Array.from({ length }, (_, index) => (index === 0 ? "-head-line-1" : `+tail-line-${index + 1}`)).join("\n");
 			const renderPreview = (diff: string, expanded: boolean): string =>
-				Bun.stripANSI(
+				bun.stripANSI(
 					editToolRenderer
 						.renderCall(
 							{ file_path: "/tmp/preview.ts", previewDiff: diff },
@@ -112,7 +113,7 @@ describe("editToolRenderer", () => {
 
 	it("does not report a leading blank line as hidden content", async () => {
 		const uiTheme = await getUiTheme();
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			editToolRenderer
 				.renderCall(
 					{ file_path: "/tmp/leading-blank.ts", previewDiff: "\n+1|first-added\n+2|second-added" },
@@ -138,7 +139,7 @@ describe("editToolRenderer", () => {
 			"",
 		].join("\n");
 
-		const rendered = Bun.stripANSI(
+		const rendered = bun.stripANSI(
 			editToolRenderer
 				.renderCall(
 					{ file_path: "/tmp/large-preview.ts", previewDiff: diff },
@@ -166,7 +167,7 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("packages/coding-agent/src/edit/renderer.ts");
 		expect(rendered).not.toContain("The first line of the patch must be");
 	});
@@ -180,7 +181,7 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("a.ts");
 		expect(rendered).toContain("(+1 more)");
 	});
@@ -225,7 +226,7 @@ describe("editToolRenderer", () => {
 			uiStub,
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("crates/pi-natives/src/shell.rs");
 		expect(rendered).not.toContain("PUT >$:");
 		expect(rendered).not.toContain("+pub fn streaming_preview() {");
@@ -250,8 +251,8 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const compactRendered = Bun.stripANSI(compactComponent.render(160).join("\n"));
-		const quotedRendered = Bun.stripANSI(quotedComponent.render(160).join("\n"));
+		const compactRendered = bun.stripANSI(compactComponent.render(160).join("\n"));
+		const quotedRendered = bun.stripANSI(quotedComponent.render(160).join("\n"));
 		expect(compactRendered).toContain("foo bar.ts");
 		expect(quotedRendered).toContain("baz qux.ts");
 	});
@@ -276,8 +277,8 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const canonicalRendered = Bun.stripANSI(canonical.render(160).join("\n"));
-		const partialRendered = Bun.stripANSI(partial.render(160).join("\n"));
+		const canonicalRendered = bun.stripANSI(canonical.render(160).join("\n"));
+		const partialRendered = bun.stripANSI(partial.render(160).join("\n"));
 
 		expect(canonicalRendered).toContain("packages/coding-agent/src/slash-commands/builtin-registry.ts");
 		expect(canonicalRendered).not.toMatch(/\[packages\/coding-agent/);
@@ -302,7 +303,7 @@ describe("editToolRenderer", () => {
 			},
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("packages/coding-agent/src/edit/renderer.ts");
 	});
 
@@ -323,11 +324,11 @@ describe("editToolRenderer", () => {
 			{ file_path: "packages/coding-agent/test/modes/components/transcript-container.test.ts" },
 		);
 
-		const wideHeader = Bun.stripANSI(component.render(160)[0]);
+		const wideHeader = bun.stripANSI(component.render(160)[0]);
 		expect(wideHeader).toContain("packages/coding-agent/test/modes/components/transcript-container.test.ts");
 		expect(wideHeader).not.toContain(":251");
 
-		const narrowHeader = Bun.stripANSI(component.render(72)[0]);
+		const narrowHeader = bun.stripANSI(component.render(72)[0]);
 		expect(narrowHeader).toContain("…");
 		expect(narrowHeader).toContain("container.test.ts");
 		expect(narrowHeader).not.toContain(":251");
@@ -391,7 +392,7 @@ describe("editToolRenderer", () => {
 		try {
 			const content = "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n";
 			const filePath = path.join(tmpDir, "memory.ts");
-			await Bun.write(filePath, content);
+			await bun.write(filePath, content);
 
 			const input = `[memory.ts#ABCD]\nPUT 2-2:\n+export const b = 22;`;
 			const component = new ToolExecutionComponent("edit", { input }, {}, hashlineTool, uiStub, tmpDir);
@@ -418,7 +419,7 @@ describe("editToolRenderer", () => {
 		try {
 			const content = "export const a = 1;\nexport const b = 2;\n";
 			const filePath = path.join(tmpDir, "memory.ts");
-			await Bun.write(filePath, content);
+			await bun.write(filePath, content);
 
 			const input = `[memory.ts#ABCD]\nPUT 2-2:\n+export const b = 22;\n`;
 			const component = new ToolExecutionComponent(
@@ -462,7 +463,7 @@ describe("editToolRenderer", () => {
 
 	it("uses raw replacement text only as the replace-mode streaming fallback", async () => {
 		const uiTheme = await getUiTheme();
-		const replacement = Bun.stripANSI(
+		const replacement = bun.stripANSI(
 			renderStreamingFallback("replace", { new_string: "plain streamed text" }, uiTheme),
 		);
 		expect(replacement).toContain("plain streamed text");
@@ -473,7 +474,7 @@ describe("editToolRenderer", () => {
 	it("sanitizes the replace-mode preview head and counts every hidden line", async () => {
 		const uiTheme = await getUiTheme();
 		const preview = (text: string) =>
-			Bun.stripANSI(renderStreamingFallback("replace", { new_string: text }, uiTheme))
+			bun.stripANSI(renderStreamingFallback("replace", { new_string: text }, uiTheme))
 				.trim()
 				.split("\n");
 		// CRLF endings and control bytes are stripped; lines past the 6-line head are counted.
@@ -528,7 +529,7 @@ describe("editToolRenderer", () => {
 			{ file_path: "demo.go" },
 		);
 
-		const lines = Bun.stripANSI(component.render(160).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(160).join("\n")).split("\n");
 		// Stats ride on the header line next to the path…
 		expect(lines[0]).toContain("demo.go");
 		expect(lines[0]).toContain("+2");
@@ -553,7 +554,7 @@ describe("editToolRenderer", () => {
 			{ file_path: "demo.ts" },
 		);
 
-		const lines = component.render(160).map(line => Bun.stripANSI(line));
+		const lines = component.render(160).map(line => bun.stripANSI(line));
 		const rendered = lines.join("\n");
 		expect(lines.filter(line => line.includes("│line "))).toHaveLength(40);
 		expect(rendered).toContain("+40│line 39");
@@ -578,7 +579,7 @@ describe("editToolRenderer", () => {
 			{ file_path: "long-lines.txt" },
 		);
 
-		const lines = component.render(120).map(line => Bun.stripANSI(line));
+		const lines = component.render(120).map(line => bun.stripANSI(line));
 		expect(lines).toHaveLength(43);
 		expect(lines.join("\n")).toContain("more lines");
 	});
@@ -598,7 +599,7 @@ describe("editToolRenderer", () => {
 			{ file_path: "demo.ts" },
 		);
 
-		const lines = component.render(48).map(line => Bun.stripANSI(line));
+		const lines = component.render(48).map(line => bun.stripANSI(line));
 		expect(lines.every(line => visibleWidth(line) === 48)).toBe(true);
 		expect(lines[1]).toStartWith("│+1│");
 		expect(lines[1]).not.toStartWith("│ +1│");
@@ -629,7 +630,7 @@ describe("editToolRenderer", () => {
 			uiTheme,
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("Delete");
 		expect(rendered).not.toContain("No changes would be made");
 		for (const path of paths) expect(rendered).toContain(path);
@@ -654,12 +655,12 @@ describe("editToolRenderer", () => {
 			{ input: "[a.ts#1a2b]\nMV b.ts" },
 		);
 
-		const header = Bun.stripANSI(component.render(160)[0]);
+		const header = bun.stripANSI(component.render(160)[0]);
 		// Header shows the move as source → destination, not the buggy dest → dest.
 		expect(header).toContain("a.ts");
 		expect(header).toContain("b.ts");
 		expect(header).toContain("→");
-		expect(Bun.stripANSI(component.render(160).join("\n"))).not.toContain("No changes");
+		expect(bun.stripANSI(component.render(160).join("\n"))).not.toContain("No changes");
 	});
 
 	it("uses the result's own path for a genuine no-op, not the shared preview", async () => {
@@ -681,7 +682,7 @@ describe("editToolRenderer", () => {
 			{ file_path: "scripts/real.ts" },
 		);
 
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 		expect(rendered).toContain("No changes were made");
 		expect(rendered).toContain("scripts/real.ts");
 		expect(rendered).not.toContain("WRONG");
@@ -737,7 +738,7 @@ describe("editToolRenderer diff line wrapping", () => {
 				"    the revised synopsis paragraph now catalogues seasonal festival logistics enumerating lantern shipments drum rehearsals and ribbon inventories that the parade stewards confirmed before dawn, closing with the zephyrQuota tally and the marbledFinale banner",
 				100,
 			)
-		).map(row => Bun.stripANSI(row));
+		).map(row => bun.stripANSI(row));
 
 		// The tail of the added line lands on continuation rows, which must carry
 		// the spaces-only continuation gutter rather than start as bare prose.
@@ -752,7 +753,7 @@ describe("editToolRenderer diff line wrapping", () => {
 		// Native word diffs operate directly over UTF-16 code units, so lone
 		// surrogates render and highlight without throwing mid-render.
 		const rows = (await renderSingleLineReplacement("alpha \ud800 beta", "alpha \ud801 beta", 100)).map(row =>
-			Bun.stripANSI(row),
+			bun.stripANSI(row),
 		);
 		expect(rows.some(row => row.includes("-42"))).toBe(true);
 		expect(rows.some(row => row.includes("+"))).toBe(true);
@@ -797,7 +798,7 @@ describe("editToolRenderer diff line wrapping", () => {
 			uiTheme,
 			{ file_path: "demo.ts" },
 		);
-		return component.render(100).map(row => Bun.stripANSI(row));
+		return component.render(100).map(row => bun.stripANSI(row));
 	}
 
 	it("does not give pipe-leading error text a phantom diff gutter when wrapping", async () => {

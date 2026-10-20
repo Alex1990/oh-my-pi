@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { convertMessages } from "@oh-my-pi/pi-ai/providers/openai-completions";

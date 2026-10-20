@@ -1,4 +1,4 @@
-import { expect, it, spyOn } from "bun:test";
+import { expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { CmuxTab } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/cmux-tab";
 import { CmuxSocketClient } from "@oh-my-pi/pi-coding-agent/tools/browser/cmux/socket-client";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";

@@ -1,8 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildNonInteractiveEnv, NON_INTERACTIVE_ENV } from "@oh-my-pi/pi-coding-agent/exec/non-interactive-env";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 describe("buildNonInteractiveEnv", () => {
 	it("defaults Windows child-process encoding to UTF-8 when inherited env is unset", () => {
@@ -62,7 +64,7 @@ describe("buildNonInteractiveEnv", () => {
 
 	it("uses an executable SSH askpass rejector on POSIX", async () => {
 		if (process.platform === "win32") return;
-		const proc = Bun.spawn([NON_INTERACTIVE_ENV.SSH_ASKPASS], {
+		const proc = bun.spawn([NON_INTERACTIVE_ENV.SSH_ASKPASS], {
 			stdout: "ignore",
 			stderr: "ignore",
 		});
@@ -89,7 +91,7 @@ describe("buildNonInteractiveEnv", () => {
 it("filters expanded dotenv values while preserving matching and empty launcher values", async () => {
 	const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "omp-env-"));
 	try {
-		await Bun.write(
+		await bun.write(
 			path.join(tmp, ".env"),
 			[
 				"BASE=loaded-by-omp",
@@ -101,11 +103,11 @@ it("filters expanded dotenv values while preserving matching and empty launcher 
 				"",
 			].join("\n"),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(tmp, ".env.local"),
 			"CONVEX_DEPLOYMENT=anonymous:root-local\nCONVEX_URL=http://127.0.0.1:3210\n",
 		);
-		const procmgrPath = path.resolve(import.meta.dir, "../../utils/src/procmgr.ts");
+		const procmgrPath = path.resolve(import.meta.dirname, "../../utils/src/procmgr.ts");
 		const script = [
 			`import { getShellConfig } from ${JSON.stringify(procmgrPath)};`,
 			"const env = getShellConfig().env;",
@@ -122,7 +124,7 @@ it("filters expanded dotenv values while preserving matching and empty launcher 
 		].join("\n");
 		const bunArgSets = process.platform === "linux" ? [[], ["--no-env-file"]] : [["--no-env-file"]];
 		for (const bunArgs of bunArgSets) {
-			const proc = Bun.spawn([process.execPath, ...bunArgs, "--no-install", "--eval", script], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...bunArgs, "--no-install", "--eval", script], {
 				cwd: tmp,
 				env: {
 					HOME: process.env.HOME ?? "",

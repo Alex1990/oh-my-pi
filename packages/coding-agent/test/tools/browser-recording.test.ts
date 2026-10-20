@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,8 @@ import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supe
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { $which } from "@oh-my-pi/pi-utils/which";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const FFMPEG_AVAILABLE = Boolean($which("ffmpeg") && $which("ffprobe"));
@@ -72,7 +74,7 @@ async function value<T>(method: string, args: unknown[] = []): Promise<T> {
 async function probeVideo(filePath: string): Promise<ProbeResult> {
 	const ffprobe = $which("ffprobe");
 	if (!ffprobe) throw new Error("ffprobe disappeared after the test gate");
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			ffprobe,
 			"-v",
@@ -167,7 +169,7 @@ return { overlay: true, transform };`,
 			expect(webmStream?.avg_frame_rate).toBe("10/1");
 
 			const contactBytes = await fs.readFile(stopped.contactSheet!);
-			const contact = await new Bun.Image(contactBytes).metadata();
+			const contact = await new Image(contactBytes).metadata();
 			expect(contact.format).toBe("png");
 			expect(contact.width % 320).toBe(0);
 			expect(contact.height % 214).toBe(0);

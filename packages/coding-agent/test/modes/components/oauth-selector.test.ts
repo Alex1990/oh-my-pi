@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { OAuthSelectorComponent } from "@oh-my-pi/pi-tui/overlays/oauth-selector";
@@ -6,6 +6,7 @@ import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 
 import { cfgDisabledProviders } from "@oh-my-pi/pi-coding-agent/config/model-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -41,7 +42,7 @@ describe("OAuthSelectorComponent", () => {
 
 		const rendered = component
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain(target.name);
 		expect(rendered).toContain(`Search: ${target.id}`);
@@ -73,7 +74,7 @@ describe("OAuthSelectorComponent", () => {
 
 		const rendered = component
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain("No stored provider credentials to log out");
 
@@ -102,7 +103,7 @@ describe("OAuthSelectorComponent", () => {
 
 		const rendered = component
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(rendered).toContain("OpenCode Go");
 		expect(rendered).toContain("logged in");
@@ -140,7 +141,7 @@ describe("OAuthSelectorComponent", () => {
 			}
 			const rendered = component
 				.render(80)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 			expect(rendered).not.toContain(victim.name);
 		});
@@ -166,7 +167,7 @@ describe("OAuthSelectorComponent", () => {
 			}
 			const rendered = component
 				.render(80)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 			expect(rendered).not.toContain(alias.name);
 		});
@@ -194,7 +195,7 @@ describe("OAuthSelectorComponent", () => {
 			}
 			const rendered = component
 				.render(80)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 			expect(rendered).toContain("OpenCode Go");
 		});

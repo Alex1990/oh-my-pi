@@ -1,10 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { fileURLToPath } from "node:url";
 import type { CostEstimatorContext } from "@oh-my-pi/pi-agent-core";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { initTelemetryExport, isTelemetryExportEnabled } from "@oh-my-pi/pi-coding-agent/telemetry-export";
 import { estimateProviderCost } from "@oh-my-pi/pi-coding-agent/telemetry-export-otlp";
 import { cfgTelemetryOtlpExportEnabled } from "@oh-my-pi/pi-coding-agent/telemetry-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 /**
  * Gating contract for the OTLP export bootstrap. These cases all short-circuit
@@ -107,7 +109,7 @@ describe("initTelemetryExport gating", () => {
 describe("initTelemetryExport exporter selection", () => {
 	it("does not send OTLP when console is explicitly selected for every signal", async () => {
 		const probe = fileURLToPath(new URL("./otel-non-otlp-probe.ts", import.meta.url));
-		const proc = Bun.spawn([process.execPath, probe], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probe], {
 			env: { ...process.env },
 			stdin: "ignore",
 			stdout: "pipe",
@@ -136,7 +138,7 @@ describe("initTelemetryExport signals export path", () => {
 		const results = await Promise.all(
 			probes.map(async ([name, relativePath]) => {
 				const probe = fileURLToPath(new URL(relativePath, import.meta.url));
-				const proc = Bun.spawn([process.execPath, probe], {
+				const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), probe], {
 					// Bun otherwise inherits the process's original native environment,
 					// including external OTEL kill-switches removed in beforeEach.
 					env: { ...process.env },

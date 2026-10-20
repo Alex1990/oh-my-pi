@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { planSteeredRequest } from "@oh-my-pi/pi-ai/providers/openai-codex/live-steering";
 import { streamOpenAICodexResponses } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
@@ -14,11 +15,35 @@ import type {
 	UserMessage,
 } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import type * as nodeServe from "@oh-my-pi/pi-utils/node-serve";
 import * as piUtils from "@oh-my-pi/pi-utils";
+
+/**
+ * The codex transport imports `WebSocket` from the node-serve shim (a frozen ESM
+ * namespace binding), so overriding `globalThis.WebSocket` no longer reaches it.
+ * Route the constructor through hoisted state to install a scripted socket per
+ * test, while keeping the rest of the module (`serve`, statics) real.
+ */
+const socketState = vi.hoisted(() => ({
+	ctor: undefined as (new (url: string, options?: unknown) => object) | undefined,
+}));
+vi.mock("@oh-my-pi/pi-utils/node-serve", async importOriginal => {
+	const actual = await importOriginal<typeof nodeServe>();
+	const WebSocket = new Proxy(actual.WebSocket, {
+		construct: (_target, args) => {
+			if (!socketState.ctor) throw new Error("No scripted WebSocket installed for this test");
+			return Reflect.construct(socketState.ctor, args);
+		},
+		get: (target, property, receiver) =>
+			socketState.ctor && property in socketState.ctor
+				? Reflect.get(socketState.ctor, property, receiver)
+				: Reflect.get(target, property, receiver),
+	});
+	return { ...actual, WebSocket };
+});
 
 const { getAgentDir, setAgentDir, TempDir } = piUtils;
 const originalAgentDir = getAgentDir();
-const originalWebSocket = global.WebSocket;
 const USAGE = { input_tokens: 5, output_tokens: 3, total_tokens: 8, input_tokens_details: { cached_tokens: 0 } };
 
 beforeEach(() => {
@@ -27,7 +52,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	global.WebSocket = originalWebSocket;
+	socketState.ctor = undefined;
 	setAgentDir(originalAgentDir);
 	vi.restoreAllMocks();
 });
@@ -81,7 +106,7 @@ function installSocket(onFrame: (frame: Frame, socket: ScriptedWebSocket) => voi
 	ScriptedWebSocket.instances = [];
 	ScriptedWebSocket.sent = [];
 	ScriptedWebSocket.onFrame = onFrame;
-	global.WebSocket = ScriptedWebSocket as unknown as typeof WebSocket;
+	socketState.ctor = ScriptedWebSocket;
 }
 
 function createGpt6Model(): Model<"openai-codex-responses"> {

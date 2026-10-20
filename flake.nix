@@ -15,24 +15,6 @@
     # platform on the final stable branch that still receives security fixes.
     nixpkgs-darwin-x64.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
 
-    bun2nix = {
-      url = "github:nix-community/bun2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # bun2nix's per-system helper packages must use the same Intel-compatible
-    # package set as the derivation consuming its overlay.
-    bun2nix-darwin-x64 = {
-      url = "github:nix-community/bun2nix";
-      inputs.nixpkgs.follows = "nixpkgs-darwin-x64";
-      inputs.systems.url = "github:nix-systems/x86_64-darwin";
-    };
-
-    nix-bun = {
-      url = "github:ryoppippi/nix-bun";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,9 +24,6 @@
   outputs =
     {
       self,
-      bun2nix,
-      bun2nix-darwin-x64,
-      nix-bun,
       nixpkgs,
       nixpkgs-darwin-x64,
       rust-overlay,
@@ -62,24 +41,13 @@
         system:
         (if system == "x86_64-darwin" then nixpkgs-darwin-x64 else nixpkgs).legacyPackages.${system};
 
-      bun2nixFor =
-        system:
-        (if system == "x86_64-darwin" then bun2nix-darwin-x64 else bun2nix).packages.${system}.bun2nix;
-
       rustToolchainFor =
         system:
         (rust-overlay.lib.mkRustBin { } (pkgsFor system)).fromRustupToolchainFile ./rust-toolchain.toml;
 
       localPackagesFor =
         system:
-        let
-          pkgs = pkgsFor system;
-        in
         {
-          bun = pkgs.callPackage (nix-bun.outPath + "/package.nix") {
-            sourcesFile = nix-bun.outPath + "/versions/1.4.2.json";
-          };
-          bun2nix = bun2nixFor system;
           rustToolchain = rustToolchainFor system;
         };
 
@@ -132,7 +100,6 @@
         system:
         let
           pkgs = pkgsFor system;
-          bun2nix = bun2nixFor system;
           homeManagerEvaluation = pkgs.lib.evalModules {
             specialArgs = { inherit pkgs; };
             modules = [
@@ -174,14 +141,15 @@
             pkgs.runCommand "omp-module-evaluation" { } "touch $out";
         in
         {
-          bun-lock = pkgs.runCommand "omp-bun-lock" { nativeBuildInputs = [ bun2nix ]; } ''
+          # Verify the committed lockfile matches every workspace manifest.
+          # `--lockfile-only` resolves the graph without downloading packages,
+          # so this needs no network in the sandbox.
+          pnpm-lock = pkgs.runCommand "omp-pnpm-lock" { nativeBuildInputs = [ pkgs.pnpm ]; } ''
             cp -R ${self.outPath} source
             chmod -R u+w source
             cd source
-            mv nix/bun.nix nix/bun.expected.nix
-            bun2nix -l bun.lock -c ../ -o nix/bun.nix
-            sed -i -e '$a\' nix/bun.nix
-            diff -u nix/bun.expected.nix nix/bun.nix
+            export HOME=$TMPDIR
+            pnpm install --frozen-lockfile --lockfile-only --ignore-scripts --offline
             touch "$out"
           '';
           modules = modulesEvaluate;

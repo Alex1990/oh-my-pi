@@ -7,7 +7,7 @@
  * `onToolResult` with its intent and result text (the task job's `tools`
  * widget source).
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { CreateAgentSessionResult } from "@oh-my-pi/pi-coding-agent/sdk";

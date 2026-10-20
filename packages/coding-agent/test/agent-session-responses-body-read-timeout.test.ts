@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentMessage, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { DEFAULT_SHAKE_CONFIG } from "@oh-my-pi/pi-agent-core/compaction";
@@ -15,6 +15,8 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { type Server, serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const NATIVE_REPLAY_BULK = "NATIVE_REPLAY_BULK_SENTINEL ".repeat(1000);
 const BODY_READ_TIMEOUT = "Timed out reading request body. Try again, or use a smaller request size.";
@@ -112,7 +114,7 @@ type SessionHarnessOptions = {
 
 type SessionHarness = {
 	requests: string[];
-	server: Bun.Server<undefined>;
+	server: Server<undefined>;
 	tempDir: TempDir;
 	authStorage: AuthStorage;
 	sessionManager: SessionManager;
@@ -172,7 +174,7 @@ async function createSessionHarness(options: SessionHarnessOptions = {}): Promis
 	const requests: string[] = [];
 	const respond =
 		options.respond ?? ((_body, requestNumber) => (requestNumber === 1 ? timeoutResponse() : completeResponse()));
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		fetch: async request => {
 			const body = await request.text();
@@ -269,7 +271,7 @@ describe("AgentSession Responses request-body timeout recovery", () => {
 			expect(artifactId).toBeDefined();
 			const artifactPath = await harness.sessionManager.getArtifactPath(artifactId!);
 			expect(artifactPath).not.toBeNull();
-			expect(await Bun.file(artifactPath!).text()).toContain("historical tool result");
+			expect(await bun.file(artifactPath!).text()).toContain("historical tool result");
 			expect(harness.requests[1]).toContain("historical fenced context");
 			expect(harness.requests[1]).not.toContain("historical tool result");
 			expect(harness.session.agent.state.messages.at(-1)).toMatchObject({
@@ -328,7 +330,7 @@ describe("AgentSession Responses request-body timeout recovery", () => {
 			expect(artifactId).toBeDefined();
 			const artifactPath = await harness.sessionManager.getArtifactPath(artifactId!);
 			expect(artifactPath).not.toBeNull();
-			expect(await Bun.file(artifactPath!).text()).toContain("historical tool result");
+			expect(await bun.file(artifactPath!).text()).toContain("historical tool result");
 		} finally {
 			await harness.cleanup();
 		}

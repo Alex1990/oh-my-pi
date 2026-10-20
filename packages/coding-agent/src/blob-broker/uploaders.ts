@@ -14,6 +14,7 @@ import { createImageHostUploader } from "./uploaders-image-hosts";
 import { createLegacyUploader } from "./uploaders-legacy";
 import { createObjectStorageUploader } from "./uploaders-object-storage";
 import { createSelfHostedUploader } from "./uploaders-self-hosted";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const UPLOAD_TIMEOUT_MS = 60_000;
 const URL_PATTERN = /https?:\/\/\S+/g;
@@ -95,7 +96,7 @@ export function createCommandUploader(template: string): BlobUploader {
 		async upload(request: BlobUploadRequest): Promise<BlobPublication> {
 			const { bytes, mimeType, extension } = request;
 			const file = path.join(os.tmpdir(), `omp-blob-upload-${crypto.randomUUID()}.${extension}`);
-			await Bun.write(file, bytes);
+			await bun.write(file, bytes);
 			try {
 				const argv = argvTemplate.map(arg =>
 					arg.replaceAll("{file}", file).replaceAll("{mime}", mimeType).replaceAll("{ext}", extension),
@@ -104,7 +105,7 @@ export function createCommandUploader(template: string): BlobUploader {
 				if (!directoryIsEnterableSync(cwd)) {
 					throw new Error(`Project directory is not accessible: ${cwd}`);
 				}
-				const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", cwd });
+				const proc = bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", cwd });
 				const timeout = setTimeout(() => proc.kill(), UPLOAD_TIMEOUT_MS);
 				const [stdout, stderr, exitCode] = await Promise.all([
 					new Response(proc.stdout as ReadableStream<Uint8Array>).text(),

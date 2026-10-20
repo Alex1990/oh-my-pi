@@ -15,7 +15,7 @@
  *     the current request also opts in AND the target is official Anthropic;
  *     otherwise it drops the marker and keeps one model's reasoning.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { convertAnthropicMessages, streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { AnthropicMessages } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import type { MessageParam } from "@oh-my-pi/pi-ai/providers/anthropic-wire";

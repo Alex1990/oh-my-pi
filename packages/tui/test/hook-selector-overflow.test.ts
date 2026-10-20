@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { HookSelectorComponent } from "@oh-my-pi/pi-tui/overlays/hook-selector";
 import { getThemeByName, setThemeInstance, theme } from "@oh-my-pi/pi-tui/theme";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("dark");
@@ -28,7 +29,7 @@ describe("HookSelectorComponent", () => {
 		const width = 80;
 		const lines = component.render(width);
 		for (const line of lines) {
-			expect(visibleWidth(Bun.stripANSI(line))).toBeLessThanOrEqual(width);
+			expect(visibleWidth(bun.stripANSI(line))).toBeLessThanOrEqual(width);
 		}
 	});
 
@@ -40,7 +41,7 @@ describe("HookSelectorComponent", () => {
 			() => {},
 		);
 
-		const lines = component.render(80).map(line => Bun.stripANSI(line));
+		const lines = component.render(80).map(line => bun.stripANSI(line));
 		expect(lines[0]).toContain("Delete session?");
 		expect(lines.some(line => line.includes("session-2026-08-20"))).toBe(true);
 	});
@@ -60,12 +61,12 @@ describe("HookSelectorComponent", () => {
 
 		const width = 72;
 		const lines = component.render(width);
-		const plain = lines.map(line => Bun.stripANSI(line)).join("\n");
+		const plain = lines.map(line => bun.stripANSI(line)).join("\n");
 		const normalizedPlain = plain.replace(/[\u2500-\u257f]/g, " ").replace(/\s+/g, " ");
 		expect(normalizedPlain).toContain("not creating a root .github directory");
 		expect(normalizedPlain).toContain("do not understand OMP resources yet");
 		for (const line of lines) {
-			expect(visibleWidth(Bun.stripANSI(line))).toBeLessThanOrEqual(width);
+			expect(visibleWidth(bun.stripANSI(line))).toBeLessThanOrEqual(width);
 		}
 	});
 
@@ -92,7 +93,7 @@ describe("HookSelectorComponent", () => {
 
 		const width = 76;
 		const lines = component.render(width);
-		const plainLines = lines.map(line => Bun.stripANSI(line));
+		const plainLines = lines.map(line => bun.stripANSI(line));
 		const normalizedPlain = plainLines
 			.join("\n")
 			.replace(/[\u2500-\u257f]/g, " ")
@@ -104,7 +105,7 @@ describe("HookSelectorComponent", () => {
 		expect(normalizedPlain).toContain("without opening a new browser-based setup flow");
 		expect(normalizedPlain).toContain("keep the current editor session waiting for the configured credentials");
 		for (const line of lines) {
-			expect(visibleWidth(Bun.stripANSI(line))).toBeLessThanOrEqual(width);
+			expect(visibleWidth(bun.stripANSI(line))).toBeLessThanOrEqual(width);
 		}
 	});
 
@@ -125,7 +126,7 @@ describe("HookSelectorComponent", () => {
 
 		const plain = component
 			.render(76)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		// Every option label stays on screen so the user can see the whole menu...
 		expect(plain).toContain("Path A");
@@ -143,7 +144,7 @@ describe("HookSelectorComponent", () => {
 		component.handleInput("\x1b[B");
 		const afterDown = component
 			.render(76)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(afterDown).toContain("Path A");
 		expect(afterDown).toContain("Path D");
@@ -167,7 +168,7 @@ describe("HookSelectorComponent", () => {
 			{ outline: true, initialIndex: 0, maxVisible: 3 },
 		);
 
-		const plainLines = component.render(50).map(line => Bun.stripANSI(line));
+		const plainLines = component.render(50).map(line => bun.stripANSI(line));
 		const plain = plainLines.join("\n");
 		expect(plain).toContain("Option A");
 		expect(plain).not.toContain("Option B");
@@ -197,7 +198,7 @@ describe("HookSelectorComponent", () => {
 
 		const plain = component
 			.render(76)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(plain).toContain("Path B");
 		expect(plain).toContain("Launch a browser flow");
@@ -339,7 +340,7 @@ describe("HookSelectorComponent", () => {
 		component.handleInput("1");
 
 		expect(selected).toBeUndefined();
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("Search: 1");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("Search: 1");
 	});
 
 	it("renders disabled options dimmed", () => {
@@ -363,7 +364,7 @@ describe("HookSelectorComponent", () => {
 			{ selectionMarker: "radio", markableCount: 2, initialIndex: 0 },
 		);
 
-		const lines = Bun.stripANSI(component.render(80).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(80).join("\n")).split("\n");
 		const apple = lines.find(line => line.includes("Apple"));
 		const banana = lines.find(line => line.includes("Banana"));
 		expect(apple).toBeDefined();
@@ -384,7 +385,7 @@ describe("HookSelectorComponent", () => {
 			{ selectionMarker: "radio", markableCount: 2, initialIndex: 2 },
 		);
 
-		const lines = Bun.stripANSI(component.render(80).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(80).join("\n")).split("\n");
 		const other = lines.find(line => line.includes("Other"));
 		expect(other).toBeDefined();
 		// The trailing action keeps the classic cursor and gets no radio marker.
@@ -401,7 +402,7 @@ describe("HookSelectorComponent", () => {
 			{ selectionMarker: "checkbox", markableCount: 2, checkedIndices: [0], initialIndex: 1 },
 		);
 
-		const lines = Bun.stripANSI(component.render(80).join("\n")).split("\n");
+		const lines = bun.stripANSI(component.render(80).join("\n")).split("\n");
 		const apple = lines.find(line => line.includes("Apple"));
 		const banana = lines.find(line => line.includes("Banana"));
 		const done = lines.find(line => line.includes("Done selecting"));
@@ -436,9 +437,9 @@ describe("HookSelectorComponent", () => {
 		const openBg = bgProbe.slice(0, bgProbe.indexOf("|"));
 
 		const rendered = component.render(80);
-		const appleRow = rendered.find(line => Bun.stripANSI(line).includes("Apple"));
-		const bananaRow = rendered.find(line => Bun.stripANSI(line).includes("Banana"));
-		const otherRow = rendered.find(line => Bun.stripANSI(line).includes("Other"));
+		const appleRow = rendered.find(line => bun.stripANSI(line).includes("Apple"));
+		const bananaRow = rendered.find(line => bun.stripANSI(line).includes("Banana"));
+		const otherRow = rendered.find(line => bun.stripANSI(line).includes("Other"));
 		expect(appleRow).toBeDefined();
 		expect(bananaRow).toBeDefined();
 		expect(otherRow).toBeDefined();
@@ -468,7 +469,7 @@ describe("HookSelectorComponent", () => {
 			const rendered = component.render(80);
 			const banded = rendered.filter(line => line.includes(openBg));
 			const labels = ["Apple", "Banana", "Cherry", "Done selecting", "Other"];
-			return labels.find(label => banded.some(line => Bun.stripANSI(line).includes(label)));
+			return labels.find(label => banded.some(line => bun.stripANSI(line).includes(label)));
 		};
 		expect(bandedLabel(build(1))).toBe("Banana");
 		// Control rows past markableCount ("Other") still receive the focus band
@@ -499,7 +500,7 @@ describe("HookSelectorComponent", () => {
 		// Label row plus at least one wrapped description continuation, all under
 		// the Alpha option; Beta must stay unbanded.
 		expect(bandedRows.length).toBeGreaterThanOrEqual(2);
-		const bandedContainsBeta = bandedRows.some(line => Bun.stripANSI(line).includes("Beta"));
+		const bandedContainsBeta = bandedRows.some(line => bun.stripANSI(line).includes("Beta"));
 		expect(bandedContainsBeta).toBe(false);
 	});
 
@@ -515,9 +516,9 @@ describe("HookSelectorComponent", () => {
 		const openBg = bgProbe.slice(0, bgProbe.indexOf("|"));
 
 		const rendered = component.render(80);
-		const appleRow = rendered.find(line => Bun.stripANSI(line).includes("Apple"));
-		const bananaRow = rendered.find(line => Bun.stripANSI(line).includes("Banana"));
-		const cherryRow = rendered.find(line => Bun.stripANSI(line).includes("Cherry"));
+		const appleRow = rendered.find(line => bun.stripANSI(line).includes("Apple"));
+		const bananaRow = rendered.find(line => bun.stripANSI(line).includes("Banana"));
+		const cherryRow = rendered.find(line => bun.stripANSI(line).includes("Cherry"));
 		expect(appleRow).toBeDefined();
 		expect(bananaRow).toBeDefined();
 		expect(cherryRow).toBeDefined();

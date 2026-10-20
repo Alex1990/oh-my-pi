@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { cropSixelTop } from "../src/sixel";
 
 /** Small independent interpreter: keep colors per pixel, never shift SIXEL bands. */

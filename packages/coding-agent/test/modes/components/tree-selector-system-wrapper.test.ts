@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function customMessageTree(customType: string, content: string): SessionTreeNode[] {
 	return [
@@ -46,7 +47,7 @@ function searchResult(tree: SessionTreeNode[], query: string): string {
 		() => {},
 	);
 	for (const ch of query) selector.handleInput(ch);
-	return Bun.stripANSI(selector.render(120).join("\n"));
+	return bun.stripANSI(selector.render(120).join("\n"));
 }
 
 function render(tree: SessionTreeNode[]): string {
@@ -57,7 +58,7 @@ function render(tree: SessionTreeNode[]): string {
 		() => {},
 		() => {},
 	);
-	return Bun.stripANSI(selector.render(120).join("\n"));
+	return bun.stripANSI(selector.render(120).join("\n"));
 }
 
 describe("TreeSelectorComponent system-wrapper message rendering", () => {

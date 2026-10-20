@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -9,6 +10,23 @@ import {
 } from "@oh-my-pi/pi-coding-agent/session/blob-store";
 import { blobExtensionForImageMimeType } from "@oh-my-pi/pi-tui/prompt/image-format";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// `node:fs` is a frozen ESM namespace; expose the two write paths this suite
+// intercepts through a hoisted mock module instead of spying on it.
+const fsMock = vi.hoisted(() => ({ writeFileSync: vi.fn(), linkSync: vi.fn() }));
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	fsMock.writeFileSync.mockImplementation(actual.writeFileSync);
+	fsMock.linkSync.mockImplementation(actual.linkSync);
+	return { ...actual, writeFileSync: fsMock.writeFileSync, linkSync: fsMock.linkSync };
+});
+const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+
+beforeEach(() => {
+	fsMock.writeFileSync.mockReset().mockImplementation(realFs.writeFileSync);
+	fsMock.linkSync.mockReset().mockImplementation(realFs.linkSync);
+});
 
 describe("BlobStore image display paths", () => {
 	it("creates an extension-bearing sidecar for image blobs while keeping canonical refs extensionless", async () => {
@@ -20,8 +38,8 @@ describe("BlobStore image display paths", () => {
 		expect(result.path.endsWith(result.hash)).toBe(true);
 		expect(result.displayPath).toBe(`${result.path}.png`);
 		expect(result.ref).toBe(`blob:sha256:${result.hash}`);
-		expect(await Bun.file(result.path).bytes()).toEqual(new Uint8Array(data));
-		expect(await Bun.file(result.displayPath).bytes()).toEqual(new Uint8Array(data));
+		expect(await bun.file(result.path).bytes()).toEqual(new Uint8Array(data));
+		expect(await bun.file(result.displayPath).bytes()).toEqual(new Uint8Array(data));
 	});
 
 	it("externalizes image data with a mime-derived display extension", async () => {
@@ -33,7 +51,7 @@ describe("BlobStore image display paths", () => {
 		const hash = parseBlobRef(ref);
 
 		expect(hash).toBeTruthy();
-		expect(await Bun.file(`${tempDir.path()}/${hash}.webp`).bytes()).toEqual(new Uint8Array(data));
+		expect(await bun.file(`${tempDir.path()}/${hash}.webp`).bytes()).toEqual(new Uint8Array(data));
 		expect(await resolveImageData(store, ref)).toBe(data.toString("base64"));
 	});
 
@@ -51,7 +69,7 @@ describe("BlobStore content-addressed writes", () => {
 		const store = new BlobStore(path.join(tempDir.path(), "blobs"));
 		const data = Buffer.from("image-bytes");
 		const { path: blobPath } = store.putSync(data);
-		expect(await Bun.file(blobPath).bytes()).toEqual(new Uint8Array(data));
+		expect(await bun.file(blobPath).bytes()).toEqual(new Uint8Array(data));
 
 		// A same-content put must not republish the canonical file: an in-place
 		// write would bump its mtime and a staged write + rename would give the
@@ -67,7 +85,7 @@ describe("BlobStore content-addressed writes", () => {
 
 		fs.truncateSync(blobPath, 3);
 		await store.put(data);
-		expect(await Bun.file(blobPath).bytes()).toEqual(new Uint8Array(data));
+		expect(await bun.file(blobPath).bytes()).toEqual(new Uint8Array(data));
 	});
 
 	it("never leaves a partial blob at its hash path when a write is interrupted", () => {
@@ -76,19 +94,15 @@ describe("BlobStore content-addressed writes", () => {
 		const data = Buffer.from("complete-image-bytes");
 		// A reader resolving the ref (or a later same-size put) must never see a
 		// short file under the hash name: the interrupted write stays in staging.
-		const realWriteFileSync = fs.writeFileSync;
-		vi.spyOn(fs, "writeFileSync").mockImplementationOnce(
+		const realWriteFileSync = realFs.writeFileSync;
+		fsMock.writeFileSync.mockImplementationOnce(
 			(file: fs.PathOrFileDescriptor, written: string | NodeJS.ArrayBufferView) => {
 				if (!Buffer.isBuffer(written)) throw new Error("blob writes stage raw bytes");
 				realWriteFileSync(file, written.subarray(0, 5));
 				throw Object.assign(new Error("no space left on device"), { code: "ENOSPC" });
 			},
 		);
-		try {
-			expect(() => store.putSync(data)).toThrow("no space left on device");
-		} finally {
-			vi.restoreAllMocks();
-		}
+		expect(() => store.putSync(data)).toThrow("no space left on device");
 		expect(fs.readdirSync(tempDir.path())).toEqual([]);
 	});
 
@@ -98,21 +112,17 @@ describe("BlobStore content-addressed writes", () => {
 		const data = Buffer.from("image-bytes");
 		// Filesystems without hardlinks (FAT/exFAT, some network shares) take the
 		// copy fallback; an existing complete copy must not be rewritten per put.
-		vi.spyOn(fs, "linkSync").mockImplementation(() => {
+		fsMock.linkSync.mockImplementation(() => {
 			throw Object.assign(new Error("operation not permitted"), { code: "EPERM" });
 		});
-		try {
-			const { displayPath } = store.putSync(data, { extension: "png" });
-			const writeFileSync = vi.spyOn(fs, "writeFileSync");
-			store.putSync(data, { extension: "png" });
-			expect(writeFileSync).not.toHaveBeenCalled();
+		const { displayPath } = store.putSync(data, { extension: "png" });
+		fsMock.writeFileSync.mockClear();
+		store.putSync(data, { extension: "png" });
+		expect(fsMock.writeFileSync).not.toHaveBeenCalled();
 
-			fs.truncateSync(displayPath, 3);
-			store.putSync(data, { extension: "png" });
-			expect(fs.readFileSync(displayPath)).toEqual(data);
-		} finally {
-			vi.restoreAllMocks();
-		}
+		fs.truncateSync(displayPath, 3);
+		store.putSync(data, { extension: "png" });
+		expect(fs.readFileSync(displayPath)).toEqual(data);
 	});
 
 	it("refreshes a long-lived reused blob's mtime so gc's write grace still covers it", () => {

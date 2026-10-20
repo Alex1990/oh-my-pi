@@ -2,6 +2,7 @@ import { activityOneLine, compareActivityRows } from "@oh-my-pi/pi-tui/overlays/
 import type { Stats } from "node:fs";
 import * as fs from "node:fs/promises";
 import type { AgentActivityRow, AgentActivityQuery } from "@oh-my-pi/pi-tui/overlays/agent-activity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export type {
 	AgentActivityRow,
 	AgentActivityQuery,
@@ -358,7 +359,7 @@ export class AgentActivityIndex {
 		const start = state.offset;
 		let text: string;
 		try {
-			text = await Bun.file(sessionFile).slice(start, stat.size).text();
+			text = await bun.file(sessionFile).slice(start, stat.size).text();
 		} catch {
 			return;
 		}

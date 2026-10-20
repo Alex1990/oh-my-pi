@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { scope, type } from "@oh-my-pi/omptype/ark";
 import type { Eq } from "../type-assert";
 
@@ -624,7 +624,7 @@ describe("functions", () => {
 		expect(() => {
 			// @ts-expect-error
 			type({ bar: ["Function", "=", class {}] });
-		}).toThrow("Cannot call a class constructor without |new|");
+		}).toThrow("Class constructors cannot be invoked without 'new'");
 		expect(() => {
 			// @ts-expect-error
 			type({ bar: ["number", "=", (a: number) => a] });

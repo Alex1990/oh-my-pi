@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { InternalUrlRouter, type LocalProtocolOptions, resolveLocalRoot } from "../internal-urls";
 import { resolveToCwd } from "../tools/path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Resolves a plan path to its on-disk file: internal URLs through the scheme's
@@ -29,7 +30,7 @@ export async function readPlanFile(
 ): Promise<string | null> {
 	const resolvedPath = resolvePlanFilePath(planFilePath, options);
 	try {
-		return await Bun.file(resolvedPath).text();
+		return await bun.file(resolvedPath).text();
 	} catch (error) {
 		if (isEnoent(error)) return null;
 		throw error;

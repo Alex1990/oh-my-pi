@@ -1,7 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Terminal } from "@oh-my-pi/pi-utils/terminal-compat";
 
 /**
  * Contract: while suppression is active, unmanaged fd-2 writes land in the
@@ -11,9 +14,15 @@ import * as path from "node:path";
  * Runs in subprocesses so the test suite's own fd 2 is never mutated.
  */
 
-const GUARD_MODULE = path.resolve(import.meta.dir, "../src/stderr-guard.ts");
-const PRELOAD_MODULE = path.resolve(import.meta.dir, "fixtures/logger-fixed-date-preload.ts");
-const ROTATION_PROBE = path.resolve(import.meta.dir, "fixtures/stderr-guard-rotation-probe.ts");
+const GUARD_MODULE = path.resolve(import.meta.dirname, "../src/stderr-guard.ts");
+const PRELOAD_MODULE = path.resolve(import.meta.dirname, "fixtures/logger-fixed-date-preload.ts");
+const ROTATION_PROBE = path.resolve(import.meta.dirname, "fixtures/stderr-guard-rotation-probe.ts");
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 const tempDirs: string[] = [];
 
@@ -49,7 +58,7 @@ describe("stderr guard", () => {
 		fs.writeFileSync(
 			probePath,
 			[
-				`import { isTerminalStderrSuppressed, restoreTerminalStderr, suppressTerminalStderr } from ${JSON.stringify(GUARD_MODULE)};`,
+				`import { isTerminalStderrSuppressed, restoreTerminalStderr, suppressTerminalStderr } from ${JSON.stringify(pathToFileURL(GUARD_MODULE).href)};`,
 				`import * as fs from "node:fs";`,
 				`const redirectPath = process.argv[2];`,
 				`fs.writeSync(2, "before\\n");`,
@@ -75,7 +84,7 @@ describe("stderr guard", () => {
 			].join("\n"),
 		);
 
-		const proc = Bun.spawn([process.execPath, probePath, redirectPath], {
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath, redirectPath], {
 			stdout: "pipe",
 			stderr: "pipe",
 		});
@@ -112,7 +121,7 @@ describe("stderr guard", () => {
 		fs.writeFileSync(
 			probePath,
 			[
-				`import { restoreTerminalStderr, suppressTerminalStderr } from ${JSON.stringify(GUARD_MODULE)};`,
+				`import { restoreTerminalStderr, suppressTerminalStderr } from ${JSON.stringify(pathToFileURL(GUARD_MODULE).href)};`,
 				`import * as fs from "node:fs";`,
 				`const redirectPath = process.argv[2];`,
 				`const redirected = suppressTerminalStderr({ redirectPath });`,
@@ -129,15 +138,16 @@ describe("stderr guard", () => {
 
 		const chunks: Buffer[] = [];
 		const terminalExited = Promise.withResolvers<void>();
-		const proc = Bun.spawn([process.execPath, probePath, redirectPath], {
-			terminal: {
-				data(_terminal, data) {
-					chunks.push(Buffer.from(data));
-				},
-				exit() {
-					terminalExited.resolve();
-				},
+		const terminal = new Terminal({
+			data(_terminal, data) {
+				chunks.push(Buffer.from(data));
 			},
+			exit() {
+				terminalExited.resolve();
+			},
+		});
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, probePath, redirectPath], {
+			terminal,
 			timeout: 10_000,
 		});
 		const exitCode = await proc.exited;
@@ -163,11 +173,12 @@ describe("stderr guard", () => {
 		const logsDir = path.join(root, "logs");
 		fs.mkdirSync(logsDir);
 
-		const proc = Bun.spawn(
+		const proc = bun.spawn(
 			[
 				process.execPath,
-				"--preload",
-				PRELOAD_MODULE,
+				...nodeTsArgs,
+				"--import",
+				pathToFileURL(PRELOAD_MODULE).href,
 				ROTATION_PROBE,
 				logsDir,
 				"2026-09-23T17:00:00Z",

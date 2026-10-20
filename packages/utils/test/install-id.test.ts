@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import {
 	setProfile,
 } from "@oh-my-pi/pi-utils/dirs";
 import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -91,7 +92,7 @@ describe("getInstallId", () => {
 			const profileRoot = getConfigRootDir();
 			expect(profileRoot).not.toBe(path.dirname(baseFile));
 			expect(getInstallId()).toBe(baseId);
-			expect(await Bun.file(path.join(profileRoot, "install-id")).exists()).toBe(false);
+			expect(await bun.file(path.join(profileRoot, "install-id")).exists()).toBe(false);
 		} finally {
 			setProfile(undefined);
 		}

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,6 +25,9 @@ import { writeTar } from "@oh-my-pi/pi-coding-agent/skillshare/tar";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
 import type { SkillPackument, SkillVersionManifest, SkillVersionSummary } from "@oh-my-pi/pi-wire/skillshare";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const SCOPE = "alice";
 const NAME = "pdf-tools";
@@ -35,7 +38,7 @@ function packTgz(files: Record<string, string>, executable: string[] = []): Uint
 	const entries = Object.keys(files)
 		.sort()
 		.map(file => ({ path: file, content: encoder.encode(files[file]), executable: executable.includes(file) }));
-	return Bun.gzipSync(new Uint8Array(writeTar(entries)));
+	return bun.gzipSync(new Uint8Array(writeTar(entries)));
 }
 
 function skillTgz(version: string, extra: Record<string, string> = {}, executable: string[] = []): Uint8Array {
@@ -147,14 +150,14 @@ describe("skills manifest and lock", () => {
 
 		expect(await readSkillsManifest(manifestPath)).toEqual({ skills: { "@abc/aa": "next", "@zed/zz": "^1.0.0" } });
 		expect(await readSkillsLock(lockPath)).toEqual(lock);
-		expect(Object.keys(JSON.parse(await Bun.file(lockPath).text()).skills)).toEqual(["@abc/aa", "@zed/zz"]);
+		expect(Object.keys(JSON.parse(await bun.file(lockPath).text()).skills)).toEqual(["@abc/aa", "@zed/zz"]);
 	});
 
 	it("rejects unscoped ids and unknown lockfile versions", async () => {
 		const manifestPath = path.join(dir, "skills.json");
 		const lockPath = path.join(dir, "skills.lock.json");
-		await Bun.write(manifestPath, JSON.stringify({ skills: { "pdf-tools": "^1.0.0" } }));
-		await Bun.write(lockPath, JSON.stringify({ version: 2, skills: {} }));
+		await bun.write(manifestPath, JSON.stringify({ skills: { "pdf-tools": "^1.0.0" } }));
+		await bun.write(lockPath, JSON.stringify({ version: 2, skills: {} }));
 		await expect(readSkillsManifest(manifestPath)).rejects.toThrow(/invalid skill id "pdf-tools"/);
 		await expect(readSkillsLock(lockPath)).rejects.toThrow(lockPath);
 	});
@@ -238,7 +241,7 @@ describe("installer", () => {
 			resolved: `/api/v1/skills/${ID}/versions/1.1.0/tarball`,
 		});
 		const store = getSkillStorePath(SCOPE, NAME, "1.1.0");
-		expect(await Bun.file(path.join(store, "SKILL.md")).text()).toContain("# PDF 1.1.0");
+		expect(await bun.file(path.join(store, "SKILL.md")).text()).toContain("# PDF 1.1.0");
 		// Windows file modes carry no execute bits.
 		if (process.platform !== "win32") {
 			expect((await fs.stat(path.join(store, "scripts", "run.sh"))).mode & 0o111).not.toBe(0);
@@ -259,8 +262,8 @@ describe("installer", () => {
 		).rejects.toThrow(/integrity mismatch/);
 
 		await expect(fs.stat(getSkillshareStoreDir())).rejects.toThrow();
-		expect(await Bun.file(path.join(project, ".omp", "skills.json")).exists()).toBe(false);
-		expect(await Bun.file(path.join(project, ".omp", "skills.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(project, ".omp", "skills.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(project, ".omp", "skills.lock.json")).exists()).toBe(false);
 	});
 
 	it("declining the scripts prompt downloads nothing", async () => {
@@ -277,7 +280,7 @@ describe("installer", () => {
 		).rejects.toThrow(/declined/);
 		expect(confirmations).toEqual([`${ID}@1.0.0:scripts/run.sh`]);
 		expect(client.tarball).not.toHaveBeenCalled();
-		expect(await Bun.file(path.join(getAgentDir(), "skills.lock.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(getAgentDir(), "skills.lock.json")).exists()).toBe(false);
 	});
 
 	it("update moves to the newest in-range version, prunes the old one, and restores a missing store dir", async () => {
@@ -295,13 +298,13 @@ describe("installer", () => {
 		const changes = await updateSkillPackages(client, { names: [], global: false, cwd: project }, hooks);
 
 		expect(changes).toEqual([{ id: ID, from: "1.0.0", to: "1.1.0", range: "^1.0.0", restored: false }]);
-		expect(await Bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.0.0"), "SKILL.md")).exists()).toBe(false);
-		expect(await Bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.1.0"), "SKILL.md")).exists()).toBe(true);
+		expect(await bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.0.0"), "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.1.0"), "SKILL.md")).exists()).toBe(true);
 
 		await removeWithRetries(getSkillStorePath(SCOPE, NAME, "1.1.0"));
 		const restored = await updateSkillPackages(client, { names: [ID], global: false, cwd: project }, hooks);
 		expect(restored).toEqual([{ id: ID, from: "1.1.0", to: "1.1.0", range: "^1.0.0", restored: true }]);
-		expect(await Bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.1.0"), "SKILL.md")).exists()).toBe(true);
+		expect(await bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.1.0"), "SKILL.md")).exists()).toBe(true);
 	});
 
 	it("uninstall drops manifest and lock entries and prunes the store", async () => {
@@ -312,7 +315,7 @@ describe("installer", () => {
 		expect(await uninstallSkillPackages({ names: [ID], global: true, cwd: project })).toEqual([ID]);
 		expect((await readSkillsManifest(path.join(getAgentDir(), "skills.json"))).skills).toEqual({});
 		expect((await readSkillsLock(path.join(getAgentDir(), "skills.lock.json"))).skills).toEqual({});
-		expect(await Bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.0.0"), "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getSkillStorePath(SCOPE, NAME, "1.0.0"), "SKILL.md")).exists()).toBe(false);
 		await expect(uninstallSkillPackages({ names: [ID], global: true, cwd: project })).rejects.toThrow(
 			/not installed/,
 		);

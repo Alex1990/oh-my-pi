@@ -13,7 +13,7 @@
  * The fix normalizes the discovery URL to always end in `/v1` while model rows
  * keep the provider base URL.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { anthropicModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 
 const PROVIDER_BASE_URL = "https://api.anthropic.com";

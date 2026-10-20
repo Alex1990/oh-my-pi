@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatCompact, formatCost, formatErrorRate, formatInteger } from "../src/client/data/formatters";
 
 // Simulate a browser whose default locale is tr-TR, where compact "B" means

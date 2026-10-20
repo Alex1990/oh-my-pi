@@ -6,7 +6,7 @@
  * both markers so BracketedPasteHandler always receives them together; the
  * byte cap only fires on alternate callers that bypass StdinBuffer.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { BracketedPasteHandler, decodeReencodedPasteControls } from "@oh-my-pi/pi-tui/bracketed-paste";
 
 const PASTE_START = "\x1b[200~";

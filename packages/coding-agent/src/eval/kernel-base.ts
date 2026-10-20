@@ -1,8 +1,9 @@
 import type { EvalStatusEvent, EvalView } from "@oh-my-pi/pi-tui/tools/eval";
 import { isRecord, logger, readLines, Snowflake } from "@oh-my-pi/pi-utils";
-import type { Subprocess } from "bun";
+import type { Subprocess } from "@oh-my-pi/pi-utils/node-runtime";
 import type { ShadowBarrier, ShadowControlNode, ShadowOperation } from "./speculation/types";
 import { type EvalDisplayOutput, evalImageMetadata } from "./types";
+import type { FileSink } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STARTUP_CONTROL_TIMEOUT_MS = 5_000;
 
@@ -224,7 +225,7 @@ export function isTimeoutReason(reason: unknown): boolean {
 export abstract class BaseKernel<TExecuteOptions extends KernelExecuteOptions = KernelExecuteOptions> {
 	readonly id: string;
 	#proc: Subprocess | null = null;
-	#stdin: Bun.FileSink | null = null;
+	#stdin: FileSink | null = null;
 	#alive = true;
 	readonly #died = Promise.withResolvers<void>();
 	#disposed = false;
@@ -240,7 +241,7 @@ export abstract class BaseKernel<TExecuteOptions extends KernelExecuteOptions = 
 		this.#options = options;
 	}
 
-	setProcess(proc: Subprocess<"pipe", "pipe", "pipe">) {
+	setProcess(proc: Subprocess) {
 		this.#proc = proc;
 		this.#stdin = proc.stdin;
 		this.#exitedPromise = proc.exited;
@@ -474,7 +475,9 @@ export abstract class BaseKernel<TExecuteOptions extends KernelExecuteOptions = 
 		}
 
 		try {
-			this.#stdin?.end();
+			// Closing a sink whose child already exited is best-effort; awaiting it
+			// keeps a rejected end from surfacing as an unhandled rejection.
+			await this.#stdin?.end().catch(() => {});
 		} catch {
 			/* ignore */
 		}

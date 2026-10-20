@@ -1,10 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildSpec, type CompletionSpec, generateCompletion } from "@oh-my-pi/pi-coding-agent/cli/completion-gen";
+import { commands } from "@oh-my-pi/pi-coding-agent/cli-commands";
 import { generateLiveCompletion } from "@oh-my-pi/pi-coding-agent/commands/completions";
 import type { CliConfig, CommandCtor } from "@oh-my-pi/pi-utils/cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // A compact synthetic spec exercising every value-source kind and an aliased
 // subcommand. The generators are pure functions of this shape, so pinning their
@@ -82,7 +84,7 @@ describe("generateCompletion — bash", () => {
 
 const hasZsh = (() => {
 	try {
-		return Bun.spawnSync(["zsh", "--version"]).exitCode === 0;
+		return bun.spawnSync(["zsh", "--version"]).exitCode === 0;
 	} catch {
 		return false;
 	}
@@ -107,7 +109,7 @@ describe.skipIf(!hasZsh)("zsh action helper under _arguments' calling convention
 				`_describe() { :; }\n${fn}\n_omp_call -n -J -default- sessions\n`,
 			);
 
-			const result = Bun.spawnSync(["zsh", "-f", path.join(dir, "harness.zsh")], {
+			const result = bun.spawnSync(["zsh", "-f", path.join(dir, "harness.zsh")], {
 				cwd: dir,
 				env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
 			});
@@ -236,6 +238,13 @@ describe("buildSpec", () => {
 });
 
 describe("live completion surface", () => {
+	// Vitest's module runner deadlocks when the CLI command graph is dynamically
+	// imported concurrently from a cold cache. Warm it one module at a time;
+	// `generateLiveCompletion`'s parallel loads then resolve from that cache.
+	beforeAll(async () => {
+		for (const entry of commands) await entry.load();
+	}, 180_000);
+
 	it("generates a zsh script reflecting the registered commands and flags", async () => {
 		const stdout = await generateLiveCompletion("zsh");
 

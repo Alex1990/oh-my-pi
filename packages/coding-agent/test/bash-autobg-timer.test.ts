@@ -1,23 +1,25 @@
 /**
  * Regression test for #7235: Bash auto-background must release the threshold
- * timer once the command finishes first, instead of leaving a live `Bun.sleep`
+ * timer once the command finishes first, instead of leaving a live `bun.sleep`
  * timer that keeps the event loop alive until the threshold expires (delaying
  * SDK/headless shutdown). Timer keep-alive is only observable in a child
  * process, so this spawns the real BashTool auto-background path against a 30s
  * threshold and asserts the process exits promptly rather than after 30s.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const PROBE_PATH = path.join(import.meta.dir, "fixtures", "bash-autobg-exit-probe.ts");
-const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
+const PROBE_PATH = path.join(import.meta.dirname, "fixtures", "bash-autobg-exit-probe.ts");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 // Fixed: probe exits ~0.5s. Buggy: held ~30s by the retained threshold timer.
 const PROMPT_EXIT_MS = 15_000;
 
 describe("bash auto-background threshold timer (#7235)", () => {
 	it("does not keep the event loop alive after a fast command completes", async () => {
 		const start = performance.now();
-		const proc = Bun.spawn([process.execPath, PROBE_PATH], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), PROBE_PATH], {
 			cwd: REPO_ROOT,
 			stdin: "ignore",
 			stdout: "pipe",

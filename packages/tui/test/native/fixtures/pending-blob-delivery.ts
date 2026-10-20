@@ -8,6 +8,7 @@ import { settleNative } from "../../../src/native/settle";
 import { initTheme } from "../../../src/theme/theme";
 import type { Component } from "../../../src/tui";
 import { TspHarness } from "../tsp-harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
 const mode = process.argv[2];
@@ -42,7 +43,7 @@ await using root = await TempDir.create("@omp-pending-blobs-");
 const cache = mode.startsWith("cache-") ? root.join("blobs") : undefined;
 if (cache) await fs.mkdir(cache);
 const record = mode === "cache-held" ? root.join("record.jsonl") : undefined;
-if (record) Bun.env.PI_TUI_TSP_RECORD = record;
+if (record) bun.env.PI_TUI_TSP_RECORD = record;
 const component = new EphemeralImage();
 settleNative(component);
 const harness = await TspHarness.start(tui => tui.addChild(component), { answerBlobs: false, blobDir: cache });
@@ -79,12 +80,12 @@ try {
 		);
 	} else {
 		if (mode === "cache-held") {
-			const bytes = await Bun.file(`${cache}/${id}`).bytes();
+			const bytes = await bun.file(`${cache}/${id}`).bytes();
 			assert.deepEqual(bytes, Uint8Array.from(Buffer.from(PNG, "base64")));
 			harness.terminal.blobs.set(id!, bytes);
 			harness.terminal.send(`\x1b_tsp;r;${JSON.stringify({ r: "blobs", have: [id] })}\x1b\\`);
 			harness.flush();
-			const messages = (await Bun.file(record!).text())
+			const messages = (await bun.file(record!).text())
 				.trim()
 				.split("\n")
 				.map(line => JSON.parse(line) as { dir: string; verb: string; body: unknown });
@@ -114,7 +115,7 @@ try {
 			);
 		}
 		assert.ok(harness.find(value => value.k === "image" && value.p?.blob === id));
-		assert.deepEqual(Buffer.from(harness.terminal.blobs.get(id!)!), Buffer.from(PNG, "base64"));
+		assert.deepEqual(Uint8Array.from(harness.terminal.blobs.get(id!)!), Uint8Array.from(Buffer.from(PNG, "base64")));
 		await expectReleased(reference);
 	}
 	assert.deepEqual(harness.errors, []);

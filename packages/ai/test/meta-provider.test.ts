@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry/registry";
 import type { Context } from "@oh-my-pi/pi-ai/types";

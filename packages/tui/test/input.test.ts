@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { CURSOR_MARKER } from "@oh-my-pi/pi-tui";
 import { Input } from "@oh-my-pi/pi-tui/components/input";
 import { SPACE_HOLD_MECHANICAL_RUN } from "@oh-my-pi/pi-tui/space-hold";
@@ -9,6 +9,7 @@ import {
 	visibleWidth,
 } from "@oh-my-pi/pi-tui/utils";
 import { DEFAULT_TAB_WIDTH } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function renderedWidth(input: Input, width: number): number {
 	const [line] = input.render(width);
@@ -234,7 +235,7 @@ describe("Input component", () => {
 		const input = setupAtEnd("retained");
 		input.prompt = "Prompt: ";
 		expect(renderedWidth(input, 1)).toBeLessThanOrEqual(1);
-		expect(Bun.stripANSI(input.render(20)[0]!.replaceAll(CURSOR_MARKER, ""))).toContain("retained");
+		expect(bun.stripANSI(input.render(20)[0]!.replaceAll(CURSOR_MARKER, ""))).toContain("retained");
 	});
 
 	it("masks one bullet per grapheme without changing the submitted value", () => {
@@ -249,7 +250,7 @@ describe("Input component", () => {
 		const [line] = input.render(20);
 		const markerIndex = line.indexOf(CURSOR_MARKER);
 		expect(visibleWidth(line.slice(0, markerIndex))).toBe(4); // prompt + two graphemes
-		expect(Bun.stripANSI(line.replaceAll(CURSOR_MARKER, "")).trimEnd()).toBe("> ••••");
+		expect(bun.stripANSI(line.replaceAll(CURSOR_MARKER, "")).trimEnd()).toBe("> ••••");
 		expect(line).not.toContain(input.getValue());
 
 		let submitted = "";
@@ -279,7 +280,7 @@ describe("Input component", () => {
 	it("normalizes NFD Korean pastes (macOS Finder drag-drop) to NFC", () => {
 		// macOS Finder drag-drops file paths in NFD (decomposed Unicode).
 		// Korean syllable `화` is U+D654 (1 char, 2 cells) in NFC, but
-		// ᄒ(U+1112) + ᅪ(U+116A) (2 chars, 3 cells per Bun.stringWidth) in NFD.
+		// ᄒ(U+1112) + ᅪ(U+116A) (2 chars, 3 cells per bun.stringWidth) in NFD.
 		// Without normalization, the cursor lands `(NFD cells - NFC cells)`
 		// past the visible filename — the documented "cursor displacement"
 		// bug after drag-dropping a Korean filename.

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { pathToFileURL } from "node:url";
 import type { NativeChild, NativeNode } from "../src/native/node";
 import { editToolRenderer } from "../src/tools/edit";
@@ -7,6 +7,7 @@ import { getThemeByName, initTheme, type Theme } from "../src/theme";
 import type { FileDiagnosticsResult } from "../src/tools/lsp";
 import { diagnosticsSection } from "../src/tools/native-view";
 import type { RenderResultOptions } from "../src/tools/renderer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const done: RenderResultOptions = { expanded: false, isPartial: false };
 let uiTheme: Theme;
@@ -154,8 +155,8 @@ describe("edit native views", () => {
 			.join("\n");
 		const links = [...rendered.matchAll(/\x1b\]8;[^;]*;([^\x1b]+)\x1b\\/g)].map(match => match[1]);
 		expect(links).toEqual([pathToFileURL(sourcePath).href, pathToFileURL(destinationPath).href]);
-		expect(Bun.stripANSI(rendered)).toContain("source-file.ts");
-		expect(Bun.stripANSI(rendered)).toContain("destination-file.ts");
+		expect(bun.stripANSI(rendered)).toContain("source-file.ts");
+		expect(bun.stripANSI(rendered)).toContain("destination-file.ts");
 		expect(rendered).not.toContain("\x1b[31m");
 		expect(rendered).not.toContain("\x01");
 	});
@@ -185,7 +186,7 @@ describe("edit native views", () => {
 			.join("\n");
 		const links = [...rendered.matchAll(/\x1b\]8;[^;]*;([^\x1b]+)\x1b\\/g)].map(match => match[1]);
 		expect(links).toContain(pathToFileURL(rawPath).href);
-		expect(Bun.stripANSI(rendered)).toContain("edit-file.ts");
+		expect(bun.stripANSI(rendered)).toContain("edit-file.ts");
 		expect(rendered).not.toContain("\x1b[31m");
 		expect(rendered).not.toContain("\x01");
 	});
@@ -201,7 +202,7 @@ describe("edit native views", () => {
 		const rendered = editToolRenderer.renderResult(result, options, uiTheme).render(160).join("\n");
 		const links = [...rendered.matchAll(/\x1b\]8;[^;]*;([^\x1b]+)\x1b\\/g)].map(match => match[1]);
 		expect(links).toEqual([pathToFileURL(rawPath).href]);
-		expect(Bun.stripANSI(rendered)).toContain("deleted-file.ts");
+		expect(bun.stripANSI(rendered)).toContain("deleted-file.ts");
 		expect(rendered).not.toContain("\x1b[31m");
 		expect(rendered).not.toContain("\x01");
 	});

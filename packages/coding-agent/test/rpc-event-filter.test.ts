@@ -1,6 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { join } from "node:path";
 import { readLines, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 describe("set_event_filter over RPC", () => {
 	test("rejects invalid replacements atomically and echoes projection resets in v1 and v2", async () => {
@@ -31,7 +33,7 @@ describe("set_event_filter over RPC", () => {
 		]
 			.map(event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
 			.join("");
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch(request) {
@@ -44,14 +46,14 @@ describe("set_event_filter over RPC", () => {
 			},
 		});
 		const home = dir.path();
-		await Bun.write(
+		await bun.write(
 			join(home, ".omp/agent/models.yml"),
 			`providers:\n  anthropic:\n    baseUrl: http://127.0.0.1:${server.port}\n    apiKey: test-dummy-key\n`,
 		);
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
-				join(import.meta.dir, "../src/cli.ts"),
+				join(import.meta.dirname, "../src/cli.ts"),
 				"--mode",
 				"rpc",
 				"--no-ui",

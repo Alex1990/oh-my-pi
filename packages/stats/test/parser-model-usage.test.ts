@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getRecentRequests, initDb, insertMessageStats } from "@oh-my-pi/omp-stats/db";
@@ -6,6 +6,7 @@ import { parseSessionFile } from "@oh-my-pi/omp-stats/parser";
 import { handleApi } from "@oh-my-pi/omp-stats/server";
 import { getSessionsDir } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-model-usage-");
 
@@ -14,7 +15,7 @@ describe("model usage session entries", () => {
 		const dir = path.join(getSessionsDir(), "--tmp--model-usage");
 		await fs.mkdir(dir, { recursive: true });
 		const file = path.join(dir, "session.jsonl");
-		await Bun.write(
+		await bun.write(
 			file,
 			`${JSON.stringify({
 				type: "model_usage",
@@ -57,7 +58,7 @@ describe("model usage session entries", () => {
 		const dir = path.join(getSessionsDir(), "--tmp--model-usage-details");
 		await fs.mkdir(dir, { recursive: true });
 		const file = path.join(dir, "session.jsonl");
-		await Bun.write(
+		await bun.write(
 			file,
 			`${JSON.stringify({
 				type: "model_usage",
@@ -93,7 +94,7 @@ describe("model usage session entries", () => {
 			messages: [{ type: "model_usage", id: "judge-1", purpose: "auto-thinking" }],
 		});
 
-		await Bun.write(file, "");
+		await bun.write(file, "");
 		expect((await handleApi(new Request(`http://stats.test/api/request/${row.id}`))).status).toBe(404);
 	});
 });

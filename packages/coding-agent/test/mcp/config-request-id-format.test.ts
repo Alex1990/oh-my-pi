@@ -17,7 +17,7 @@
  * must be part of that comparison — otherwise a discovered alias lacking the field
  * could shadow a `.mcp.json` entry that set it, silently reverting to string ids.
  */
-import { afterEach, beforeEach, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -63,7 +63,7 @@ afterEach(async () => {
 });
 
 async function loadFrom(file: string, mcpServers: Record<string, unknown>) {
-	await Bun.write(path.join(tempCwd, file), JSON.stringify({ mcpServers }));
+	await bun.write(path.join(tempCwd, file), JSON.stringify({ mcpServers }));
 	clearFsCache();
 	const { configs } = await loadAllMCPConfigs(tempCwd);
 	return configs;
@@ -122,7 +122,7 @@ for (const [provider, file] of [
 ] as const) {
 	test(provider + " config keeps boolean instructions and warns about invalid options", async () => {
 		const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-		await Bun.write(
+		await bun.write(
 			path.join(tempCwd, file),
 			JSON.stringify({
 				mcpServers: {
@@ -205,3 +205,6 @@ for (const server of [
 		);
 	});
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });

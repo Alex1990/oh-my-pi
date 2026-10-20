@@ -1,10 +1,11 @@
-import { afterAll, expect, test } from "bun:test";
+import { afterAll, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { openCloexecSync } from "../src/fs-open";
 import { removeWithRetries } from "../src/temp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ROOTS: string[] = [];
 
@@ -33,14 +34,14 @@ test("appends through a descriptor the platform accepted", async () => {
 	} finally {
 		fs.closeSync(fd);
 	}
-	expect(await Bun.file(target).text()).toBe("first\nsecond\n");
+	expect(await bun.file(target).text()).toBe("first\nsecond\n");
 });
 
 test.skipIf(process.platform !== "linux")("marks the descriptor close-on-exec", async () => {
 	const root = await mkRoot();
 	const fd = openCloexecSync(path.join(root, "log"), fs.constants.O_WRONLY | fs.constants.O_CREAT);
 	try {
-		const flags = /^flags:\s+(\d+)$/m.exec(await Bun.file(`/proc/self/fdinfo/${fd}`).text())?.[1];
+		const flags = /^flags:\s+(\d+)$/m.exec(await bun.file(`/proc/self/fdinfo/${fd}`).text())?.[1];
 		expect(flags, "fdinfo did not report flags").toBeDefined();
 		expect(Number.parseInt(flags as string, 8) & 0o2000000).not.toBe(0);
 	} finally {

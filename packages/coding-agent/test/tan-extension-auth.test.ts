@@ -10,7 +10,7 @@
  * Without the forward the prune sees an empty active-source set and unregisters
  * the provider, so the pre-send API-key check fails with "No API key found".
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -19,6 +19,7 @@ import { createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER = "tan-fixture-gw";
 const MODEL_ID = "tan-fixture-model";
@@ -85,7 +86,7 @@ describe("/tan extension auth over a shared registry", () => {
 		using tempDir = TempDir.createSync("@omp-tan-ext-auth-");
 		const cwd = path.resolve(tempDir.path());
 		const extPath = path.join(cwd, "provider-ext.ts");
-		await Bun.write(extPath, EXTENSION_SOURCE);
+		await bun.write(extPath, EXTENSION_SOURCE);
 
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
@@ -140,7 +141,7 @@ describe("/tan extension auth over a shared registry", () => {
 		using tempDir = TempDir.createSync("@omp-tan-ext-auth-fallback-");
 		const cwd = path.resolve(tempDir.path());
 		const extPath = path.join(cwd, "provider-ext.ts");
-		await Bun.write(extPath, EXTENSION_SOURCE);
+		await bun.write(extPath, EXTENSION_SOURCE);
 
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));

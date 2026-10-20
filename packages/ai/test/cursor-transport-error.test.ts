@@ -1,10 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeTsArgs } from "./helpers/node-ts";
 
 describe("Cursor transport errors", () => {
 	it("surfaces a TLS handshake reset as a stream error", async () => {
-		const child = Bun.spawn([process.execPath, path.join(import.meta.dir, "fixtures/cursor-tls-reset.ts")], {
-			cwd: path.resolve(import.meta.dir, "../../.."),
+		const child = bun.spawn(nodeTsArgs(path.join(import.meta.dirname, "fixtures/cursor-tls-reset.ts")), {
+			cwd: path.resolve(import.meta.dirname, "../../.."),
 			stdout: "pipe",
 			stderr: "pipe",
 		});

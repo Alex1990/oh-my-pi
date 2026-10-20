@@ -6,7 +6,7 @@
 // drives the real OpenAI-compat path (HTTP response -> SDK APIError -> finalized
 // AssistantMessage) instead of instantiating the error class directly, so a
 // regression in status/body propagation is caught, not masked.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";

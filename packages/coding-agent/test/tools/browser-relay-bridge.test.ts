@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "bun:test";
+import { describe, expect, it, jest } from "@oh-my-pi/pi-utils/test-runtime";
 import { createHash } from "node:crypto";
 import { closeRelayTarget } from "@oh-my-pi/pi-coding-agent/tools/browser/orphan-registry";
 import { RelayBridge, type RelaySocket } from "@oh-my-pi/pi-coding-agent/tools/browser/relay/bridge";

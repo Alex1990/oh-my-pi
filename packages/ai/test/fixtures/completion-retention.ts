@@ -4,6 +4,7 @@ import { createMockModel } from "../../src/providers/mock";
 import { complete, completeSimple } from "../../src/stream";
 import type { AssistantMessage, AssistantMessageEvent } from "../../src/types";
 import { AssistantMessageEventStream } from "../../src/utils/event-stream";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const completion = process.argv[2] === "complete" ? complete : completeSimple;
 // Exempt this local provider from leaked-thinking healing, which replaces event identities.
@@ -64,8 +65,8 @@ const deadline = performance.now() + 5_000;
 let collected = false;
 do {
 	// WeakRef targets survive the job that dereferences them; collect in a later turn.
-	await Bun.sleep(0);
-	Bun.gc(true);
+	await bun.sleep(0);
+	bun.gc(true);
 	collected = references.every(reference => reference.deref() === undefined);
 } while (!collected && performance.now() < deadline);
 assert.equal(settled, false, "completion settled before the producer sent a terminal event");

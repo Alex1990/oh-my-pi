@@ -85,7 +85,7 @@ pi-*.html
 # `.env` misses `python/robomp/.env`, which sits next to the copied src tree.
 **/.env
 
-# Robomp-only excludes. Natives + wheel + python + bun + rustup all come
+# Robomp-only excludes. Natives + wheel + python + node + rustup all come
 # from PI_BASE; the web-builder stage only needs root manifests + the
 # python/robomp/web tree; the runtime stage only COPYs python/robomp/
 # pyproject + src + entrypoint. Everything below is dead weight in the

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { abortOnGitFailure, CommitAbortedError, pushOrAbort } from "../src/commit/execute";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 
@@ -16,7 +17,7 @@ async function mkTempDir(prefix: string): Promise<string> {
 
 async function runGit(cwd: string, args: string[]): Promise<void> {
 	const env = { ...process.env, HOME: cwd, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
-	const proc = Bun.spawn(["git", "-C", cwd, ...args], { env, stdout: "ignore", stderr: "pipe" });
+	const proc = bun.spawn(["git", "-C", cwd, ...args], { env, stdout: "ignore", stderr: "pipe" });
 	const code = await proc.exited;
 	if (code !== 0) {
 		const stderr = await new Response(proc.stderr).text();
@@ -35,7 +36,7 @@ async function initRepoWithCommit(dir: string): Promise<void> {
 
 async function revParse(cwd: string, rev: string): Promise<string> {
 	const env = { ...process.env, HOME: cwd, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
-	const proc = Bun.spawn(["git", "-C", cwd, "rev-parse", rev], { env, stdout: "pipe", stderr: "ignore" });
+	const proc = bun.spawn(["git", "-C", cwd, "rev-parse", rev], { env, stdout: "pipe", stderr: "ignore" });
 	const [out, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
 	if (code !== 0) throw new Error(`git rev-parse ${rev} failed`);
 	return out.trim();

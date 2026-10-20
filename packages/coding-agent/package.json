@@ -15,7 +15,10 @@
 		"url": "https://github.com/can1357/oh-my-pi/issues"
 	},
 	"license": "MIT",
-	"author": { "name": "Stencil Labs, Inc.", "url": "https://stencil.so" },
+	"author": {
+		"name": "Stencil Labs, Inc.",
+		"url": "https://stencil.so"
+	},
 	"contributors": [
 		"Mario Zechner"
 	],
@@ -25,7 +28,7 @@
 		"directory": "packages/coding-agent"
 	},
 	"bin": {
-		"omp": "src/cli.ts"
+		"omp": "dist/cli.js"
 	},
 	"files": [
 		"src",
@@ -521,19 +524,19 @@
 		"./*.js": "./src/*.ts"
 	},
 	"scripts": {
-		"build": "bun scripts/build-binary.ts",
-		"check": "oxlint . && oxfmt --check --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && bun run check:types",
+		"build": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/build-binary.ts",
+		"check": "oxlint . && oxfmt --check --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && pnpm run check:types",
 		"check:types": "tsgo -p tsconfig.json --noEmit",
 		"lint": "oxlint .",
-		"test": "bun ../../scripts/ci-test-ts.ts coding-agent-heavy --full",
-		"fix": "oxlint --fix --fix-suggestions . && bun run fmt",
-		"fmt": "oxfmt --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && bun run format-prompts",
-		"format-prompts": "bun scripts/format-prompts.ts",
-		"gen:tool-views": "bun --cwd=../collab-web run gen:tool-views",
-		"gen:bundle": "bun scripts/bundle-dist.ts",
-		"gen:rpc": "bun scripts/gen-rpc/index.ts",
-		"prepack": "bun run gen:tool-views && bun run gen:bundle",
-		"bench:guard": "bun scripts/bench-guard.ts"
+		"test": "node ../../scripts/ci-test-ts.ts coding-agent-heavy --full",
+		"fix": "oxlint --fix --fix-suggestions . && pnpm run fmt",
+		"fmt": "oxfmt --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && pnpm run format-prompts",
+		"format-prompts": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/format-prompts.ts",
+		"gen:tool-views": "pnpm --dir ../collab-web run gen:tool-views",
+		"gen:bundle": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/bundle-dist.ts",
+		"gen:rpc": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/gen-rpc/index.ts",
+		"prepack": "pnpm run gen:tool-views && pnpm run gen:bundle",
+		"bench:guard": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/bench-guard.ts"
 	},
 	"dependencies": {
 		"@babel/parser": "catalog:",
@@ -563,13 +566,13 @@
 		"puppeteer-core": "catalog:"
 	},
 	"devDependencies": {
-		"@types/bun": "catalog:"
+		"@types/node": "catalog:"
 	},
 	"optionalDependencies": {
 		"@huggingface/transformers": "catalog:",
 		"sherpa-onnx-node": "1.13.2"
 	},
 	"engines": {
-		"bun": ">=1.3.14"
+		"node": ">=22.12.0"
 	}
 }

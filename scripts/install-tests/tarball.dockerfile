@@ -2,21 +2,14 @@
 # Uses verdaccio as local registry to test full publish/install cycle
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y curl ca-certificates unzip jq procps build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg unzip jq procps build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
-
-# Install Rust — the host native addon builds through the default
-# cargo/napi-rs backend, so no bazelisk is needed.
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-ENV PATH="/root/.cargo/bin:$PATH"
-
-# Install Node.js (needed for verdaccio and npm)
+# Install Node.js 22 and the pnpm release the repository pins.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 
 # Install verdaccio (local npm registry)
 RUN npm install -g verdaccio
@@ -26,8 +19,8 @@ WORKDIR /repo
 COPY . .
 
 # Build the project
-RUN bun install --frozen-lockfile
-RUN bun --cwd=packages/natives run build
+RUN pnpm install --frozen-lockfile
+RUN pnpm --dir packages/natives run build
 
 # Create verdaccio config (allow anonymous publish)
 RUN mkdir -p /root/.config/verdaccio && cat > /root/.config/verdaccio/config.yaml <<'EOF'
@@ -128,7 +121,8 @@ RUN verdaccio --config /root/.config/verdaccio/config.yaml &>/dev/null & \
 WORKDIR /test
 RUN verdaccio --config /root/.config/verdaccio/config.yaml &>/dev/null & \
     sleep 3 && \
-    bun add @oh-my-pi/pi-coding-agent --registry http://localhost:4873 && \
+    node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'omp-install-smoke', private: true, version: '0.0.0' }, null, 2))" && \
+    pnpm add @oh-my-pi/pi-coding-agent --registry http://localhost:4873 && \
     pkill -f verdaccio
 
 # Verify the installed package works

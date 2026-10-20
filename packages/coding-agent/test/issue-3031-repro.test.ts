@@ -8,14 +8,14 @@
  *     session start, before any prompt rendered.
  *   - NPM install: NAPI finalizer segfault at process teardown.
  *
- * The fix relocates the embeddings stack into a Bun.spawn child process
+ * The fix relocates the embeddings stack into a bun.spawn child process
  * (`__omp_worker_mnemopi_embed`) owned by the machine-shared embedding server;
  * the agent hands `mnemopi.setLocalModelInitializer` a wrapper that round-trips
  * through that server, and the server `SIGKILL`s the child so the destructor
  * never runs in any address space. These tests pin the child's contract so a
  * future refactor cannot quietly re-introduce the crash.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import {
 	createMnemopiEmbedSubprocess,
@@ -26,6 +26,8 @@ import type {
 	MnemopiEmbedWorkerInbound,
 	MnemopiEmbedWorkerOutbound,
 } from "@oh-my-pi/pi-coding-agent/mnemopi/embed-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 describe("issue #3031 — mnemopi embeddings live in an isolated subprocess", () => {
 	it("ping/pongs through the spawned worker subprocess and tears it down cleanly", async () => {
@@ -33,10 +35,10 @@ describe("issue #3031 — mnemopi embeddings live in an isolated subprocess", ()
 		// `omp --smoke-test`. Run it in a child Bun process instead of this
 		// Bun-test worker: the test runner owns its own IPC channel and can
 		// starve nested Bun subprocess IPC on some Bun builds.
-		const repoRoot = path.resolve(import.meta.dir, "../../..");
+		const repoRoot = path.resolve(import.meta.dirname, "../../..");
 		const script =
 			'const { smokeTestMnemopiEmbedWorker } = await import("@oh-my-pi/pi-coding-agent/mnemopi/embed-client"); await smokeTestMnemopiEmbedWorker({ timeoutMs: 15000 });';
-		const proc = Bun.spawn([process.execPath, "-e", script], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", script], {
 			cwd: repoRoot,
 			stdout: "pipe",
 			stderr: "pipe",

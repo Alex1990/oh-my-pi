@@ -7,12 +7,13 @@
  * `delta.reasoning_content`, and free cached reads with per-model cache-write
  * rates.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModels } from "@oh-my-pi/pi-catalog/models";
 import { coralbricksModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const CORALBRICKS_BASE_URL = "https://inference.coralbricks.ai/v1";
 
@@ -73,7 +74,7 @@ async function captureRequest(
 			payload = JSON.parse(typeof init?.body === "string" ? init.body : "{}") as Record<string, unknown>;
 			return createSseResponse([deltaChunk(model, { content: "4" }), usageChunk(model, {}), "[DONE]"]);
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	const result = await streamOpenAICompletions(model, capturedUserTurn, {
 		apiKey: "cb-test-key",
@@ -179,7 +180,7 @@ describe("CoralBricks wire contract", () => {
 					usageChunk(model, {}),
 					"[DONE]",
 				]),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamOpenAICompletions(model, capturedUserTurn, {
 			apiKey: "cb-test-key",
@@ -213,7 +214,7 @@ describe("CoralBricks wire contract", () => {
 					}),
 					"[DONE]",
 				]),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const result = await streamOpenAICompletions(model, capturedUserTurn, {
 			apiKey: "cb-test-key",

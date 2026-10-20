@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import type { PlanModeState } from "@oh-my-pi/pi-coding-agent/plan-mode/state";
 import type { ClientBridge } from "@oh-my-pi/pi-coding-agent/session/client-bridge";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SessionOptions {
 	bridge?: ClientBridge;
@@ -40,7 +41,7 @@ function makeBridge(reformat = false) {
 	const bridge: ClientBridge = {
 		capabilities: { writeTextFile: true },
 		writeTextFile: async ({ path: target, content }) => {
-			await Bun.write(target, reformat ? content.replace(/^ {4}/gm, "\t") : content);
+			await bun.write(target, reformat ? content.replace(/^ {4}/gm, "\t") : content);
 		},
 	};
 	return { bridge, spy: spyOn(bridge, "writeTextFile") };
@@ -66,7 +67,7 @@ afterEach(async () => {
 describe("EditTool ACP write routing", () => {
 	it("routes replace writes through the ACP bridge", async () => {
 		const target = path.join(tmpDir, "replace.txt");
-		await Bun.write(target, "old content\n");
+		await bun.write(target, "old content\n");
 		const { bridge, spy } = makeBridge();
 
 		const result = await new EditTool(createSession(tmpDir, { bridge }), "replace").execute("replace", {
@@ -83,7 +84,7 @@ describe("EditTool ACP write routing", () => {
 
 	it("routes patch writes through the ACP bridge", async () => {
 		const target = path.join(tmpDir, "patch.txt");
-		await Bun.write(target, "a\n");
+		await bun.write(target, "a\n");
 		const { bridge, spy } = makeBridge();
 
 		const result = await new EditTool(createSession(tmpDir, { bridge }), "patch").execute("patch", {
@@ -105,7 +106,7 @@ describe("EditTool ACP write routing", () => {
 			planMode: { enabled: true, planFilePath: planUrl, workflow: "parallel", reentry: false },
 		});
 		const target = resolveLocalUrlToPath(planUrl, session.localProtocolOptions!);
-		await Bun.write(target, "old plan\n");
+		await bun.write(target, "old plan\n");
 
 		const result = await new EditTool(session, "replace").execute("plan", {
 			path: planUrl,
@@ -115,18 +116,18 @@ describe("EditTool ACP write routing", () => {
 
 		expect(result.isError).not.toBe(true);
 		expect(spy).not.toHaveBeenCalled();
-		expect(await Bun.file(target).text()).toBe("new plan\n");
+		expect(await bun.file(target).text()).toBe("new plan\n");
 	});
 
 	it("reports ACP formatting drift and returns the persisted bytes and tag", async () => {
 		const target = path.join(tmpDir, "drift.ts");
 		const original = "function f() {\n    return 1;\n}\n";
-		await Bun.write(target, original);
+		await bun.write(target, original);
 		const { bridge } = makeBridge(true);
 		const input = `[drift.ts#${hashlineFileHash(original)}]\nPUT 2-2:\n+    return 2;`;
 
 		const result = await new EditTool(createSession(tmpDir, { bridge }), "hashline").execute("hashline", { input });
-		const persisted = await Bun.file(target).text();
+		const persisted = await bun.file(target).text();
 		const text = resultText(result);
 
 		expect(result.isError).not.toBe(true);
@@ -140,7 +141,7 @@ describe("EditTool ACP write routing", () => {
 	it("does not report drift for a byte-perfect hashline bridge write", async () => {
 		const target = path.join(tmpDir, "exact.txt");
 		const original = "hello\nworld\n";
-		await Bun.write(target, original);
+		await bun.write(target, original);
 		const { bridge } = makeBridge();
 		const input = `[exact.txt#${hashlineFileHash(original)}]\nPUT 2-2:\n+earth`;
 

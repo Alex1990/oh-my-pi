@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage } from "@oh-my-pi/pi-ai";
 import { getBundledModels } from "@oh-my-pi/pi-catalog/models";
 import { modelKind } from "@oh-my-pi/pi-catalog/types";
@@ -12,6 +12,7 @@ import {
 } from "../../src/cli/auth-gateway-cli";
 import { ModelRegistry } from "../../src/config/model-registry";
 import { Settings } from "../../src/config/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStores: AuthStorage[] = [];
 
@@ -63,7 +64,7 @@ describe("indexModelsByRequestId (auth-gateway catalog)", () => {
 		const modelsPath = tempDir.join("models.yml");
 		// anthropic: a plain credential/baseUrl override (no transport) — the
 		// reviewer's leak. openai: a pi-native gateway route — the self-routing loop.
-		await Bun.write(
+		await bun.write(
 			modelsPath,
 			[
 				"providers:",

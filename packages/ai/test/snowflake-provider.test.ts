@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage } from "@oh-my-pi/pi-ai/auth-storage";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
@@ -10,6 +10,8 @@ import { stream } from "@oh-my-pi/pi-ai/stream";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const ACCOUNT = "https://myorg-acct.snowflakecomputing.com";
 const CLAUDE = getBundledModel<"anthropic-messages">("snowflake", "claude-sonnet-4-6");
@@ -41,7 +43,7 @@ function captureRequest(captured: CapturedRequest, response?: () => Response): t
 			captured.redirect = init?.redirect;
 			return response?.() ?? Response.json({ error: { message: "captured" } }, { status: 400 });
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 
@@ -234,7 +236,7 @@ describe("Snowflake browser OAuth", () => {
 		expect(form.get("client_id")).toBe("LOCAL_APPLICATION");
 		expect(form.has("client_secret")).toBe(false);
 		expect(form.get("redirect_uri")).toBe(authorize!.searchParams.get("redirect_uri"));
-		expect(Bun.SHA256.hash(form.get("code_verifier")!, "base64url")).toBe(
+		expect(bun.SHA256.hash(form.get("code_verifier")!, "base64url")).toBe(
 			authorize!.searchParams.get("code_challenge")!,
 		);
 		expect(credentials).toMatchObject({ access: "a", refresh: "r", enterpriseUrl: ACCOUNT });
@@ -418,7 +420,7 @@ describe("Snowflake refresh transitions", () => {
 					init?.signal?.throwIfAborted();
 					return Response.json({ access_token: "must-not-replace", expires_in: 600 });
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 		try {

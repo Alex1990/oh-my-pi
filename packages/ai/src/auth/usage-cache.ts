@@ -4,6 +4,7 @@ import type { CredentialPool } from "./pool";
 import type { Provider } from "../types";
 import type { UsageCredential, UsageProvider, UsageReport } from "../usage";
 import { isRecord } from "../utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const USAGE_CACHE_PREFIX = "usage_cache:";
 const USAGE_FORCE_REFRESH_CACHE_PREFIX = "force-refresh:";
@@ -115,7 +116,7 @@ export function usageCacheIdentity(credential: UsageCredential): string {
 	if (!hasStableIdentifier) {
 		const secret = credential.apiKey?.trim() || credential.refreshToken?.trim() || credential.accessToken?.trim();
 		if (secret) {
-			parts.push(`secret:${Bun.hash(secret).toString(16)}`);
+			parts.push(`secret:${bun.hash(secret).toString(16)}`);
 		} else {
 			parts.push("anonymous");
 		}
@@ -312,7 +313,7 @@ export class UsageCache {
 			})
 			.sort()
 			.join("\n");
-		return `reports:${Bun.hash(snapshot).toString(16)}`;
+		return `reports:${bun.hash(snapshot).toString(16)}`;
 	}
 
 	/**

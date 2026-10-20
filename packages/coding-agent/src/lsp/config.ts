@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { $which, isRecord, logger, pathIsWithin, type WhichOptions } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 import type { ClaudePluginRoot } from "../discovery/helpers";
 import {
 	type ConfigFileAdapter,
@@ -13,6 +13,8 @@ import { BiomeClient } from "./clients/biome-client";
 import { SwiftLintClient } from "./clients/swiftlint-client";
 import DEFAULTS from "./defaults.json" with { type: "json" };
 import type { ServerConfig } from "./types";
+
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface LspConfig {
 	servers: Record<string, ServerConfig>;
@@ -176,7 +178,7 @@ export function hasRootMarkers(cwd: string, markers: string[]): boolean {
 	for (const marker of markers) {
 		// Handle glob-like patterns (e.g., "*.cabal"). Root markers live at the
 		// project root, so a one-level readdir is sufficient — and avoids
-		// Bun.Glob descending into node_modules for patterns like "**/*.cabal".
+		// Glob descending into node_modules for patterns like "**/*.cabal".
 		if (marker.includes("*")) {
 			if (entries === null) {
 				try {
@@ -186,7 +188,7 @@ export function hasRootMarkers(cwd: string, markers: string[]): boolean {
 					logger.warn("Failed to list directory for glob root marker.", { marker, cwd });
 				}
 			}
-			const glob = new Bun.Glob(marker);
+			const glob = new Glob(marker);
 			for (const entry of entries) {
 				if (glob.match(entry)) {
 					return true;

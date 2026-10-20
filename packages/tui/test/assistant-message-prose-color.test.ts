@@ -1,4 +1,4 @@
-import { afterEach, afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, afterAll, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,13 +7,14 @@ import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-messa
 import { getThemeByName, initTheme, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import { setTerminalImageProtocol, TERMINAL } from "@oh-my-pi/pi-tui";
 import { getConfigRootDir, getCustomThemesDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const RENDER_WIDTH = 80;
 const PROSE = "Assistant prose must be themeable.";
 /** Distinctive hue for the token; its escape depends on the terminal's color depth. */
 const TOKEN_HEX = "#ff00ff";
 /** The base dark theme JSON — a known-valid theme we extend with the token. */
-const DARK_THEME_PATH = path.join(import.meta.dir, "..", "src", "theme", "dark.json");
+const DARK_THEME_PATH = path.join(import.meta.dirname, "..", "src", "theme", "dark.json");
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
@@ -51,11 +52,11 @@ function assistantMessage(text: string): AssistantMessage {
  * local Windows Terminal and CI.
  */
 async function applyTheme(name: string, colors: Record<string, string>) {
-	const dark = (await Bun.file(DARK_THEME_PATH).json()) as Record<string, unknown>;
+	const dark = (await bun.file(DARK_THEME_PATH).json()) as Record<string, unknown>;
 	const baseColors = (dark.colors ?? {}) as Record<string, unknown>;
 	const themesDir = getCustomThemesDir();
 	await fs.mkdir(themesDir, { recursive: true });
-	await Bun.write(
+	await bun.write(
 		path.join(themesDir, `${name}.json`),
 		JSON.stringify({ ...dark, name, colors: { ...baseColors, ...colors } }, null, 2),
 	);
@@ -101,7 +102,7 @@ describe("assistant prose theme token", () => {
 		const rendered = new AssistantMessageComponent(assistantMessage(PROSE)).render(RENDER_WIDTH).join("\n");
 
 		expect(rendered).toContain(theme.fg("assistantMessageText", PROSE));
-		expect(Bun.stripANSI(rendered)).toContain(PROSE);
+		expect(bun.stripANSI(rendered)).toContain(PROSE);
 	});
 
 	it("leaves prose in the terminal default foreground when the token is unset", async () => {

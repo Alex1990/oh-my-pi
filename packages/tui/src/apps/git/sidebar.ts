@@ -27,6 +27,7 @@ import { getEditorTheme, theme } from "../../theme/theme";
 import { type AvatarSource, identiconLines } from "./avatar";
 import { pill, selectionBgAnsi, softPill, tintChip, withBg } from "./colors";
 import type { ChangedFile, GitViewState } from "./state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Generated conventional commit fields shown in the commit form. */
 export interface GitCommitMessage {
@@ -1644,12 +1645,12 @@ export class Sidebar {
 			rows.push({ text: "" }, { text: theme.fg("dim", " No commits yet") });
 			return rows;
 		}
-		for (const line of Bun.wrapAnsi(theme.bold(head.subject), width - 2).split("\n")) {
+		for (const line of bun.wrapAnsi(theme.bold(head.subject), width - 2).split("\n")) {
 			rows.push({ text: ` ${line}` });
 		}
 		if (head.body) {
 			rows.push({ text: "" });
-			const bodyLines = Bun.wrapAnsi(head.body, width - 2)
+			const bodyLines = bun.wrapAnsi(head.body, width - 2)
 				.split("\n")
 				.slice(0, 8);
 			for (const line of bodyLines) rows.push({ text: theme.fg("muted", ` ${line}`) });

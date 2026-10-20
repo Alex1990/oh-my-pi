@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getDialectDefinition, renderDemotedThinking } from "@oh-my-pi/pi-ai/dialect";
 import { transformMessages } from "@oh-my-pi/pi-ai/providers/transform-messages";
 import type { Api, AssistantMessage, Message, Model, ModelSpec, UserMessage } from "@oh-my-pi/pi-ai/types";

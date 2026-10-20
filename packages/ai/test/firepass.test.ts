@@ -5,7 +5,7 @@
  * and reject `/v1/models`. The bundled catalog stores friendly public ids (`glm-5.2-fast`, `kimi-k3-fast`)
  * and the openai-completions provider translates them to router wire form at request time.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { OAuthController } from "@oh-my-pi/pi-ai/registry/oauth/types";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";

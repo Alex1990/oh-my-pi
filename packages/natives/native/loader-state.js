@@ -2,7 +2,9 @@ import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as os from "node:os";
+import { zstdDecompressSync } from "node:zlib";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import packageJson from "../package.json" with { type: "json" };
 import { embeddedAddon } from "./embedded-addon.js";
 import { bindingsHaveReleaseIdentity, bindingsReleaseVersion, containsVersionStamp } from "./version-sentinel.js";
@@ -121,7 +123,7 @@ export function getAddonFilenames({ tag, arch, variant }) {
  * Decide whether the loader should mirror the package's `native/<filename>.node`
  * into the per-version cache directory (`~/.omp/natives/<version>/`) before loading.
  *
- * Windows-only safety net for `bun install -g` updates: when a previous `omp`
+ * Windows-only safety net for global installs: when a previous `omp`
  * process is running, bun cannot overwrite the locked `.node` inside
  * `node_modules/@oh-my-pi/pi-natives/native/`, leaving an old binary next to a
  * newer `index.js` and producing `<sym> is not a function` crashes on the next
@@ -489,7 +491,7 @@ export function extractEmbeddedAddons({ files, targetDir }) {
 	for (const file of files) {
 		const targetPath = path.join(targetDir, file.filename);
 		if (isEmbeddedAddonFileCurrent(targetPath, file)) continue;
-		const content = Bun.zstdDecompressSync(fs.readFileSync(file.zstdPath));
+		const content = zstdDecompressSync(fs.readFileSync(file.zstdPath));
 		if (content.length !== file.size) {
 			throw new Error(`Embedded addon size mismatch for ${file.filename}: expected ${file.size}, got ${content.length}`);
 		}
@@ -589,7 +591,7 @@ function isCompatiblePreSentinelNativeAddon(bindings, diskHasExpectedStamp) {
 export function validateLoadedBindings(ctx, bindings, candidate) {
 	// In workspace dev (running out of `packages/natives/native/` rather than a
 	// `node_modules` install or a compiled bundle) the local `.node` only gains
-	// the new release stamp after `bun --cwd=packages/natives run build`. Skip
+	// the new release stamp after `pnpm --dir packages/natives run build`. Skip
 	// validation there so a stale post-pull dev tree boots while the rebuild
 	// completes; install and compiled-binary paths still validate. The mismatch
 	// is not swallowed silently: `native/index.js` exports `missingNativeExport`
@@ -763,8 +765,8 @@ function buildHelpMessage(ctx) {
 		);
 	}
 	return (
-		"If installed via npm/bun, try reinstalling: bun install @oh-my-pi/pi-natives\n" +
-		"If developing locally, build with: bun --cwd=packages/natives run build\n" +
+		"If installed via npm, try reinstalling: npm install @oh-my-pi/pi-natives\n" +
+		"If developing locally, build with: pnpm --dir packages/natives run build\n" +
 		"Explicit targets: bun scripts/bazel-natives.ts <target> --dest packages/natives/native"
 	);
 }
@@ -782,7 +784,7 @@ export function initLoaderContext(overrides = {}) {
 	const platform = overrides.platform ?? process.platform;
 	const platformTag = `${platform}-${process.arch}`;
 	const packageVersion = packageJson.version;
-	const nativeDir = overrides.nativeDir ?? path.join(import.meta.dir, "..", "native");
+	const nativeDir = overrides.nativeDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "native");
 	const execDir = path.dirname(process.execPath);
 	const nativesDir = getNativesDir();
 	const versionedDir = path.join(nativesDir, packageVersion);

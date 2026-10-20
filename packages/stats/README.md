@@ -5,7 +5,7 @@ Local observability dashboard for AI usage statistics.
 ## Features
 
 - **Session log parsing**: Reads JSONL session logs from `~/.omp/agent/sessions/`
-- **SQLite aggregation**: Stats storage in `bun:sqlite`, with hourly rollups so any range queries in milliseconds
+- **SQLite aggregation**: Stats storage in `node:sqlite`, with hourly rollups so any range queries in milliseconds
 - **Live web dashboard**: Opens instantly, ingests sessions in the background (newest first) and streams progress and updates to the page
 - **Incremental sync**: Only processes new/modified log entries; a watcher re-syncs transcripts as they are written
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, getThemeEpoch, setTheme, setThemeInstance, type Theme } from "@oh-my-pi/pi-tui/theme";
 
 /**

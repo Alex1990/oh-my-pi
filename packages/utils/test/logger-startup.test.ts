@@ -1,27 +1,38 @@
-import { describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
+import type * as NodeFs from "node:fs";
 import * as logger from "@oh-my-pi/pi-utils/logger";
+
+const fsMock = vi.hoisted(() => ({ writes: [] as string[] }));
+
+// Node's ESM namespace objects are frozen, so the startup markers are captured
+// by wrapping the real binding rather than spying on the namespace export.
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFs>();
+	const writeSync = ((_fd: number, data: string) => {
+		fsMock.writes.push(String(data));
+		return String(data).length;
+	}) as typeof actual.writeSync;
+	return { ...actual, writeSync };
+});
 
 /** Run `fn` with PI_DEBUG_STARTUP set, capturing `[startup]` stderr markers. */
 function withMarkerCapture<T>(fn: () => T): { result: T; markers: string[] } {
 	const prev = process.env.PI_DEBUG_STARTUP;
 	process.env.PI_DEBUG_STARTUP = "1";
-	const markers: string[] = [];
-	const writeSpy = spyOn(fs, "writeSync").mockImplementation(((_fd: number, data: string) => {
-		const text = String(data);
-		if (text.startsWith("[startup]")) markers.push(text.trimEnd());
-		return text.length;
-	}) as typeof fs.writeSync);
+	fsMock.writes = [];
+	let result: T;
 	try {
-		return { result: fn(), markers };
+		result = fn();
 	} finally {
-		writeSpy.mockRestore();
 		if (prev === undefined) {
 			delete process.env.PI_DEBUG_STARTUP;
 		} else {
 			process.env.PI_DEBUG_STARTUP = prev;
 		}
 	}
+	const markers = fsMock.writes.filter(write => write.startsWith("[startup]")).map(write => write.trimEnd());
+	return { result, markers };
 }
 
 describe("PI_DEBUG_STARTUP streaming markers", () => {
@@ -54,18 +65,13 @@ describe("PI_DEBUG_STARTUP streaming markers", () => {
 	it("emits nothing when PI_DEBUG_STARTUP is unset", () => {
 		const prev = process.env.PI_DEBUG_STARTUP;
 		delete process.env.PI_DEBUG_STARTUP;
-		const writes: string[] = [];
-		const writeSpy = spyOn(fs, "writeSync").mockImplementation(((_fd: number, data: string) => {
-			writes.push(String(data));
-			return String(data).length;
-		}) as typeof fs.writeSync);
+		fsMock.writes = [];
 		try {
 			expect(logger.time("phase:silent", () => "ok")).toBe("ok");
 		} finally {
-			writeSpy.mockRestore();
 			if (prev !== undefined) process.env.PI_DEBUG_STARTUP = prev;
 		}
-		expect(writes.filter(w => w.startsWith("[startup]"))).toEqual([]);
+		expect(fsMock.writes.filter(write => write.startsWith("[startup]"))).toEqual([]);
 	});
 });
 

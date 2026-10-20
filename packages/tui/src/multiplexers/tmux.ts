@@ -1,4 +1,5 @@
 import type { TerminalMultiplexerModule } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Wrap a control sequence in tmux's DCS passthrough envelope. */
 export function wrapTmuxPassthrough(payload: string): string {
@@ -11,7 +12,7 @@ export const tmuxMultiplexer = {
 	sessionEnvKeys: ["TMUX"],
 	termPrefix: "tmux",
 	ownsScreenGrid: true,
-	isInside(env: NodeJS.ProcessEnv = Bun.env): boolean {
+	isInside(env: NodeJS.ProcessEnv = bun.env): boolean {
 		return Boolean(env.TMUX);
 	},
 	notifier: {

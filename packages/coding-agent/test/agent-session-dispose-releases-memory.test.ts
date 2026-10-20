@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, type AgentMessage, AppendOnlyContextManager } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
@@ -16,6 +16,7 @@ import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-st
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression: a keep-alive subagent's AgentSession is disposed at park() but
 // stays reachable through the lifecycle adoption record's reviver closure
@@ -443,7 +444,7 @@ describe("AgentSession dispose releases retained memory", () => {
 		});
 		await current.dispose({ drainTimeoutMs: 20 });
 		session = undefined;
-		const bytesAfterDispose = await Bun.file(sessionFile).text();
+		const bytesAfterDispose = await bun.file(sessionFile).text();
 
 		// Revival sees completed messages even though their notifications remain
 		// parked; notification-side writes after sealing must still be rejected.
@@ -462,7 +463,7 @@ describe("AgentSession dispose releases retained memory", () => {
 		}
 		await secondRelease.promise;
 		expect(current.sessionManager.getEntries()).toHaveLength(0);
-		expect(await Bun.file(sessionFile).text()).toBe(bytesAfterDispose);
+		expect(await bun.file(sessionFile).text()).toBe(bytesAfterDispose);
 
 		// The revival writer can append without losing completed messages or
 		// incorporating the old notification handler's rejected writes.
@@ -514,7 +515,7 @@ describe("AgentSession dispose releases retained memory", () => {
 		await sessionManager.ensureOnDisk();
 		const sessionFile = sessionManager.getSessionFile();
 		if (!sessionFile) throw new Error("Expected a persisted session file");
-		const bytesBeforeBatch = await Bun.file(sessionFile).text();
+		const bytesBeforeBatch = await bun.file(sessionFile).text();
 
 		armed = true;
 		const batch = sessionManager.appendEntriesAtomically(() => {
@@ -532,7 +533,7 @@ describe("AgentSession dispose releases retained memory", () => {
 		// not attempt a second atomic publish of the emptied entry list.
 		expect(String(await settled)).toContain("injected atomic write failure");
 		expect(atomicWrites).toBe(1);
-		expect(await Bun.file(sessionFile).text()).toBe(bytesBeforeBatch);
+		expect(await bun.file(sessionFile).text()).toBe(bytesBeforeBatch);
 
 		// The transcript survives for revival.
 		const reopened = await SessionManager.open(sessionFile, tempDir.path());

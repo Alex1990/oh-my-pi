@@ -37,6 +37,8 @@ import {
 import type { BlobPublication } from "./publication";
 import { blobBrokerConfigKey } from "./server";
 import type { LazyBlobFetcher } from "./store";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { unixFetch } from "@oh-my-pi/pi-utils/unix-fetch";
 
 const PROBE_TIMEOUT_MS = 1_500;
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -55,9 +57,8 @@ export interface RenderCallbackHost {
 }
 
 async function fetchUnix<T>(socket: string, input: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
-	const response = await fetch(`http://blob-broker.local${input}`, {
+	const response = await unixFetch(socket, `http://blob-broker.local${input}`, {
 		...init,
-		unix: socket,
 		signal: AbortSignal.timeout(init?.timeoutMs ?? REQUEST_TIMEOUT_MS),
 	});
 	if (!response.ok) throw new Error(`blob daemon ${input} responded ${response.status}`);
@@ -317,7 +318,7 @@ export async function smokeTestBlobBroker(): Promise<void> {
 			if (proc.exitCode !== null) break;
 			info = await probeDaemon(socket);
 			if (info) break;
-			await Bun.sleep(200);
+			await bun.sleep(200);
 		}
 		if (!info) {
 			throw new Error(

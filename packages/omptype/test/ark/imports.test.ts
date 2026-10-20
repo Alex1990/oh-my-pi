@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type BoundModule, type Module, scope, type Type, type } from "@oh-my-pi/omptype/ark";
 import type { Eq } from "./type-assert";
 

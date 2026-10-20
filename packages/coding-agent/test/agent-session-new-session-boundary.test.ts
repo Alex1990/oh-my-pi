@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent, AppendOnlyContextManager } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
@@ -13,6 +13,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { assistantMsg } from "./utilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const cleanup: Array<() => Promise<void>> = [];
 let sharedDir: TempDir;
@@ -435,6 +436,6 @@ describe("AgentSession.newSession boundary", () => {
 		expect(reported?.sessionId).not.toBe(previousSessionId);
 		const reportedFile = reported?.sessionFile;
 		if (!reportedFile) throw new Error("Expected session_switch to report a persisted session file");
-		expect(await Bun.file(reportedFile).exists()).toBe(true);
+		expect(await bun.file(reportedFile).exists()).toBe(true);
 	});
 });

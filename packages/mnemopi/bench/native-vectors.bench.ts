@@ -10,6 +10,7 @@ import { cosineSimilarityPairs } from "@oh-my-pi/pi-natives";
 import { jaccardSimilarity, mmrRerank } from "../src/core/mmr";
 import { searchExactVectorIndex } from "../src/core/vector-index";
 import { cosineSimilarity } from "../src/core/vector-math";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DIM = 384;
 const STRIDE = DIM / 8;
@@ -29,9 +30,9 @@ let sink = 0;
 
 function timeNs(fn: () => void, iterations = ITERATIONS, warmup = WARMUP): { ns: number; iterations: number } {
 	for (let i = 0; i < warmup; i += 1) fn();
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < iterations; i += 1) fn();
-	return { ns: (Bun.nanoseconds() - start) / iterations, iterations };
+	return { ns: (bun.nanoseconds() - start) / iterations, iterations };
 }
 
 interface Row {
@@ -179,12 +180,12 @@ for (const count of COUNTS.filter(n => n <= 1000)) {
 	pushRow("mmrRerankIndices (via mmrRerank)", count, ts, native);
 }
 
-const sha = Bun.env.BENCH_SHA ?? Bun.spawnSync(["git", "rev-parse", "HEAD"]).stdout.toString().trim();
+const sha = bun.env.BENCH_SHA ?? bun.spawnSync(["git", "rev-parse", "HEAD"]).stdout.toString().trim();
 const report = {
 	sha,
 	date: new Date().toISOString(),
 	scenario: `dim=${DIM}, stride=${STRIDE}B, warmup=${WARMUP}, iterations=${ITERATIONS} (adaptive for O(n²) rows, see per-row fields), crossing-inclusive`,
-	runtime: `bun ${Bun.version}`,
+	runtime: `bun ${bun.version}`,
 	host: `${os.cpus()[0]?.model ?? "unknown"}, ${os.platform()}-${os.arch()}`,
 	rows: rows.map(r => ({
 		kernel: r.kernel,

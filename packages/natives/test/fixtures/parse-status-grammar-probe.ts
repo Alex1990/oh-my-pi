@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { __ompSetGrammarDir, parseCodeStatus, summarizeCode, wasmGrammarFor } from "../../native";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-parse-status-"));
 try {
@@ -10,7 +11,7 @@ try {
 	const grammar = wasmGrammarFor({ lang: options.lang });
 	if (!grammar) throw new Error("INI must use a wasm grammar");
 	const missing = parseCodeStatus(options);
-	await Bun.write(path.join(directory, grammar.file), "invalid wasm module");
+	await bun.write(path.join(directory, grammar.file), "invalid wasm module");
 	let statusError: string | undefined;
 	let summaryError: string | undefined;
 	try {

@@ -16,7 +16,7 @@
  *    state mutations landing between renders coalesce into one rebuild.
  * 4. Clearing the provider falls back to the eager slot.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Editor, type EditorTopBorder } from "@oh-my-pi/pi-tui/components/editor";
 import { defaultEditorTheme } from "./test-themes";
 

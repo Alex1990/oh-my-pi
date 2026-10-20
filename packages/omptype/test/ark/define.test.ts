@@ -1,4 +1,4 @@
-import { it } from "bun:test";
+import { it } from "@oh-my-pi/pi-utils/test-runtime";
 import { scope, type } from "@oh-my-pi/omptype/ark";
 import type { Eq } from "./type-assert";
 

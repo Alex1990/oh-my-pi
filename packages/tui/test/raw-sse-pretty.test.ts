@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { expandPrettyDataLines } from "@oh-my-pi/pi-tui/apps/debug/raw-sse";
 
 // Wide enough that `truncateToWidth` would clip the payload in the viewer; matches

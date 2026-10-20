@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, it, spyOn } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { closeDb, getRecentRequests, initDb, insertMessageStats } from "@oh-my-pi/omp-stats/db";
 import {
 	getCostTimeSeries,

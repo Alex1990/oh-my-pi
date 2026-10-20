@@ -24,6 +24,7 @@
 import { isRecord } from "@oh-my-pi/pi-utils";
 import type { SessionRestrictionLease, SessionsApi } from "../auth/types";
 import type { Api, Model } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** One scoped client. */
 export interface AuthGatewayClient {
@@ -124,7 +125,7 @@ export function parseAuthGatewayClients(text: string): AuthGatewayClient[] {
 
 /** Hex SHA-256 digest of a bearer token, as `tokenSha256` records it. */
 export function hashAuthGatewayToken(token: string): string {
-	return new Bun.CryptoHasher("sha256").update(token).digest("hex");
+	return new bun.CryptoHasher("sha256").update(token).digest("hex");
 }
 
 type RestrictionSessions = Pick<SessionsApi, "restrict" | "unrestrict">;

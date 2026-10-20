@@ -85,6 +85,8 @@ import {
 	cfgTuiMouse,
 } from "../settings";
 import { cfgHideThinkingBlock } from "../../session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 /** Bare words that quit (as `/<word>`) when typed alone into a session with no messages. */
 const BARE_EXIT_WORDS: Record<string, true> = { exit: true, quit: true, q: true };
@@ -2077,7 +2079,7 @@ export class InputController {
 	 *  header can't be decoded, so the caller falls back to a bare `[Image #N]`. */
 	async #imageDimensions(image: ImageContent): Promise<{ width: number; height: number } | undefined> {
 		try {
-			const { width, height } = await new Bun.Image(Buffer.from(image.data, "base64")).metadata();
+			const { width, height } = await new Image(Buffer.from(image.data, "base64")).metadata();
 			if (width && height) return { width, height };
 		} catch {
 			// Unknown/corrupt header — fall back to a bare label.
@@ -2166,7 +2168,7 @@ export class InputController {
 	async #persistPastedImage(image: ImageContent): Promise<string | undefined> {
 		const bytes = Buffer.from(image.data, "base64");
 		const extension = blobExtensionForImageMimeType(image.mimeType) ?? "png";
-		const url = `local://pasted-image-${Bun.hash(bytes).toString(16)}.${extension}`;
+		const url = `local://pasted-image-${bun.hash(bytes).toString(16)}.${extension}`;
 		try {
 			const filePath = InternalUrlRouter.instance().locateSync(url, {
 				localProtocolOptions: {
@@ -2175,7 +2177,7 @@ export class InputController {
 				},
 			});
 			if (filePath === undefined) throw new Error(`No local file backs ${url}`);
-			await Bun.write(filePath, bytes);
+			await bun.write(filePath, bytes);
 			return url;
 		} catch (error) {
 			logger.warn("failed to persist pasted image", {
@@ -2582,8 +2584,8 @@ export class InputController {
 				this.#pasteCounter++;
 				name = `paste-${this.#pasteCounter}.md`;
 				filePath = path.join(localRoot, name);
-			} while (await Bun.file(filePath).exists());
-			await Bun.write(filePath, text);
+			} while (await bun.file(filePath).exists());
+			await bun.write(filePath, text);
 			this.ctx.editor.insertText(`local://${name} `);
 			this.ctx.showStatus(`Saved ${lineCount} pasted lines to local://${name}`);
 		} catch (error) {

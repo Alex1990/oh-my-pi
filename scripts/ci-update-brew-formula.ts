@@ -1,4 +1,6 @@
 #!/usr/bin/env bun
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 //
 // Render the Homebrew formula for `omp` from a build published on the build
 // service (build.stencil.so) and write it to a tap checkout. Each formula
@@ -160,13 +162,13 @@ async function main(): Promise<void> {
 	);
 	const formula = renderFormula(version, Object.fromEntries(entries) as Record<FormulaTarget, FormulaFile>);
 	if (out) {
-		await Bun.write(out, formula);
+		await bun.write(out, formula);
 		console.log(`wrote ${out} for ${tag}`);
 	} else {
 		process.stdout.write(formula);
 	}
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }

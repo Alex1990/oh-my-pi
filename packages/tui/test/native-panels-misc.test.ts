@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { KeybindingsManager } from "../src/app-keybindings";
 import { MoveOverlay, type MoveOverlayResult } from "../src/overlays/move-overlay";
 import { AnnotationOverlay } from "../src/overlays/annotation-overlay";
@@ -10,6 +10,7 @@ import { type Component, Input, type OverlayHandle, type TUI } from "../src/inde
 import type { NativeChild, NativeNode, NativeUiEvent } from "../src/native/node";
 import { setNativeRendering } from "../src/native/state";
 import { initTheme, theme } from "../src/theme/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -323,7 +324,7 @@ describe("BtwHistoryPanel native events", () => {
 			getHeight: () => 30,
 		});
 		history.handleInput("\t");
-		const screen = Bun.stripANSI(history.render(80).join("\n"));
+		const screen = bun.stripANSI(history.render(80).join("\n"));
 		expect(screen).toContain("answer to only question");
 		expect(screen).not.toContain("switch pane");
 	});

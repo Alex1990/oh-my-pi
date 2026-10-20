@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import * as blobStore from "@oh-my-pi/pi-coding-agent/session/blob-store";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { getAgentDir, getBlobsDir, setAgentDir } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const FRAME_COUNT = 10;
 const FRAME_RAW_BYTES = 300_000;
@@ -157,7 +158,7 @@ describe("lazy snapcompact frame resolution", () => {
 
 	it("drops a missing frame blob instead of sending its reference", async () => {
 		const { sessionFile, sessionDir, compactionId } = await writeJournal(makeArchive(false, 1));
-		const body = await Bun.file(sessionFile).text();
+		const body = await bun.file(sessionFile).text();
 		const match = body.match(/blob:sha256:([0-9a-f]{64})/);
 		if (!match?.[1]) throw new Error("Expected a frame blob reference");
 		await fsp.rm(path.join(getBlobsDir(), match[1]), { force: true });

@@ -10,6 +10,7 @@ import * as path from "node:path";
 import { diffLines } from "diff";
 import { formatContent } from "./formatter";
 import { listFiles } from "./shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface VerificationResult {
 	success: boolean;
@@ -127,8 +128,8 @@ export async function verifyExpectedFileSubset(
 		for (const file of expectedFiles) {
 			const expectedPath = path.join(expectedDir, file);
 			const actualPath = path.join(actualDir, file);
-			const expectedRaw = await Bun.file(expectedPath).text();
-			const actualRaw = await Bun.file(actualPath).text();
+			const expectedRaw = await bun.file(expectedPath).text();
+			const actualRaw = await bun.file(actualPath).text();
 			const expectedNormalized = normalizeLineEndings(expectedRaw);
 			const actualNormalized = normalizeLineEndings(actualRaw);
 			const actualNormalizedWithPreservedWhitespace = restoreWhitespaceOnlyLineDiffs(

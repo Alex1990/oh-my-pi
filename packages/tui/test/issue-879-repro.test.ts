@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { matchesKey, parseKey, setKittyProtocolActive } from "@oh-my-pi/pi-tui/keys";
 
 // Issue #879: On Windows (legacy keyboard mode), pressing Alt+Shift+P emits

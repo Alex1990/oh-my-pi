@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import type { AnthropicMessagesClientLike } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import type { RawMessageStreamEvent } from "@oh-my-pi/pi-ai/providers/anthropic-wire";
@@ -8,6 +8,7 @@ import { streamOpenAIResponses } from "@oh-my-pi/pi-ai/providers/openai-response
 import type { Context, FetchImpl, Model, RawSseEvent } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const context: Context = {
 	messages: [{ role: "user", content: "Say hello", timestamp: Date.now() }],
@@ -118,7 +119,7 @@ function createSseResponse(events: unknown[]): Response {
 function createFetchResponse(events: unknown[]): FetchImpl {
 	return Object.assign(
 		vi.fn(async () => createSseResponse(events)),
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	) as typeof fetch;
 }
 

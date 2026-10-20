@@ -23,6 +23,7 @@ import {
 import { ToolAbortError, throwIfAborted } from "../tool-errors";
 import { cloneSafe, RunOutput } from "./run-output";
 import type { RunResultOk, ScreenshotResult, SessionSnapshot } from "./tab-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** What a tab facade may use while one run is active. */
 export interface InProcessRunContext {
@@ -257,7 +258,7 @@ export async function runInProcessTab(tab: InProcessRunTab, opts: RunInProcessOp
 		}
 		runAc.abort(runEndedError);
 		// Let rejection callbacks run while this run can still own guest-created promises.
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		if (hasFloatingFailure && !runFailed) await floatingFailure;
 		if (runFailed) {
 			for (const reason of activeRun.floatingRejections) {

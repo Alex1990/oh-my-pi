@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
-import { Database } from "bun:sqlite";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as path from "node:path";
 import type { ChatUsageEvent } from "@oh-my-pi/pi-agent-core";
 import type { Api, AssistantMessage, ChoiceQuestion, ImageContent, Model, NoulQuestion } from "@oh-my-pi/pi-ai";
@@ -15,6 +15,7 @@ import { encodeRawPng } from "@oh-my-pi/pi-coding-agent/utils/png-encode";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
 import { asGlobalFetch } from "./helpers/fetch-mock";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const JEV_PREVIEW = {
 	id: "jev-preview",
@@ -437,7 +438,7 @@ describe("ChainJudge", () => {
 		expect(result.answers.visible.noul).toBe(0.75);
 		expect(chat).not.toHaveBeenCalled();
 		const [, part] = state as [string, { image_url: { url: string } }];
-		const sent = await new Bun.Image(Buffer.from(part.image_url.url.split(",")[1], "base64")).metadata();
+		const sent = await new Image(Buffer.from(part.image_url.url.split(",")[1], "base64")).metadata();
 		expect([sent.width, sent.height]).toEqual([280, 280]);
 	});
 
@@ -572,7 +573,7 @@ describe("ChainJudge", () => {
 			? userContent.filter((block): block is ImageContent => block.type === "image")
 			: [];
 		expect(imageBlocks).toHaveLength(1);
-		const imageMetadata = await new Bun.Image(Buffer.from(imageBlocks[0]!.data, "base64")).metadata();
+		const imageMetadata = await new Image(Buffer.from(imageBlocks[0]!.data, "base64")).metadata();
 		expect(Math.min(imageMetadata.width, imageMetadata.height)).toBeGreaterThanOrEqual(200);
 		expect(imageBlocks[0]?.data).not.toBe(IMAGE_ONE.data);
 	});
@@ -590,7 +591,7 @@ describe("ChainJudge", () => {
 		});
 		const registry = makeRegistry([stbModel, VISION_CHAT], { [VISION_CHAT.provider]: "vision-key" });
 		const tinyImage: ImageContent = { ...IMAGE_ONE, detail: "original" };
-		const webpBytes = await new Bun.Image(Buffer.from(IMAGE_ONE.data, "base64"))
+		const webpBytes = await new Image(Buffer.from(IMAGE_ONE.data, "base64"))
 			.resize(200, 200, { filter: "nearest" })
 			.webp({ quality: 90 })
 			.bytes();
@@ -625,12 +626,12 @@ describe("ChainJudge", () => {
 		expect(stbImages).toHaveLength(2);
 		expect(stbImages[0]?.detail).toBe("original");
 		expect(stbImages[0]?.data).not.toBe(tinyImage.data);
-		const tinyMetadata = await new Bun.Image(Buffer.from(stbImages[0]!.data, "base64")).metadata();
+		const tinyMetadata = await new Image(Buffer.from(stbImages[0]!.data, "base64")).metadata();
 		expect(Math.min(tinyMetadata.width, tinyMetadata.height)).toBeGreaterThanOrEqual(200);
 		expect(stbImages[1]?.mimeType).not.toBe("image/webp");
 		expect(stbImages[1]?.data).not.toBe(webpImage.data);
 		expect(stbImages[1]?.detail).toBe("high");
-		const convertedWebpMetadata = await new Bun.Image(Buffer.from(stbImages[1]!.data, "base64")).metadata();
+		const convertedWebpMetadata = await new Image(Buffer.from(stbImages[1]!.data, "base64")).metadata();
 		expect(Math.min(convertedWebpMetadata.width, convertedWebpMetadata.height)).toBeGreaterThanOrEqual(200);
 		expect(fallbackImages?.[1]).toEqual(webpImage);
 		expect(fallbackImages?.[0]?.detail).toBe("original");

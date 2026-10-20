@@ -1,6 +1,7 @@
 import { untilAborted } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { ElementHandle, Page } from "puppeteer-core";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Default computed-style properties returned by `tab.styles()`. */
 export const DEFAULT_STYLE_PROPERTIES = [
@@ -300,7 +301,7 @@ export async function waitForPageText(
 			const candidate = content.trim();
 			if (opts.exact ? candidate === text : candidate.includes(text)) return;
 		}
-		await untilAborted(opts.signal, () => Bun.sleep(Math.min(100, Math.max(1, deadline - Date.now()))));
+		await untilAborted(opts.signal, () => bun.sleep(Math.min(100, Math.max(1, deadline - Date.now()))));
 	}
 	throw new ToolError(`tab.waitForText(${JSON.stringify(text)}) timed out after ${opts.timeout}ms`);
 }

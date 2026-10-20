@@ -18,6 +18,7 @@
  */
 
 import * as AIError from "../error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PRELUDE_LEN = 8;
 const PRELUDE_CRC_LEN = 4;
@@ -35,7 +36,7 @@ export interface EventStreamMessage {
 
 /** CRC32 (IEEE / zlib polynomial 0xEDB88320), matches `@aws-crypto/crc32`. */
 export function crc32(bytes: Uint8Array): number {
-	return Bun.hash.crc32(bytes) >>> 0;
+	return bun.hash.crc32(bytes) >>> 0;
 }
 
 /**

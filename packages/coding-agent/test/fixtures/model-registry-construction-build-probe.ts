@@ -1,4 +1,4 @@
-import { spyOn } from "bun:test";
+import { spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as buildModule from "@oh-my-pi/pi-catalog/build";
 import { writeModelCache } from "@oh-my-pi/pi-catalog/model-cache";

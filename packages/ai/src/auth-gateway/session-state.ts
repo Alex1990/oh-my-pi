@@ -27,6 +27,7 @@
 import { logger } from "@oh-my-pi/pi-utils";
 import { resetAccountScopedProviderSessionState } from "../provider-session-state";
 import type { Api, Context, Message, Model, ProviderSessionState } from "../types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Retained logical sessions. Each entry is a handful of small provider records
@@ -182,7 +183,7 @@ function conversationKeys(request: AuthGatewaySessionStateRequest): string[] {
 	const toolsJson = request.toolsJson ?? (context.tools?.length ? JSON.stringify(context.tools) : "");
 	// Each component is its own seeded hash step, so no component can forge
 	// another's boundary.
-	let hash = Bun.hash(toolsJson, Bun.hash(context.systemPrompt?.join("\n\n") ?? "", Bun.hash(scope)));
+	let hash: number | bigint = bun.hash(toolsJson, bun.hash(context.systemPrompt?.join("\n\n") ?? "", bun.hash(scope)));
 	const keys: string[] = [];
 	for (const message of context.messages) {
 		hash = hashMessage(message, hash);
@@ -205,29 +206,29 @@ function conversationKeys(request: AuthGatewaySessionStateRequest): string[] {
  * their role + content serialize alike.
  */
 function hashMessage(message: Message, seed: number | bigint): number | bigint {
-	let hash = Bun.hash(message.role, seed);
+	let hash = bun.hash(message.role, seed);
 	const { content } = message;
-	if (typeof content === "string") return Bun.hash(content, hash);
+	if (typeof content === "string") return bun.hash(content, hash);
 	for (const part of content) {
 		switch (part.type) {
 			case "text": {
 				const { text, ...rest } = part;
-				hash = Bun.hash(JSON.stringify(rest), Bun.hash(text, hash));
+				hash = bun.hash(JSON.stringify(rest), bun.hash(text, hash));
 				break;
 			}
 			case "thinking": {
 				const { thinking, ...rest } = part;
-				hash = Bun.hash(JSON.stringify(rest), Bun.hash(thinking, hash));
+				hash = bun.hash(JSON.stringify(rest), bun.hash(thinking, hash));
 				break;
 			}
 			case "image":
 			case "redactedThinking": {
 				const { data, ...rest } = part;
-				hash = Bun.hash(JSON.stringify(rest), Bun.hash(data, hash));
+				hash = bun.hash(JSON.stringify(rest), bun.hash(data, hash));
 				break;
 			}
 			default:
-				hash = Bun.hash(JSON.stringify(part), hash);
+				hash = bun.hash(JSON.stringify(part), hash);
 		}
 	}
 	return hash;

@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ensureOnnxRuntimeCudaProviders, formatOnnxRuntimeCudaDiagnostics } from "../src/subprocess/worker-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 const CUDA_PROVIDER_FILES = [
@@ -19,12 +20,12 @@ async function makeRuntimeWithOnnxInstallScript(): Promise<string> {
 	const runtimeDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-tiny-runtime-install-"));
 	tempDirs.push(runtimeDir);
 	const packageDir = path.join(runtimeDir, "node_modules", "onnxruntime-node");
-	await Bun.write(
+	await bun.write(
 		path.join(packageDir, "package.json"),
 		JSON.stringify({ name: "onnxruntime-node", version: "1.24.3", main: "dist/index.js" }),
 	);
-	await Bun.write(path.join(packageDir, "dist", "index.js"), "module.exports = {};\n");
-	await Bun.write(
+	await bun.write(path.join(packageDir, "dist", "index.js"), "module.exports = {};\n");
+	await bun.write(
 		path.join(packageDir, "script", "install.js"),
 		[
 			"const fs = require('node:fs');",
@@ -47,7 +48,7 @@ describe("tiny runtime CUDA provider repair", () => {
 
 		const binDir = path.join(runtimeDir, "node_modules", "onnxruntime-node", "bin", "napi-v6", "linux", "x64");
 		for (const file of CUDA_PROVIDER_FILES) {
-			expect(await Bun.file(path.join(binDir, file)).exists()).toBe(true);
+			expect(await bun.file(path.join(binDir, file)).exists()).toBe(true);
 		}
 	});
 
@@ -60,7 +61,7 @@ describe("tiny runtime CUDA provider repair", () => {
 
 			const binDir = path.join(runtimeDir, "node_modules", "onnxruntime-node", "bin", "napi-v6", "linux", "x64");
 			for (const file of CUDA_PROVIDER_FILES) {
-				expect(await Bun.file(path.join(binDir, file)).exists()).toBe(true);
+				expect(await bun.file(path.join(binDir, file)).exists()).toBe(true);
 			}
 		}
 	});
@@ -87,11 +88,11 @@ describe("tiny runtime CUDA provider repair", () => {
 		const runtimeDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-tiny-runtime-install-"));
 		tempDirs.push(runtimeDir);
 		const packageDir = path.join(runtimeDir, "node_modules", "onnxruntime-node");
-		await Bun.write(
+		await bun.write(
 			path.join(packageDir, "package.json"),
 			JSON.stringify({ name: "onnxruntime-node", version: "1.24.3", main: "dist/index.js" }),
 		);
-		await Bun.write(path.join(packageDir, "dist", "index.js"), "module.exports = {};\n");
+		await bun.write(path.join(packageDir, "dist", "index.js"), "module.exports = {};\n");
 
 		const diagnostic = await formatOnnxRuntimeCudaDiagnostics(
 			{

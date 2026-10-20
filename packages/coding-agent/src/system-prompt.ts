@@ -56,6 +56,7 @@ import {
 	cfgToolsXdevInlineDevices,
 	cfgVaultEnabled,
 } from "./tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Settings the system prompt renders from (`secrets.enabled` via the obfuscator state it
@@ -109,7 +110,7 @@ const PERSONALITY_SPECS: Record<Exclude<Personality, "none">, string> = {
 async function loadPersonalityOverride(): Promise<string | null> {
 	const filePath = path.join(getAgentDir(), "PERSONALITY.md");
 	try {
-		const content = (await Bun.file(filePath).text()).trim();
+		const content = (await bun.file(filePath).text()).trim();
 		if (content) return content;
 		logger.warn("PERSONALITY.md is empty; using the configured personality preset", { path: filePath });
 	} catch (error) {
@@ -274,7 +275,7 @@ export async function discoverSystemPromptOverride(cwd?: string): Promise<System
 
 /** Unlike literal prompt inputs, explicit template paths never fall back to inline text. */
 export async function loadSystemPromptTemplateFile(filePath: string): Promise<string> {
-	const text = await Bun.file(filePath).text();
+	const text = await bun.file(filePath).text();
 	if (!text.trim()) {
 		throw new Error(`System prompt template must not be empty: ${filePath}`);
 	}
@@ -290,7 +291,7 @@ export async function resolvePromptInput(input: string | undefined, description:
 	}
 
 	try {
-		return await Bun.file(input).text();
+		return await bun.file(input).text();
 	} catch (error) {
 		if (!hasFsCode(error, "ENAMETOOLONG") && !isEnoent(error)) {
 			logger.warn(`Could not read ${description} file`, { path: input, error: String(error) });

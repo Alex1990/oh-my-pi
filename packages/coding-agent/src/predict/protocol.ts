@@ -9,6 +9,7 @@
  */
 import * as path from "node:path";
 import { ipcEndpoint, type PredictedWord } from "@oh-my-pi/pi-natives";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export { TEXT_PREDICT_WORKER_ARG } from "../cli/worker-selectors";
 
 /** Global broker scope owning the daemon. */
@@ -37,7 +38,7 @@ export function textPredictReadyBanner(endpoint: string): string {
  * tests) get separate daemons because history and learned state are per agent dir.
  */
 export function textPredictDaemon(runtimeDir: string, agentDir: string): { name: string; endpoint: string } {
-	const key = Bun.hash.wyhash(path.resolve(agentDir)).toString(16).padStart(16, "0").slice(0, 12);
+	const key = bun.hash.wyhash(path.resolve(agentDir)).toString(16).padStart(16, "0").slice(0, 12);
 	return { name: `omp.text-predict.${key}`, endpoint: ipcEndpoint(runtimeDir, `text-predict-${key}`) };
 }
 

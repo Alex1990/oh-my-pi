@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as url from "node:url";
 import { UserMessageComponent } from "@oh-my-pi/pi-tui/chat/user-message";

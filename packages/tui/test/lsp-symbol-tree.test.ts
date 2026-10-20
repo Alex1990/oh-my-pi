@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getThemeByName, setThemeInstance, type Theme } from "../src/theme";
 import { lspToolRenderer } from "../src/tools/lsp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let theme: Theme;
 
@@ -25,7 +26,7 @@ describe("LSP symbols expanded tree", () => {
 			.renderResult({ content: [{ type: "text", text }] }, { expanded: true, isPartial: false }, theme)
 			.render(80)
 			.map(row =>
-				Bun.stripANSI(row)
+				bun.stripANSI(row)
 					.replace(/^│/, "")
 					.replace(/\s*│$/, ""),
 			);

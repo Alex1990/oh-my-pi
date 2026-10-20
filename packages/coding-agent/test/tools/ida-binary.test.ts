@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { cfgIdaAvailable, cfgIdaInstall } from "@oh-my-pi/pi-coding-agent/ida/install";
 import { isExecutableHeader, parseFatSlices, selectSlice, splitSliceRef } from "@oh-my-pi/pi-coding-agent/ida/store";
 import { type BinaryView, parseBinaryView } from "@oh-my-pi/pi-coding-agent/tools/read-binary";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("isExecutableHeader", () => {
 	const cases: Array<[string, number[], boolean]> = [
@@ -118,7 +119,7 @@ describe("IDA availability", () => {
 		withIdalib = await fs.mkdtemp(path.join(os.tmpdir(), "ida-install-"));
 		withoutIdalib = await fs.mkdtemp(path.join(os.tmpdir(), "ida-empty-"));
 		for (const lib of ["libidalib.dylib", "libidalib.so", "idalib.dll"]) {
-			await Bun.write(path.join(withIdalib, lib), "");
+			await bun.write(path.join(withIdalib, lib), "");
 		}
 	});
 

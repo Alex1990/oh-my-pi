@@ -1,12 +1,19 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { localDay } from "../src/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const loggerModuleUrl = pathToFileURL(path.join(import.meta.dir, "../src/logger.ts")).href;
+const loggerModuleUrl = pathToFileURL(path.join(import.meta.dirname, "../src/logger.ts")).href;
 const roots: string[] = [];
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 afterEach(async () => {
 	await Promise.all(roots.splice(0).map(root => fs.rm(root, { recursive: true, force: true })));
@@ -24,7 +31,7 @@ async function makeProbe(logsDir: string): Promise<string> {
 	roots.push(root);
 	const releasePath = path.join(logsDir, ".release");
 	const probePath = path.join(root, "probe.ts");
-	await Bun.write(
+	await bun.write(
 		probePath,
 		`import * as fs from "node:fs";\n` +
 			`import { info, setTransports } from ${JSON.stringify(loggerModuleUrl)};\n` +
@@ -56,9 +63,9 @@ describe("multiprocess file logging", () => {
 		// are deterministically completed rather than briefly lingering as zombies.
 		const exitedPids = [9_000_001, 9_000_002];
 
-		await Bun.write(path.join(logsDir, ".release"), "");
+		await bun.write(path.join(logsDir, ".release"), "");
 		const probePath = await makeProbe(logsDir);
-		const seed = Bun.spawn([process.execPath, probePath], {
+		const seed = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 			stdin: "pipe",
 			stdout: "ignore",
 			stderr: "pipe",
@@ -75,19 +82,19 @@ describe("multiprocess file logging", () => {
 		for (const pid of exitedPids) {
 			for (let daysAgo = -1; daysAgo <= 5; daysAgo++) {
 				const name = `omp.${localDate(daysAgo)}.${pid}.log`;
-				await Bun.write(path.join(logsDir, name), name);
+				await bun.write(path.join(logsDir, name), name);
 				await fs.utimes(path.join(logsDir, name), 2, 2);
 				(daysAgo > 0 && daysAgo < 5 ? retainedNames : expiredNames).push(name);
 			}
 			const rolloverName = `omp.${localDate(0)}.${pid}.log.1`;
-			await Bun.write(path.join(logsDir, rolloverName), rolloverName);
+			await bun.write(path.join(logsDir, rolloverName), rolloverName);
 			await fs.utimes(path.join(logsDir, rolloverName), 2, 2);
 			retainedNames.push(rolloverName);
-			await Bun.write(path.join(logsDir, `.omp.${pid}-audit.json`), "{}");
+			await bun.write(path.join(logsDir, `.omp.${pid}-audit.json`), "{}");
 		}
 
 		for (let restart = 0; restart < 2; restart++) {
-			const current = Bun.spawn([process.execPath, probePath], {
+			const current = bun.spawn([process.execPath, ...nodeTsArgs, probePath], {
 				stdin: "pipe",
 				stdout: "ignore",
 				stderr: "pipe",
@@ -118,12 +125,12 @@ describe("multiprocess file logging", () => {
 			".0123456789abcdef0123456789abcdef01234567-audit.json",
 		];
 		const retained = [`omp.${localDate(1)}.log`, `omp.${localDate(1)}.log.gz`, ".fedcba9876543210-audit.json"];
-		for (const name of [...expired, ...retained]) await Bun.write(path.join(logsDir, name), name);
+		for (const name of [...expired, ...retained]) await bun.write(path.join(logsDir, name), name);
 		const thirtyDaysAgoSec = (Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000;
 		await fs.utimes(path.join(logsDir, expired[4]!), thirtyDaysAgoSec, thirtyDaysAgoSec);
 
-		await Bun.write(path.join(logsDir, ".release"), "");
-		const probe = Bun.spawn([process.execPath, await makeProbe(logsDir)], {
+		await bun.write(path.join(logsDir, ".release"), "");
+		const probe = bun.spawn([process.execPath, ...nodeTsArgs, await makeProbe(logsDir)], {
 			stdin: "pipe",
 			stdout: "ignore",
 			stderr: "pipe",

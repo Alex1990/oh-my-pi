@@ -17,6 +17,7 @@ import { Settings } from "../src/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WIDTH = 100;
 const SIZES = [500, 5000, 50_000];
@@ -90,16 +91,16 @@ function measure(n: number): { median: number; p95: number; replayMs: number } {
 	for (let i = 0; i < WARMUP; i++) tick();
 	const samples: number[] = [];
 	for (let i = 0; i < SAMPLES; i++) {
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		tick();
-		samples.push((Bun.nanoseconds() - start) / 1e6);
+		samples.push((bun.nanoseconds() - start) / 1e6);
 	}
 	samples.sort((a, b) => a - b);
-	const started = Bun.nanoseconds();
+	const started = bun.nanoseconds();
 	container.beginReplay();
 	const replay = container.peekReplayBatch(WIDTH);
 	if (!replay || replay.rows.length !== history.rows.length) throw new Error("Replay lost committed rows");
-	const replayMs = (Bun.nanoseconds() - started) / 1e6;
+	const replayMs = (bun.nanoseconds() - started) / 1e6;
 	container.acknowledgeFinalizedBatch(replay.id);
 	return { median: percentile(samples, 50), p95: percentile(samples, 95), replayMs };
 }

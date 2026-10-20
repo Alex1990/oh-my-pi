@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +20,8 @@ import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { runGrepCommand } from "../../src/cli/grep-cli";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { GrepTool } from "../../src/tools/grep";
+import { bun, type NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs", { spy: true });
 
 function getText(result: { content: Array<{ type: string; text?: string }> }): string {
 	return result.content
@@ -62,7 +65,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 	describe("splitPathAndSelPreferringLiteral", () => {
 		it("keeps the raw path intact when a literal colon file exists on disk", async () => {
 			const literal = "test:1-2";
-			await Bun.write(path.join(tmpDir, literal), "test\n");
+			await bun.write(path.join(tmpDir, literal), "test\n");
 
 			// Strict splitter still peels — this documents the contract the
 			// literal-preferring variant sits on top of.
@@ -73,7 +76,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		posixIt("keeps a shell-escaped literal path intact when the resolved file exists", async () => {
 			await fs.promises.mkdir(path.join(tmpDir, "dir"), { recursive: true });
-			await Bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal\n");
+			await bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal\n");
 
 			expect(await splitPathAndSelPreferringLiteral("dir/a\\ b:1-2", tmpDir)).toEqual({
 				path: "dir/a\\ b:1-2",
@@ -91,7 +94,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it("uses only confirmed Windows literal paths", async () => {
 			const literal = "base.txt:1-2";
-			await Bun.write(path.join(tmpDir, literal), "stream\n");
+			await bun.write(path.join(tmpDir, literal), "stream\n");
 			const platform = Object.getOwnPropertyDescriptor(process, "platform");
 			if (platform === undefined) throw new Error("process.platform descriptor is unavailable");
 			Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
@@ -129,12 +132,12 @@ describe("literal colon filename resolution (issue #4618)", () => {
 			// fails with ENOENT. The splitters dropped the selector and `read` opened
 			// the unsplit path, surfacing a raw ENOENT for an existing file.
 			const base = path.join(tmpDir, "notes.md");
-			await Bun.write(base, "line one\nline two\nline three\nline four\n");
+			await bun.write(base, "line one\nline two\nline three\nline four\n");
 			const stream = `${base}:1-2`;
 			const baseStat = await fs.promises.lstat(base);
 			const realLstat = fs.promises.lstat;
 			const realLstatSync = fs.lstatSync;
-			const realBunFile = Bun.file.bind(Bun);
+			const realBunFile = bun.file.bind(bun);
 			const platform = Object.getOwnPropertyDescriptor(process, "platform");
 			if (platform === undefined) throw new Error("process.platform descriptor is unavailable");
 			Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
@@ -142,9 +145,9 @@ describe("literal colon filename resolution (issue #4618)", () => {
 				String(target) === stream ? baseStat : await realLstat(target)) as typeof fs.promises.lstat);
 			const lstatSync = spyOn(fs, "lstatSync").mockImplementation(((target: fs.PathLike) =>
 				String(target) === stream ? baseStat : realLstatSync(target)) as typeof fs.lstatSync);
-			const bunFile = spyOn(Bun, "file").mockImplementation((source, options) => {
-				const file = realBunFile(source as string, options);
-				if (source === stream) file.stat = async () => baseStat;
+			const bunFile = spyOn(bun, "file").mockImplementation((target: string | URL | NodeFile) => {
+				const file = realBunFile(target);
+				if (target === stream) file.stat = async () => baseStat;
 				return file;
 			});
 
@@ -168,11 +171,11 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it("also protects `:raw`-shaped literal filenames", async () => {
 			const literal = "log:raw";
-			await Bun.write(path.join(tmpDir, literal), "line one\nline two\n");
+			await bun.write(path.join(tmpDir, literal), "line one\nline two\n");
 			expect(await splitPathAndSelPreferringLiteral(literal, tmpDir)).toEqual({ path: literal });
 		});
 
-		it("keeps a literal dangling symlink intact (lstat exists even though stat fails)", async () => {
+		posixIt("keeps a literal dangling symlink intact (lstat exists even though stat fails)", async () => {
 			const literal = path.join(tmpDir, "test:1-2");
 			await fs.promises.symlink(path.join(tmpDir, "missing-target"), literal);
 
@@ -194,7 +197,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it('returns "exists" for a regular file', async () => {
 			const literal = path.join(tmpDir, "regular:1-2");
-			await Bun.write(literal, "hi\n");
+			await bun.write(literal, "hi\n");
 			expect(await probeLiteralPathExists(literal, tmpDir)).toBe("exists");
 		});
 
@@ -209,7 +212,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 	describe("read tool", () => {
 		posixIt("reads a shell-escaped literal file whose name ends in a selector-shaped suffix", async () => {
 			await fs.promises.mkdir(path.join(tmpDir, "dir"), { recursive: true });
-			await Bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal read\n");
+			await bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal read\n");
 
 			const tool = new ReadTool(createSession());
 			const result = await tool.execute("read-escaped-literal", { path: "dir/a\\ b:1-2" });
@@ -219,8 +222,8 @@ describe("literal colon filename resolution (issue #4618)", () => {
 		});
 
 		it("prefers a real `foo:1-2` file over interpreting `:1-2` as a range on `foo`", async () => {
-			await Bun.write(path.join(tmpDir, "foo"), "line 1\nline 2\nline 3\n");
-			await Bun.write(path.join(tmpDir, "foo:1-2"), "colon file wins\n");
+			await bun.write(path.join(tmpDir, "foo"), "line 1\nline 2\nline 3\n");
+			await bun.write(path.join(tmpDir, "foo:1-2"), "colon file wins\n");
 
 			const tool = new ReadTool(createSession());
 			const result = await tool.execute("read-literal-wins", {
@@ -235,7 +238,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 		it("still honors the `:5-10` selector when only the base file exists on disk", async () => {
 			const absolute = path.join(tmpDir, "notes");
 			const lines = Array.from({ length: 40 }, (_, i) => `line ${i + 1}`).join("\n");
-			await Bun.write(absolute, `${lines}\n`);
+			await bun.write(absolute, `${lines}\n`);
 
 			const session = createSession({
 				settings: Settings.isolated({
@@ -265,9 +268,9 @@ describe("literal colon filename resolution (issue #4618)", () => {
 			const baseArchive = path.join(tmpDir, "data.zip");
 			// Empty zip bytes — the file just needs to stat as a real archive so
 			// the archive resolver would happily accept it.
-			await Bun.write(baseArchive, EMPTY_ZIP_EOCD);
+			await bun.write(baseArchive, EMPTY_ZIP_EOCD);
 			const literal = path.join(tmpDir, "data.zip:1-2");
-			await Bun.write(literal, "literal archive-shaped file\n");
+			await bun.write(literal, "literal archive-shaped file\n");
 
 			const tool = new ReadTool(createSession());
 			const result = await tool.execute("read-literal-zip-selector", { path: literal });
@@ -284,9 +287,9 @@ describe("literal colon filename resolution (issue #4618)", () => {
 			// SQLite database header (16-byte magic string plus zero-padding).
 			const header = new Uint8Array(4096);
 			header.set(Buffer.from("SQLite format 3\0", "utf-8"), 0);
-			await Bun.write(baseDb, header);
+			await bun.write(baseDb, header);
 			const literal = path.join(tmpDir, "notes.db:1-2");
-			await Bun.write(literal, "literal db-shaped file\n");
+			await bun.write(literal, "literal db-shaped file\n");
 
 			const tool = new ReadTool(createSession());
 			const result = await tool.execute("read-literal-db-selector", { path: literal });
@@ -299,7 +302,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 	describe("grep tool", () => {
 		posixIt("searches a shell-escaped literal file whose name ends in a selector-shaped suffix", async () => {
 			await fs.promises.mkdir(path.join(tmpDir, "dir"), { recursive: true });
-			await Bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal needle\n");
+			await bun.write(path.join(tmpDir, "dir", "a b:1-2"), "escaped literal needle\n");
 
 			const tool = new GrepTool(createSession());
 			const result = await tool.execute("grep-escaped-literal", {
@@ -316,7 +319,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 			// probe in `splitDelimitedPathEntry`, expandDelimitedPathEntries would
 			// split `a;b:1-2` into `["a", "b:1-2"]` before grep saw the literal file.
 			const literal = path.join(tmpDir, "a;b:1-2");
-			await Bun.write(literal, "delimited literal needle\n");
+			await bun.write(literal, "delimited literal needle\n");
 
 			const tool = new GrepTool(createSession());
 			const result = await tool.execute("grep-literal-semicolon-selector", {
@@ -333,9 +336,9 @@ describe("literal colon filename resolution (issue #4618)", () => {
 			// The base archive exists too; grep must not rematerialize the raw
 			// literal path as archive `data.zip` plus phantom member `1-2`.
 			const baseArchive = path.join(tmpDir, "data.zip");
-			await Bun.write(baseArchive, EMPTY_ZIP_EOCD);
+			await bun.write(baseArchive, EMPTY_ZIP_EOCD);
 			const literal = path.join(tmpDir, "data.zip:1-2");
-			await Bun.write(literal, "literal archive needle\n");
+			await bun.write(literal, "literal archive needle\n");
 
 			const tool = new GrepTool(createSession());
 			const result = await tool.execute("grep-literal-zip-selector", {
@@ -349,7 +352,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it("applies line ranges to an existing file whose name contains glob characters", async () => {
 			const literal = path.join(tmpDir, "{proposal} {acme} offer.md");
-			await Bun.write(literal, "offer included\nignored\noffer excluded\n");
+			await bun.write(literal, "offer included\nignored\noffer excluded\n");
 
 			const tool = new GrepTool(createSession());
 			const result = await tool.execute("grep-ranged-brace-literal", {
@@ -364,7 +367,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it("preserves ranged glob-named files before delimiter expansion", async () => {
 			const literal = path.join(tmpDir, "a;b[1].md");
-			await Bun.write(literal, "needle included\nignored\nneedle excluded\n");
+			await bun.write(literal, "needle included\nignored\nneedle excluded\n");
 
 			const tool = new GrepTool(createSession());
 			const result = await tool.execute("grep-ranged-delimiter-literal", {
@@ -379,7 +382,7 @@ describe("literal colon filename resolution (issue #4618)", () => {
 
 		it("preserves `:N-M` line-range filtering when the literal file does not exist", async () => {
 			const absolute = path.join(tmpDir, "notes.txt");
-			await Bun.write(absolute, "one\ntwo\nthree\nfour\n");
+			await bun.write(absolute, "one\ntwo\nthree\nfour\n");
 
 			const tool = new GrepTool(createSession());
 			const rangedResult = await tool.execute("grep-range-filter", {
@@ -471,7 +474,7 @@ describe("leading-colon path recovery (issue #5508)", () => {
 
 	it("read opens a file addressed with a leading colon", async () => {
 		const abs = path.join(tmpDir, "colon-read.txt");
-		await Bun.write(abs, "test line A\ntest line B\n");
+		await bun.write(abs, "test line A\ntest line B\n");
 
 		const result = await new ReadTool(createSession()).execute("read-leading-colon", { path: `:${abs}` });
 		const output = getText(result);
@@ -481,7 +484,7 @@ describe("leading-colon path recovery (issue #5508)", () => {
 	});
 
 	it("read opens a relative file addressed with a leading colon", async () => {
-		await Bun.write(path.join(tmpDir, "rel.txt"), "relative body\n");
+		await bun.write(path.join(tmpDir, "rel.txt"), "relative body\n");
 
 		const result = await new ReadTool(createSession()).execute("read-leading-colon-rel", { path: ":./rel.txt" });
 		const output = getText(result);
@@ -492,7 +495,7 @@ describe("leading-colon path recovery (issue #5508)", () => {
 
 	it("grep searches a file addressed with a leading colon", async () => {
 		const abs = path.join(tmpDir, "colon-grep.txt");
-		await Bun.write(abs, "needle here\nsecond line\n");
+		await bun.write(abs, "needle here\nsecond line\n");
 
 		const result = await new GrepTool(createSession()).execute("grep-leading-colon", {
 			pattern: "needle",
@@ -506,7 +509,7 @@ describe("leading-colon path recovery (issue #5508)", () => {
 
 	it("edit updates a file addressed with a leading colon", async () => {
 		const abs = path.join(tmpDir, "colon-edit.txt");
-		await Bun.write(abs, "needle here\nsecond\n");
+		await bun.write(abs, "needle here\nsecond\n");
 		await Settings.init({ inMemory: true, cwd: tmpDir });
 
 		const result = await new EditTool(createSession()).execute("edit-leading-colon", {
@@ -516,7 +519,7 @@ describe("leading-colon path recovery (issue #5508)", () => {
 
 		expect(result.isError).toBeFalsy();
 		expect(getText(result)).not.toMatch(/not found/i);
-		expect(await Bun.file(abs).text()).toBe("replaced\nsecond\n");
+		expect(await bun.file(abs).text()).toBe("replaced\nsecond\n");
 	});
 });
 
@@ -537,7 +540,7 @@ describe("grep CLI subcommand leading-colon path (issue #5624)", () => {
 
 	it("strips a leading colon before an absolute path", async () => {
 		const abs = path.join(tmpDir, "colon-grep-cli.txt");
-		await Bun.write(abs, "needle line A\nneedle line B\n");
+		await bun.write(abs, "needle line A\nneedle line B\n");
 
 		const lines: string[] = [];
 		const logSpy = spyOn(console, "log").mockImplementation((...args: unknown[]) => {

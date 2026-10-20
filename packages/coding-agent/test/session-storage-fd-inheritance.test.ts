@@ -16,7 +16,7 @@
  * vacuously. /proc makes this Linux-only; the helper's flag handling is
  * covered on every platform by `packages/utils/test/fs-open.test.ts`.
  */
-import { afterAll, expect, test } from "bun:test";
+import { afterAll, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";

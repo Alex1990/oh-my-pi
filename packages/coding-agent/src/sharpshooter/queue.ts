@@ -14,6 +14,7 @@ import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { sharpshooterQueueDir } from "./paths";
 import type { SharpshooterDelta } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** One queued delta plus the file backing it (consume token). */
 export interface QueuedSharpshooterDelta {
@@ -39,7 +40,7 @@ function queueFileName(ts: number): string {
 /** Persist one delta into the session's queue directory. */
 export async function appendSharpshooterDelta(agentDir: string, cwd: string, delta: SharpshooterDelta): Promise<void> {
 	const dir = path.join(sharpshooterQueueDir(agentDir, cwd), sanitizeSessionId(delta.sessionId));
-	await Bun.write(path.join(dir, queueFileName(delta.ts)), JSON.stringify(delta));
+	await bun.write(path.join(dir, queueFileName(delta.ts)), JSON.stringify(delta));
 }
 
 /**
@@ -79,7 +80,7 @@ export async function listSharpshooterDeltas(agentDir: string, cwd: string): Pro
 		for (const name of names) {
 			const file = path.join(dir, name);
 			try {
-				const parsed = (await Bun.file(file).json()) as SharpshooterDelta;
+				const parsed = (await bun.file(file).json()) as SharpshooterDelta;
 				if (parsed && typeof parsed === "object" && parsed.v === 1 && typeof parsed.statement === "string") {
 					deltas.push({ delta: parsed, file });
 				}

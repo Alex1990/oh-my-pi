@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AssertionError } from "node:assert";
 import { type ArkErrors, type Module, type StandardSchemaV1, scope, type Type, type } from "@oh-my-pi/omptype/ark";
 import type { Eq } from "./type-assert";

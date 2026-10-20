@@ -16,7 +16,7 @@ function formatUsageTimestamp(ms: number, hour12 = false): string {
 	const pad = (n: number): string => String(n).padStart(2, "0");
 	const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 	const time = hour12
-		? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12 })
+		? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12 })
 		: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 	return `${date} ${time}`;
 }
@@ -203,7 +203,7 @@ class UsageRowBlock extends Container {
 		if (stamped) {
 			parts.push(
 				hour12
-					? new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12 })
+					? new Date(timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12 })
 					: formatUsageTimestamp(timestamp).slice(11, 16),
 			);
 		}

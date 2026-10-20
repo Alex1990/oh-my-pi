@@ -12,7 +12,7 @@
  *  - Idle rebuilds seal leftover danglers instead of pinning the transcript
  *    live region with a spinner that can never resolve.
  */
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -26,6 +26,7 @@ import { TERMINAL } from "@oh-my-pi/pi-tui";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
 
 import { cfgTerminalShowImages } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const usage = {
 	input: 1,
@@ -165,7 +166,7 @@ describe("mid-turn transcript rebuild keeps in-flight tool calls", () => {
 				}
 				controller.restorePendingToolResults();
 				if (arrival !== "live") {
-					expect(Bun.stripANSI(chatContainer.render(120).join("\n")).match(/\[Image: image\/png\]/g)).toHaveLength(
+					expect(bun.stripANSI(chatContainer.render(120).join("\n")).match(/\[Image: image\/png\]/g)).toHaveLength(
 						1,
 					);
 					expect(ctx.pendingTools.size).toBe(0);
@@ -177,7 +178,7 @@ describe("mid-turn transcript rebuild keeps in-flight tool calls", () => {
 					result: { content: result.content },
 					isError: false,
 				});
-				expect(Bun.stripANSI(chatContainer.render(120).join("\n")).match(/\[Image: image\/png\]/g)).toHaveLength(1);
+				expect(bun.stripANSI(chatContainer.render(120).join("\n")).match(/\[Image: image\/png\]/g)).toHaveLength(1);
 				expect(ctx.pendingTools.size).toBe(0);
 			} finally {
 				cfgTerminalShowImages.set(ctx.settings, showImages);

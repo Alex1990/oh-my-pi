@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { mmrRerank } from "@oh-my-pi/pi-mnemopi/core/mmr";
 import { adjustWeights, classifyIntent } from "@oh-my-pi/pi-mnemopi/core/query-intent";
 import { DEFAULT_HALFLIFE_HOURS, weibullBoost, weibullDecayFactor } from "@oh-my-pi/pi-mnemopi/core/weibull";

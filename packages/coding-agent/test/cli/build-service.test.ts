@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type BuildHost,
 	fetchBuild,
@@ -7,9 +7,10 @@ import {
 	resolveBuildHost,
 } from "@oh-my-pi/pi-coding-agent/cli/build-service";
 import { VERSION } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const fileName = "omp-darwin-arm64";
-const sha = (text: string) => Bun.SHA256.hash(text, "hex");
+const sha = (text: string) => bun.SHA256.hash(text, "hex");
 
 /** A well-formed `latest` answer, with `overrides` merged over the top level. */
 function answer(overrides: Record<string, unknown> = {}): Record<string, unknown> {

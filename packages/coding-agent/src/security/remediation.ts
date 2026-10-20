@@ -1,6 +1,7 @@
 import type { IsoBackendKind } from "@oh-my-pi/pi-natives";
 import type { IsolationHandle, WorktreeBaseline } from "../task/worktree";
 import { captureBaseline, cleanupIsolation, ensureIsolation, getRepoRoot } from "../task/worktree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface SecurityRemediationRequest {
 	cwd: string;
@@ -39,7 +40,7 @@ export interface SecurityRemediationDependencies {
 }
 
 function createRemediationId(): string {
-	return `security-remediation-${Bun.randomUUIDv7().replaceAll("-", "")}`;
+	return `security-remediation-${bun.randomUUIDv7().replaceAll("-", "")}`;
 }
 
 function repoBaselineDirty(baseline: WorktreeBaseline): string[] {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { createLiveBoard } from "../src/chrome/live-board";
 import { ensureThemeSync, setThemeInstance, theme } from "../src/theme/theme";
 import { loadThemeSync } from "../src/theme/loader";

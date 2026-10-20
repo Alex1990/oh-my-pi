@@ -1,14 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { runConfigCommand } from "@oh-my-pi/pi-coding-agent/cli/config-cli";
 import { resetSettingsForTest } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { getConfigRootDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 let testAgentDir: TempDir | undefined;
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
-const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
+const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 interface CliProcessResult {
 	exitCode: number;
@@ -17,7 +19,7 @@ interface CliProcessResult {
 }
 
 async function runCliProcess(args: string[], env: NodeJS.ProcessEnv): Promise<CliProcessResult> {
-	const proc = Bun.spawn([process.execPath, cliEntry, ...args], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, ...args], {
 		stdout: "pipe",
 		stderr: "pipe",
 		env: { ...process.env, NO_COLOR: "1", ...env },
@@ -59,7 +61,7 @@ describe("config CLI schema coverage", () => {
 		await runConfigCommand({ action: "list", flags: {} });
 
 		const lines = logSpy.mock.calls.map(call => String(call[0] ?? ""));
-		const plainLines = lines.map(line => Bun.stripANSI(line));
+		const plainLines = lines.map(line => bun.stripANSI(line));
 		const modelRolesLine = plainLines.find(line => line.includes("modelRoles ="));
 		expect(modelRolesLine).toBeDefined();
 		const plainModelRolesLine = String(modelRolesLine);
@@ -221,7 +223,7 @@ describe("config CLI schema coverage", () => {
 	it("reports the value written to config.yml and the layer that still overrides it", async () => {
 		if (!testAgentDir) throw new Error("Test agent directory was not initialized");
 		const overlayPath = path.join(testAgentDir.path(), "overlay.yml");
-		await Bun.write(overlayPath, "compaction:\n  enabled: false\n");
+		await bun.write(overlayPath, "compaction:\n  enabled: false\n");
 		const previousConfigFiles = process.env.PI_CONFIG_FILES;
 		process.env.PI_CONFIG_FILES = overlayPath;
 		try {
@@ -242,8 +244,8 @@ describe("config CLI schema coverage", () => {
 		const baseOverlayPath = path.join(testAgentDir.path(), "base-overlay.yml");
 		const finalOverlayPath = path.join(testAgentDir.path(), "final-overlay.yml");
 		await Promise.all([
-			Bun.write(baseOverlayPath, "defaultThinkingLevel: high\n"),
-			Bun.write(finalOverlayPath, "defaultThinkingLevel: max\n"),
+			bun.write(baseOverlayPath, "defaultThinkingLevel: high\n"),
+			bun.write(finalOverlayPath, "defaultThinkingLevel: max\n"),
 		]);
 		const { exitCode, output, error } = await runCliProcess(["config", "get", "defaultThinkingLevel", "--json"], {
 			PI_CODING_AGENT_DIR: testAgentDir.path(),

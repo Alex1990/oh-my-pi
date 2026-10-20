@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 import { type ClaudeTraceCommandArgs, runClaudeTraceCommand } from "../packages/coding-agent/src/cli/claude-trace-cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HELP = `Usage: bun scripts/claude-trace.ts [options]
 
@@ -94,7 +96,7 @@ export function parseClaudeTraceScriptArgs(argv: readonly string[]): ClaudeTrace
 	return args;
 }
 
-export async function runClaudeTraceScript(argv: readonly string[] = Bun.argv.slice(2)): Promise<void> {
+export async function runClaudeTraceScript(argv: readonly string[] = bun.argv.slice(2)): Promise<void> {
 	const parsed = parseClaudeTraceScriptArgs(argv);
 	if (parsed === "help") {
 		process.stdout.write(HELP);
@@ -103,7 +105,7 @@ export async function runClaudeTraceScript(argv: readonly string[] = Bun.argv.sl
 	await runClaudeTraceCommand(parsed);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	try {
 		await runClaudeTraceScript();
 	} catch (error) {

@@ -11,7 +11,7 @@
  * and the finally-block MUST clear `#prLookupInFlight` on both success and
  * rejection so the segment never wedges after a single failure.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { StatusLineSettings } from "@oh-my-pi/pi-tui/status-line";
 import { StatusLineComponent } from "@oh-my-pi/pi-tui/status-line";

@@ -27,7 +27,12 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 	queue: T[] = [];
 	/** Index of the next undelivered event in {@link queue}; 0 whenever the queue is empty. */
 	#queueHead = 0;
-	waiting: Array<{ resolve: (value: IteratorResult<T>) => void; reject: (err: unknown) => void }> = [];
+	/**
+	 * Consumers parked in the async iterator. A push only *wakes* them — it never
+	 * hands them the event — so a parked iterator holds no yielded event while it
+	 * waits for the next one (V8 keeps a resumed `yield` value alive otherwise).
+	 */
+	waiting: Array<{ resolve: () => void }> = [];
 	done = false;
 	/** True once finalResultPromise has been resolved or rejected. */
 	resultSettled = false;
@@ -76,22 +81,13 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 			this.resolveFinalResult(this.extractResult(event));
 		}
 
-		// Deliver to waiting consumer or queue it
-		const waiter = this.waiting.shift();
-		if (waiter) {
-			waiter.resolve({ value: event, done: false });
-		} else {
-			this.queue.push(event);
-		}
+		this.deliver(event);
 	}
 
+	/** Queue an event and wake a parked iterator; the iterator then dequeues it. */
 	deliver(event: T): void {
-		const waiter = this.waiting.shift();
-		if (waiter) {
-			waiter.resolve({ value: event, done: false });
-		} else {
-			this.queue.push(event);
-		}
+		this.queue.push(event);
+		this.waiting.shift()?.resolve();
 	}
 
 	end(result?: R): void {
@@ -109,15 +105,13 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 		}
 		// Notify all waiting consumers that we're done
 		while (this.waiting.length > 0) {
-			const waiter = this.waiting.shift()!;
-			waiter.resolve({ value: undefined as any, done: true });
+			this.waiting.shift()!.resolve();
 		}
 	}
 
 	endWaiting(): void {
 		while (this.waiting.length > 0) {
-			const waiter = this.waiting.shift()!;
-			waiter.resolve({ value: undefined as any, done: true });
+			this.waiting.shift()!.resolve();
 		}
 	}
 
@@ -129,8 +123,7 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 		this.resultSettled = true;
 		this.rejectFinalResult(err);
 		while (this.waiting.length > 0) {
-			const waiter = this.waiting.shift()!;
-			waiter.reject(err);
+			this.waiting.shift()!.resolve();
 		}
 	}
 
@@ -167,11 +160,7 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 			} else if (this.done) {
 				return;
 			} else {
-				const result = await new Promise<IteratorResult<T>>((resolve, reject) =>
-					this.waiting.push({ resolve, reject }),
-				);
-				if (result.done) return;
-				yield result.value;
+				await new Promise<void>(resolve => this.waiting.push({ resolve }));
 			}
 		}
 	}

@@ -14,7 +14,7 @@
  * `TempDir`, closes the stats DB handle, and tears everything back down in the
  * matching `afterEach`.
  */
-import { afterEach, beforeEach } from "bun:test";
+import { afterEach, beforeEach } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { closeDb } from "@oh-my-pi/omp-stats/db";

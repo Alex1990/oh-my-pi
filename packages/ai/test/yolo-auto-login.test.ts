@@ -1,23 +1,24 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const originalYoloAutoApiKey = Bun.env.YOLO_AUTO_API_KEY;
+const originalYoloAutoApiKey = bun.env.YOLO_AUTO_API_KEY;
 
 afterEach(() => {
 	if (originalYoloAutoApiKey === undefined) {
-		delete Bun.env.YOLO_AUTO_API_KEY;
+		delete bun.env.YOLO_AUTO_API_KEY;
 	} else {
-		Bun.env.YOLO_AUTO_API_KEY = originalYoloAutoApiKey;
+		bun.env.YOLO_AUTO_API_KEY = originalYoloAutoApiKey;
 	}
 	vi.restoreAllMocks();
 });
 
 describe("Yolo-Auto login wiring", () => {
 	test("resolves YOLO_AUTO_API_KEY from environment", () => {
-		Bun.env.YOLO_AUTO_API_KEY = "yolo-env-key";
+		bun.env.YOLO_AUTO_API_KEY = "yolo-env-key";
 		expect(getEnvApiKey("yolo-auto")).toBe("yolo-env-key");
 	});
 

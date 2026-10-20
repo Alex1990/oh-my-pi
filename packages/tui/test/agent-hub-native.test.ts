@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, expect, spyOn, test, vi } from "bun:test";
+import { afterEach, beforeAll, expect, spyOn, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import type { TspKind, TspPickerProps } from "@oh-my-pi/pi-wire";
 import type { DescribeContext, NativeChild, NativeNode } from "../src/native/node";

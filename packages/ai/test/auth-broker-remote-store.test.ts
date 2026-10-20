@@ -1,8 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+import { nodeTsArgs } from "./helpers/node-ts";
 import { AuthStorage, REMOTE_REFRESH_SENTINEL, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import {
 	AuthBrokerClient,
@@ -15,9 +17,10 @@ import {
 } from "@oh-my-pi/pi-ai/auth-broker";
 import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ANTHROPIC_ENV = ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"] as const;
-const AUTH_BROKER_MODULE = path.resolve(import.meta.dir, "../src/auth-broker/index.ts");
+const AUTH_BROKER_MODULE = pathToFileURL(path.resolve(import.meta.dirname, "../src/auth-broker/index.ts")).href;
 const savedEnv: Partial<Record<(typeof ANTHROPIC_ENV)[number], string | undefined>> = {};
 
 function mintOAuthCredential(suffix: string, expires: number) {
@@ -35,7 +38,7 @@ async function waitUntil(predicate: () => boolean, timeoutMs = 2_000): Promise<v
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		if (predicate()) return;
-		await Bun.sleep(10);
+		await bun.sleep(10);
 	}
 	if (!predicate()) throw new Error("waitUntil timeout");
 }
@@ -58,7 +61,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 		await store.saveOAuth("anthropic", mintOAuthCredential("a", Date.now() + 60_000));
 		storage = new AuthStorage(store);
 		await storage.credentials.reload();
-		handle = startAuthBroker({
+		handle = await startAuthBroker({
 			storage,
 			bind: "127.0.0.1:0",
 			bearerTokens: [token],
@@ -193,7 +196,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 			storage = new AuthStorage(store);
 			await storage.credentials.reload();
 			expect(storage.credentials.generation).toBeLessThan(previousGeneration);
-			handle = startAuthBroker({
+			handle = await startAuthBroker({
 				storage,
 				bind,
 				bearerTokens: [token],
@@ -359,8 +362,8 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 			");",
 			"await postmortem.quit(0);",
 		].join("\n");
-		const child = Bun.spawn([process.execPath, "--eval", script], {
-			cwd: import.meta.dir,
+		const child = bun.spawn(nodeTsArgs("--eval", script), {
+			cwd: import.meta.dirname,
 			stdin: "ignore",
 			stdout: "ignore",
 			stderr: "pipe",
@@ -400,7 +403,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 		// Parked: no reconnect attempts while the store stays unused.
 		// Real delay on purpose: the idle watchdog runs on real unref'd timers
 		// against a live SSE server, so fake timers cannot drive this path.
-		await Bun.sleep(300);
+		await bun.sleep(300);
 		expect(openSpy.mock.calls.length).toBe(1);
 
 		// Any foreground use wakes the loop and re-establishes the stream.
@@ -509,7 +512,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 		const excluded = initialResult.snapshot.credentials.find(entry => entry.identityKey?.includes("b@example.com"));
 		if (!allowed?.identityKey || !excluded?.identityKey) throw new Error("expected OAuth identity keys");
 		const poolPath = path.join(tempDir, "account-pool.json");
-		await Bun.write(poolPath, JSON.stringify({ anthropic: [allowed.identityKey] }));
+		await bun.write(poolPath, JSON.stringify({ anthropic: [allowed.identityKey] }));
 
 		await withEnv(
 			{
@@ -525,7 +528,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 				try {
 					expect(discovered.oauth.accounts("anthropic").map(account => account.email)).toEqual(["a@example.com"]);
 
-					await Bun.write(poolPath, JSON.stringify({ anthropic: [allowed.identityKey, excluded.identityKey] }));
+					await bun.write(poolPath, JSON.stringify({ anthropic: [allowed.identityKey, excluded.identityKey] }));
 					await discovered.credentials.reload();
 					expect(discovered.oauth.accounts("anthropic").map(account => account.email)).toEqual(["a@example.com"]);
 				} finally {

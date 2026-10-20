@@ -21,7 +21,7 @@
  * instead of a guessed wall-clock delay.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import {
 	SessionWriteConflictError,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import {
 	type CfgAppliedChange,
@@ -14,6 +14,7 @@ import { cfgEditFuzzyMatch } from "@oh-my-pi/pi-coding-agent/edit/settings";
 import { cfgModelRoles } from "@oh-my-pi/pi-coding-agent/config/model-settings";
 import { cfgSearxngEndpoint } from "@oh-my-pi/pi-coding-agent/web/settings";
 import type { InternalWriteResult } from "@oh-my-pi/pi-coding-agent/internal-urls/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function sessionWith(settings: Settings, caller: Partial<ToolSession> = {}): ToolSession {
 	return { settings, hasUI: true, settingsApproval: true, taskDepth: 0, ...caller } as unknown as ToolSession;
@@ -155,16 +156,16 @@ describe("CfgProtocolHandler", () => {
 			applied: () => {},
 			persistentSettings: Settings.isolated(),
 		});
-		const previous = Bun.env.PI_EDIT_FUZZY;
-		Bun.env.PI_EDIT_FUZZY = "1";
+		const previous = bun.env.PI_EDIT_FUZZY;
+		bun.env.PI_EDIT_FUZZY = "1";
 		try {
 			await expect(write("cfg://edit/fuzzyMatch", "false", settings)).rejects.toThrow("PI_EDIT_FUZZY");
 			expect(asked).toEqual([]);
 			expect(cfgEditFuzzyMatch.provenance(settings)).toBe("env");
 			expect(cfgEditFuzzyMatch.get(settings)).toBe(true);
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_EDIT_FUZZY;
-			else Bun.env.PI_EDIT_FUZZY = previous;
+			if (previous === undefined) delete bun.env.PI_EDIT_FUZZY;
+			else bun.env.PI_EDIT_FUZZY = previous;
 		}
 	});
 
@@ -176,8 +177,8 @@ describe("CfgProtocolHandler", () => {
 			applied: () => {},
 			persistentSettings: settings,
 		});
-		const previous = Bun.env.SEARXNG_ENDPOINT;
-		Bun.env.SEARXNG_ENDPOINT = "http://env.example";
+		const previous = bun.env.SEARXNG_ENDPOINT;
+		bun.env.SEARXNG_ENDPOINT = "http://env.example";
 		try {
 			const session = await write("cfg://searxng/endpoint", '"http://session.example"', settings);
 			expect(session.details?.cfg).toMatchObject({ outcome: "applied" });
@@ -188,8 +189,8 @@ describe("CfgProtocolHandler", () => {
 			expect(asked).toHaveLength(2);
 			expect(asked.map(request => request.shadowedBy)).toEqual([undefined, undefined]);
 		} finally {
-			if (previous === undefined) delete Bun.env.SEARXNG_ENDPOINT;
-			else Bun.env.SEARXNG_ENDPOINT = previous;
+			if (previous === undefined) delete bun.env.SEARXNG_ENDPOINT;
+			else bun.env.SEARXNG_ENDPOINT = previous;
 		}
 	});
 

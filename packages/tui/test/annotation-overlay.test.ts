@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, afterEach, it } from "bun:test";
+import { beforeAll, beforeEach, describe, expect, afterEach, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { formatKeyHint, KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { getKeybindings, setKeybindings, type TUI } from "@oh-my-pi/pi-tui";
@@ -12,6 +12,7 @@ import type {
 } from "@oh-my-pi/pi-tui/overlays/annotation-types";
 import type { NativeUiEvent } from "../src/native/node";
 import { sliceByColumn, visibleWidth } from "../src/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ENTER = "\r";
 const TAB = "\t";
@@ -423,7 +424,7 @@ describe("AnnotationOverlay", () => {
 		overlay.handleInput("a");
 		overlay.handleInput("draft");
 		overlay.handleInput(CTRL_E);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(observedDrafts).toEqual(["draft"]);
 		expect(render(overlay)).toContain("external");
 		overlay.handleInput(ENTER);

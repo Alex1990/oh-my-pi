@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -44,6 +44,7 @@ import type {
 import * as gh from "@oh-my-pi/pi-coding-agent/tools/gh";
 import { github } from "@oh-my-pi/pi-coding-agent/utils/github";
 import { VirtualTerminal } from "../../../../tui/test/virtual-terminal";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 
 const ENTER = "\r";
 const UP = "\x1b[A";
@@ -792,7 +793,7 @@ describe("/annotate contracts", () => {
 		await withTempDir(async directory => {
 			const dir = await realpath(directory);
 			const cwd = join(dir, "packages");
-			await Bun.$`git init -q ${dir}`.quiet();
+			await $`git init -q ${dir}`.quiet();
 			await mkdir(cwd);
 			await mkdir(join(dir, "src"));
 			await writeFile(join(dir, "src/value.ts"), "const value = 2;\n");

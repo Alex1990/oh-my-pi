@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Process } from "@oh-my-pi/pi-natives";
@@ -14,6 +14,8 @@ import {
 } from "../../src/launch/protocol";
 import { listServices, sendService, startService, waitForOwnedServiceCompletion } from "../../src/launch/services";
 import type { ToolSession } from "../../src/tools";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 interface EmbeddedBroker {
 	/** Settles once this in-process broker has shut down and flushed its metadata. */
@@ -156,7 +158,7 @@ describe("session-owned supervised services", () => {
 			).toEqual([["old-session", "old-session", "old-service", "failed"]]);
 			await client.request({ op: "shutdown" });
 			await broker.finished;
-			const metadata = (await Bun.file(path.join(runtimeDir, "daemons", "old-service", "meta.json")).json()) as {
+			const metadata = (await bun.file(path.join(runtimeDir, "daemons", "old-service", "meta.json")).json()) as {
 				pendingCompletions: DaemonCompletionNotification[];
 			};
 			expect(metadata.pendingCompletions).toEqual([]);
@@ -210,7 +212,7 @@ describe("session-owned supervised services", () => {
 				spec: {
 					name: "detached-service",
 					application: process.execPath,
-					args: ["-e", "Bun.serve({port: 0, fetch() { return new Response('ok'); } })"],
+					args: ["-e", "serve({port: 0, fetch() { return new Response('ok'); } })"],
 					env: {},
 					cwd: projectDir,
 					pty: false,
@@ -248,7 +250,7 @@ describe("session-owned supervised services", () => {
 			// broker process that recovers and rewrites the metadata read below.
 			client.close();
 			await broker.finished;
-			const metadata = (await Bun.file(
+			const metadata = (await bun.file(
 				path.join(runtimeDir, "daemons", "detached-service", "meta.json"),
 			).json()) as {
 				pendingCompletions: DaemonCompletionNotification[];

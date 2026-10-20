@@ -1,4 +1,6 @@
 import path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 /**
  * Every `ar/` test fixture bundled as a single `tar.gz`, loaded once per test run.
@@ -14,7 +16,7 @@ let filesPromise: Promise<Map<string, File>> | null = null;
 
 function loadFiles(): Promise<Map<string, File>> {
 	filesPromise ??= (async () => {
-		const archive = new Bun.Archive(await Bun.file(path.join(import.meta.dir, "../fixtures/ar.tar.gz")).bytes());
+		const archive = new Archive(await bun.file(path.join(import.meta.dirname, "../fixtures/ar.tar.gz")).bytes());
 		return archive.files();
 	})();
 	return filesPromise;

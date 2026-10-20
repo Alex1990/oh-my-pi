@@ -4,7 +4,7 @@
  * otherwise loads the user's ~/.omp/SYSTEM.md, RULES.md and AGENTS.md as project
  * config, even when the agent dir points elsewhere (profiles, isolated runs).
  */
-import { afterEach, beforeEach, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,6 +18,8 @@ import type { LoadContext } from "@oh-my-pi/pi-coding-agent/capability/types";
 // Importing discovery registers all providers as a side effect.
 import "@oh-my-pi/pi-coding-agent/discovery";
 import { __resetDirsFromEnvForTests, removeSyncWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 let tempDir: string;
 let home: string;

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as zlib from "node:zlib";
@@ -12,6 +12,8 @@ import {
 	type ScreenshotArea,
 } from "@oh-my-pi/pi-coding-agent/utils/image-resize";
 import { encodeRawPng } from "@oh-my-pi/pi-coding-agent/utils/png-encode";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 describe("formatScreenshot", () => {
 	function fakeResized(
@@ -158,20 +160,20 @@ describe("formatScreenshot", () => {
 	});
 });
 
-// 1x1 red PNG (69 bytes) — used as a Bun.Image seed to synthesize larger fixtures
+// 1x1 red PNG (69 bytes) — used as a Image seed to synthesize larger fixtures
 // without checking binary blobs into the repo.
 const RED_1X1_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
 
 async function makeRedPng(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
+	const upscaled = await new Image(seed).resize(width, height, { filter: "nearest" }).png().bytes();
 	return Buffer.from(upscaled).toBase64();
 }
 
 async function makeRedWebP(width: number, height: number): Promise<string> {
 	const seed = Buffer.from(RED_1X1_PNG_BASE64, "base64");
-	const upscaled = await new Bun.Image(seed)
+	const upscaled = await new Image(seed)
 		.resize(width, height, { filter: "nearest" })
 		.webp({ quality: 90 })
 		.bytes();
@@ -319,7 +321,7 @@ describe("resizeImage tight budget fallback", () => {
 		it(`returns bytes that decode at the reported size within budget (excludeWebP: ${excludeWebP})`, async () => {
 			// Precondition: the first full-size encode misses the budget, so the result
 			// must come from the fallback ladder.
-			const firstJpeg = await new Bun.Image(noisePng).jpeg({ quality: 80 }).bytes();
+			const firstJpeg = await new Image(noisePng).jpeg({ quality: 80 }).bytes();
 			expect(firstJpeg.length).toBeGreaterThan(maxBytes);
 
 			const result = await resizeImage({ bytes: noisePng, mimeType: "image/png" }, { maxBytes, excludeWebP });
@@ -328,7 +330,7 @@ describe("resizeImage tight budget fallback", () => {
 			expect(result.buffer.length).toBeLessThanOrEqual(maxBytes);
 			expect(result.width).toBeLessThan(400);
 			expect(result.height).toBeLessThan(400);
-			const decoded = await new Bun.Image(result.buffer).metadata();
+			const decoded = await new Image(result.buffer).metadata();
 			expect(decoded.width).toBe(result.width);
 			expect(decoded.height).toBe(result.height);
 			expect(`image/${decoded.format}`).toBe(result.mimeType);
@@ -338,7 +340,7 @@ describe("resizeImage tight budget fallback", () => {
 });
 
 describe("resizeImage decode fallback", () => {
-	it("reports PNG header dimensions when Bun.Image rejects after reading IHDR", async () => {
+	it("reports PNG header dimensions when Image rejects after reading IHDR", async () => {
 		const png = Buffer.alloc(33);
 		Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
 		png.writeUInt32BE(13, 8);
@@ -358,7 +360,7 @@ describe("resizeImage decode fallback", () => {
 		expect(result.buffer.length).toBe(png.length);
 	});
 
-	it("reports JPEG SOF dimensions when Bun.Image rejects after reading the header", async () => {
+	it("reports JPEG SOF dimensions when Image rejects after reading the header", async () => {
 		const jpeg = Buffer.alloc(12);
 		jpeg[0] = 0xff;
 		jpeg[1] = 0xd8;
@@ -392,7 +394,7 @@ describe("resizeImage minimum dimension", () => {
 		expect(result.width).toBe(200);
 		expect(result.height).toBe(200);
 		// The encoded bytes actually carry those dimensions.
-		const meta = await new Bun.Image(Buffer.from(result.data, "base64")).metadata();
+		const meta = await new Image(Buffer.from(result.data, "base64")).metadata();
 		expect(meta.width).toBeGreaterThanOrEqual(200);
 		expect(meta.height).toBeGreaterThanOrEqual(200);
 	});
@@ -415,7 +417,7 @@ describe("resizeImage minimum dimension", () => {
 
 		expect(result.width).toBe(1568);
 		expect(result.height).toBe(139);
-		const meta = await new Bun.Image(Buffer.from(result.data, "base64")).metadata();
+		const meta = await new Image(Buffer.from(result.data, "base64")).metadata();
 		expect(meta.width).toBe(1568);
 		expect(meta.height).toBe(139);
 		expect(formatDimensionNote(result)).toContain("Multiply coordinates by 0.44");
@@ -427,7 +429,7 @@ describe("fitImage", () => {
 	const JEV = { minSide: 280, maxSide: 1568, minPixels: 78_400, maxPixels: 2_458_624, maxBytes: 16 * 1024 * 1024 };
 
 	async function size(data: string): Promise<[number, number]> {
-		const { width, height } = await new Bun.Image(Buffer.from(data, "base64")).metadata();
+		const { width, height } = await new Image(Buffer.from(data, "base64")).metadata();
 		return [width, height];
 	}
 
@@ -525,7 +527,7 @@ describe("resizeImage translucency", () => {
 				expect(result.wasResized).toBe(true);
 				expect(result.mimeType).not.toBe("image/jpeg");
 				if (excludeWebP) expect(result.mimeType).toBe("image/png");
-				const { width, height, pixels } = decodePng(await new Bun.Image(result.buffer).png().bytes());
+				const { width, height, pixels } = decodePng(await new Image(result.buffer).png().bytes());
 				expect([width, height]).toEqual([result.width, result.height]);
 				expect(pixels[3]).toBe(0);
 				expect(pixels[((height >> 1) * width + (width >> 1)) * 4 + 3]).toBe(255);
@@ -541,19 +543,19 @@ describe("resizeImage translucency", () => {
 });
 
 describe("resizeImage env wiring", () => {
-	const prior = Bun.env.OMP_NO_WEBP;
+	const prior = bun.env.OMP_NO_WEBP;
 
 	beforeEach(() => {
-		delete (Bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
+		delete (bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
 	});
 
 	afterEach(() => {
-		if (prior === undefined) delete (Bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
-		else Bun.env.OMP_NO_WEBP = prior;
+		if (prior === undefined) delete (bun.env as Record<string, string | undefined>).OMP_NO_WEBP;
+		else bun.env.OMP_NO_WEBP = prior;
 	});
 
 	it("treats OMP_NO_WEBP=1 set at call time as exclusion (not baked at module load)", async () => {
-		Bun.env.OMP_NO_WEBP = "1";
+		bun.env.OMP_NO_WEBP = "1";
 
 		const result = await resizeImage({ type: "image", data: smallWebp, mimeType: "image/webp" });
 
@@ -561,11 +563,11 @@ describe("resizeImage env wiring", () => {
 	});
 
 	it("treats OMP_NO_WEBP='' / '0' as NOT excluded", async () => {
-		Bun.env.OMP_NO_WEBP = "";
+		bun.env.OMP_NO_WEBP = "";
 		const empty = await resizeImage({ type: "image", data: smallWebp, mimeType: "image/webp" });
 		expect(empty.mimeType).toBe("image/webp");
 
-		Bun.env.OMP_NO_WEBP = "0";
+		bun.env.OMP_NO_WEBP = "0";
 		const zero = await resizeImage({ type: "image", data: smallWebp, mimeType: "image/webp" });
 		expect(zero.mimeType).toBe("image/webp");
 	});

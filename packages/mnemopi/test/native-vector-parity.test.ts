@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { cosineSimilarityPairs, mmrRerankIndices, vectorIndexTopK } from "@oh-my-pi/pi-natives";
 import { jaccardSimilarity, mmrRerank } from "../src/core/mmr";
 import { buildExactVectorIndex, searchExactVectorIndex } from "../src/core/vector-index";

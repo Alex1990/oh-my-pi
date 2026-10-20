@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { formatDebugLogExpandedLines, parseDebugLogTimestampMs } from "@oh-my-pi/pi-tui/apps/debug/log-formatting";
 import { sanitizeDisplayText } from "@oh-my-pi/pi-tui/overlays/extensions/display-text";
 import { truncateToWidth } from "@oh-my-pi/pi-tui/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("log display text", () => {
 	it("strips ANSI codes and carriage returns", () => {
@@ -25,7 +26,7 @@ describe("log display text", () => {
 	it("truncates long lines", () => {
 		const input = "0123456789ABCDEFGHIJ";
 		const result = truncateToWidth(sanitizeDisplayText(input), 10);
-		expect(Bun.stringWidth(result)).toBeLessThanOrEqual(10);
+		expect(bun.stringWidth(result)).toBeLessThanOrEqual(10);
 		expect(result.startsWith("012345")).toBe(true);
 	});
 
@@ -34,7 +35,7 @@ describe("log display text", () => {
 		const lines = formatDebugLogExpandedLines(input, 6);
 		expect(lines.length).toBeGreaterThan(1);
 		for (const line of lines) {
-			expect(Bun.stringWidth(line)).toBeLessThanOrEqual(6);
+			expect(bun.stringWidth(line)).toBeLessThanOrEqual(6);
 		}
 	});
 

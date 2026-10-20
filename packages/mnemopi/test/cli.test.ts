@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cmdRecall, cmdRemember, cmdStats, runCli } from "@oh-my-pi/pi-mnemopi/cli";
 import { BeamMemory } from "@oh-my-pi/pi-mnemopi/core/beam";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function tempRoot(): string {
 	return mkdtempSync(join(tmpdir(), "mnemopi-ts-cli-"));
@@ -107,7 +108,7 @@ describe("CLI command handlers", () => {
 	});
 
 	it("awaits the MCP server until stdin closes", async () => {
-		const originalStream = Bun.stdin.stream;
+		const originalStream = bun.stdin.stream;
 		const ready = Promise.withResolvers<void>();
 		let controller: ReadableStreamDefaultController<Uint8Array<ArrayBuffer>> | undefined;
 		let closed = false;
@@ -117,7 +118,7 @@ describe("CLI command handlers", () => {
 				ready.resolve();
 			},
 		});
-		Bun.stdin.stream = () => input;
+		bun.stdin.stream = () => input;
 		try {
 			let resolved = false;
 			const cliPromise = runCli(["mcp"]).then(code => {
@@ -134,7 +135,7 @@ describe("CLI command handlers", () => {
 			expect(await cliPromise).toBe(0);
 			expect(resolved).toBe(true);
 		} finally {
-			Bun.stdin.stream = originalStream;
+			bun.stdin.stream = originalStream;
 			if (!closed) controller?.close();
 		}
 	});

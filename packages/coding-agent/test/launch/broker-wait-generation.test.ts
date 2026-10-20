@@ -2,7 +2,7 @@
  * Integration test: the real broker socket and child-process exit drive the
  * generation transition, so fake timers cannot control the observed events.
  */
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
@@ -10,6 +10,7 @@ import { startDaemonBrokerFromEnvironment } from "../../src/launch/broker";
 import { createDaemonBrokerClient, type DaemonBrokerClient, DaemonBrokerRejectedError } from "../../src/launch/client";
 import { DAEMON_IDLE_GRACE_ENV, DAEMON_PROJECT_DIR_ENV, DAEMON_RUNTIME_DIR_ENV } from "../../src/launch/protocol";
 import { type DaemonSpec } from "@oh-my-pi/pi-tui/tools/daemon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function restoreEnv(name: string, value: string | undefined): void {
 	if (value === undefined) delete process.env[name];
@@ -87,7 +88,7 @@ describe("daemon wait generation binding", () => {
 					restartObserved = true;
 					break;
 				}
-				await Bun.sleep(25);
+				await bun.sleep(25);
 			}
 			const error = await waitPending;
 			const elapsed = Date.now() - waitStartedAt;

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { md } from "@oh-my-pi/pi-tui/native/describe";
 import type { DescribeContext, NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import { nativeComponentId } from "@oh-my-pi/pi-tui/native/reconcile";
 import { isNativeRendering } from "@oh-my-pi/pi-tui/native/state";
 import type { Component } from "@oh-my-pi/pi-tui/tui";
 import { TspHarness } from "./tsp-harness";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Markdown where the terminal renders it, else rows. */
 class Note implements Component {
@@ -40,7 +41,7 @@ describe("optimistic native start (TERM_PROGRAM=tern)", () => {
 		expect(h.terminal.tspProbePending).toBe(true);
 		expect(verbs(h)[0]).toBe("o");
 		expect(verbs(h)).toContain("f");
-		expect(Bun.stripANSI(h.terminal.rowBytes).trim()).toBe("");
+		expect(bun.stripANSI(h.terminal.rowBytes).trim()).toBe("");
 		expect(isNativeRendering()).toBe(true);
 		expect(h.byId(nativeComponentId(note))).toMatchObject({ k: "md", p: { text: "hello" } });
 		expect(h.errors).toEqual([]);

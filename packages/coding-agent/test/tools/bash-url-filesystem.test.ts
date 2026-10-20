@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -51,7 +51,8 @@ describe("bash internal URLs through the shell filesystem", () => {
 		expect(await fs.readFile(path.join(localRoot, "out.txt"), "utf-8")).toBe("hi\nmore\n");
 	});
 
-	it("follows URL symlinks and resolves backed URLs to their physical path", async () => {
+	// Creating symlinks on Windows requires Developer Mode or an elevated token.
+	it.skipIf(process.platform === "win32")("follows URL symlinks and resolves backed URLs to their physical path", async () => {
 		const { text, isError } = await run(
 			"printf 'body\\n' > local://source.txt && ln -s local://source.txt local://link && cat local://link && readlink local://link && realpath local://link",
 		);

@@ -12,6 +12,7 @@ import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/typ
 import { unpackEnvelope } from "@oh-my-pi/pi-coding-agent/collab/protocol";
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import type { FakeWebSocket, InMemoryRelay } from "./in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const HIGH_WATER_MARK = 64 * 1024;
 
@@ -131,6 +132,6 @@ export async function waitFor(predicate: () => boolean, message: string, timeout
 	const deadline = Date.now() + timeoutMs;
 	while (!predicate()) {
 		if (Date.now() > deadline) throw new Error(message);
-		await Bun.sleep(5);
+		await bun.sleep(5);
 	}
 }

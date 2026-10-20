@@ -88,6 +88,7 @@ import {
 	cfgRetryUsageReservePct,
 	cfgRetryUsageReservePolicy,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const THINKING_LOOP_REDIRECT_TYPE = "thinking-loop-redirect";
 const UNEXPECTED_STOP_MAX_RETRIES = 3;
@@ -1395,7 +1396,7 @@ export class TurnRecovery {
 				left.model === right.model &&
 				left.stopReason === right.stopReason &&
 				left.errorMessage === right.errorMessage &&
-				Bun.hash(JSON.stringify(left.content)) === Bun.hash(JSON.stringify(right.content)))
+				bun.hash(JSON.stringify(left.content)) === bun.hash(JSON.stringify(right.content)))
 		);
 	}
 
@@ -2304,7 +2305,7 @@ export class TurnRecovery {
 				const { systemPrompt, tools } = this.#host.agent.state;
 				const requestSurfaceUnchanged =
 					this.#host.resolveActiveEditMode() === previousEditMode &&
-					Bun.deepEquals(systemPrompt, previousSystemPrompt) &&
+					bun.deepEquals(systemPrompt, previousSystemPrompt) &&
 					tools.length === previousTools.length &&
 					tools.every((tool, index) => tool === previousTools[index]);
 				if (

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as zlib from "node:zlib";
 import { convertToHtml, type DocxResult, images } from "@oh-my-pi/pi-utils/docx";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const WML = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const OFFICE_RELATIONSHIPS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -127,7 +128,7 @@ describe("DOCX to HTML", () => {
 		const directory = await fs.mkdtemp(path.join(os.tmpdir(), "pi-docx-"));
 		const filename = path.join(directory, "fixture.docx");
 		try {
-			await Bun.write(filename, document);
+			await bun.write(filename, document);
 			expect(await convertToHtml({ path: filename })).toEqual(expected);
 		} finally {
 			await fs.rm(directory, { recursive: true, force: true });

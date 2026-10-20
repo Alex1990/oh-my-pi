@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 import type { AgentToolUpdateCallback } from "@oh-my-pi/pi-agent-core";
 import { formatBytes, materializeString, sanitizeText } from "@oh-my-pi/pi-utils";
 import { sanitizeWithOptionalSixelPassthrough } from "../render/sixel";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { FileSink } from "@oh-my-pi/pi-utils/node-runtime";
 
 // =============================================================================
 // Constants
@@ -914,7 +916,7 @@ export class OutputSink {
 	#file?: {
 		path: string;
 		artifactId?: string;
-		sink: Bun.FileSink;
+		sink: FileSink;
 	};
 
 	// Queue of chunks waiting for the file sink to be created.
@@ -926,7 +928,6 @@ export class OutputSink {
 	#finalized = false;
 	#fileFinalization?: Promise<void>;
 	#artifactError?: OutputArtifactError;
-	#pendingArtifactWrites?: Set<Promise<void>>;
 
 	readonly #artifactPath?: string;
 	readonly #artifactId?: string;
@@ -1360,20 +1361,8 @@ export class OutputSink {
 	#writeArtifact(chunk: string, operation: OutputArtifactError = "write"): void {
 		if (!this.#file || this.#artifactError) return;
 		try {
-			const written = this.#file.sink.write(chunk);
-			if (typeof written !== "number") {
-				const writes = (this.#pendingArtifactWrites ??= new Set());
-				const pending = written.then(
-					() => {
-						writes.delete(pending);
-					},
-					() => {
-						writes.delete(pending);
-						this.#recordArtifactError(operation);
-					},
-				);
-				writes.add(pending);
-			}
+			// `FileSink.write` queues synchronously and reports failures as throws.
+			this.#file.sink.write(chunk);
 		} catch {
 			this.#recordArtifactError(operation);
 		}
@@ -1386,7 +1375,7 @@ export class OutputSink {
 			// directory) only fails on the first write, misreported as a write
 			// failure. Probe the open eagerly so it stays classified — and terminal.
 			if (process.platform === "win32") fs.closeSync(fs.openSync(this.#artifactPath, "w"));
-			const sink = Bun.file(this.#artifactPath).writer();
+			const sink = bun.file(this.#artifactPath).writer();
 			this.#file = { path: this.#artifactPath, artifactId: this.#artifactId, sink };
 			this.#fileReady = true;
 
@@ -1656,15 +1645,13 @@ export class OutputSink {
 		if (this.#fileCreation) {
 			await this.#fileCreation;
 		}
-		if (this.#pendingArtifactWrites?.size) await Promise.all(this.#pendingArtifactWrites);
 		const file = this.#file;
 		if (!file) return;
 		// Capture failures must not replace the command's result. Always close,
 		// even when tail replay or flushing fails, and never advertise that file.
 		try {
 			this.#flushArtifactTailIfCapped();
-			if (this.#pendingArtifactWrites?.size) await Promise.all(this.#pendingArtifactWrites);
-			if (!this.#artifactError) await file.sink.flush();
+				if (!this.#artifactError) await file.sink.flush();
 		} catch {
 			this.#recordArtifactError("flush");
 		} finally {

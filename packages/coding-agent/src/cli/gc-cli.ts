@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Readable } from "node:stream";
@@ -52,14 +52,16 @@ import {
 	cfgGcStaleRetainNewest,
 	cfgGcWal,
 } from "./gc-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BLOB_FILE_RE = /^([a-f0-9]{64})(?:\.[A-Za-z0-9][A-Za-z0-9._-]{0,31})?$/;
 const BLOB_REF_RE = /\bblob:sha256:([a-f0-9]{64})\b/gi;
-const JSONL_GLOB = new Bun.Glob("**/*.jsonl");
-const JSONL_GZ_GLOB = new Bun.Glob("**/*.jsonl.gz");
-const JSONL_BACKUP_GLOB = new Bun.Glob("**/*.jsonl.*.bak");
-const SESSION_STAGING_GLOB = new Bun.Glob("**/.*.jsonl.*.tmp");
-const ANY_FILE_GLOB = new Bun.Glob("**/*");
+const JSONL_GLOB = new Glob("**/*.jsonl");
+const JSONL_GZ_GLOB = new Glob("**/*.jsonl.gz");
+const JSONL_BACKUP_GLOB = new Glob("**/*.jsonl.*.bak");
+const SESSION_STAGING_GLOB = new Glob("**/.*.jsonl.*.tmp");
+const ANY_FILE_GLOB = new Glob("**/*");
 const ACTIVE_STATUSES: ReadonlySet<SessionStatus> = new Set(["pending", "interrupted", "unknown"]);
 const DAY_MS = 86_400_000;
 const GC_WRITE_GRACE_MS = 5 * 60_000;
@@ -368,7 +370,7 @@ async function statIfPresent(target: string) {
 /** Small registry/breadcrumb marker files; a missing file reads as empty. */
 async function readTextIfPresent(file: string): Promise<string> {
 	try {
-		return await Bun.file(file).text();
+		return await bun.file(file).text();
 	} catch (error) {
 		if (codeOf(error) === "ENOENT") return "";
 		throw error;
@@ -381,14 +383,14 @@ async function scanSessionLinesIfPresent(file: string, onLine: (line: Uint8Array
 		for await (const line of readLines(stream)) onLine(line);
 	};
 	try {
-		const stream = Bun.file(file).stream();
+		const stream = bun.file(file).stream();
 		if (file.endsWith(COMPRESSED_SESSION_SUFFIX)) {
 			const gunzip = createGunzip();
-			await pipeline(stream, gunzip, async (source: NodeJS.ReadableStream) => {
+			await pipeline(stream, gunzip, async (source: AsyncIterable<Uint8Array>) => {
 				// Match the native stream's byte budget, not one arbitrary chunk or
 				// a default queue that counts each potentially large chunk as size 1.
 				await scan(
-					Readable.toWeb(source, {
+					Readable.toWeb(Readable.from(source), {
 						strategy: new ByteLengthQueuingStrategy({ highWaterMark: gunzip.readableHighWaterMark }),
 					}),
 				);
@@ -961,7 +963,7 @@ class SessionLineageHeaderReader {
 async function readSessionLineageHeader(file: string): Promise<SessionLineageHeader | undefined> {
 	const decoder = new TextDecoder();
 	const reader = new SessionLineageHeaderReader();
-	for await (const line of readLines(Bun.file(file).stream())) {
+	for await (const line of readLines(bun.file(file).stream())) {
 		reader.read(decoder.decode(line));
 		if (reader.done) break;
 	}
@@ -990,7 +992,7 @@ async function gzipSessionFile(source: string, destination: string): Promise<voi
 	let renamed = false;
 	try {
 		await pipeline(
-			Bun.file(source).stream(),
+			bun.file(source).stream(),
 			createGzip({ level: 9 }),
 			(await fs.open(tempPath, "w")).createWriteStream(),
 		);
@@ -1008,7 +1010,7 @@ async function restoreGzipSessionFile(source: string, destination: string): Prom
 	await fs.mkdir(path.dirname(destination), { recursive: true });
 	const tempPath = `${destination}.${process.pid}.${Date.now()}.tmp`;
 	try {
-		await pipeline(Bun.file(source).stream(), createGunzip(), (await fs.open(tempPath, "w")).createWriteStream());
+		await pipeline(bun.file(source).stream(), createGunzip(), (await fs.open(tempPath, "w")).createWriteStream());
 		await fs.rename(tempPath, destination);
 		await fs.unlink(source);
 	} catch (error) {
@@ -1483,7 +1485,7 @@ async function collectSessionStatsIdentities(
 ): Promise<Record<StatsEntryTable, StatsEntryIdentity[]>> {
 	const identities = createStatsIdentities();
 	const decoder = new TextDecoder();
-	for await (const line of readLines(Bun.file(sessionPath).stream())) {
+	for await (const line of readLines(bun.file(sessionPath).stream())) {
 		addSessionStatsIdentity(decoder.decode(line), identities);
 	}
 	return identities;
@@ -1895,7 +1897,7 @@ async function collectSessionFiles(session: SessionInfo): Promise<string[]> {
  * whitespace; other binary and plain-text artifacts cost one small read.
  */
 async function readArtifactSessionId(file: string): Promise<string | undefined> {
-	const prefix = (await Bun.file(file).slice(0, HEADER_SNIFF_BYTES).text()).replace(/^[ \t\r\n]+/, "");
+	const prefix = (await bun.file(file).slice(0, HEADER_SNIFF_BYTES).text()).replace(/^[ \t\r\n]+/, "");
 	if (prefix !== "" && prefix[0] !== "{") return undefined;
 	return readSessionHeaderId(file);
 }
@@ -2131,7 +2133,7 @@ async function readGcLockSnapshot(lockPath: string): Promise<GcLockSnapshot | nu
 
 	let lockText = "";
 	try {
-		lockText = await Bun.file(lockPath).text();
+		lockText = await bun.file(lockPath).text();
 	} catch (error) {
 		if (codeOf(error) === "ENOENT") return null;
 		throw error;

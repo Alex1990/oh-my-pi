@@ -1,5 +1,6 @@
 import { matchesKittySequence as nativeMatchesKittySequence } from "@oh-my-pi/pi-natives";
 import { parseKittySequence } from "../src/keys";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ITERATIONS = 2000;
 const LOCK_MASK = 64 + 128;
@@ -25,11 +26,11 @@ function matchesKittySequenceJs(data: string, expectedCodepoint: number, expecte
 }
 
 function bench(name: string, fn: () => void): number {
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < ITERATIONS; i++) {
 		fn();
 	}
-	const elapsed = (Bun.nanoseconds() - start) / 1e6;
+	const elapsed = (bun.nanoseconds() - start) / 1e6;
 	const perOp = (elapsed / ITERATIONS).toFixed(6);
 	console.log(`${name}: ${elapsed.toFixed(2)}ms total (${perOp}ms/op)`);
 	return elapsed;

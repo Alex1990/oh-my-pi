@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -28,6 +28,7 @@ import { getProjectDir, setProjectDir, Snowflake } from "@oh-my-pi/pi-utils";
 import * as utils from "@oh-my-pi/pi-utils";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
 import { createTestSession, type TestSessionContext } from "./utilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("cfg:// approval prompt wiring", () => {
 	let tmp: string;
@@ -121,7 +122,7 @@ describe("cfg:// approval prompt wiring", () => {
 		const start = Date.now();
 		while (seen.length === 0) {
 			if (Date.now() - start > 10_000) throw new Error("approval prompt never appeared");
-			await Bun.sleep(25);
+			await bun.sleep(25);
 		}
 	}
 

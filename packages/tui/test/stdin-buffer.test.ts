@@ -5,9 +5,10 @@
  * MIT License - Copyright (c) 2025 opentui
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { setKittyProtocolActive } from "@oh-my-pi/pi-tui/keys";
 import { StdinBuffer } from "@oh-my-pi/pi-tui/stdin-buffer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("StdinBuffer", () => {
 	let buffer: StdinBuffer;
@@ -45,7 +46,7 @@ describe("StdinBuffer", () => {
 	async function waitUntil(predicate: () => boolean, timeoutMs = 2000): Promise<void> {
 		const deadline = Date.now() + timeoutMs;
 		while (!predicate() && Date.now() < deadline) {
-			await Bun.sleep(2);
+			await bun.sleep(2);
 		}
 	}
 
@@ -142,7 +143,7 @@ describe("StdinBuffer", () => {
 			// flush on timeout, or its tail leaks as typed text (settings search
 			// filling with `[<35;8;16M`).
 			processInput("\x1b[<35;8;16");
-			await Bun.sleep(30);
+			await bun.sleep(30);
 			expect(emittedSequences).toEqual([]);
 
 			processInput("M");
@@ -170,7 +171,7 @@ describe("StdinBuffer", () => {
 				// Under kitty the ESC key arrives as \x1b[27u, so a bare \x1b is
 				// always the head of a split sequence.
 				processInput("\x1b");
-				await Bun.sleep(30);
+				await bun.sleep(30);
 				expect(emittedSequences).toEqual([]);
 
 				processInput("[<35;8;16M");
@@ -268,7 +269,7 @@ describe("StdinBuffer", () => {
 
 		it("does not swallow a real keystroke after the dedup window expires", async () => {
 			processInput("\x1b[97u");
-			await Bun.sleep(50);
+			await bun.sleep(50);
 			processInput("a");
 			expect(emittedSequences).toEqual(["\x1b[97u", "a"]);
 		});
@@ -701,9 +702,9 @@ describe("StdinBuffer", () => {
 			buffer.on("paste", d => pastes.push(d));
 
 			buffer.process("\x1b[200~part1 ");
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			buffer.process("part2");
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			expect(pastes).toEqual([]); // still inside the re-armed window
 
 			buffer.process("\x1b[201~");
@@ -1010,7 +1011,7 @@ describe("StdinBuffer", () => {
 			buffer.destroy();
 
 			// Wait longer than timeout
-			await Bun.sleep(15);
+			await bun.sleep(15);
 
 			// Should not have emitted anything
 			expect(emittedSequences).toEqual([]);

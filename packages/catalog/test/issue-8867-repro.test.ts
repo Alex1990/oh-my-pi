@@ -4,8 +4,8 @@
 // and retries the operation once — so a successful live catalog can be
 // persisted and read back by later processes. Non-corruption reads of a
 // healthy cache never quarantine anything.
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

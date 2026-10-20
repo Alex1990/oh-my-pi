@@ -14,6 +14,7 @@ import {
 	type MuxConnectResult,
 	muxServerKey,
 } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SERVER_LINGER_MS = 5 * 60 * 1_000;
 const MUX_IDLE_MS = 15 * 60 * 1_000;
@@ -102,7 +103,7 @@ class ServerInstance {
 		this.proc = ptree.spawn([params.command, ...params.args], {
 			cwd: params.cwd,
 			stdin: "pipe",
-			env: { ...Bun.env, ...params.env },
+			env: { ...bun.env, ...params.env },
 		});
 	}
 
@@ -584,9 +585,9 @@ export class LspMuxServer {
 			.catch(() => {})
 			.then(async () => {
 				const data = encodeMessageFrame(message);
-				const pendingWrite = Promise.resolve(server.proc.stdin.write(data));
+				const pendingWrite = Promise.resolve(server.proc.proc.stdin.write(data));
 				void pendingWrite.catch(() => {});
-				await Promise.all([pendingWrite, Promise.resolve(server.proc.stdin.flush())]);
+				await Promise.all([pendingWrite, Promise.resolve(server.proc.proc.stdin.flush())]);
 			});
 		server.writeQueue = write.catch(error => {
 			logger.warn("LSP mux server write failed", { server: server.key, error: String(error) });

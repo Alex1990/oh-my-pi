@@ -16,6 +16,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 import { getPluginsDir, isEnoent, logger, tryParseJson } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { getMarketplacesRegistryPath } from "@oh-my-pi/pi-utils";
 
@@ -45,7 +46,7 @@ async function atomicWriteJson(filePath: string, data: unknown): Promise<void> {
 	const content = `${JSON.stringify(data, null, 2)}\n`;
 	const tmpPath = `${filePath}.tmp`;
 
-	await Bun.write(tmpPath, content);
+	await bun.write(tmpPath, content);
 
 	try {
 		await fs.rename(tmpPath, filePath);
@@ -78,7 +79,7 @@ function emptyMarketplacesRegistry(): MarketplacesRegistry {
 
 export async function readMarketplacesRegistry(filePath: string): Promise<MarketplacesRegistry> {
 	try {
-		const content = await Bun.file(filePath).text();
+		const content = await bun.file(filePath).text();
 		const data = tryParseJson<MarketplacesRegistry>(content);
 		if (!data || typeof data !== "object" || data.version !== 1 || !Array.isArray(data.marketplaces)) {
 			logger.warn("Invalid marketplaces registry, returning empty", { path: filePath });
@@ -103,7 +104,7 @@ function emptyInstalledPluginsRegistry(): InstalledPluginsRegistry {
 
 export async function readInstalledPluginsRegistry(filePath: string): Promise<InstalledPluginsRegistry> {
 	try {
-		const content = await Bun.file(filePath).text();
+		const content = await bun.file(filePath).text();
 		const data = tryParseJson<InstalledPluginsRegistry>(content);
 		if (
 			!data ||

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { discoverAndLoadExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TOOL_NAME = "legacy-multi-file-tool";
 
@@ -20,7 +21,7 @@ describe("issue #983: multi-file legacy Pi extensions", () => {
 		const extensionDir = path.join(projectDir, "legacy-pi-multi-file-extension");
 
 		await fs.mkdir(extensionDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(extensionDir, "package.json"),
 			JSON.stringify(
 				{
@@ -34,8 +35,8 @@ describe("issue #983: multi-file legacy Pi extensions", () => {
 				2,
 			),
 		);
-		await Bun.write(path.join(extensionDir, "helper.ts"), `export const foo = ${JSON.stringify(TOOL_NAME)};\n`);
-		await Bun.write(
+		await bun.write(path.join(extensionDir, "helper.ts"), `export const foo = ${JSON.stringify(TOOL_NAME)};\n`);
+		await bun.write(
 			path.join(extensionDir, "index.ts"),
 			[
 				'import { foo } from "./helper.ts";',

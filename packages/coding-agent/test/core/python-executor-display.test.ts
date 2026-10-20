@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { executePythonWithKernel } from "@oh-my-pi/pi-coding-agent/eval/py/executor";
 import type { EvalDisplayOutput } from "@oh-my-pi/pi-coding-agent/eval/types";
 import { FakeKernel } from "./helpers";

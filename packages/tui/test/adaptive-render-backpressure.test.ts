@@ -17,7 +17,7 @@
  * 3. The inflated delay is capped so a pathological frame doesn't stall the
  *    UI indefinitely.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, type RenderTimer, TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
 

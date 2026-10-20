@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { EmbeddableSchema, IR } from "../src/ir";
 import { IR_BRAND, parseDef } from "../src/ir";
 import { irToJsonSchema } from "../src/json-schema";

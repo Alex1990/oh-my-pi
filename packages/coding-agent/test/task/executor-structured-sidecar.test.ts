@@ -5,7 +5,7 @@
  * a schema-invalid yield with parsed data must still get a sidecar so its
  * full payload stays recoverable via `agent://<id>` (PR #10625 review).
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -19,6 +19,7 @@ import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import type { AgentDefinition } from "@oh-my-pi/pi-coding-agent/task/types";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { createSessionDefaults } from "../helpers/session-defaults";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createMockSession(onPrompt: (params: { emit: (event: AgentSessionEvent) => void }) => void): AgentSession {
 	const listeners: Array<(event: AgentSessionEvent) => void> = [];
@@ -98,13 +99,13 @@ describe("structured output sidecar lifecycle", () => {
 		const session = yieldEmittingSession({ ok: true });
 		vi.spyOn(sdkModule, "createAgentSession").mockResolvedValue(createSessionResult(session));
 
-		const originalWrite = Bun.write.bind(Bun);
-		vi.spyOn(Bun, "write").mockImplementation(((dest: unknown, ...rest: unknown[]) => {
+		const originalWrite = bun.write.bind(bun);
+		vi.spyOn(bun, "write").mockImplementation(((dest: unknown, ...rest: unknown[]) => {
 			if (typeof dest === "string" && dest.includes(`${id}.json.tmp-`)) {
 				return Promise.reject(new Error("simulated disk failure"));
 			}
 			return (originalWrite as (...args: unknown[]) => unknown)(dest, ...rest);
-		}) as typeof Bun.write);
+		}) as typeof bun.write);
 
 		const result = await runSubprocess({
 			cwd: "/tmp",

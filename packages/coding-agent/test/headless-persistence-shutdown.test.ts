@@ -9,7 +9,7 @@
  * isolation; this file drives the externally observable shutdown path the three
  * review threads (3979594811, 3979644907, 3983906393) asked for.
  */
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import { parseArgs, type Args } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -19,6 +19,9 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir, postmortem } from "@oh-my-pi/pi-utils";
 import type { AgentSession } from "../src/session/agent-session";
 import { SessionManager } from "../src/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 /**
  * postmortem's raw fatal dump is the renderer's own output — the error text
@@ -195,10 +198,10 @@ describe("headless persistence-failure shutdown path", () => {
 			await runRootCommand(harness.parsed, harness.rawArgs, harness.deps);
 		} catch (error) {
 			// `cli.ts` runs `runCli(...).catch(fatal)`, and `fatal()` renders
-			// `Bun.inspect(error)` onto fd 2. Reproduce that here so the stderr
+			// `bun.inspect(error)` onto fd 2. Reproduce that here so the stderr
 			// asserted below is the stderr an `omp --print` user would get.
 			escaped = error;
-			process.stderr.write(`${Bun.inspect(error, { colors: false })}\n`);
+			process.stderr.write(`${bun.inspect(error, { colors: false })}\n`);
 		} finally {
 			await teardown(harness, stderr, quitSpy);
 		}

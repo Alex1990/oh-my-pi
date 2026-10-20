@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { prompt } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Format prompt files (mixed XML + Markdown + Handlebars).
  *
@@ -14,11 +15,11 @@ import { prompt } from "@oh-my-pi/pi-utils";
  * 8. Trailing newline at EOF (disk only; runtime omits it)
  * 9. Bold RFC 2119 keywords (MUST, SHOULD, MAY, etc.) in prompt content
  */
-import { Glob } from "bun";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
-const PROMPTS_DIR = `${import.meta.dir}/../src/prompts/`;
-const COMMIT_PROMPTS_DIR = `${import.meta.dir}/../src/commit/prompts/`;
-const AGENTIC_PROMPTS_DIR = `${import.meta.dir}/../src/commit/agentic/prompts/`;
+const PROMPTS_DIR = `${import.meta.dirname}/../src/prompts/`;
+const COMMIT_PROMPTS_DIR = `${import.meta.dirname}/../src/commit/prompts/`;
+const AGENTIC_PROMPTS_DIR = `${import.meta.dirname}/../src/commit/agentic/prompts/`;
 
 const PROMPT_DIRS = [PROMPTS_DIR, COMMIT_PROMPTS_DIR, AGENTIC_PROMPTS_DIR];
 
@@ -41,14 +42,14 @@ async function main() {
 	}
 
 	for (const fullPath of files) {
-		const original = await Bun.file(fullPath).text();
+		const original = await bun.file(fullPath).text();
 		const formatted = prompt.format(original, PROMPT_FORMAT_OPTIONS);
 
 		if (original !== `${formatted}\n`) {
 			if (check) {
 				console.log(`Would format: ${fullPath}`);
 			} else {
-				await Bun.write(fullPath, `${formatted}\n`);
+				await bun.write(fullPath, `${formatted}\n`);
 				console.log(`Formatted: ${fullPath}`);
 			}
 			changed++;

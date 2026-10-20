@@ -1,15 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("issue #966 split commit restaging", () => {
 	it("recreates split commits when one commit contains a newly created file", async () => {
-		const packageRoot = path.join(import.meta.dir, "..");
+		const packageRoot = path.join(import.meta.dirname, "..");
 		const script = `
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 
 const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-issue-966-"));
@@ -55,7 +56,7 @@ try {
 	await repo.stageHunks([{ path: "new-file.txt", kind: "all" }], originalStagedDiff);
 	await freshenIndex();
 	const firstStage = await repo.changedFiles({ cached: true });
-	if (!Bun.deepEquals(firstStage, ["new-file.txt"])) {
+	if (!bun.deepEquals(firstStage, ["new-file.txt"])) {
 		throw new Error("unexpected first stage: " + JSON.stringify(firstStage));
 	}
 	await repo.commitCreate("feat: add new file", {});
@@ -63,17 +64,17 @@ try {
 	await repo.stageHunks([{ path: "tracked.txt", kind: "all" }], originalStagedDiff);
 	await freshenIndex();
 	const secondStage = await repo.changedFiles({ cached: true });
-	if (!Bun.deepEquals(secondStage, ["tracked.txt"])) {
+	if (!bun.deepEquals(secondStage, ["tracked.txt"])) {
 		throw new Error("unexpected second stage: " + JSON.stringify(secondStage));
 	}
 	await repo.commitCreate("fix: update tracked file", {});
 	await freshenIndex();
 	const log = (await $\`git log --format=%s -2\`.cwd(dir).text()).trim().split("\\n");
-	if (!Bun.deepEquals(log, ["fix: update tracked file", "feat: add new file"])) {
+	if (!bun.deepEquals(log, ["fix: update tracked file", "feat: add new file"])) {
 		throw new Error("unexpected log: " + JSON.stringify(log));
 	}
 	const summary = await repo.statusSummary();
-	if (!Bun.deepEquals(summary, { staged: 0, unstaged: 0, untracked: 0 })) {
+	if (!bun.deepEquals(summary, { staged: 0, unstaged: 0, untracked: 0 })) {
 		throw new Error("unexpected status: " + JSON.stringify(summary));
 	}
 } finally {

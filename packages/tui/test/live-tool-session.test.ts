@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { LiveToolInfo } from "../src/overlays/extensions/live-tool-session";
 import { ExtensionList } from "../src/overlays/extensions/extension-list";
 import { liveToolsForExtension } from "../src/overlays/extensions/inspector-model";

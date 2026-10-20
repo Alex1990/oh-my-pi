@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import { TUI, visibleWidth } from "@oh-my-pi/pi-tui";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
 import { withoutTerminalMultiplexer } from "../../tui/test/helpers/terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The streaming edit preview is a fixed-height tail window ("cursor"): the last
 // EDIT_STREAMING_PREVIEW_LINES rows of the recomputed diff are pinned to the
@@ -356,7 +357,7 @@ describe("streaming edit preview height (stable, full tail window)", () => {
 			expect(bufferRows.slice(firstFinal).some(row => row.includes(previewPrefix))).toBe(false);
 			const screenText = term
 				.getViewport()
-				.map(row => Bun.stripANSI(row).trimEnd())
+				.map(row => bun.stripANSI(row).trimEnd())
 				.join("\n");
 			expect(screenText).toContain(finalSentinel);
 			expect(screenText).not.toContain(previewPrefix);
@@ -388,7 +389,7 @@ describe("streaming tool call preview height (bounded across renderers)", () => 
 		const component = new ToolExecutionComponent(toolName, args, {}, undefined, tui, process.cwd());
 		try {
 			const lines = component.render(80);
-			return { lines, text: lines.map(line => Bun.stripANSI(line)).join("\n") };
+			return { lines, text: lines.map(line => bun.stripANSI(line)).join("\n") };
 		} finally {
 			component.stopAnimation();
 		}
@@ -396,7 +397,7 @@ describe("streaming tool call preview height (bounded across renderers)", () => 
 
 	function getRenderedLines(lines: readonly string[]): string[] {
 		return lines
-			.map(line => Bun.stripANSI(line).trim())
+			.map(line => bun.stripANSI(line).trim())
 			.filter(line => line.startsWith("│") && line.endsWith("│"))
 			.map(line => line.slice(1, -1).trim())
 			.filter(line => line !== "" && !line.includes("earlier lines"));
@@ -405,7 +406,7 @@ describe("streaming tool call preview height (bounded across renderers)", () => 
 	test("framed inline tool previews span the full tool width", () => {
 		const width = 80;
 		const { lines } = renderPending("bash", { command: "echo hi" });
-		const strippedLines = lines.map(line => Bun.stripANSI(line));
+		const strippedLines = lines.map(line => bun.stripANSI(line));
 		const topBorder = strippedLines.find(line => line.includes(activeTheme.boxRound.topLeft));
 
 		expect(topBorder).toBeDefined();

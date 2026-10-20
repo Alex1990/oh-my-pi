@@ -3,6 +3,7 @@ import { requireSupportedEffort } from "@oh-my-pi/pi-catalog/model-thinking";
 import { $env } from "@oh-my-pi/pi-utils";
 import type { Model } from "../../types";
 import { mapOpenAIReasoningEffort } from "../openai-shared";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Reasoning replay scope for the Codex Responses API (`reasoning.context`). */
 export type CodexReasoningContext = "auto" | "current_turn" | "all_turns";
@@ -253,14 +254,14 @@ function toolOutputKind(type: unknown): ToolCallKind | undefined {
  * to preserve collision resistance across distinct IDs.
  */
 export function sanitizeCodexCallId(rawCallId: string): string {
-	if (!rawCallId) return `call_${Bun.hash("empty").toString(36)}`;
+	if (!rawCallId) return `call_${bun.hash("empty").toString(36)}`;
 	const sep = rawCallId.search(/[\n|]/);
 	const base = sep > 0 ? rawCallId.slice(0, sep) : sep === 0 ? rawCallId.slice(1) : rawCallId;
 	const sanitized = base.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+$/, "");
 	if (sanitized.length > 0 && sanitized.length <= 64 && sanitized === base) {
 		return sanitized;
 	}
-	const hash = Bun.hash(base || rawCallId).toString(36);
+	const hash = bun.hash(base || rawCallId).toString(36);
 	const effectiveBase = sanitized.length > 0 ? sanitized : "call";
 	const prefixLen = Math.max(0, 63 - hash.length);
 	return `${effectiveBase.slice(0, prefixLen)}_${hash}`.slice(0, 64);

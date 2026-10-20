@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import { renderToolExamples } from "../src/dialect/examples";
 import type { InbandTool } from "../src/dialect/types";

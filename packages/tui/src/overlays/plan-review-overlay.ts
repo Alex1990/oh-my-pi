@@ -62,6 +62,7 @@ import { leafKey, type NativeChild, type NativeNode, type NativeUiEvent } from "
 import { actionButton, actionHint, hintsRow, itemIndex, type NativeHint, selectList } from "../native/overlay";
 import { isNativeRendering } from "../native/state";
 import { getKeybindings } from "../keybindings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Title shown in the overlay's top border. */
 const OVERLAY_TITLE = "Plan Review";
@@ -431,7 +432,7 @@ export class PlanReviewOverlay implements Component {
 	}
 
 	#sectionContentHash(section: OverlaySection): string {
-		return `${section.raw.length}:${Bun.hash(section.raw).toString(16)}`;
+		return `${section.raw.length}:${bun.hash(section.raw).toString(16)}`;
 	}
 
 	#annotationState(): PlanReviewAnnotationState {

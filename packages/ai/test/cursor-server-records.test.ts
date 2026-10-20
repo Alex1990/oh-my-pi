@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as http2 from "node:http2";
 import { type CursorOptions, buildGrpcRequest, streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { AssistantMessage, Context, Message, Model, ToolResultMessage } from "@oh-my-pi/pi-ai/types";
@@ -29,6 +29,7 @@ import {
 	TurnEndedUpdateSchema,
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, fromBinary, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Records as Cursor's server writes them for one Kimi K3 turn that read a file:
 // its reasoning names the server's own model, and the tool record is Cursor's.
@@ -64,7 +65,7 @@ const SPAN_IDS = SPAN.map(record => blobId(record));
 const SERVER_SYSTEM_ID = Uint8Array.of(0xc0, 0xff, 0xee);
 
 function blobId(record: string): string {
-	return new Bun.CryptoHasher("sha256").update(record).digest("hex");
+	return new bun.CryptoHasher("sha256").update(record).digest("hex");
 }
 
 function userRecord(requestId: string): string {
@@ -819,7 +820,7 @@ describe("Cursor server records", () => {
 			// does not await it. A real delay: nothing observable sits between the
 			// transport's end and the capture for a gate to wait on.
 			onToolResult: async result => {
-				await Bun.sleep(5);
+				await bun.sleep(5);
 				stored = result;
 				return result;
 			},

@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { RpcClient } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { rejectionOf } from "./helpers/rejection";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const MOCK_AGENT = path.join(import.meta.dir, "fixtures", "mock-rpc-agent.ts");
+const MOCK_AGENT = path.join(import.meta.dirname, "fixtures", "mock-rpc-agent.ts");
 
 function isProcessAlive(pid: number): boolean {
 	try {
@@ -108,13 +109,13 @@ describe("RpcClient lifecycle (issue #4079 B)", () => {
 		});
 
 		await client.start();
-		const firstPid = Number(await Bun.file(pidFile).text());
+		const firstPid = Number(await bun.file(pidFile).text());
 
 		const stopped = client.stop();
 		const restarted = client.start();
 		await Promise.all([stopped, restarted]);
 
-		const secondPid = Number(await Bun.file(pidFile).text());
+		const secondPid = Number(await bun.file(pidFile).text());
 		expect(secondPid).not.toBe(firstPid);
 		expect(isProcessAlive(firstPid)).toBe(false);
 		await client.stop();
@@ -174,7 +175,7 @@ describe("RpcClient lifecycle (issue #4079 B)", () => {
 		let pid = 0;
 		try {
 			await client.start();
-			pid = Number(await Bun.file(pidFile).text());
+			pid = Number(await bun.file(pidFile).text());
 
 			expect(await rejectionOf(client.getState())).toMatchObject({
 				message: expect.stringMatching(/Agent output reader failed/),

@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getBlobsDir, isEnoent, logger } from "@oh-my-pi/pi-utils";
 import type { Settings } from "../config/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** One request-level group of image references written to the provider wire. */
 export interface BlobBrokerSavingsRecord {
@@ -35,7 +36,7 @@ export interface BlobBrokerSavingsStatus extends BlobBrokerSavingsCounters {
 }
 
 function projectHash(projectDir: string): string {
-	return Bun.hash.wyhash(path.resolve(projectDir)).toString(16);
+	return bun.hash.wyhash(path.resolve(projectDir)).toString(16);
 }
 
 /** Deterministic per-project append-only journal path. */

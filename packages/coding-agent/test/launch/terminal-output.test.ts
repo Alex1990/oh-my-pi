@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { renderTerminalOutput } from "../../src/launch/terminal-output";
 
 const RESET = "\x1b[0m";

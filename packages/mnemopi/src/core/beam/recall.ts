@@ -23,6 +23,7 @@ import { getSynonyms, STOP_WORDS as QUERY_STOP_WORDS } from "../synonyms";
 import { extractTemporal } from "../temporal-parser";
 import { cosineSimilarity } from "../vector-math";
 import type { BeamMemoryState, RecallEnhancedOptions, RecallOptions, RecallResult } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type DbValue = string | number | null | Uint8Array;
 type Row = Record<string, unknown>;
@@ -1258,7 +1259,7 @@ function enhancedRecallCacheScope(
 	// A caller-supplied embedding changes the ranking; a derived one is a function of the query.
 	if (options.queryEmbedding === null) scope.queryEmbedding = null;
 	else if (options.queryEmbedding !== undefined) {
-		scope.queryEmbedding = Bun.hash(JSON.stringify(options.queryEmbedding)).toString(36);
+		scope.queryEmbedding = bun.hash(JSON.stringify(options.queryEmbedding)).toString(36);
 	}
 	return JSON.stringify(scope);
 }

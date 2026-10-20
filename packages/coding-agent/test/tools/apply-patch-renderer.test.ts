@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,7 @@ import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import { toolRenderers } from "@oh-my-pi/pi-tui/tools";
 import type { TUI } from "@oh-my-pi/pi-tui";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function getUiTheme() {
 	await themeModule.initTheme(false, undefined, undefined, "dark", "light");
@@ -51,7 +52,7 @@ describe("apply_patch rendering", () => {
 			false,
 		);
 
-		const rendered = Bun.stripANSI(component.render(140).join("\n"));
+		const rendered = bun.stripANSI(component.render(140).join("\n"));
 		expect(rendered).toContain("src/demo.ts");
 		expect(rendered).toContain("+new");
 		expect(rendered).not.toContain("(no output)");
@@ -72,7 +73,7 @@ describe("apply_patch rendering", () => {
 
 		const component = toolRenderers.apply_patch.renderCall({ input }, { expanded: false, isPartial: true }, uiTheme);
 		if (!component) throw new Error("expected a call component");
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 
 		expect(rendered).toContain("src/first.ts");
 		expect(rendered).toContain("Edit");
@@ -85,7 +86,7 @@ describe("apply_patch rendering", () => {
 
 		const component = toolRenderers.apply_patch.renderCall({ input }, { expanded: false, isPartial: true }, uiTheme);
 		if (!component) throw new Error("expected a call component");
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 
 		expect(rendered).toContain("src/streaming.ts");
 		expect(rendered).not.toContain("The last line of the patch must be");
@@ -102,7 +103,7 @@ describe("apply_patch rendering", () => {
 			streaming: false,
 			files: [{ path: "", error: "Line 3: Update file hunk for path 'src/bad.ts' is empty" }],
 		});
-		const rendered = Bun.stripANSI(component.render(160).join("\n"));
+		const rendered = bun.stripANSI(component.render(160).join("\n"));
 
 		expect(rendered).toContain("src/bad.ts");
 		expect(rendered).toContain("is empty");
@@ -113,7 +114,7 @@ describe("apply_patch rendering", () => {
 		const uiStub = { requestRender() {}, requestComponentRender() {} } as unknown as TUI;
 		const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "apply-patch-preview-"));
 		try {
-			await Bun.write(path.join(tmpDir, "preview.ts"), "const value = 1;\n");
+			await bun.write(path.join(tmpDir, "preview.ts"), "const value = 1;\n");
 			const input = [
 				"*** Begin Patch",
 				"*** Update File: preview.ts",
@@ -124,7 +125,7 @@ describe("apply_patch rendering", () => {
 			].join("\n");
 
 			const component = new ToolExecutionComponent("apply_patch", { input }, {}, undefined, uiStub, tmpDir);
-			const before = Bun.stripANSI(component.render(160).join("\n"));
+			const before = bun.stripANSI(component.render(160).join("\n"));
 			expect(before).not.toContain("(preview)");
 
 			component.updateStreamPreview({
@@ -139,7 +140,7 @@ describe("apply_patch rendering", () => {
 				],
 			});
 			component.setArgsComplete();
-			const after = Bun.stripANSI(component.render(160).join("\n"));
+			const after = bun.stripANSI(component.render(160).join("\n"));
 			expect(after).toContain("(preview)");
 			expect(after).toContain("const value = 2;");
 		} finally {
@@ -153,7 +154,7 @@ describe("apply_patch rendering", () => {
 		const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "apply-patch-instant-preview-"));
 		const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 		try {
-			await Bun.write(path.join(tmpDir, "preview.ts"), "const value = 1;\n");
+			await bun.write(path.join(tmpDir, "preview.ts"), "const value = 1;\n");
 			const component = new ToolExecutionComponent("apply_patch", { input: "" }, {}, undefined, uiStub, tmpDir);
 
 			setTimeoutSpy.mockClear();
@@ -205,7 +206,7 @@ describe("apply_patch rendering", () => {
 			false,
 		);
 
-		const rendered = Bun.stripANSI(component.render(220).join("\n"));
+		const rendered = bun.stripANSI(component.render(220).join("\n"));
 		expect(rendered).toContain("  10│}");
 		expect(rendered).toContain(" +11│import");
 		expect(rendered).toContain(" 228│");

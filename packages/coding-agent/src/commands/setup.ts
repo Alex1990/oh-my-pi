@@ -6,13 +6,14 @@ import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { parseArgs } from "../cli/args";
 import { setupHelp as commandHelp } from "../cli/command-help";
 import { runSetupCommand, type SetupCommandArgs, type SetupComponent } from "../cli/setup-cli";
-import { runRootCommand } from "../main";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+
+type RunRootCommand = typeof import("../main").runRootCommand;
 
 const COMPONENTS: SetupComponent[] = ["python", "speech"];
 
 export interface OnboardingSetupDependencies {
-	runRoot?: typeof runRootCommand;
+	runRoot?: RunRootCommand;
 	stdinIsTTY?: boolean;
 	stdoutIsTTY?: boolean;
 	writeStderr?: (text: string) => void;
@@ -27,7 +28,8 @@ export async function runOnboardingSetup(deps: OnboardingSetupDependencies = {})
 		(deps.exit ?? process.exit)(1);
 		return;
 	}
-	await (deps.runRoot ?? runRootCommand)(parseArgs([]), [], { forceSetupWizard: true });
+	const runRoot = deps.runRoot ?? (await import("../main")).runRootCommand;
+	await runRoot(parseArgs([]), [], { forceSetupWizard: true });
 }
 
 export default class Setup extends Command {

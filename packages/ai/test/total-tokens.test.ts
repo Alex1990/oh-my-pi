@@ -12,11 +12,12 @@
  * - Other OpenAI-compatible providers: Uses native total_tokens field
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { complete } from "@oh-my-pi/pi-ai/stream";
 import type { Api, Context, Model, OptionsForApi, Usage } from "@oh-my-pi/pi-ai/types";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { e2eApiKey, resolveApiKey } from "./oauth";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Resolve OAuth tokens at module level (async, runs before tests)
 const oauthTokens = await Promise.all([
@@ -106,7 +107,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("anthropic", "claude-haiku-4-5-20251001");
 
 				console.log(`\nAnthropic / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.ANTHROPIC_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.ANTHROPIC_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -224,7 +225,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("xai", "grok-3-fast");
 
 				console.log(`\nxAI / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.XAI_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.XAI_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -247,7 +248,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("groq", "openai/gpt-oss-120b");
 
 				console.log(`\nGroq / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.GROQ_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.GROQ_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -270,7 +271,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("cerebras", "gpt-oss-120b");
 
 				console.log(`\nCerebras / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.CEREBRAS_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.CEREBRAS_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -293,7 +294,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("zai", "glm-4.5-flash");
 
 				console.log(`\nz.ai / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.ZAI_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.ZAI_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -316,7 +317,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("mistral", "devstral-medium-latest");
 
 				console.log(`\nMistral / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.MISTRAL_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.MISTRAL_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -339,7 +340,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("openrouter", "anthropic/claude-sonnet-4");
 
 				console.log(`\nOpenRouter / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.OPENROUTER_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.OPENROUTER_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -356,7 +357,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("openrouter", "deepseek/deepseek-chat");
 
 				console.log(`\nOpenRouter / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.OPENROUTER_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.OPENROUTER_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -373,7 +374,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("openrouter", "mistralai/mistral-small-3.1-24b-instruct");
 
 				console.log(`\nOpenRouter / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.OPENROUTER_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.OPENROUTER_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -390,7 +391,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("openrouter", "google/gemini-2.0-flash-001");
 
 				console.log(`\nOpenRouter / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.OPENROUTER_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.OPENROUTER_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -407,7 +408,7 @@ describe("totalTokens field", () => {
 				const llm = getBundledModel("openrouter", "meta-llama/llama-4-maverick");
 
 				console.log(`\nOpenRouter / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: Bun.env.OPENROUTER_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: bun.env.OPENROUTER_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);

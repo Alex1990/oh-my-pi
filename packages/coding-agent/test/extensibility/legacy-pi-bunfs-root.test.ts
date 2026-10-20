@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { __computeBundledSelfPackageRoot } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 

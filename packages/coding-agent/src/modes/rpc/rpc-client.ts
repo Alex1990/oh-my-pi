@@ -10,7 +10,7 @@ import type { CompactionResult } from "@oh-my-pi/pi-agent-core/compaction";
 import type { ImageContent, Model } from "@oh-my-pi/pi-ai";
 import { isRecord, ptree, readJsonl } from "@oh-my-pi/pi-utils";
 import type { LogoutAccount } from "@oh-my-pi/pi-tui/overlays/logout-account-selector";
-import type { FileSink } from "bun";
+import type { FileSink } from "@oh-my-pi/pi-utils/node-runtime";
 import type { BashResult } from "../../exec/bash-executor";
 import type { AgentSessionEvent, SessionStats } from "../../session/agent-session";
 import type { BtwHistoryRecord } from "../../session/btw-history";
@@ -53,6 +53,7 @@ import type {
 	RpcSubagentSnapshot,
 	RpcSubagentSubscriptionLevel,
 } from "./rpc-types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Distributive Omit that works with union types */
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
@@ -69,6 +70,19 @@ export interface RpcAgentProcess {
 	peekStderr(): string;
 	kill(signal?: Parameters<ptree.ChildProcess["kill"]>[0], graceMs?: number): void;
 	exited: Promise<number>;
+}
+
+/** Adapt a managed child to the transport interface, rejecting a missing stdin pipe. */
+function toRpcAgentProcess(proc: ptree.ChildProcess<"pipe">): RpcAgentProcess {
+	const stdin = proc.stdin;
+	if (!stdin) throw new Error("RPC agent process was spawned without a stdin pipe");
+	return {
+		stdin,
+		stdout: proc.stdout,
+		peekStderr: () => proc.peekStderr(),
+		kill: (signal, graceMs) => proc.kill(signal, graceMs),
+		exited: proc.exited,
+	};
 }
 
 export interface RpcClientOptions {
@@ -387,15 +401,17 @@ export class RpcClient {
 		}
 		const child = this.options.spawn
 			? await this.options.spawn(args)
-			: ptree.spawn(
-					typeof this.options.command === "function"
-						? this.options.command(args)
-						: [...(this.options.command ?? ["bun", cliPath]), ...args],
-					{
-						cwd: this.options.cwd,
-						env: { ...Bun.env, ...this.options.env },
-						stdin: "pipe",
-					},
+			: toRpcAgentProcess(
+					ptree.spawn(
+						typeof this.options.command === "function"
+							? this.options.command(args)
+							: [...(this.options.command ?? ["bun", cliPath]), ...args],
+						{
+							cwd: this.options.cwd,
+							env: { ...bun.env, ...this.options.env },
+							stdin: "pipe",
+						},
+					),
 				);
 		this.#process = child;
 
@@ -449,7 +465,7 @@ export class RpcClient {
 				// nonzero exits), so give it a bounded head start: the exit watcher
 				// below was registered first and rejects with the real stderr text
 				// instead of an empty "Stderr:" (flaked under full-suite load).
-				await Promise.race([child.exited.catch(() => {}), Bun.sleep(250)]);
+				await Promise.race([child.exited.catch(() => {}), bun.sleep(250)]);
 				if (readySettled) return;
 				readySettled = true;
 				readyReject(new Error(`Agent output stream ended before ready. Stderr: ${child.peekStderr()}`));
@@ -460,7 +476,7 @@ export class RpcClient {
 					exitCode => ({ exitCode }),
 					cause => ({ cause }),
 				),
-				Bun.sleep(100).then(() => null),
+				bun.sleep(100).then(() => null),
 			]);
 			const error =
 				exitResult === null

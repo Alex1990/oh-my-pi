@@ -1,5 +1,6 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +8,7 @@ import * as url from "node:url";
 import {
 	__collectLegacyPiExtensionSourcesForTests,
 	__rewriteLegacyExtensionSourceForTests,
+	installLegacyPiSpecifierShim,
 	loadLegacyPiModule,
 } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 import { isRecord, removeWithRetries } from "@oh-my-pi/pi-utils";
@@ -18,7 +20,24 @@ import { isRecord, removeWithRetries } from "@oh-my-pi/pi-utils";
 // mirror, no asset copying. These tests pin that contract end-to-end through the
 // public `loadLegacyPiModule` entry point.
 
+installLegacyPiSpecifierShim();
+
 const tempRoots: string[] = [];
+
+// Windows without developer mode refuses file symlinks; only that arm is skipped.
+const symlinksSupported = (() => {
+	const probeDir = mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	try {
+		const target = path.join(probeDir, "target");
+		writeFileSync(target, "");
+		symlinkSync(target, path.join(probeDir, "link"));
+		return true;
+	} catch {
+		return false;
+	} finally {
+		rmSync(probeDir, { recursive: true, force: true });
+	}
+})();
 
 afterAll(async () => {
 	for (const dir of tempRoots) {
@@ -1457,7 +1476,7 @@ describe("legacy-pi in-place module loading (issue #1674)", () => {
 		expect(rewritten).toContain('require("blocked-dep")');
 	});
 
-	it("rejects package resolutions that escape the package root", async () => {
+	it.skipIf(!symlinksSupported)("rejects package resolutions that escape the package root", async () => {
 		const dir = await writePackage({
 			"package.json": JSON.stringify({ name: "package-boundary-ext", version: "1.0.0", type: "module" }),
 			"node_modules/main-escape/package.json": JSON.stringify({
@@ -1645,9 +1664,8 @@ describe("legacy-pi in-place module loading (issue #1674)", () => {
 			"package.json": JSON.stringify({ name: "scoped-ext", version: "1.0.0" }),
 			"index.ts": ['export { local } from "./local.ts";', "export default function (pi) { void pi; }"].join("\n"),
 			"local.ts": 'export const local = "local-ok";',
-			// Not imported by index.ts, so it must stay outside the rewrite scope.
-			// `@earendil-works/*` only resolves via the rewrite, so an un-rewritten
-			// import fails — proving the hook did not over-reach to this sibling.
+			// Not imported by index.ts, so it must stay outside the graph the
+			// loader pre-rewrites for this extension.
 			"unrelated.ts": [
 				'import { Effort } from "@earendil-works/pi-ai";',
 				'export const hasAi = typeof Effort === "object";',
@@ -1657,9 +1675,17 @@ describe("legacy-pi in-place module loading (issue #1674)", () => {
 		const entryMod = (await loadLegacyPiModule(path.join(dir, "index.ts"))) as { local: string };
 		expect(entryMod.local).toBe("local-ok");
 
-		// Loading the un-imported sibling directly must NOT benefit from the
-		// extension's rewrite hook; its fork-scope import stays unresolved.
+		// Graph scoping is observable in what the loader pre-rewrites: the
+		// sibling is absent, so it is read from disk at import time (no
+		// `?mtime=` snapshot). Bun additionally scoped plugin resolution to the
+		// extension's graph; Node's resolve hooks are process-global, so the
+		// directly imported sibling still resolves `@earendil-works/pi-ai`
+		// through the host shim instead of failing.
+		const graph = await __collectLegacyPiExtensionSourcesForTests(path.join(dir, "index.ts"));
+		expect([...graph.keys()].some(modulePath => modulePath.endsWith("index.ts"))).toBe(true);
+		expect([...graph.keys()].some(modulePath => modulePath.endsWith("unrelated.ts"))).toBe(false);
 		const siblingUrl = `${url.pathToFileURL(await fs.realpath(path.join(dir, "unrelated.ts"))).href}?nonce=${Date.now()}`;
-		await expect(import(siblingUrl)).rejects.toThrow(/@earendil-works\/pi-ai/);
+		const sibling = (await import(siblingUrl)) as { hasAi: boolean };
+		expect(sibling.hasAi).toBe(true);
 	});
 });

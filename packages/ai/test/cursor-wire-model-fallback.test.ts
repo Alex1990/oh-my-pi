@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as http2 from "node:http2";
 import { streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { AssistantMessage, Context, Model } from "@oh-my-pi/pi-ai/types";
@@ -19,6 +19,7 @@ import {
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, fromBinary, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CONNECT_END_STREAM_FLAG = 0b00000010;
 
@@ -171,7 +172,7 @@ async function startServer(): Promise<string> {
 
 			// This HTTP/2 integration fixture verifies reported performance.now()
 			// latency; fake timers would also stall the transport events under test.
-			if (response.delayMs) await Bun.sleep(response.delayMs);
+			if (response.delayMs) await bun.sleep(response.delayMs);
 			stream.respond({
 				":status": 200,
 				"content-type": "application/connect+proto",

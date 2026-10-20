@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { getAgentDir, MAIN_CONFIG_FILENAMES } from "../src/dirs";
 import { getShellArgs, getShellConfig, isPosixShell, resolveWindowsShell } from "../src/procmgr";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("getShellConfig", () => {
 	it("directs invalid custom shell paths to the canonical config file", () => {
@@ -31,8 +33,14 @@ describe("getShellConfig", () => {
 });
 
 describe("refreshShellConfigCache", () => {
-	const procmgrPath = path.join(import.meta.dir, "..", "src", "procmgr.ts");
-	const dirsPath = path.join(import.meta.dir, "..", "src", "dirs.ts");
+	const procmgrPath = path.join(import.meta.dirname, "..", "src", "procmgr.ts");
+	const nodeTsArgs = [
+		"--no-warnings",
+		"--experimental-transform-types",
+		"--import",
+		pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+	];
+	const dirsPath = path.join(import.meta.dirname, "..", "src", "dirs.ts");
 	const tempDirs: string[] = [];
 
 	afterEach(() => {
@@ -50,11 +58,11 @@ describe("refreshShellConfigCache", () => {
 	// dotenv files, so each case runs in a fresh process launched in `cwd`.
 	async function probe(cwd: string, env: Record<string, string | undefined>, lines: string[]): Promise<unknown> {
 		const script = [
-			`import { getShellConfig, refreshShellConfigCache } from ${JSON.stringify(procmgrPath)};`,
-			`import { setProjectDir } from ${JSON.stringify(dirsPath)};`,
+			`import { getShellConfig, refreshShellConfigCache } from ${JSON.stringify(pathToFileURL(procmgrPath).href)};`,
+			`import { setProjectDir } from ${JSON.stringify(pathToFileURL(dirsPath).href)};`,
 			...lines,
 		].join("\n");
-		const proc = Bun.spawn([process.execPath, "--no-install", "--eval", script], {
+		const proc = bun.spawn([process.execPath, ...nodeTsArgs, "--input-type=module", "--eval", script], {
 			cwd,
 			env: { ...process.env, NODE_ENV: undefined, ...env },
 			stdout: "pipe",

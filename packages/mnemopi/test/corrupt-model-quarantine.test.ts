@@ -1,7 +1,7 @@
 // Contract: a "Protobuf parsing failed" init error quarantines EXACTLY the
 // model file named in the message (atomic rename to *.corrupt-<ts>) and
 // reports retry-safety; unrelated init errors never touch the filesystem.
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

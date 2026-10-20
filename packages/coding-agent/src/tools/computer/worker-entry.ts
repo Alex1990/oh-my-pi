@@ -2,6 +2,7 @@ import { parentPort } from "node:worker_threads";
 import { consumeWorkerInbox, isWorkerHostSelector } from "@oh-my-pi/pi-utils/worker-host";
 import type { ComputerWorkerInbound, ComputerWorkerTransport } from "./protocol";
 import { ComputerWorkerCore } from "./worker";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let started = false;
 
@@ -34,6 +35,6 @@ export function startComputerWorker(): void {
 // worker re-enters cli.ts (which imports this module statically), the
 // selector guard defers to the host's dispatch — an unguarded auto-start
 // would hijack the message port of every other worker kind.
-if (!Bun.argv.some(isWorkerHostSelector)) {
+if (!bun.argv.some(isWorkerHostSelector)) {
 	startComputerWorker();
 }

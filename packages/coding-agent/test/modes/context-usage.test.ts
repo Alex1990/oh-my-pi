@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Tokenizer } from "@oh-my-pi/pi-agent-core";
 import { computeNonMessageBreakdown, estimateToolSchemaTokens } from "@oh-my-pi/pi-tui/status-line/context-usage";
 import { applyToolProxy } from "../../src/extensibility/tool-proxy";

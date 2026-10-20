@@ -8,6 +8,7 @@
  */
 import { globMatch } from "../src/compat/cascade";
 import { classifyModel } from "../src/compat/taxonomy";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const IDS: Array<[string, string]> = [
 	["cursor", "claude-opus-4-8"],
@@ -18,17 +19,17 @@ const IDS: Array<[string, string]> = [
 ];
 
 const N = 100_000;
-let start = Bun.nanoseconds();
+let start = bun.nanoseconds();
 for (let i = 0; i < N; i++) {
 	const [provider, id] = IDS[i % IDS.length]!;
 	classifyModel(provider, id);
 }
-const memoMs = (Bun.nanoseconds() - start) / 1e6;
+const memoMs = (bun.nanoseconds() - start) / 1e6;
 
 const G = 1_000_000;
-start = Bun.nanoseconds();
+start = bun.nanoseconds();
 for (let i = 0; i < G; i++) globMatch("*claude*sonnet*", "claude-sonnet-4-5");
-const globMs = (Bun.nanoseconds() - start) / 1e6;
+const globMs = (bun.nanoseconds() - start) / 1e6;
 
 console.log(`classifyModel x${N} (memoized, 5 ids): ${memoMs.toFixed(1)}ms (${((memoMs / N) * 1e6).toFixed(0)}ns/op)`);
 console.log(`globMatch x${G} (cached segments): ${globMs.toFixed(1)}ms (${((globMs / G) * 1e6).toFixed(0)}ns/op)`);

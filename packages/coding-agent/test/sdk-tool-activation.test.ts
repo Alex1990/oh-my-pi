@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -34,6 +34,8 @@ import { logger, removeSyncWithRetries, Snowflake, untilAborted } from "@oh-my-p
 import { cfgExternalThinking } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { cfgPlanEnabled } from "@oh-my-pi/pi-coding-agent/plan-mode/settings";
 import { cfgToolsXdev } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const toolActivationExtension: ExtensionFactory = pi => {
 	pi.registerTool({
@@ -326,7 +328,7 @@ describe("createAgentSession defaultInactive tool activation", () => {
 				},
 			},
 		});
-		const server = Bun.serve({
+		const server = await serve({
 			port: 0,
 			fetch: async request => {
 				requestTexts.push(await request.text());
@@ -1882,7 +1884,7 @@ describe("createAgentSession defaultInactive tool activation", () => {
 			expect(write).toBeDefined();
 			const filePath = path.join(tempDir, "runtime-write.txt");
 			await write!.execute("runtime-full-write", { path: filePath, content: "runtime\n" });
-			expect(await Bun.file(filePath).text()).toBe("runtime\n");
+			expect(await bun.file(filePath).text()).toBe("runtime\n");
 		} finally {
 			await session.dispose();
 		}

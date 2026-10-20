@@ -24,8 +24,9 @@
  *
  * To run: `bun --cwd packages/ai test test/auth-gateway-anthropic-to-codex-caching.test.ts`
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AUTH_GATEWAY_E2E_URL, checkAuthGatewayE2EAvailable } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface AnthropicUsage {
 	input_tokens: number;
@@ -42,7 +43,7 @@ interface AnthropicResponse {
 	error?: { type: string; message: string };
 }
 
-const MODEL = Bun.env.OMP_E2E_CODEX_MODEL ?? "gpt-5.3-codex";
+const MODEL = bun.env.OMP_E2E_CODEX_MODEL ?? "gpt-5.3-codex";
 
 const gateway = await checkAuthGatewayE2EAvailable();
 

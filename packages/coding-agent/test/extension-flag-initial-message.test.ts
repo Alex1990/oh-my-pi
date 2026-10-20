@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { applyExtensionFlags, type ExtensionFlagSink } from "@oh-my-pi/pi-coding-agent/cli/extension-flags";
 import { buildInitialMessage } from "@oh-my-pi/pi-coding-agent/cli/initial-message";

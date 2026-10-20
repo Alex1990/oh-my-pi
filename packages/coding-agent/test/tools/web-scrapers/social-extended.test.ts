@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleBluesky } from "@oh-my-pi/pi-coding-agent/web/scrapers/bluesky";
 import { handleMastodon } from "@oh-my-pi/pi-coding-agent/web/scrapers/mastodon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleMastodon", () => {
 	it("returns null for non-Mastodon URLs", async () => {

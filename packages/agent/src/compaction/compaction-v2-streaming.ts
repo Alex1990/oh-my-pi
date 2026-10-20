@@ -36,6 +36,7 @@ import {
 import { $env, isUnexpectedSocketCloseMessage, logger, ptree, stringifyJson } from "@oh-my-pi/pi-utils";
 import { appendAzureApiVersion, resolveAzureOpenAiBaseUrl } from "./azure-openai-endpoint";
 import { prepareBedrockCompactionRequest } from "./bedrock";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ============================================================================
 // Types & Configuration
@@ -272,7 +273,7 @@ export async function requestCompactionV2Streaming(
 		throw new Error(`Model ${model.id} does not support V2 streaming compaction`);
 	}
 
-	const retryWait = options?.retryWait ?? ((delayMs: number) => Bun.sleep(delayMs));
+	const retryWait = options?.retryWait ?? ((delayMs: number) => bun.sleep(delayMs));
 	const isCodexResponses = compactionV2Api(model) === "openai-codex-responses" || model.provider === "openai-codex";
 	const codexMetadata =
 		isCodexResponses && !shouldUseCodexProviderTransport(model)

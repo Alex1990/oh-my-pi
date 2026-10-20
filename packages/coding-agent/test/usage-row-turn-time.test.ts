@@ -3,7 +3,7 @@
  * rows, gated by `display.showTurnTime` — the delta sits right after the turn's
  * timestamp and counts hooks, tool calls, and the final generation.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -32,6 +32,7 @@ import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
 
 import { cfgDisplayShowTokenUsage, cfgDisplayShowTurnTime } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // 60s of elapsed: 30s between the prompt and the final response's creation,
 // plus a 30s provider request — formatDuration renders this as "1m".
@@ -83,7 +84,7 @@ function toEntries(
 }
 
 function renderedText(container: Container): string {
-	return Bun.stripANSI(container.children.map(child => child.render(120).join("\n")).join("\n"));
+	return bun.stripANSI(container.children.map(child => child.render(120).join("\n")).join("\n"));
 }
 
 describe("formatUsageRow turn elapsed", () => {
@@ -500,7 +501,7 @@ describe("AgentSession synthetic follow-up marking", () => {
 			// the (buggy) emission stamp identically — a genuine delay is the only
 			// way to separate the two and prove the entry carries the submission.
 			handler: async () => {
-				await Bun.sleep(150);
+				await bun.sleep(150);
 				return { content: ["Done"] };
 			},
 		});

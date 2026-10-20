@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Model, ServiceTierByFamily } from "@oh-my-pi/pi-ai";
 import { resolveAgentServiceTierOverride } from "@oh-my-pi/pi-coding-agent/config/service-tier";
@@ -9,6 +10,7 @@ import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir, withTimeout } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const runtimeProviderExtension: ExtensionFactory = pi => {
 	pi.registerProvider("runtime-provider", {
@@ -48,7 +50,7 @@ const deferredCodexProviderExtension: ExtensionFactory = pi => {
 	});
 };
 
-const originalNoTitle = Bun.env.PI_NO_TITLE;
+const originalNoTitle = bun.env.PI_NO_TITLE;
 const originalWebSocket = globalThis.WebSocket;
 
 class CapturingWebSocket {
@@ -144,15 +146,15 @@ async function waitForPrewarmSocket(): Promise<CapturingWebSocket> {
 	return await withTimeout(created.promise, 10_000, "Codex prewarm WebSocket did not open within 10 seconds");
 }
 
-describe.serial("createAgentSession resolveServiceTierByFamily", () => {
+describe.sequential("createAgentSession resolveServiceTierByFamily", () => {
 	beforeEach(() => {
-		Bun.env.PI_NO_TITLE = "1";
+		bun.env.PI_NO_TITLE = "1";
 		vi.spyOn(globalThis, "fetch").mockImplementation(
 			Object.assign(
 				async () => {
 					throw new Error("Unexpected network request in SDK service-tier regression test");
 				},
-				{ preconnect: globalThis.fetch.preconnect },
+				{ preconnect: preconnectOf(globalThis.fetch) },
 			),
 		);
 	});
@@ -163,8 +165,8 @@ describe.serial("createAgentSession resolveServiceTierByFamily", () => {
 		vi.restoreAllMocks();
 		for (const authStorage of authStorages) authStorage.close();
 		authStorages.length = 0;
-		if (originalNoTitle === undefined) delete Bun.env.PI_NO_TITLE;
-		else Bun.env.PI_NO_TITLE = originalNoTitle;
+		if (originalNoTitle === undefined) delete bun.env.PI_NO_TITLE;
+		else bun.env.PI_NO_TITLE = originalNoTitle;
 	});
 
 	function openAuthStorage(): AuthStorage {

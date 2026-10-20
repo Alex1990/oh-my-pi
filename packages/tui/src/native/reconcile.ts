@@ -34,6 +34,7 @@ import { getNativeBlob } from "./blobs";
 import { normalizeIconProps } from "./icons";
 import type { DescribeContext, NativeChild, NativeNode, NativeRevealAt } from "./node";
 import { isNativeSettled } from "./settle";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** The regions a frame fills. */
 export interface NativeRegions {
@@ -98,7 +99,7 @@ function nodeId(base: string, keypath: string): string {
 
 function sameValue(a: unknown, b: unknown): boolean {
 	if (a === b) return true;
-	return typeof a === "object" && typeof b === "object" && a !== null && b !== null && Bun.deepEquals(a, b);
+	return typeof a === "object" && typeof b === "object" && a !== null && b !== null && bun.deepEquals(a, b);
 }
 
 function asProps(node: NativeNode): Readonly<Record<string, unknown>> | undefined {

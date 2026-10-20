@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("git show byte stream", () => {
 	let repoDir: string;
@@ -14,7 +15,7 @@ describe("git show byte stream", () => {
 		await $`git init --initial-branch=main`.cwd(repoDir).quiet();
 		await $`git config user.name "Test User"`.cwd(repoDir).quiet();
 		await $`git config user.email "test@example.com"`.cwd(repoDir).quiet();
-		await Bun.write(path.join(repoDir, "large.txt"), content);
+		await bun.write(path.join(repoDir, "large.txt"), content);
 		await $`git add large.txt`.cwd(repoDir).quiet();
 		await $`git commit -m fixture`.cwd(repoDir).quiet();
 	});

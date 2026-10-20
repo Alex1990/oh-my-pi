@@ -1,9 +1,10 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { ExtensionList } from "../src/overlays/extensions/extension-list";
 import { InspectorPanel } from "../src/overlays/extensions/inspector-panel";
 import type { MCPConnectionDisplay, MCPRuntimeSource, MCPServerDisplay } from "../src/overlays/extensions/mcp-runtime";
 import type { Extension } from "../src/overlays/extensions/types";
 import { initTheme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false);
@@ -94,7 +95,7 @@ describe("MCP inspector runtime join", () => {
 		const panel = new InspectorPanel();
 		panel.setMcpSource(connectedSource());
 		panel.setExtension(mcpExtension());
-		const text = Bun.stripANSI(panel.render(72).join("\n"));
+		const text = bun.stripANSI(panel.render(72).join("\n"));
 
 		expect(text).toContain("github");
 		expect(text).toContain("GitHub MCP Server");
@@ -122,7 +123,7 @@ describe("MCP inspector runtime join", () => {
 		const panel = new InspectorPanel();
 		panel.setMcpSource(connectedSource());
 		panel.setExtension(mcpExtension());
-		const collapsed = Bun.stripANSI(panel.render(72).join("\n"));
+		const collapsed = bun.stripANSI(panel.render(72).join("\n"));
 		expect(collapsed).toContain("search_code");
 		expect(collapsed).toContain("query");
 		expect(collapsed).toContain("Search query");
@@ -153,13 +154,13 @@ describe("MCP inspector runtime join", () => {
 		const longPanel = new InspectorPanel();
 		longPanel.setMcpSource(long);
 		longPanel.setExtension(mcpExtension());
-		const longCollapsed = Bun.stripANSI(longPanel.render(72).join("\n"));
+		const longCollapsed = bun.stripANSI(longPanel.render(72).join("\n"));
 		expect(longCollapsed).toContain("5 args");
 		expect(longCollapsed).toMatch(/args \(.* to expand\)/);
 		expect(longCollapsed).not.toMatch(/query\s+string/);
 
 		longPanel.toggleExpanded();
-		const expanded = Bun.stripANSI(longPanel.render(72).join("\n"));
+		const expanded = bun.stripANSI(longPanel.render(72).join("\n"));
 		expect(expanded).toMatch(/query\s+string/);
 		expect(expanded).toContain("Required");
 	});
@@ -172,7 +173,7 @@ describe("MCP inspector runtime join", () => {
 			getTools: () => [],
 		});
 		panel.setExtension(mcpExtension());
-		const text = Bun.stripANSI(panel.render(72).join("\n"));
+		const text = bun.stripANSI(panel.render(72).join("\n"));
 		expect(text).toContain("Not connected");
 		expect(text).not.toMatch(/Status:\s+.*Active/);
 		expect(text).not.toContain("unknown");
@@ -188,7 +189,7 @@ describe("MCP inspector runtime join", () => {
 				command: "/home/sf/worlds/personal/.omp/bin/gog-mcp-readonly",
 			},
 		});
-		const text = Bun.stripANSI(panel.render(42).join("\n"));
+		const text = bun.stripANSI(panel.render(42).join("\n"));
 		const command = text.slice(text.indexOf("Command"));
 		expect(command.split("\n").some(line => line.includes("…") || line.endsWith("..."))).toBe(false);
 		expect(command.replace(/\s+/g, "")).toContain("gog-mcp-readonly");
@@ -219,7 +220,7 @@ describe("MCP inspector runtime join", () => {
 			getServerPrompts: () => prompts,
 		});
 		panel.setExtension(mcpExtension());
-		const collapsed = Bun.stripANSI(panel.render(72).join("\n"));
+		const collapsed = bun.stripANSI(panel.render(72).join("\n"));
 		expect(collapsed).toContain("resource_0");
 		expect(collapsed).not.toContain("resource_19");
 		expect(collapsed).toContain("prompt_0");
@@ -227,7 +228,7 @@ describe("MCP inspector runtime join", () => {
 		expect(collapsed).toMatch(/more \(.* to expand\)/);
 
 		panel.toggleExpanded();
-		const expanded = Bun.stripANSI(panel.render(72).join("\n"));
+		const expanded = bun.stripANSI(panel.render(72).join("\n"));
 		expect(expanded).toContain("resource_19");
 		expect(expanded).toContain("prompt_11");
 	});
@@ -274,7 +275,7 @@ describe("MCP inspector runtime join", () => {
 		});
 		panel.setExtension(mcpExtension());
 		panel.toggleExpanded();
-		expect(Bun.stripANSI(panel.render(72).join("\n"))).toContain("resource_19");
+		expect(bun.stripANSI(panel.render(72).join("\n"))).toContain("resource_19");
 
 		panel.setExtension({
 			id: "mcp:linear",
@@ -300,19 +301,19 @@ describe("MCP inspector runtime join", () => {
 				},
 			},
 		});
-		const other = Bun.stripANSI(panel.render(72).join("\n"));
+		const other = bun.stripANSI(panel.render(72).join("\n"));
 		expect(other).toContain("issue_0");
 		expect(other).not.toContain("issue_19");
 		expect(other).toMatch(/more \(.* to expand\)/);
 
 		panel.setExtension({ ...mcpExtension() });
-		const back = Bun.stripANSI(panel.render(72).join("\n"));
+		const back = bun.stripANSI(panel.render(72).join("\n"));
 		expect(back).toContain("resource_0");
 		expect(back).not.toContain("resource_19");
 
 		panel.toggleExpanded();
 		panel.setExtension({ ...mcpExtension() });
-		expect(Bun.stripANSI(panel.render(72).join("\n"))).toContain("resource_19");
+		expect(bun.stripANSI(panel.render(72).join("\n"))).toContain("resource_19");
 	});
 });
 
@@ -320,7 +321,7 @@ describe("MCP list runtime join", () => {
 	test("connected row shows tool/resource counts instead of transport", () => {
 		const list = new ExtensionList([mcpExtension()], { mcpSource: connectedSource() });
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("github");
 		expect(text).toContain("2 tools · 1 resource");
 		expect(text).not.toMatch(/github\s+stdio/);
@@ -334,7 +335,7 @@ describe("MCP list runtime join", () => {
 				getTools: () => [],
 			},
 		});
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("unavailable");
 	});
 
@@ -349,7 +350,7 @@ describe("MCP list runtime join", () => {
 		};
 		const list = new ExtensionList([winner, shadowed], { mcpSource: connectedSource() });
 		list.setFocused(true);
-		const text = Bun.stripANSI(list.render(80).join("\n"));
+		const text = bun.stripANSI(list.render(80).join("\n"));
 		expect(text).toContain("2 tools · 1 resource");
 		const winnerIdx = text.indexOf("2 tools · 1 resource");
 		const secondGithub = text.indexOf("github", winnerIdx + 1);
@@ -360,7 +361,7 @@ describe("MCP list runtime join", () => {
 		const panel = new InspectorPanel();
 		panel.setMcpSource(connectedSource());
 		panel.setExtension(shadowed);
-		const inspector = Bun.stripANSI(panel.render(72).join("\n"));
+		const inspector = bun.stripANSI(panel.render(72).join("\n"));
 		expect(inspector).toContain("Shadowed");
 		expect(inspector).not.toContain("Connected");
 		expect(inspector).not.toContain("search_code");
@@ -419,7 +420,7 @@ describe("MCP list runtime join", () => {
 		list.handleInput(" ");
 		expect(toggles).toEqual([]);
 
-		const rendered = Bun.stripANSI(list.render(80).join("\n"));
+		const rendered = bun.stripANSI(list.render(80).join("\n"));
 		const secondGithub = rendered.indexOf("github", rendered.indexOf("2 tools · 1 resource") + 1);
 		expect(secondGithub).toBeGreaterThan(-1);
 		expect(rendered.slice(secondGithub)).not.toContain("2 tools");

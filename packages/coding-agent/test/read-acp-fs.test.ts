@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import type { ReadToolDetails } from "@oh-my-pi/pi-tui/tools/read";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun, type NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BRIDGE_CONTENT = "// content from editor buffer\nexport function greet() { return 'bridge'; }\n";
 
@@ -43,7 +44,7 @@ describe("read tool ACP fs routing", () => {
 		await removeWithRetries(tmpDir);
 	});
 
-	it("routes plain text reads through the bridge and does not call Bun.file().text()", async () => {
+	it("routes plain text reads through the bridge and does not call bun.file().text()", async () => {
 		// .ts file so summarize would normally run (read.summarize.enabled defaults to true)
 		const filePath = path.join(tmpDir, "example.ts");
 		await fs.writeFile(filePath, "export function greet() { return 'disk'; }\n");
@@ -54,20 +55,18 @@ describe("read tool ACP fs routing", () => {
 		};
 		const bridgeSpy = spyOn(bridge, "readTextFile");
 
-		// Wrap Bun.file() to detect any .text() calls
+		// Wrap bun.file() to detect any .text() calls
 		let textCallCount = 0;
-		const origBunFile = Bun.file.bind(Bun);
-		const bunFileSpy = spyOn(Bun, "file").mockImplementation(
-			(arg: string | URL | Uint8Array | ArrayBufferLike | number, opts?: BlobPropertyBag) => {
-				const bunFile = origBunFile(arg as string, opts);
-				const origText = bunFile.text.bind(bunFile);
-				bunFile.text = async () => {
-					textCallCount++;
-					return origText();
-				};
-				return bunFile;
-			},
-		);
+		const origBunFile = bun.file.bind(bun);
+		const bunFileSpy = spyOn(bun, "file").mockImplementation((target: string | URL | NodeFile) => {
+			const bunFile = origBunFile(target);
+			const origText = bunFile.text.bind(bunFile);
+			bunFile.text = async () => {
+				textCallCount++;
+				return origText();
+			};
+			return bunFile;
+		});
 
 		try {
 			const session = createSession(tmpDir, bridge);
@@ -80,7 +79,7 @@ describe("read tool ACP fs routing", () => {
 			expect(text).toContain("content from editor buffer");
 			// Bridge readTextFile was invoked
 			expect(bridgeSpy).toHaveBeenCalled();
-			// Bun.file().text() must not have been called — bridge is source of truth
+			// bun.file().text() must not have been called — bridge is source of truth
 			expect(textCallCount).toBe(0);
 		} finally {
 			bunFileSpy.mockRestore();

@@ -10,7 +10,7 @@
  *      terminal settle, bounded by PLAN_MODE_REMINDER_MAX (then yields to the
  *      user), and either decision tool resets the counter.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import {
 	Agent,
@@ -412,7 +412,7 @@ describe("AgentSession plan-mode convergence", () => {
 			getArtifactsDir: () => harness.session.sessionManager.getArtifactsDir(),
 			getSessionId: () => harness.session.sessionManager.getSessionId(),
 		});
-		await Bun.write(planPath, "# Demo plan\n\nImplement it.\n");
+		await bun.write(planPath, "# Demo plan\n\nImplement it.\n");
 		const handler = harness.session.peekPlanProposalHandler();
 		expect(handler).toBeDefined();
 		await handler!("demo");
@@ -443,7 +443,7 @@ describe("AgentSession plan-mode convergence", () => {
 			getArtifactsDir: () => harness.session.sessionManager.getArtifactsDir(),
 			getSessionId: () => harness.session.sessionManager.getSessionId(),
 		});
-		await Bun.write(planPath, "# MCP devices plan\n\nKeep the connected devices.\n");
+		await bun.write(planPath, "# MCP devices plan\n\nKeep the connected devices.\n");
 		const handler = harness.session.peekPlanProposalHandler();
 		if (!handler) throw new Error("Expected PlanYolo proposal handler");
 		await handler("mcp-devices");
@@ -479,7 +479,7 @@ describe("AgentSession plan-mode convergence", () => {
 			getArtifactsDir: () => harness.session.sessionManager.getArtifactsDir(),
 			getSessionId: () => harness.session.sessionManager.getSessionId(),
 		});
-		await Bun.write(planPath, "# Queued MCP plan\n\nKeep the connected device.\n");
+		await bun.write(planPath, "# Queued MCP plan\n\nKeep the connected device.\n");
 		const handler = harness.session.peekPlanProposalHandler();
 		if (!handler) throw new Error("Expected PlanYolo proposal handler");
 		const approval = handler("queued-mcp");
@@ -510,7 +510,7 @@ describe("AgentSession plan-mode convergence", () => {
 			getArtifactsDir: () => harness.session.sessionManager.getArtifactsDir(),
 			getSessionId: () => harness.session.sessionManager.getSessionId(),
 		});
-		await Bun.write(planPath, "# Read-only MCP plan\n\nKeep the selected device.\n");
+		await bun.write(planPath, "# Read-only MCP plan\n\nKeep the selected device.\n");
 		const handler = harness.session.peekPlanProposalHandler();
 		if (!handler) throw new Error("Expected PlanYolo proposal handler");
 		await handler("read-only-mcp");
@@ -532,7 +532,7 @@ describe("AgentSession plan-mode convergence", () => {
 			getArtifactsDir: () => harness.session.sessionManager.getArtifactsDir(),
 			getSessionId: () => harness.session.sessionManager.getSessionId(),
 		});
-		await Bun.write(planPath, "# Retry plan\n\nImplement it.\n");
+		await bun.write(planPath, "# Retry plan\n\nImplement it.\n");
 		const handler = harness.session.peekPlanProposalHandler();
 		expect(handler).toBeDefined();
 		const activeBefore = harness.session.getActiveToolNames();
@@ -550,3 +550,4 @@ describe("AgentSession plan-mode convergence", () => {
 		expect(harness.session.getActiveToolNames()).toEqual(["read"]);
 	});
 });
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Ellipsis, truncateToWidth } from "@oh-my-pi/pi-tui/utils";
 
 // Regression test for https://github.com/can1357/oh-my-pi/issues/848

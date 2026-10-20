@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseCodeStatus, summarizeCode } from "../native";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("parseCodeStatus", () => {
 	it.each([
@@ -39,8 +41,18 @@ describe("parseCodeStatus", () => {
 	});
 
 	it("distinguishes a missing wasm grammar from a corrupt grammar", async () => {
-		const child = Bun.spawn(
-			[process.execPath, path.join(import.meta.dir, "fixtures/parse-status-grammar-probe.ts")],
+		const loader = pathToFileURL(
+			path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs"),
+		).href;
+		const child = bun.spawn(
+			[
+				process.execPath,
+				"--no-warnings",
+				"--experimental-transform-types",
+				"--import",
+				loader,
+				path.join(import.meta.dirname, "fixtures/parse-status-grammar-probe.ts"),
+			],
 			{
 				stdout: "pipe",
 				stderr: "pipe",

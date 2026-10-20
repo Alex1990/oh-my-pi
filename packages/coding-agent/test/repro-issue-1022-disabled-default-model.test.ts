@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,9 +9,10 @@ import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 
 import { cfgDisabledProviders, cfgEnabledModels } from "@oh-my-pi/pi-coding-agent/config/model-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Issue #1022: when path-scoped `enabledModels`/`disabledProviders` are
@@ -48,7 +49,7 @@ describe("issue #1022 — path-scoped enabledModels respected by default fallbac
 
 	test("does not pick a disallowed provider when enabledModels excludes it", async () => {
 		const privatePath = path.join(testDir, "private");
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			YAML.stringify({
 				enabledModels: [{ path: privatePath, models: ["openai-codex"] }],

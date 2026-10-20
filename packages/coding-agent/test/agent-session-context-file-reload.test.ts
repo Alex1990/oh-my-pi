@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Api, Model, ModelSpec } from "@oh-my-pi/pi-ai";
@@ -10,6 +10,7 @@ import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-sessi
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function buildLocalModel(api: string): Model<Api> {
 	return buildModel({
@@ -28,7 +29,7 @@ function buildLocalModel(api: string): Model<Api> {
 
 async function expectContextReload(reset: (session: AgentSession) => Promise<unknown>): Promise<void> {
 	using tempDir = TempDir.createSync("@pi-context-reload-");
-	const marker = Bun.nanoseconds().toString(36);
+	const marker = bun.nanoseconds().toString(36);
 	const original = `ORIGINAL_RULES_${marker}`;
 	const updated = `UPDATED_RULES_${marker}`;
 	const agentsMd = path.join(tempDir.path(), "AGENTS.md");

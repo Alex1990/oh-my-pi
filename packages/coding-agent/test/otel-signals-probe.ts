@@ -23,6 +23,7 @@ import {
 	isTelemetryExportEnabled,
 } from "@oh-my-pi/pi-coding-agent/telemetry-export";
 import { logger } from "@oh-my-pi/pi-utils";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const seen = new Set<string>();
 const metricPayloads: Uint8Array[] = [];
@@ -115,7 +116,7 @@ function identityConverter(messages: AgentMessage[]): Message[] {
 	) as Message[];
 }
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	async fetch(req) {
 		const path = new URL(req.url).pathname;

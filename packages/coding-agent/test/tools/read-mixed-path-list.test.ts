@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let cwd: string;
 let session: ToolSession;
@@ -14,11 +15,11 @@ let session: ToolSession;
 beforeAll(async () => {
 	await Settings.init({ inMemory: true });
 	cwd = await fs.mkdtemp(path.join(os.tmpdir(), "read-mixed-list-"));
-	await Bun.write(path.join(cwd, "Makefile"), "build:\n\techo make\n");
-	await Bun.write(path.join(cwd, "a.ts"), "export const a = 1;\n");
-	await Bun.write(path.join(cwd, "a;b.md"), "literal semicolon file\n");
-	await Bun.write(path.join(cwd, "a"), "plain a\n");
-	await Bun.write(path.join(cwd, "b.md"), "plain b\n");
+	await bun.write(path.join(cwd, "Makefile"), "build:\n\techo make\n");
+	await bun.write(path.join(cwd, "a.ts"), "export const a = 1;\n");
+	await bun.write(path.join(cwd, "a;b.md"), "literal semicolon file\n");
+	await bun.write(path.join(cwd, "a"), "plain a\n");
+	await bun.write(path.join(cwd, "b.md"), "plain b\n");
 	const db = new Database(path.join(cwd, "data.sqlite"));
 	db.run("CREATE TABLE t (name TEXT)");
 	db.run("INSERT INTO t VALUES ('row-one')");

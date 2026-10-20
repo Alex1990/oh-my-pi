@@ -1,12 +1,13 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { handleChocolatey } from "@oh-my-pi/pi-coding-agent/web/scrapers/chocolatey";
 import { handleDockerHub } from "@oh-my-pi/pi-coding-agent/web/scrapers/dockerhub";
 import { handleHackage } from "@oh-my-pi/pi-coding-agent/web/scrapers/hackage";
 import { handleMetaCPAN } from "@oh-my-pi/pi-coding-agent/web/scrapers/metacpan";
 import { handleRepology } from "@oh-my-pi/pi-coding-agent/web/scrapers/repology";
 import { handleTerraform } from "@oh-my-pi/pi-coding-agent/web/scrapers/terraform";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
+const SKIP = !bun.env.WEB_FETCH_INTEGRATION;
 
 describe.skipIf(SKIP)("handleMetaCPAN", () => {
 	it("returns null for non-MetaCPAN URLs", async () => {

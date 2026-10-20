@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, setSystemTime, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, setSystemTime, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 import * as oauthUtils from "@oh-my-pi/pi-ai/registry/oauth";
 import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SUPPRESS_ANTHROPIC_ENV = {
 	ANTHROPIC_API_KEY: undefined,
@@ -77,14 +78,13 @@ describe("AuthStorage OAuth refresh race", () => {
 
 		// Mock mirrors Anthropic: only the stale refresh token is rejected, because
 		// real rotation invalidates the previous refresh token on use.
-		vi.spyOn(oauthUtils, "getOAuthApiKey").mockImplementation(async (provider, creds) => {
-			const credential = creds[provider];
-			if (credential?.refresh === "stale-refresh") {
+		vi.spyOn(oauthUtils, "refreshOAuthToken").mockImplementation(async (_provider, credential) => {
+			if (credential.refresh === "stale-refresh") {
 				throw new Error(
 					'HTTP 400 invalid_grant {"error":"invalid_grant","error_description":"Refresh token not found or invalid"}',
 				);
 			}
-			return { newCredentials: credential!, apiKey: credential!.access };
+			return { ...credential, expires: Date.now() + 60 * 60_000 };
 		});
 
 		await withEnv(SUPPRESS_ANTHROPIC_ENV, async () => {
@@ -127,14 +127,13 @@ describe("AuthStorage OAuth refresh race", () => {
 		// refresh token to our snapshot will therefore see the SAME stale token
 		// and fall through to the disable. We then race a peer rotation into the
 		// window between the pre-check and the CAS, which the CAS must detect.
-		vi.spyOn(oauthUtils, "getOAuthApiKey").mockImplementation(async (provider, creds) => {
-			const credential = creds[provider];
-			if (credential?.refresh === "stale-refresh") {
+		vi.spyOn(oauthUtils, "refreshOAuthToken").mockImplementation(async (_provider, credential) => {
+			if (credential.refresh === "stale-refresh") {
 				throw new Error(
 					'HTTP 400 invalid_grant {"error":"invalid_grant","error_description":"Refresh token not found or invalid"}',
 				);
 			}
-			return { newCredentials: credential!, apiKey: credential!.access };
+			return { ...credential, expires: Date.now() + 60 * 60_000 };
 		});
 
 		const sharedStore = store;
@@ -188,7 +187,7 @@ describe("AuthStorage OAuth refresh race", () => {
 			},
 		]);
 
-		vi.spyOn(oauthUtils, "getOAuthApiKey").mockImplementation(async () => {
+		vi.spyOn(oauthUtils, "refreshOAuthToken").mockImplementation(async () => {
 			throw new Error('invalid_grant {"error":"invalid_grant"}');
 		});
 
@@ -414,7 +413,7 @@ describe("AuthStorage OAuth refresh race", () => {
 					throw new Error('HTTP 400 invalid_grant {"error":"invalid_grant"}');
 				}
 				usedRefreshTokens.add(credentials.refresh);
-				await Bun.sleep(50);
+				await bun.sleep(50);
 				return {
 					...credentials,
 					access: "access-rotated",
@@ -594,7 +593,7 @@ describe("AuthStorage OAuth refresh race", () => {
 		let sessionId = "";
 		for (let index = 0; index < 32; index++) {
 			const candidate = `session-auth-retry-${index}`;
-			if (Bun.hash.xxHash32(candidate) % 2 === 0) {
+			if (bun.hash.xxHash32(candidate) % 2 === 0) {
 				sessionId = candidate;
 				break;
 			}
@@ -694,7 +693,11 @@ describe("AuthStorage OAuth refresh race", () => {
 		]);
 
 		const failure = new Error("sqlite update failed");
-		vi.spyOn(store, "tryUpdateAuthCredentialIfMatches").mockImplementation(() => {
+		if (!store) throw new Error("store not initialized");
+		const activeStore = store as AuthCredentialStore & {
+			tryUpdateAuthCredentialIfMatches: NonNullable<AuthCredentialStore["tryUpdateAuthCredentialIfMatches"]>;
+		};
+		vi.spyOn(activeStore, "tryUpdateAuthCredentialIfMatches").mockImplementation(() => {
 			throw failure;
 		});
 
@@ -1037,10 +1040,10 @@ describe("AuthStorage OAuth refresh race", () => {
 	test.skipIf(process.platform === "win32")("SIGTERM waits for a rotated token to reach SQLite", async () => {
 		if (!store || !tempDir) throw new Error("test setup failed");
 		const release = path.join(tempDir, "release-response");
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
-				path.join(import.meta.dir, "fixtures/oauth-sigterm-child.ts"),
+				path.join(import.meta.dirname, "fixtures/oauth-sigterm-child.ts"),
 				path.join(tempDir, "agent.db"),
 				release,
 			],
@@ -1055,7 +1058,7 @@ describe("AuthStorage OAuth refresh race", () => {
 			]);
 			expect(new TextDecoder().decode(first.value)).toContain("rotated");
 			child.kill("SIGTERM");
-			await Bun.write(release, "complete");
+			await bun.write(release, "complete");
 			expect(await child.exited).toBe(143);
 			expect(store.listAuthCredentials("anthropic")[0]?.credential).toMatchObject({
 				type: "oauth",

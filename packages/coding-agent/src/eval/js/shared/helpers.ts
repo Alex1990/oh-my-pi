@@ -3,6 +3,8 @@ import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils/fs-error";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { JsStatusEvent } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface HelperOptions {
 	limit?: number;
@@ -66,9 +68,9 @@ export function createHelpers(ctx: HelperContext): HelperBundle {
 			}
 			const filePath = resolveHelperPath(ctx, rawPath, "write");
 			if (typeof data === "string" || data instanceof Blob || data instanceof ArrayBuffer) {
-				await Bun.write(filePath, data);
+				await bun.write(filePath, data);
 			} else {
-				await Bun.write(filePath, new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+				await bun.write(filePath, new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
 			}
 			ctx.emitStatus({ op: "write", path: filePath, bytes: getDataSize(data) });
 			return filePath;
@@ -84,7 +86,7 @@ export function createHelpers(ctx: HelperContext): HelperBundle {
 				ctx.emitStatus({ op: "env", key, value, action: "set" });
 				return value;
 			}
-			const result = ctx.env.get(key) ?? Bun.env[key];
+			const result = ctx.env.get(key) ?? bun.env[key];
 			ctx.emitStatus({ op: "env", key, value: result, action: "get" });
 			return result;
 		},
@@ -101,7 +103,7 @@ export function createHelpers(ctx: HelperContext): HelperBundle {
 
 function getMergedEnv(ctx: HelperContext): Record<string, string> {
 	const merged: Record<string, string> = {};
-	for (const [key, value] of Object.entries(Bun.env)) {
+	for (const [key, value] of Object.entries(bun.env)) {
 		if (typeof value === "string") merged[key] = value;
 	}
 	for (const [key, value] of ctx.env) merged[key] = value;
@@ -180,7 +182,7 @@ function resolveUnderRoot(scheme: string, root: string, rawRelative: string, raw
 async function resolveRegularFile(
 	ctx: HelperContext,
 	rawPath: string,
-): Promise<{ filePath: string; file: Bun.BunFile; size: number } | undefined> {
+): Promise<{ filePath: string; file: NodeFile; size: number } | undefined> {
 	const match = INTERNAL_URL_RE.exec(rawPath);
 	const artifactRoot = match?.[1].toLowerCase() === "artifact" ? ctx.localRoots().artifact : undefined;
 	const filePath =
@@ -188,7 +190,7 @@ async function resolveRegularFile(
 			? await resolveArtifactPath(artifactRoot, match[2])
 			: resolveHelperPath(ctx, rawPath, "read");
 	if (filePath === undefined) return undefined;
-	const file = Bun.file(filePath);
+	const file = bun.file(filePath);
 	const stat = await file.stat();
 	if (stat.isDirectory()) {
 		throw new ToolError(`Directory paths are not supported by read(): ${filePath}`);

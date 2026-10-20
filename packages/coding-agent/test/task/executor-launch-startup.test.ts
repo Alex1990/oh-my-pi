@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "bun:test";
+import { afterEach, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { ExtensionRuntime } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";

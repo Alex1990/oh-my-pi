@@ -1,4 +1,5 @@
 import type { TerminalNotification } from "../terminal-capabilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Title for out-of-band multiplexer notifications that carry none of their own. */
 export const DEFAULT_NOTIFICATION_TITLE = "omp";
@@ -15,7 +16,7 @@ export function notificationTitleAndBody(message: string | TerminalNotification)
  */
 export function spawnNotifier(cmd: string[]): boolean {
 	try {
-		const child = Bun.spawn({ cmd, stdin: "ignore", stdout: "ignore", stderr: "ignore" });
+		const child = bun.spawn({ cmd, stdin: "ignore", stdout: "ignore", stderr: "ignore" });
 		child.unref();
 	} catch {
 		return false;

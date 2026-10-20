@@ -6,16 +6,17 @@
  */
 import * as path from "node:path";
 import { compileCompatRules, renderAuthIds, renderProviderIds } from "./compat-compiler";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const rulesDir = path.join(import.meta.dir, "../src/compat/rules");
-const outPath = path.join(import.meta.dir, "../src/compat/rules.json");
-const authIdsPath = path.join(import.meta.dir, "../src/compat/auth-ids.ts");
-const providerIdsPath = path.join(import.meta.dir, "../src/compat/provider-ids.ts");
+const rulesDir = path.join(import.meta.dirname, "../src/compat/rules");
+const outPath = path.join(import.meta.dirname, "../src/compat/rules.json");
+const authIdsPath = path.join(import.meta.dirname, "../src/compat/auth-ids.ts");
+const providerIdsPath = path.join(import.meta.dirname, "../src/compat/provider-ids.ts");
 
 const compiled = await compileCompatRules(rulesDir);
-await Bun.write(outPath, JSON.stringify(compiled));
-await Bun.write(authIdsPath, renderAuthIds(compiled.auth));
-await Bun.write(providerIdsPath, renderProviderIds(compiled.providers));
+await bun.write(outPath, JSON.stringify(compiled));
+await bun.write(authIdsPath, renderAuthIds(compiled.auth));
+await bun.write(providerIdsPath, renderProviderIds(compiled.providers));
 console.log(
 	`wrote ${path.relative(process.cwd(), outPath)} (${compiled.cascade.rules.length} rules, ${compiled.taxonomy.classes.length} classes, ${Object.keys(compiled.providers).length} catalog providers, ${compiled.auth.providers.length} auth providers, ${compiled.files.length} files)`,
 );

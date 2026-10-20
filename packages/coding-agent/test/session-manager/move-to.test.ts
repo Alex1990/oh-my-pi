@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -11,9 +11,27 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { stripOuterDoubleQuotes } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
 import { getConfigRootDir, setAgentDir } from "@oh-my-pi/pi-utils";
 
+// Windows without developer mode refuses symlink creation; only that arm is skipped.
+const symlinksSupported = (() => {
+	const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	try {
+		const target = path.join(probeDir, "target");
+		fs.writeFileSync(target, "");
+		fs.symlinkSync(target, path.join(probeDir, "link"));
+		return true;
+	} catch {
+		return false;
+	} finally {
+		fs.rmSync(probeDir, { recursive: true, force: true });
+	}
+})();
+
 // -- helpers ----------------------------------------------------------------
 
 import { makeAssistantMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 function getHeader(entries: unknown[]): SessionHeader | undefined {
 	return entries.find(
@@ -117,8 +135,8 @@ describe("SessionManager.moveTo", () => {
 		const oldFile = session.getSessionFile()!;
 		const oldArtifacts = oldFile.slice(0, -6);
 		await fsp.mkdir(path.join(oldArtifacts, "child"), { recursive: true });
-		await Bun.write(path.join(oldArtifacts, "1.bash.log"), "saved output");
-		await Bun.write(path.join(oldArtifacts, "child", "2.bash.log"), "nested output");
+		await bun.write(path.join(oldArtifacts, "1.bash.log"), "saved output");
+		await bun.write(path.join(oldArtifacts, "child", "2.bash.log"), "nested output");
 		const rename = fs.promises.rename.bind(fs.promises);
 		const link = fs.promises.link.bind(fs.promises);
 		const renameSpy = spyOn(fs.promises, "rename").mockImplementation(async (from, to) => {
@@ -143,8 +161,8 @@ describe("SessionManager.moveTo", () => {
 		expect(fs.existsSync(oldFile)).toBe(false);
 		expect(fs.existsSync(oldArtifacts)).toBe(false);
 		expect(getHeader(await loadEntriesFromFile(newFile))?.cwd).toBe(cwdB);
-		expect(await Bun.file(path.join(newFile.slice(0, -6), "1.bash.log")).text()).toBe("saved output");
-		expect(await Bun.file(path.join(newFile.slice(0, -6), "child", "2.bash.log")).text()).toBe("nested output");
+		expect(await bun.file(path.join(newFile.slice(0, -6), "1.bash.log")).text()).toBe("saved output");
+		expect(await bun.file(path.join(newFile.slice(0, -6), "child", "2.bash.log")).text()).toBe("nested output");
 		await session.close();
 	});
 
@@ -155,7 +173,7 @@ describe("SessionManager.moveTo", () => {
 		const destinationDir = path.join(testAgentDir, "occupied");
 		await fsp.mkdir(destinationDir);
 		const destination = path.join(destinationDir, path.basename(oldFile));
-		await Bun.write(destination, "another session");
+		await bun.write(destination, "another session");
 		const rename = fs.promises.rename.bind(fs.promises);
 		const renameSpy = spyOn(fs.promises, "rename").mockImplementation(async (from, to) => {
 			if (from.toString() === oldFile) throw Object.assign(new Error("cross-device move"), { code: "EXDEV" });
@@ -168,7 +186,7 @@ describe("SessionManager.moveTo", () => {
 		}
 		expect(session.getSessionFile()).toBe(oldFile);
 		expect(getHeader(await loadEntriesFromFile(oldFile))?.cwd).toBe(cwdA);
-		expect(await Bun.file(destination).text()).toBe("another session");
+		expect(await bun.file(destination).text()).toBe("another session");
 		expect(await fsp.readdir(destinationDir)).toEqual([path.basename(oldFile)]);
 		await session.close();
 	});
@@ -216,7 +234,7 @@ describe("SessionManager.moveTo", () => {
 		const oldFile = session.getSessionFile()!;
 		const oldArtifacts = oldFile.slice(0, -6);
 		await fsp.mkdir(oldArtifacts);
-		await Bun.write(path.join(oldArtifacts, "1.bash.log"), "saved output");
+		await bun.write(path.join(oldArtifacts, "1.bash.log"), "saved output");
 		const destinationDir = path.join(testAgentDir, "destination");
 		const destinationFile = path.join(destinationDir, path.basename(oldFile));
 		const rename = fs.promises.rename.bind(fs.promises);
@@ -236,7 +254,7 @@ describe("SessionManager.moveTo", () => {
 		}
 		expect(session.getSessionFile()).toBe(oldFile);
 		expect(getHeader(await loadEntriesFromFile(oldFile))?.cwd).toBe(cwdA);
-		expect(await Bun.file(path.join(oldArtifacts, "1.bash.log")).text()).toBe("saved output");
+		expect(await bun.file(path.join(oldArtifacts, "1.bash.log")).text()).toBe("saved output");
 		expect(await fsp.readdir(destinationDir)).toEqual([]);
 		await session.close();
 	});
@@ -294,7 +312,7 @@ describe("SessionManager.moveTo", () => {
 		const deniedDir = path.join(testAgentDir, "denied-project");
 		const deniedFile = path.join(deniedDir, "session.jsonl");
 		await fsp.mkdir(deniedDir);
-		await Bun.write(
+		await bun.write(
 			deniedFile,
 			`${JSON.stringify({
 				type: "session",
@@ -883,7 +901,7 @@ describe("SessionManager.moveTo", () => {
 		expect(await fsp.readdir(awayArtifactsDir)).toEqual([`${id}.bash.log`]);
 	});
 
-	it("does not merge through a symlink on either side", async () => {
+	it.skipIf(!symlinksSupported)("does not merge through a symlink on either side", async () => {
 		// A symlink where an artifacts directory should be would make the merge
 		// move files into, or out of, whatever it points at. That is a
 		// relocation failure, not a merge: the move fails and the session stays

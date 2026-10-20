@@ -1,4 +1,5 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +8,17 @@ import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import * as sessionWorktree from "@oh-my-pi/pi-coding-agent/session/session-worktree";
 import { Container } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// `node:fs/promises` is a frozen ESM namespace; expose `mkdir` through a
+// hoisted mock module so tests can assert on (and gate) directory creation.
+const fsPromisesMock = vi.hoisted(() => ({ mkdir: vi.fn() }));
+vi.mock("node:fs/promises", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:fs/promises")>();
+	fsPromisesMock.mkdir.mockImplementation(actual.mkdir);
+	return { ...actual, mkdir: fsPromisesMock.mkdir };
+});
+const realMkdir = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises")).mkdir;
 
 function createMoveContext(sourceDir: string, settingsFlush?: () => Promise<void>) {
 	const state = { cwd: sourceDir, movedTo: undefined as string | undefined, completedBtwVisible: true };
@@ -70,7 +82,10 @@ describe("CommandController /move", () => {
 		setThemeInstance(theme);
 	});
 
-	afterEach(() => vi.restoreAllMocks());
+	afterEach(() => {
+		vi.restoreAllMocks();
+		fsPromisesMock.mkdir.mockReset().mockImplementation(realMkdir);
+	});
 
 	it("does not create a checkout when the BTW gate rejects a worktree command", async () => {
 		const sourceDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-wt-gate-"));
@@ -288,7 +303,7 @@ describe("CommandController /move", () => {
 				throw new Error("disk full");
 			});
 			ctx.showHookConfirm = vi.fn(async () => true);
-			const mkdir = vi.spyOn(fs, "mkdir");
+			const mkdir = fsPromisesMock.mkdir.mockClear();
 			const controller = new CommandController(ctx);
 
 			await controller.handleMoveCommand(targetDir);
@@ -363,7 +378,7 @@ describe("CommandController /move", () => {
 			const targetDir = path.join(sourceDir, "destination");
 			ctx.showHookConfirm = vi.fn(async () => true);
 			ctx.withBtwSessionMove = vi.fn(async () => false);
-			const mkdir = vi.spyOn(fs, "mkdir");
+			const mkdir = fsPromisesMock.mkdir.mockClear();
 
 			await new CommandController(ctx).handleMoveCommand(targetDir);
 
@@ -398,7 +413,7 @@ describe("CommandController /move", () => {
 				const targetDir = path.join(sourceDir, "destination");
 				const sourceFile = path.join(sourceDir, "session.jsonl");
 				const targetFile = path.join(targetDir, "session.jsonl");
-				await Bun.write(sourceFile, "session data\n");
+				await bun.write(sourceFile, "session data\n");
 				let held = false;
 				let commits = 0;
 				ctx.withBtwSessionMove = vi.fn(async operation => {
@@ -419,11 +434,11 @@ describe("CommandController /move", () => {
 					confirming.resolve();
 					return confirmation.promise;
 				});
-				const originalMkdir = fs.mkdir;
-				const mkdir = vi.spyOn(fs, "mkdir").mockImplementation(async (directory, options): Promise<undefined> => {
+				const mkdir = fsPromisesMock.mkdir.mockClear();
+				fsPromisesMock.mkdir.mockImplementation(async (directory, options): Promise<undefined> => {
 					creating.resolve();
 					await created.promise;
-					await originalMkdir(directory, options);
+					await realMkdir(directory, options);
 					return undefined;
 				});
 				ctx.session.moveSession = vi.fn(async cwd => {
@@ -465,11 +480,11 @@ describe("CommandController /move", () => {
 				expect(state.completedBtwVisible).toBe(!confirmed);
 				expect(state.cwd).toBe(confirmed ? targetDir : sourceDir);
 				if (confirmed) {
-					expect(await Bun.file(targetFile).text()).toBe("session data\n");
-					expect(await Bun.file(sourceFile).exists()).toBe(false);
+					expect(await bun.file(targetFile).text()).toBe("session data\n");
+					expect(await bun.file(sourceFile).exists()).toBe(false);
 					expect(ctx.present).toHaveBeenCalledTimes(1);
 				} else {
-					expect(await Bun.file(sourceFile).text()).toBe("session data\n");
+					expect(await bun.file(sourceFile).text()).toBe("session data\n");
 					expect(await fs.readdir(sourceDir)).toEqual(["session.jsonl"]);
 					expect(ctx.applyCwdChange).not.toHaveBeenCalled();
 					expect(ctx.present).not.toHaveBeenCalled();

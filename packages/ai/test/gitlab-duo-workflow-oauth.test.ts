@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { OAuthController } from "@oh-my-pi/pi-ai/registry/oauth/types";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const CLIENT_ID = "36f2a70cddeb5a0889d4fd8295c241b7e9848e89cf9e599d0eed2d8e5350fbf5";
 const REDIRECT_URI = "vscode://gitlab.gitlab-workflow/authentication";
@@ -73,7 +74,7 @@ describe("gitlab duo workflow OAuth", () => {
 					body = String(init?.body ?? "");
 					return makeTokenResponse({ access_token: "fresh-access", refresh_token: "fresh-refresh" });
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		);
 

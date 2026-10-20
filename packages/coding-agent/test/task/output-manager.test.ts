@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { AgentOutputManager } from "@oh-my-pi/pi-coding-agent/task/output-manager";
 import { PINNED_HUD_TOGGLE_ID } from "@oh-my-pi/pi-tui/prompt/composer";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Contract: subagent output ids are the requested name, used verbatim the first
 // time and suffixed (`-2`, `-3`, …) only when the same name recurs. A parent
@@ -31,11 +32,11 @@ describe("AgentOutputManager", () => {
 	it("scans existing output files so a resume never clobbers prior outputs", async () => {
 		using tmp = TempDir.createSync("@omp-output-manager-");
 		const dir = tmp.path();
-		await Bun.write(path.join(dir, "Anna.md"), "prior");
-		await Bun.write(path.join(dir, "Anna-2.md"), "prior");
-		await Bun.write(path.join(dir, "Bob.jsonl"), "persisted child session");
+		await bun.write(path.join(dir, "Anna.md"), "prior");
+		await bun.write(path.join(dir, "Anna-2.md"), "prior");
+		await bun.write(path.join(dir, "Bob.jsonl"), "persisted child session");
 		// Unrelated tool artifacts (numeric `.log` ids) must not be mistaken for names.
-		await Bun.write(path.join(dir, "7.bash.log"), "noise");
+		await bun.write(path.join(dir, "7.bash.log"), "noise");
 
 		const mgr = new AgentOutputManager(() => dir);
 
@@ -47,7 +48,7 @@ describe("AgentOutputManager", () => {
 	it("awaits one disk scan before concurrent allocations", async () => {
 		using tmp = TempDir.createSync("@omp-output-manager-");
 		const dir = tmp.path();
-		await Bun.write(path.join(dir, "Anna.jsonl"), "persisted child session");
+		await bun.write(path.join(dir, "Anna.jsonl"), "persisted child session");
 		const mgr = new AgentOutputManager(() => dir);
 
 		expect(await Promise.all([mgr.allocate("Anna"), mgr.allocate("Anna")])).toEqual(["Anna-2", "Anna-3"]);
@@ -56,10 +57,10 @@ describe("AgentOutputManager", () => {
 	it("only counts files within its own prefix scope on resume", async () => {
 		using tmp = TempDir.createSync("@omp-output-manager-");
 		const dir = tmp.path();
-		await Bun.write(path.join(dir, "Anna.Bob.md"), "child");
-		await Bun.write(path.join(dir, "Anna.Bob.Carol.md"), "grandchild");
+		await bun.write(path.join(dir, "Anna.Bob.md"), "child");
+		await bun.write(path.join(dir, "Anna.Bob.Carol.md"), "grandchild");
 		// A different parent's child must be ignored by Anna's manager.
-		await Bun.write(path.join(dir, "Other.Bob.md"), "elsewhere");
+		await bun.write(path.join(dir, "Other.Bob.md"), "elsewhere");
 
 		const mgr = new AgentOutputManager(() => dir, { parentPrefix: "Anna" });
 

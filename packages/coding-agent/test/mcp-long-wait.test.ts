@@ -11,14 +11,18 @@
  * over the legacy SSE transport, whose answer arrives on a different socket
  * than the POST — so the cancellation paths are pinned here alongside the wait.
  */
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as mcpTimeout from "@oh-my-pi/pi-coding-agent/mcp/timeout";
 import { HttpTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/http";
 import { LegacySseTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/sse";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const PROBE_PATH = path.join(import.meta.dir, "fixtures", "mcp-idle-wait-probe.ts");
-const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
+const PROBE_PATH = path.join(import.meta.dirname, "fixtures", "mcp-idle-wait-probe.ts");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 /** Whole seconds, per `BUN_CONFIG_HTTP_IDLE_TIMEOUT`; the probe stalls well past it. */
 const CHILD_IDLE_SECONDS = "1";
 /** Bounds a wedged child: the probe stalls 7s and the idle wheel is coarse. */
@@ -28,7 +32,7 @@ const CHILD_TEST_MS = 60_000;
 const DEADLINE_MS = 200;
 
 interface StallingServer {
-	server: Bun.Server<undefined>;
+	server: Server<undefined>;
 	/** Resolves once the server has the request and is deliberately silent. */
 	arrived: Promise<void>;
 	/** Let the pending request finish so the process is not left holding it. */
@@ -47,10 +51,10 @@ afterEach(() => {
 });
 
 /** A server that accepts a JSON-RPC POST and then says nothing until released. */
-function stallingServer(): StallingServer {
+async function stallingServer(): Promise<StallingServer> {
 	const arrived = Promise.withResolvers<void>();
 	const gate = Promise.withResolvers<void>();
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		// The client's idle timer is the subject; a server-side one would drop
 		// the socket first and prove nothing.
@@ -71,11 +75,11 @@ function stallingServer(): StallingServer {
  * A legacy (2024-11-05) server: it names its POST endpoint at once, then holds
  * every POST open. `arrived` resolves when a POST is in the server's hands.
  */
-function legacySseServer(): StallingServer {
+async function legacySseServer(): Promise<StallingServer> {
 	const arrived = Promise.withResolvers<void>();
 	const gate = Promise.withResolvers<void>();
 	const encoder = new TextEncoder();
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		idleTimeout: 0,
 		async fetch(request) {
@@ -100,7 +104,7 @@ function legacySseServer(): StallingServer {
 	return entry;
 }
 
-async function connected(server: Bun.Server<undefined>, timeout: number): Promise<HttpTransport> {
+async function connected(server: Server<undefined>, timeout: number): Promise<HttpTransport> {
 	const transport = new HttpTransport({ type: "http", url: `http://127.0.0.1:${server.port}/mcp`, timeout });
 	await transport.connect();
 	return transport;
@@ -121,7 +125,7 @@ describe("MCP waits that outlast the socket idle timer", () => {
 		async () => {
 			// The idle default is per-process, so the boundary is shortened in a
 			// child rather than in this suite's environment.
-			const proc = Bun.spawn([process.execPath, PROBE_PATH], {
+			const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), PROBE_PATH], {
 				cwd: REPO_ROOT,
 				env: {
 					...process.env,
@@ -183,7 +187,7 @@ describe("MCP waits that outlast the socket idle timer", () => {
 
 	it("lets caller cancellation end a wait that was given no deadline", async () => {
 		pinDeadline(0);
-		const { server, arrived } = stallingServer();
+		const { server, arrived } = await stallingServer();
 		const transport = await connected(server, 0);
 		const caller = new AbortController();
 		try {
@@ -204,7 +208,7 @@ describe("MCP waits that outlast the socket idle timer", () => {
 
 	it("ends a wait that was given no deadline when the transport closes", async () => {
 		pinDeadline(0);
-		const { server, arrived } = stallingServer();
+		const { server, arrived } = await stallingServer();
 		const transport = await connected(server, 0);
 		const settled = transport.request("tools/call").then(
 			() => undefined,
@@ -224,7 +228,7 @@ describe("MCP waits that outlast the socket idle timer", () => {
 		// holding is invisible to the pending-response map: `notify` has no entry
 		// there at all. Without a lifecycle signal its promise never settles.
 		pinDeadline(0);
-		const { server, arrived } = legacySseServer();
+		const { server, arrived } = await legacySseServer();
 		const transport = new LegacySseTransport({
 			type: "sse",
 			url: `http://127.0.0.1:${server.port}/sse`,
@@ -255,7 +259,7 @@ describe("MCP waits that outlast the socket idle timer", () => {
 
 	it("still fails a silent wait at the configured MCP deadline", async () => {
 		pinDeadline(DEADLINE_MS);
-		const { server } = stallingServer();
+		const { server } = await stallingServer();
 		const transport = await connected(server, DEADLINE_MS);
 		try {
 			await expect(transport.request("tools/call")).rejects.toMatchObject({

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	CURSOR_MARKER,
 	type TerminalFramePlan,
@@ -8,6 +8,7 @@ import {
 } from "@oh-my-pi/pi-tui";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression coverage for tmux pane zoom corrupting scrollback (duplication and
 // committed-row loss). Multiplexers re-lay the pane on their own schedule
@@ -92,15 +93,15 @@ function useDirectTerminalEnv() {
 	beforeEach(() => {
 		saved = {};
 		for (const key of MUX_SIGNALS) {
-			saved[key] = Bun.env[key];
-			delete Bun.env[key];
+			saved[key] = bun.env[key];
+			delete bun.env[key];
 		}
-		Bun.env.TERM = "xterm-256color";
+		bun.env.TERM = "xterm-256color";
 	});
 	afterEach(() => {
 		for (const key of MUX_SIGNALS) {
-			if (saved[key] === undefined) delete Bun.env[key];
-			else Bun.env[key] = saved[key];
+			if (saved[key] === undefined) delete bun.env[key];
+			else bun.env[key] = saved[key];
 		}
 	});
 }
@@ -109,12 +110,12 @@ describe("resize anchoring inside a terminal multiplexer", () => {
 	let previousTmux: string | undefined;
 
 	beforeEach(() => {
-		previousTmux = Bun.env.TMUX;
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
+		previousTmux = bun.env.TMUX;
+		bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
 	});
 	afterEach(() => {
-		if (previousTmux === undefined) delete Bun.env.TMUX;
-		else Bun.env.TMUX = previousTmux;
+		if (previousTmux === undefined) delete bun.env.TMUX;
+		else bun.env.TMUX = previousTmux;
 	});
 
 	it("skips the SIGWINCH-side erase so a racing re-layout cannot blank popped scrollback", () => {

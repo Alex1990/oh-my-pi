@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, setSystemTime, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Container, TUI } from "@oh-my-pi/pi-tui";
 import { Loader, type LoaderMessageColorFn } from "@oh-my-pi/pi-tui/components/loader";
 import { visibleWidth } from "@oh-my-pi/pi-tui/utils";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("Loader component", () => {
 	afterEach(() => {
@@ -23,7 +24,7 @@ describe("Loader component", () => {
 		tui.addChild(loader);
 
 		tui.start();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await term.flush();
 
 		for (const line of term.getViewport()) {
@@ -200,7 +201,7 @@ describe("Loader component", () => {
 		};
 		colorMessage.animated = true;
 		const loader = new Loader(ui as unknown as TUI, text => text, colorMessage, "Checking", ["⠸"]);
-		const stringWidth = spyOn(Bun, "stringWidth");
+		const stringWidth = spyOn(bun, "stringWidth");
 
 		const initial = loader.render(40);
 		stringWidth.mockClear();
@@ -224,7 +225,7 @@ describe("Loader component", () => {
 			"Checking",
 			["⠋", "⠙", "⠹"],
 		);
-		const stringWidth = spyOn(Bun, "stringWidth");
+		const stringWidth = spyOn(bun, "stringWidth");
 
 		const initial = loader.render(40);
 		stringWidth.mockClear();
@@ -278,18 +279,18 @@ describe("Loader component", () => {
 		loader.setTrailer(() => trailer);
 
 		const initial = loader.render(24);
-		expect(Bun.stripANSI(initial[1])).toBe(` ⠋ 界 e\u0301${" ".repeat(16)}T`);
+		expect(bun.stripANSI(initial[1])).toBe(` ⠋ 界 e\u0301${" ".repeat(16)}T`);
 		expect(initial[2]).toContain("\x1b[31mnext\x1b[0m");
 
 		color = 32;
 		spinnerSuffix = ">>";
 		trailer = "界!";
 		const recolored = loader.render(24);
-		expect(Bun.stripANSI(recolored[1])).toBe(` ⠋>> 界 e\u0301${" ".repeat(12)}界!`);
+		expect(bun.stripANSI(recolored[1])).toBe(` ⠋>> 界 e\u0301${" ".repeat(12)}界!`);
 		expect(recolored[2]).toContain("\x1b[32mnext\x1b[0m");
 
 		vi.advanceTimersByTime(80);
-		expect(Bun.stripANSI(loader.render(24)[1])).toBe(` 界>> 界 e\u0301${" ".repeat(11)}界!`);
+		expect(bun.stripANSI(loader.render(24)[1])).toBe(` 界>> 界 e\u0301${" ".repeat(11)}界!`);
 
 		trailer = "a trailer that does not fit";
 		expect(loader.render(24)[1]).not.toContain(trailer);
@@ -303,7 +304,7 @@ describe("Loader component", () => {
 		const loader = new Loader(
 			tui,
 			text => text,
-			text => Bun.stripANSI(text) + reset,
+			text => bun.stripANSI(text) + reset,
 			"\x1b[31mHi \x1b[0m",
 			["*"],
 		);
@@ -348,7 +349,7 @@ describe("Loader component", () => {
 		const spy = spyOn(tui, "requestComponentRender");
 		loader.dispose();
 		const after = spy.mock.calls.length;
-		await Bun.sleep(40); // longer than the spinner interval
+		await bun.sleep(40); // longer than the spinner interval
 		expect(spy.mock.calls.length).toBe(after);
 		expect(() => loader.dispose()).not.toThrow(); // idempotent
 		tui.stop();

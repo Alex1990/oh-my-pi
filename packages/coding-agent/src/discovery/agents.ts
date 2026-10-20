@@ -23,6 +23,7 @@ import {
 	loadFilesFromDir,
 	scanSkillsFromDir,
 } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PROVIDER_ID = "agents";
 const DISPLAY_NAME = "Agent Dirs (.agent/.agents)";
@@ -57,7 +58,7 @@ const HOST_PROBE_TIMEOUT_MS = 500;
  */
 export function runHostProbe(cmd: string[], timeoutMs = HOST_PROBE_TIMEOUT_MS): string | undefined {
 	try {
-		const result = Bun.spawnSync(cmd, {
+		const result = bun.spawnSync(cmd, {
 			stdout: "pipe",
 			stderr: "ignore",
 			timeout: timeoutMs,

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -33,6 +33,7 @@ import {
 	visibleWidth,
 	wrapTextWithAnsi,
 } from "../native/index.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const addonUrl = new URL("../native/index.js", import.meta.url).href;
 
@@ -112,11 +113,11 @@ async function cleanupFixtures() {
 }
 
 function canCreateFifo() {
-	return process.platform !== "win32" && Boolean(Bun.which("mkfifo"));
+	return process.platform !== "win32" && Boolean(bun.which("mkfifo"));
 }
 
 async function createFifo(fifoPath: string) {
-	const process = Bun.spawn(["mkfifo", fifoPath], {
+	const process = bun.spawn(["mkfifo", fifoPath], {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -334,8 +335,8 @@ try {
 		glob({ pattern: "*.md", path: "skill://stall", filesystem, timeoutMs: 2_000 })
 	));
 	if (listings.some(result => result.totalMatches !== 1)) throw new Error("provider glob missed file");
-	await Bun.write(temp, "published");
-	const readback = await Bun.file(temp).slice(0, 1).arrayBuffer();
+	await fs.writeFile(temp, "published");
+	const readback = (await fs.readFile(temp)).subarray(0, 1);
 	if (readback.byteLength !== 1) throw new Error("artifact verification read failed");
 	await fs.rename(temp, artifact);
 	const controller = new AbortController();
@@ -375,7 +376,7 @@ try {
 	await fs.rm(root, { recursive: true, force: true });
 }
 `;
-			const child = Bun.spawn([process.execPath, "--eval", script], {
+			const child = bun.spawn([process.execPath, "--eval", script], {
 				env: { ...process.env, UV_THREADPOOL_SIZE: "4" },
 				stdout: "pipe",
 				stderr: "pipe",
@@ -506,8 +507,8 @@ try {
 			const scopedDir = await fs.mkdtemp(path.join(os.tmpdir(), "natives-grep-stream-"));
 			try {
 				const dense = "alpha beta\n".repeat(5_000);
-				for (let i = 0; i < 8; i++) await Bun.write(path.join(scopedDir, `dense-${i}.txt`), dense);
-				await Bun.write(path.join(scopedDir, "quiet.txt"), "nothing here\n");
+				for (let i = 0; i < 8; i++) await bun.write(path.join(scopedDir, `dense-${i}.txt`), dense);
+				await bun.write(path.join(scopedDir, "quiet.txt"), "nothing here\n");
 
 				const batchSizes: number[] = [];
 				const perFile = new Map<string, number>();
@@ -631,7 +632,7 @@ try {
 						path: scopedDir,
 						gitignore: false,
 					}).then(result => ({ kind: "done" as const, result })),
-					Bun.sleep(2000).then(() => ({ kind: "timeout" as const })),
+					bun.sleep(2000).then(() => ({ kind: "timeout" as const })),
 				]);
 
 				expect(outcome.kind).toBe("done");
@@ -666,7 +667,7 @@ try {
 						path: fifoPath,
 						gitignore: false,
 					}).then(result => ({ kind: "done" as const, result })),
-					Bun.sleep(2000).then(() => ({ kind: "timeout" as const })),
+					bun.sleep(2000).then(() => ({ kind: "timeout" as const })),
 				]);
 
 				expect(outcome.kind).toBe("done");
@@ -769,7 +770,7 @@ try {
 					},
 				);
 
-				await Bun.sleep(10);
+				await bun.sleep(10);
 				expect(result.matches).toHaveLength(maxResults);
 				expect(streamed.length).toBeGreaterThan(0);
 				expect(streamed.length).toBeLessThanOrEqual(fileCount);
@@ -798,7 +799,7 @@ try {
 			const first = await glob({ pattern: fileName, path: testDir, hidden: true, gitignore: true, cache: true });
 			expect(first.totalMatches).toBe(0);
 			await fs.writeFile(filePath, "created after empty cached query\n");
-			await Bun.sleep(250);
+			await bun.sleep(250);
 			const second = await glob({ pattern: fileName, path: testDir, hidden: true, gitignore: true, cache: true });
 			expect(second.totalMatches).toBe(1);
 		});
@@ -858,7 +859,7 @@ try {
 		it("passes executable arguments without shell quoting", async () => {
 			const scriptPath = path.join(testDir, "pty-argv.ts");
 			const expected = ["argument with spaces", 'quote"inside', "backslash\\end"];
-			await Bun.write(scriptPath, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
+			await bun.write(scriptPath, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
 			const session = new PtySession();
 			let output = "";
 			let callbackError: Error | null = null;
@@ -932,7 +933,7 @@ try {
 				const blockBytes = 64 * 1024;
 				const blocks = 80;
 				const scriptPath = path.join(testDir, "pty-slow-consumer.ts");
-				await Bun.write(
+				await bun.write(
 					scriptPath,
 					`const block = Buffer.alloc(${blockBytes}, 0x78);\n` +
 						`for (let i = 0; i < ${blocks}; i++) process.stdout.write(block);\n` +
@@ -983,7 +984,7 @@ try {
 		);
 
 		it("should time out detached background workloads without hanging", async () => {
-			if (process.platform === "win32" || !Bun.which("bash")) {
+			if (process.platform === "win32" || !bun.which("bash")) {
 				return;
 			}
 
@@ -1003,7 +1004,7 @@ try {
 							undefined,
 						)
 						.then(result => ({ kind: "done" as const, result })),
-					Bun.sleep(4000).then(() => ({ kind: "hang" as const })),
+					bun.sleep(4000).then(() => ({ kind: "hang" as const })),
 				]);
 
 				expect(outcome.kind).toBe("done");
@@ -1039,8 +1040,8 @@ try {
 
 			expect(result.timedOut).toBe(true);
 
-			await Bun.sleep(500);
-			expect(await Bun.file(markerPath).exists()).toBe(false);
+			await bun.sleep(500);
+			expect(await bun.file(markerPath).exists()).toBe(false);
 		});
 
 		it("should SIGKILL workloads that ignore SIGTERM on timeout", async () => {
@@ -1060,8 +1061,8 @@ try {
 
 			expect(result.timedOut).toBe(true);
 
-			await Bun.sleep(600);
-			expect(await Bun.file(markerPath).exists()).toBe(false);
+			await bun.sleep(600);
+			expect(await bun.file(markerPath).exists()).toBe(false);
 		});
 	});
 
@@ -1192,7 +1193,7 @@ for (const { label, input } of cases) {
 
 console.log("ok");
 `;
-			const child = Bun.spawn([process.execPath, "--eval", script], {
+			const child = bun.spawn([process.execPath, "--eval", script], {
 				stdout: "pipe",
 				stderr: "pipe",
 			});
@@ -1244,12 +1245,12 @@ console.log("ok");
 			assertion?.stop();
 		});
 
-		it.skipIf(process.platform !== "linux" || !Bun.which("systemd-inhibit"))(
+		it.skipIf(process.platform !== "linux" || !bun.which("systemd-inhibit"))(
 			"registers a login1 inhibitor for the handle's lifetime",
 			() => {
 				const reason = `pi-natives ${crypto.randomUUID()}`;
 				const held = (): boolean =>
-					Bun.spawnSync(["systemd-inhibit", "--list", "--no-pager"]).stdout.toString().includes(reason);
+					bun.spawnSync(["systemd-inhibit", "--list", "--no-pager"]).stdout.toString().includes(reason);
 				let assertion: PowerAssertion;
 				try {
 					assertion = PowerAssertion.start({ reason, idle: true });

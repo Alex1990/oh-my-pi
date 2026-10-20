@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as vm from "node:vm";
 import { collectModuleSourceSpecifiers, stripTypeScriptSyntax } from "./rewrite-imports";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface LocalModuleEntry {
 	version: number;
@@ -34,7 +35,7 @@ export class LocalModuleLoader {
 
 	constructor(sessionId: string) {
 		this.#context = vm.createContext(globalThis);
-		this.#sessionTag = Bun.hash(sessionId).toString(16);
+		this.#sessionTag = bun.hash(sessionId).toString(16);
 	}
 
 	setPackageRoot(packageRoot: string | undefined): void {
@@ -368,7 +369,7 @@ function buildModuleSource(source: string, modulePath: string): string {
 
 function resolveImportSpecifier(baseDir: string, source: string, packageRoot: string | undefined): string {
 	if (/^[a-z][a-z0-9+.-]*:/i.test(source) || isBuiltin(source)) return source;
-	if (!isBareSpecifier(source)) return Bun.resolveSync(source, baseDir);
+	if (!isBareSpecifier(source)) return bun.resolveSync(source, baseDir);
 	let projectError: unknown;
 	try {
 		return resolveBareSpecifierWithinProject(source, baseDir);
@@ -386,7 +387,7 @@ function resolveImportSpecifier(baseDir: string, source: string, packageRoot: st
 }
 
 function resolveBareSpecifierWithinProject(source: string, baseDir: string): string {
-	const resolved = Bun.resolveSync(source, baseDir);
+	const resolved = bun.resolveSync(source, baseDir);
 	if (!path.isAbsolute(resolved)) {
 		throw new Error(
 			`Refusing non-file resolution ${JSON.stringify(resolved)} for bare package ${JSON.stringify(source)} from ${baseDir}`,
@@ -420,7 +421,7 @@ function packageFallbackError(projectError: unknown, fallbackError: unknown, pac
 	const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
 	return new Error(
 		`${projectMessage}\nJS package environment fallback ${packageRoot} also failed: ${fallbackMessage}\n` +
-			"Install the missing dependency with %bun add (select %environment project only to modify the project).",
+			"Install the missing dependency with %npm add (select %environment project only to modify the project).",
 		{ cause: projectError },
 	);
 }

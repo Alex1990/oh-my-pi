@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,6 +8,9 @@ import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 // Windows ignores POSIX read bits and root reads a mode-000 file, so neither can make delivery fail through one.
@@ -40,7 +43,7 @@ drop.addEventListener("drop", event => { event.preventDefault(); record("drop", 
 </script>`;
 
 let tempDir = "";
-let site: Bun.Server<undefined> | undefined;
+let site: Server<undefined> | undefined;
 let url = "";
 
 function makeSession(): ToolSession {
@@ -83,7 +86,7 @@ async function openFixture() {
 				code: `await tab.goto(${JSON.stringify(url)});
 let error = undefined;
 try { ${code} } catch (e) { error = e instanceof Error ? e.message : String(e); }
-await Bun.sleep(300);
+await bun.sleep(300);
 return { error, log: await tab.evaluate(() => window.log) };`,
 			},
 			context,
@@ -99,12 +102,12 @@ return { error, log: await tab.evaluate(() => window.log) };`,
 
 beforeAll(async () => {
 	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-upload-"));
-	await Bun.write(path.join(tempDir, "alpha.txt"), "alpha");
-	await Bun.write(path.join(tempDir, "beta.txt"), "beta");
+	await bun.write(path.join(tempDir, "alpha.txt"), "alpha");
+	await bun.write(path.join(tempDir, "beta.txt"), "beta");
 	// Readable enough to open for an upload (a stat), not to copy or read: delivery fails after the chooser is caught.
-	await Bun.write(path.join(tempDir, "locked.txt"), "locked");
+	await bun.write(path.join(tempDir, "locked.txt"), "locked");
 	await fs.chmod(path.join(tempDir, "locked.txt"), 0o000);
-	site = Bun.serve({
+	site = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: () => new Response(html, { headers: { "content-type": "text/html" } }),

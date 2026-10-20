@@ -1,14 +1,15 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { AuthStorage } from "@oh-my-pi/pi-ai/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
+const cliEntry = path.join(import.meta.dirname, "..", "src", "cli.ts");
 
 test("omp dry-balance routes by account policies from a --config overlay", async () => {
 	const agentDir = TempDir.createSync("@omp-dry-balance-config-");
 	try {
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir.path(), "models.yml"),
 			[
 				"providers:",
@@ -32,7 +33,7 @@ test("omp dry-balance routes by account policies from a --config overlay", async
 		await authStorage.credentials.set("acme", [account("a"), account("b")]);
 		authStorage.close();
 		const overlayPath = path.join(agentDir.path(), "policy-overlay.yml");
-		await Bun.write(
+		await bun.write(
 			overlayPath,
 			[
 				"auth:",
@@ -45,7 +46,7 @@ test("omp dry-balance routes by account policies from a --config overlay", async
 			].join("\n"),
 		);
 
-		const child = Bun.spawn(
+		const child = bun.spawn(
 			[
 				process.execPath,
 				cliEntry,

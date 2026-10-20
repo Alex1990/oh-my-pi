@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { computeUserMessageMetrics, EMPTY_USER_METRICS } from "@oh-my-pi/omp-stats/user-metrics";
 
 describe("computeUserMessageMetrics", () => {

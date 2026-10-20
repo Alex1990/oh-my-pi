@@ -1,8 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { $which, TempDir } from "@oh-my-pi/pi-utils";
 import { PYTHON_PRELUDE } from "../../../src/eval/py/prelude";
 import { artifactReadBridge } from "../../helpers/artifact-read-bridge";
-const pythonPath = Bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
+const pythonPath = bun.env.PYTHON ?? ($which("python3") ? "python3" : "python");
 
 async function runPrelude(
 	code: string,
@@ -18,8 +20,8 @@ async function runPrelude(
 	const dir = await TempDir.create("@omp-py-prelude-");
 	try {
 		const scriptPath = dir.join("script.py");
-		await Bun.write(scriptPath, script);
-		const proc = Bun.spawn([pythonPath, scriptPath], {
+		await bun.write(scriptPath, script);
+		const proc = bun.spawn([pythonPath, scriptPath], {
 			stdout: "pipe",
 			stderr: "pipe",
 			env: { ...process.env, ...env },
@@ -79,7 +81,7 @@ describe("python prelude", () => {
 
 	it("appends line selectors to delegated URI paths", async () => {
 		const requests: unknown[] = [];
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: async request => {
@@ -122,7 +124,7 @@ describe("python prelude", () => {
 		readTool: (args: { path: string }) => Promise<unknown>,
 	): Promise<{ stdout: string; stderr: string; requests: unknown[] }> {
 		const requests: unknown[] = [];
-		const server = Bun.serve({
+		const server = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: async request => {
@@ -153,7 +155,7 @@ describe("python prelude", () => {
 
 	it("reads an artifact from this session's dir; empty for limit <= 0", async () => {
 		using artifacts = TempDir.createSync("@omp-py-prelude-artifacts-");
-		await Bun.write(artifacts.join("12.eval.log"), "first\nsecond\nthird\n");
+		await bun.write(artifacts.join("12.eval.log"), "first\nsecond\nthird\n");
 		const { stdout, stderr, requests } = await runWithReadBridge(
 			[
 				`print(repr(read("artifact://12", offset=2, limit=1)))`,
@@ -170,8 +172,8 @@ describe("python prelude", () => {
 
 	it("reads an artifact another session holds in full, however large, through the read tool", async () => {
 		using tmp = TempDir.createSync("@omp-py-prelude-artifact-fallback-");
-		await Bun.write(tmp.join("owner", "7.bash.log"), largeArtifact);
-		await Bun.write(tmp.join("own", "12.eval.log"), "this session's");
+		await bun.write(tmp.join("owner", "7.bash.log"), largeArtifact);
+		await bun.write(tmp.join("own", "12.eval.log"), "this session's");
 		const out = tmp.join("out.txt");
 		const { stdout, stderr, requests } = await runWithReadBridge(
 			[
@@ -184,7 +186,7 @@ describe("python prelude", () => {
 		);
 
 		expect(stderr).toBe("");
-		expect(await Bun.file(out).text()).toBe(largeArtifact);
+		expect(await bun.file(out).text()).toBe(largeArtifact);
 		expect(stdout).toBe("'row 0\\nrow 1\\n'\nTrue\n");
 		expect(requests).toMatchObject([
 			{ name: "read", args: { path: "artifact://7:raw:1-1" } },
@@ -195,7 +197,7 @@ describe("python prelude", () => {
 
 	it("reads an artifact in full through the read tool when no artifacts dir was injected", async () => {
 		using tmp = TempDir.createSync("@omp-py-prelude-artifact-no-root-");
-		await Bun.write(tmp.join("12.eval.log"), largeArtifact);
+		await bun.write(tmp.join("12.eval.log"), largeArtifact);
 		const out = tmp.join("out.txt");
 		const { stderr, requests } = await runWithReadBridge(
 			`open(${JSON.stringify(out)}, "w", newline="").write(read("artifact://12"))`,
@@ -204,7 +206,7 @@ describe("python prelude", () => {
 		);
 
 		expect(stderr).toBe("");
-		expect(await Bun.file(out).text()).toBe(largeArtifact);
+		expect(await bun.file(out).text()).toBe(largeArtifact);
 		expect(requests).toMatchObject([{ name: "read", args: { path: "artifact://12:raw:1-1" } }]);
 	});
 
@@ -228,7 +230,7 @@ describe("python prelude", () => {
 
 	it("bypasses discovered proxies for loopback bridge calls", async () => {
 		let proxyRequests = 0;
-		const bridge = Bun.serve({
+		const bridge = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: async request => {
@@ -239,7 +241,7 @@ describe("python prelude", () => {
 				});
 			},
 		});
-		const proxy = Bun.serve({
+		const proxy = await serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () => {

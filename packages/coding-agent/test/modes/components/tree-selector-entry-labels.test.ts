@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ALT_A = "\x1ba";
 
@@ -76,7 +77,7 @@ function selectorFor(entries: SessionEntry[]): TreeSelectorComponent {
 function visibleRows(selector: TreeSelectorComponent): string[] {
 	return selector
 		.render(100)
-		.map(row => Bun.stripANSI(row).trimEnd())
+		.map(row => bun.stripANSI(row).trimEnd())
 		.filter(row => row.trim());
 }
 

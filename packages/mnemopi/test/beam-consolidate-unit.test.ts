@@ -1,5 +1,5 @@
-import type { Database } from "bun:sqlite";
-import { afterEach, describe, expect, it } from "bun:test";
+import type { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { initBeam } from "@oh-my-pi/pi-mnemopi/core/beam";
 import {
 	consolidateToEpisodic,

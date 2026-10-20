@@ -25,6 +25,7 @@ import {
 } from "../google-shared";
 import type { GenerateContentResponse, Part } from "../google-types";
 import { transformMessages } from "../transform-messages";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Factory's Gemini endpoint speaks native generateContent SSE at `/api/llm/g/v1/generate`. */
 
@@ -50,7 +51,7 @@ function geminiThinkingLevel(effort: string | undefined, supportsMedium: boolean
 function sanitizeFactoryDroidToolName(name: string): string {
 	const sanitized = name.replace(/[^a-zA-Z0-9_-]/g, "_");
 	if (sanitized.length <= 64) return sanitized;
-	return `${sanitized.slice(0, 55)}_${Bun.SHA256.hash(sanitized, "hex").slice(0, 8)}`;
+	return `${sanitized.slice(0, 55)}_${bun.SHA256.hash(sanitized, "hex").slice(0, 8)}`;
 }
 
 /**

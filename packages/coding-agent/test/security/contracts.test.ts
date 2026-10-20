@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { SecurityFinding, SecurityScanBundle } from "../../src/security/contracts";
 import {
 	createSecurityFindingFingerprint,
@@ -8,6 +8,7 @@ import {
 	parseSecurityFinding,
 	parseSecurityScanBundle,
 } from "../../src/security/contracts";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LOCATION = { path: "src/archive.ts", startLine: 10, endLine: 12, role: "sink" } as const;
 
@@ -120,7 +121,7 @@ describe("security contracts", () => {
 					displayName: "fixture",
 					includePaths: [],
 					excludePaths: [],
-					treeDigest: Bun.SHA256.hash("fixture", "hex"),
+					treeDigest: bun.SHA256.hash("fixture", "hex"),
 				},
 				producer: { kind: "sarif-import", name: "FixtureScanner", version: "1.2.3" },
 				provenance: finding.provenance,

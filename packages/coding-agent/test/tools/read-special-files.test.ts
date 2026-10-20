@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { hasFsCode, removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeSession(cwd: string): ToolSession {
 	return {
@@ -39,7 +40,7 @@ async function expectFifoRejection(tool: ReadTool, readPath: string, fifo: strin
 			() => "RESOLVED" as const,
 			(error: unknown) => error,
 		),
-		Bun.sleep(1500).then(() => "HUNG" as const),
+		bun.sleep(1500).then(() => "HUNG" as const),
 	]);
 	if (outcome === "HUNG") releaseFifoReader(fifo);
 	expect(outcome).toBeInstanceOf(ToolError);
@@ -58,7 +59,7 @@ describe.skipIf(process.platform === "win32")("read on non-regular files", () =>
 		fs.mkdirSync(testDir, { recursive: true });
 		tool = new ReadTool(makeSession(testDir));
 		fifo = path.join(testDir, "input.fifo");
-		expect(Bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
+		expect(bun.spawnSync(["mkfifo", fifo]).exitCode).toBe(0);
 	});
 
 	afterEach(() => {

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Model, ModelSpec } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { MODEL_KINDS, modelKind, type ModelKind } from "@oh-my-pi/pi-catalog/types";
 import { renderProviderModels } from "@oh-my-pi/pi-coding-agent/cli/models-cli";
 import Models from "@oh-my-pi/pi-coding-agent/commands/models";
 import type { CliConfig } from "@oh-my-pi/pi-utils/cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_CONFIG: CliConfig = { bin: "omp", version: "test", commands: new Map() };
 
@@ -149,19 +150,19 @@ describe("omp models image support column", () => {
 	it("strips images on the OpenRouter chat fallback", () => {
 		// PI_OPENROUTER_RESPONSES=0 dispatches openrouter models through
 		// streamOpenAICompletions, so the Chat Completions guard applies.
-		const previous = Bun.env.PI_OPENROUTER_RESPONSES;
-		Bun.env.PI_OPENROUTER_RESPONSES = "0";
+		const previous = bun.env.PI_OPENROUTER_RESPONSES;
+		bun.env.PI_OPENROUTER_RESPONSES = "0";
 		try {
 			expect(imagesCell(makeModel({ id: "deepseek-v4-flash", api: "openrouter" }))).toBe("no");
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_OPENROUTER_RESPONSES;
-			else Bun.env.PI_OPENROUTER_RESPONSES = previous;
+			if (previous === undefined) delete bun.env.PI_OPENROUTER_RESPONSES;
+			else bun.env.PI_OPENROUTER_RESPONSES = previous;
 		}
 	});
 
 	it("honours the strip opt-out on the OpenRouter chat fallback", () => {
-		const previous = Bun.env.PI_OPENROUTER_RESPONSES;
-		Bun.env.PI_OPENROUTER_RESPONSES = "0";
+		const previous = bun.env.PI_OPENROUTER_RESPONSES;
+		bun.env.PI_OPENROUTER_RESPONSES = "0";
 		try {
 			expect(
 				imagesCell(
@@ -173,21 +174,21 @@ describe("omp models image support column", () => {
 				),
 			).toBe("yes");
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_OPENROUTER_RESPONSES;
-			else Bun.env.PI_OPENROUTER_RESPONSES = previous;
+			if (previous === undefined) delete bun.env.PI_OPENROUTER_RESPONSES;
+			else bun.env.PI_OPENROUTER_RESPONSES = previous;
 		}
 	});
 
 	it("reports declared input on the OpenRouter Responses path", () => {
 		// The default Responses transport ignores stripImageInput (openai-shared
 		// derives supportsImages from the declared input), so the column must too.
-		const previous = Bun.env.PI_OPENROUTER_RESPONSES;
-		delete Bun.env.PI_OPENROUTER_RESPONSES;
+		const previous = bun.env.PI_OPENROUTER_RESPONSES;
+		delete bun.env.PI_OPENROUTER_RESPONSES;
 		try {
 			expect(imagesCell(makeModel({ id: "deepseek-v4-flash", api: "openrouter" }))).toBe("yes");
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_OPENROUTER_RESPONSES;
-			else Bun.env.PI_OPENROUTER_RESPONSES = previous;
+			if (previous === undefined) delete bun.env.PI_OPENROUTER_RESPONSES;
+			else bun.env.PI_OPENROUTER_RESPONSES = previous;
 		}
 	});
 	it("forwards declared images on the pi-native transport despite the strip rule", () => {

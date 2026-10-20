@@ -7,10 +7,11 @@
  * isolated agent dir carrying a custom vision provider and asserts it reaches
  * the completion attempt instead of the registry guard.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // 1x1 PNG so the read tool's image loader accepts the file.
 const PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -69,7 +70,7 @@ describe("omp read <image>?q=", () => {
 				`import { runReadCommand } from ${JSON.stringify(READ_CLI_URL)};\nawait runReadCommand({ path: process.argv[2] });\n`,
 			);
 			try {
-				const child = Bun.spawn(["bun", runnerPath, `${pngPath}?q=describe this image`], {
+				const child = bun.spawn(["bun", runnerPath, `${pngPath}?q=describe this image`], {
 					cwd: project,
 					env: {
 						...process.env,

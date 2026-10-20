@@ -9,7 +9,7 @@
  * LM Studio the 401 was swallowed into a generic "unavailable" discovery state:
  * models silently vanished while the UI claimed the provider was signed in.
  *
- * Contracts (real AuthStorage + real ModelRegistry + in-process Bun.serve
+ * Contracts (real AuthStorage + real ModelRegistry + in-process serve
  * emulating LM Studio — no module mocks):
  *
  *   1. A real login key reaches the wire: every discovery request (OpenAI list
@@ -24,13 +24,15 @@
  *      but no implicit keyless mark) stays available and resolves request auth
  *      to the no-auth sentinel.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { kNoAuth, ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const LM_KEY = "sk-lm-12281-test-key";
 const LM_MODEL = { id: "qwen3-8b", object: "model", owned_by: "local" };
@@ -42,7 +44,7 @@ const wire: Array<{ path: string; auth: string | undefined }> = [];
 const vllmProbeAuth: Array<string | undefined> = [];
 let authRequired = true;
 
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	hostname: "127.0.0.1",
 	fetch(req) {
@@ -112,21 +114,21 @@ const MANAGED_ENV_KEYS = [
 const savedEnv = new Map<string, string | undefined>();
 
 beforeAll(() => {
-	for (const key of MANAGED_ENV_KEYS) savedEnv.set(key, Bun.env[key]);
-	Bun.env.LM_STUDIO_BASE_URL = `${serverOrigin}/v1`;
+	for (const key of MANAGED_ENV_KEYS) savedEnv.set(key, bun.env[key]);
+	bun.env.LM_STUDIO_BASE_URL = `${serverOrigin}/v1`;
 	// Point sibling implicit providers at a dead port so their probes fail fast
 	// and never touch a real local service.
-	Bun.env.OLLAMA_BASE_URL = "http://127.0.0.1:1";
-	Bun.env.LLAMA_CPP_BASE_URL = "http://127.0.0.1:1";
+	bun.env.OLLAMA_BASE_URL = "http://127.0.0.1:1";
+	bun.env.LLAMA_CPP_BASE_URL = "http://127.0.0.1:1";
 	for (const key of ["LM_STUDIO_API_KEY", "OLLAMA_API_KEY", "LLAMA_CPP_API_KEY", "VLLM_API_KEY"] as const) {
-		delete Bun.env[key];
+		delete bun.env[key];
 	}
 });
 
 afterAll(() => {
 	for (const [key, value] of savedEnv) {
-		if (value === undefined) delete Bun.env[key];
-		else Bun.env[key] = value;
+		if (value === undefined) delete bun.env[key];
+		else bun.env[key] = value;
 	}
 	server.stop(true);
 });

@@ -1,7 +1,8 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { HistorySearchComponent } from "@oh-my-pi/pi-tui/overlays/history-search";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import type { HistoryEntry, HistoryStorage } from "@oh-my-pi/pi-coding-agent/session/history-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -32,7 +33,7 @@ function fakeStorage(entries: HistoryEntry[]): HistoryStorage {
 function render(component: HistorySearchComponent, width = 80): { raw: string; plain: string } {
 	const lines = component.render(width);
 	const raw = lines.join("\n");
-	return { raw, plain: Bun.stripANSI(raw) };
+	return { raw, plain: bun.stripANSI(raw) };
 }
 
 function type(component: HistorySearchComponent, text: string): void {
@@ -185,7 +186,7 @@ describe("HistorySearchComponent debounced search", () => {
 		component.setOnRequestRender(() => {});
 		type(component, "needle");
 		// The row is still on screen: the debounce has not refreshed results yet.
-		const staleKey = `${stale.created_at}-${Bun.hash(stale.prompt).toString(36)}`;
+		const staleKey = `${stale.created_at}-${bun.hash(stale.prompt).toString(36)}`;
 		component.handleNativeEvent({ type: "activate", key: "list", item: staleKey });
 		expect(selected).toEqual([]);
 		expect(render(component).plain).not.toContain("routine status update");

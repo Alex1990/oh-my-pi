@@ -35,6 +35,7 @@ import type {
 	SnapshotResponse,
 	SnapshotStreamEvent,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Bound both the number of distinct session pins and the size of caller-supplied
 // keys/values; an evicted session falls back to normal credential selection.
@@ -136,7 +137,7 @@ function credentialEntryWithBlocks(
  * credential; the id is the map key). Used only for equality, never persisted.
  */
 function credentialContentHash(entry: SnapshotEntry): number | bigint {
-	return Bun.hash(`${entry.provider}\u0000${JSON.stringify(entry.credential)}`);
+	return bun.hash(`${entry.provider}\u0000${JSON.stringify(entry.credential)}`);
 }
 
 function emptySnapshot(): SnapshotResponse {

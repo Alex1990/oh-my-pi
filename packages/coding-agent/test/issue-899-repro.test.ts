@@ -1,9 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 describe("issue #899 — sync Git metadata reads survive interrupted JS filesystem access", () => {
 	let tempDir: string;

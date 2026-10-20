@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
@@ -16,6 +16,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage, createInMemoryAuthStorage } from "./helpers/agent-session-setup";
 
 import { cfgShellPath } from "@oh-my-pi/pi-coding-agent/exec/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const bashResult = {
 	output: "old-output",
@@ -122,12 +123,12 @@ describe("AgentSession bash session ownership", () => {
 	it("applies the registered bash shell environment to user-shell commands", async () => {
 		// BashRunner delegates execution to the global Settings-backed executor, so
 		// keep this extension-env contract independent of the developer's shell rc.
-		const shell = process.platform === "win32" ? (Bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
+		const shell = process.platform === "win32" ? (bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
 		cfgShellPath.set(Settings.instance, shell);
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 			shell,
 			args: process.platform === "win32" ? ["/c"] : ["-c"],
-			env: { PATH: Bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
+			env: { PATH: bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
 			prefix: undefined,
 		});
 		const spawnHook = vi.fn(spawn => ({
@@ -164,12 +165,12 @@ describe("AgentSession bash session ownership", () => {
 		// unchanged and dropped it, while the child shell's real base env (the
 		// filtered spawn env) never contained it — so user shells lost the
 		// variable entirely (the secretsd session-token incident).
-		const shell = process.platform === "win32" ? (Bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
+		const shell = process.platform === "win32" ? (bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
 		cfgShellPath.set(Settings.instance, shell);
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
 			shell,
 			args: process.platform === "win32" ? ["/c"] : ["-c"],
-			env: { PATH: Bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
+			env: { PATH: bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
 			prefix: undefined,
 		});
 		const previousMirror = process.env.OMP_USER_SHELL_MIRROR;
@@ -209,12 +210,12 @@ describe("AgentSession bash session ownership", () => {
 		// every later command. On the next call the hook injects the same
 		// value again, it now looks unchanged against the poisoned baseline,
 		// and the adapter silently drops it from the forwarded env.
-		const shell = process.platform === "win32" ? (Bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
+		const shell = process.platform === "win32" ? (bun.env.ComSpec ?? "cmd.exe") : "/bin/sh";
 		cfgShellPath.set(Settings.instance, shell);
 		const cachedShellConfig = {
 			shell,
 			args: process.platform === "win32" ? ["/c"] : ["-c"],
-			env: { PATH: Bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
+			env: { PATH: bun.env.PATH ?? "", HOME: tempDir.path(), SHELL: shell },
 			prefix: undefined,
 		};
 		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue(cachedShellConfig);
@@ -495,7 +496,7 @@ describe("AgentSession bash session ownership", () => {
 		additionalManagers.push(oldSession);
 		const artifactPath = await oldSession.getArtifactPath(artifactId!);
 		expect(artifactPath).not.toBeNull();
-		expect(await Bun.file(artifactPath!).text()).toBe("full old-session output");
+		expect(await bun.file(artifactPath!).text()).toBe("full old-session output");
 		expect(await session.sessionManager.getArtifactPath(artifactId!)).toBeNull();
 		expect(
 			oldSession

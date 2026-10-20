@@ -1,9 +1,10 @@
 import * as fs from "node:fs";
 import { ensureRuntimeInstalled } from "../../src/runtime-install";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const runtimeDir = Bun.argv[2];
-const dependencySpec = Bun.argv[3];
-const readyPath = Bun.argv[4];
+const runtimeDir = bun.argv[2];
+const dependencySpec = bun.argv[3];
+const readyPath = bun.argv[4];
 if (!runtimeDir || !dependencySpec || !readyPath) {
 	throw new Error("runtime-install-holder requires runtime, dependency, and readiness paths");
 }

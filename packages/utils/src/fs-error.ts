@@ -8,7 +8,7 @@
  * import { isEnoent, isFsError } from "@oh-my-pi/pi-utils";
  *
  * try {
- *     return await Bun.file(path).text();
+ *     return await bun.file(path).text();
  * } catch (err) {
  *     if (isEnoent(err)) return null;
  *     throw err;

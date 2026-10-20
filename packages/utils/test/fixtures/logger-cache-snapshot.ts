@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as nodeModule from "node:module";
+import { fileURLToPath } from "node:url";
 
 interface ModuleConstructorWithCache {
 	readonly _cache: Record<string, object>;
@@ -19,9 +20,19 @@ export interface LoggerCacheSnapshot {
 
 const moduleCache = (nodeModule.Module as unknown as ModuleConstructorWithCache)._cache;
 
+/** ESM modules are absent from `Module._cache`; observe their loads through a hook. */
+const esmPaths: string[] = [];
+nodeModule.registerHooks({
+	load(url, context, nextLoad) {
+		if (url.startsWith("file:")) esmPaths.push(fileURLToPath(url));
+		return nextLoad(url, context);
+	},
+});
+
 function snapshotFamily(segment: string): CacheFamily {
-	const paths = Object.keys(moduleCache)
-		.filter(modulePath => modulePath.replaceAll("\\", "/").includes(segment))
+	const paths = [...Object.keys(moduleCache), ...esmPaths]
+		.map(modulePath => modulePath.replaceAll("\\", "/"))
+		.filter(modulePath => modulePath.includes(segment))
 		.sort();
 	return {
 		modules: paths.length,

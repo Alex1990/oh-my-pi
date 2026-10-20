@@ -19,6 +19,7 @@ import { formatIsolationBackend, parseIsolationBackend } from "../task/worktree"
 import { resolveAvailableWorktreePath } from "../tools/gh-pr-checkout";
 
 import { cfgIsolationBackend, cfgWorktreeCleanSource, cfgWorktreeClone } from "../task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface SessionWorktree {
 	/** Absolute, realpath'd worktree root. */
@@ -205,7 +206,7 @@ async function snapshotSessionWorktree(wt: SessionWorktree): Promise<WorktreeSna
 	}
 	return {
 		state: { dirty: status.length > 0, moved, offBranch: Boolean(head) && head !== tip },
-		fingerprint: Bun.hash(parts.join("\0")).toString(16),
+		fingerprint: bun.hash(parts.join("\0")).toString(16),
 		present: true,
 	};
 }

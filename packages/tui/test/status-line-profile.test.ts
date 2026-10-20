@@ -1,8 +1,9 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import type { SegmentContext } from "../src/status-line/segments";
 import { describeSegment, renderSegment } from "../src/status-line/segments";
 import { initTheme, theme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -60,16 +61,16 @@ function createContext(overrides: Partial<SegmentContext> = {}): SegmentContext 
 describe("status line pi segment profile tag", () => {
 	it("tags the brand with a named profile and leaves the default profile bare", () => {
 		const activeProfile = vi.spyOn(piUtils, "getActiveProfile").mockReturnValue(undefined);
-		expect(Bun.stripANSI(renderSegment("pi", createContext()).content)).toBe(theme.icon.omp);
+		expect(bun.stripANSI(renderSegment("pi", createContext()).content)).toBe(theme.icon.omp);
 
 		activeProfile.mockReturnValue("work");
-		expect(Bun.stripANSI(renderSegment("pi", createContext()).content)).toBe(`${theme.icon.omp}-work`);
+		expect(bun.stripANSI(renderSegment("pi", createContext()).content)).toBe(`${theme.icon.omp}-work`);
 	});
 
 	it("keeps the tag beside the spinner while a turn runs", () => {
 		vi.spyOn(piUtils, "getActiveProfile").mockReturnValue("work");
 		const rendered = renderSegment("pi", createContext({ now: new Date(0), turnElapsedMs: 92_000 }));
-		expect(Bun.stripANSI(rendered.content)).toBe(`${theme.getSpinnerFrames("activity")[0]}-work 1m`);
+		expect(bun.stripANSI(rendered.content)).toBe(`${theme.getSpinnerFrames("activity")[0]}-work 1m`);
 	});
 
 	it("names the profile in the native status bar", () => {
@@ -84,9 +85,9 @@ describe("status line pi segment profile tag", () => {
 		vi.spyOn(piUtils, "getActiveProfile").mockReturnValue("work");
 		const options = { pi: { showProfile: false } };
 
-		expect(Bun.stripANSI(renderSegment("pi", createContext({ options })).content)).toBe(theme.icon.omp);
+		expect(bun.stripANSI(renderSegment("pi", createContext({ options })).content)).toBe(theme.icon.omp);
 		const active = renderSegment("pi", createContext({ options, now: new Date(0), turnElapsedMs: 92_000 }));
-		expect(Bun.stripANSI(active.content)).toBe(`${theme.getSpinnerFrames("activity")[0]} 1m`);
+		expect(bun.stripANSI(active.content)).toBe(`${theme.getSpinnerFrames("activity")[0]} 1m`);
 		expect(describeSegment("pi", createContext({ options }))?.spans).toEqual([]);
 	});
 });

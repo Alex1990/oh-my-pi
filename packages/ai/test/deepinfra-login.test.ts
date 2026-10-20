@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "../src/registry/registry";
 import type { FetchImpl } from "../src/types";
 

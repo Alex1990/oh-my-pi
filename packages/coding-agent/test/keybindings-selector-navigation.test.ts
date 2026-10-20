@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -14,6 +14,7 @@ import type { SessionMessageEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-a
 import type { SessionInfo } from "@oh-my-pi/pi-coding-agent/session/session-listing";
 import { setKeybindings, type TUI } from "@oh-my-pi/pi-tui";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CTRL_N = "\x0e";
 const CTRL_P = "\x10";
@@ -39,7 +40,7 @@ beforeAll(() => {
 afterEach(async () => {
 	setKeybindings(KeybindingsManager.inMemory());
 	HistoryStorage.close();
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	await Promise.all(tempDirs.splice(0).map(tempDir => tempDir.remove().catch(() => {})));
 });
 

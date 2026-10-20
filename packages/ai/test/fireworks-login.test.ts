@@ -9,7 +9,7 @@
  * so login only fails for keys that fail to authenticate, not for accounts in
  * a "no deployments" state.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { OAuthController } from "@oh-my-pi/pi-ai/registry/oauth/types";

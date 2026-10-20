@@ -46,6 +46,7 @@ import {
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { cfgMnemopiInjectionTokenLimit } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // `/diagnose` is the only user of this subpath; load it lazily alongside the
 // loaders in ./state to keep mnemopi off the CLI startup module graph.
@@ -174,7 +175,7 @@ export const mnemopiBackend: MemoryBackend = {
 		// fire-and-forget start() has awaited loadMnemopi() (autolearn disabled, or
 		// taskDepth > 0). resetMemoryForTests is re-exported identically from core.
 		requireMnemopiCore().resetMemoryForTests();
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		await removeDbFiles(getMnemopiScopedDbPaths(config));
 		if (!session?.sessionId || previous?.aliasOf || cfgMemoryBackend.get(session.settings) !== "mnemopi") return;
 		try {
@@ -741,7 +742,7 @@ async function removeWithRetries(target: string): Promise<void> {
 				typeof err.code === "string" &&
 				kRetryableRemoveErrorCodes.has(err.code);
 			if (!retryable || attempt >= kRemoveRetries) throw err;
-			await Bun.sleep(kRemoveRetryDelayMs);
+			await bun.sleep(kRemoveRetryDelayMs);
 		}
 	}
 }

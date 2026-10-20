@@ -36,6 +36,7 @@ import {
 	type MnemopiEmbedWorkerInbound,
 	type MnemopiEmbedWorkerOutbound,
 } from "./embed-protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Transport a {@link MnemopiEmbedClient} drives: in an omp process, the
@@ -130,7 +131,7 @@ export function spawnMnemopiEmbedWorker(): MnemopiEmbedWorkerHandle {
 
 /** Shared-server name for one (model, cache dir): the model id plus a hash of the resolved cache dir. */
 export function mnemopiEmbedServerName(model: MnemopiEmbedModelId, cacheDir: string): string {
-	return `${model}-${Bun.hash.crc32(path.resolve(cacheDir)).toString(16).padStart(8, "0")}`;
+	return `${model}-${bun.hash.crc32(path.resolve(cacheDir)).toString(16).padStart(8, "0")}`;
 }
 
 /** How to start the shared embedding server for `model`; `env` overlays the inherited environment. @internal */

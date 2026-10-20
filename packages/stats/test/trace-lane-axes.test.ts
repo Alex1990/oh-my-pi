@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildLaneAxes, firstVisible } from "../src/client/traces/TimelineCanvas";
 
 const identity = { toU: (t: number) => t };

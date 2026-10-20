@@ -5,7 +5,7 @@
  * widget author sees nothing to chart while a subagent benchmarks in a
  * background bash job, and the brief misses the agent's own stage and watch hint.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { TextTap } from "@oh-my-pi/pi-coding-agent/job-widgets/text-tap";

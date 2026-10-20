@@ -17,6 +17,8 @@ import type {
 	TextEdit,
 	WorkspaceEdit,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { detectLanguageId } from "@oh-my-pi/pi-tui/lang-from-path";
 
@@ -24,7 +26,7 @@ export { detectLanguageId } from "@oh-my-pi/pi-tui/lang-from-path";
 export async function readTextFromDisk(filePath: string): Promise<string> {
 	const kind = specialFileKind(await fs.stat(filePath));
 	if (kind) throw new Error(`Cannot open '${filePath}': it is a ${kind}, not a regular file or directory.`);
-	return Bun.file(filePath).text();
+	return bun.file(filePath).text();
 }
 
 // =============================================================================
@@ -38,7 +40,7 @@ export async function readTextFromDisk(filePath: string): Promise<string> {
  * Handles Windows drive letters correctly.
  */
 export function fileToUri(filePath: string): string {
-	return Bun.pathToFileURL(path.resolve(filePath)).href;
+	return bun.pathToFileURL(path.resolve(filePath)).href;
 }
 
 /**
@@ -60,7 +62,7 @@ export function uriToFile(uri: string): string {
 	}
 
 	try {
-		return Bun.fileURLToPath(uri);
+		return bun.fileURLToPath(uri);
 	} catch {
 		// Not a well-formed file URL (unencoded characters, stray `%`, host
 		// component). Fall back to a lenient manual conversion.
@@ -538,7 +540,7 @@ export async function collectGlobMatches(
 ): Promise<{ matches: string[]; truncated: boolean }> {
 	const normalizedLimit = Number.isFinite(maxMatches) ? Math.max(1, Math.trunc(maxMatches)) : 1;
 	const matches: string[] = [];
-	for await (const match of new Bun.Glob(pattern).scan({ cwd })) {
+	for await (const match of new Glob(pattern).scan({ cwd })) {
 		if (matches.length >= normalizedLimit) {
 			return { matches, truncated: true };
 		}
@@ -683,7 +685,7 @@ export async function readLocationContext(filePath: string, line: number, contex
 	try {
 		// Context is decoration: a special-file location keeps its header, like a missing file.
 		if (specialFileKind(await fs.stat(filePath))) return [];
-		const fileText = await Bun.file(filePath).text();
+		const fileText = await bun.file(filePath).text();
 		const lines = fileText.split("\n");
 		if (lines.length === 0) return [];
 

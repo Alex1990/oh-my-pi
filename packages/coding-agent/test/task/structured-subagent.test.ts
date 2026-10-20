@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import path from "node:path";
@@ -47,6 +47,10 @@ import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
 
 import { cfgRetryModelFallback } from "@oh-my-pi/pi-coding-agent/session/settings";
 import { cfgTaskAgentModelOverrides, cfgTaskEnableEffort } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
+vi.mock("node:os", { spy: true });
 
 const AGENT: AgentDefinition = {
 	name: "worker",
@@ -228,7 +232,7 @@ describe("structured subagent primitive", () => {
 		const cwd = path.join(tempDir, "project");
 		const sourceFile = path.join(tempDir, "sessions", "source.jsonl");
 		await fs.mkdir(path.dirname(sourceFile), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${[
 				{ type: "session", version: 3, id: "saved-source", timestamp: "2026-10-01T00:00:00.000Z", cwd },
@@ -288,7 +292,7 @@ describe("structured subagent primitive", () => {
 		const cwd = path.join(tempDir, "project");
 		const sourceFile = path.join(tempDir, "sessions", "no-model.jsonl");
 		await fs.mkdir(path.dirname(sourceFile), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${JSON.stringify({ type: "session", version: 3, id: "no-model-source", timestamp: "2026-10-01T00:00:00.000Z", cwd })}\n`,
 		);
@@ -314,8 +318,8 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("gives task and eval invocations identical blocked-agent preflight errors", async () => {
-		const previous = Bun.env.PI_BLOCKED_AGENT;
-		Bun.env.PI_BLOCKED_AGENT = "worker";
+		const previous = bun.env.PI_BLOCKED_AGENT;
+		bun.env.PI_BLOCKED_AGENT = "worker";
 		try {
 			const discover = vi.spyOn(discoveryModule, "discoverAgents");
 			const taskRequest = request();
@@ -335,8 +339,8 @@ describe("structured subagent primitive", () => {
 			]);
 			expect(discover).not.toHaveBeenCalled();
 		} finally {
-			if (previous === undefined) delete Bun.env.PI_BLOCKED_AGENT;
-			else Bun.env.PI_BLOCKED_AGENT = previous;
+			if (previous === undefined) delete bun.env.PI_BLOCKED_AGENT;
+			else bun.env.PI_BLOCKED_AGENT = previous;
 		}
 	});
 
@@ -377,7 +381,7 @@ describe("structured subagent primitive", () => {
 		const projectDir = path.join(root, "project");
 		const agentDir = path.join(root, "agent");
 		await fs.mkdir(projectDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(agentDir, "config.yml"),
 			"task:\n  enableEffort: true\nretry:\n  modelFallback: true\n",
 		);
@@ -389,11 +393,11 @@ describe("structured subagent primitive", () => {
 		} as ToolSession;
 
 		try {
-			await Bun.write(
+			await bun.write(
 				path.join(projectDir, ".omp", "config.yml"),
 				"task:\n  agentModelOverrides:\n    hot-worker: xai-oauth/grok-4.6:medium\n  enableEffort: false\nretry:\n  modelFallback: false\n",
 			);
-			await Bun.write(
+			await bun.write(
 				path.join(projectDir, ".omp", "agents", "hot-worker.md"),
 				"---\nname: hot-worker\ndescription: Newly added worker.\nmodel: openai/gpt-4o\n---\n\nInspect the assignment.\n",
 			);
@@ -452,11 +456,11 @@ describe("structured subagent primitive", () => {
 		const configPath = path.join(agentDir, "config.yml");
 
 		try {
-			await Bun.write(configPath, "task:\n  agentServiceTierOverrides:\n    scout: priority\n");
+			await bun.write(configPath, "task:\n  agentServiceTierOverrides:\n    scout: priority\n");
 			const first = await resolveEffectiveSubagentPolicy(request({ session: liveSession, agent: "scout" }));
 			expect(first.serviceTierOverride).toBe("priority");
 
-			await Bun.write(configPath, "task:\n  agentServiceTierOverrides:\n    scout: none\n");
+			await bun.write(configPath, "task:\n  agentServiceTierOverrides:\n    scout: none\n");
 			const second = await resolveEffectiveSubagentPolicy(request({ session: liveSession, agent: "scout" }));
 			expect(second.serviceTierOverride).toBe("none");
 		} finally {
@@ -932,7 +936,7 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("names the failure when nested patches cannot be written as a fallback", async () => {
-		// `Bun.write` creates missing parents, so a genuine failure needs a path
+		// `bun.write` creates missing parents, so a genuine failure needs a path
 		// that cannot become a directory: a regular file in its place.
 		const parent = await fs.mkdtemp(path.join(os.tmpdir(), "omp-structured-subagent-unwritable-"));
 		const artifactsDir = path.join(parent, "artifacts");
@@ -1266,11 +1270,11 @@ describe("agent frontmatter structured opt-in", () => {
 	function restoreEnvValue(key: string, value: string | undefined): void {
 		if (value === undefined) {
 			delete process.env[key];
-			delete Bun.env[key];
+			delete bun.env[key];
 			return;
 		}
 		process.env[key] = value;
-		Bun.env[key] = value;
+		bun.env[key] = value;
 	}
 
 	/** A user agent whose `output` requires `verdict`; only the frontmatter `structured` flag varies. */
@@ -1330,8 +1334,8 @@ describe("agent frontmatter structured opt-in", () => {
 			const cwd = path.join(root, "home", "work");
 			await fs.mkdir(cwd, { recursive: true });
 			const agentsDir = path.join(root, "home", ".omp", "agent", "agents");
-			await Bun.write(path.join(agentsDir, "reporter.md"), agentFile("reporter", true));
-			await Bun.write(path.join(agentsDir, "plain.md"), agentFile("plain", false));
+			await bun.write(path.join(agentsDir, "reporter.md"), agentFile("reporter", true));
+			await bun.write(path.join(agentsDir, "plain.md"), agentFile("plain", false));
 
 			const authStorage = createInMemoryAuthStorage();
 			authStorage.keys.setRuntime("mock", "test-key");

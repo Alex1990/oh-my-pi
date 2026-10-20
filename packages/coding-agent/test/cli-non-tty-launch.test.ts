@@ -1,13 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 // Launch-mode selection without a terminal on stdin (scripts, CI, `</dev/null`).
 // Before: a bare or prompt-carrying launch chose interactive mode, booted the TUI
 // against a closed stdin, and exited 129 with no output.
 
-const repoRoot = path.resolve(import.meta.dir, "../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const cliEntry = path.join(repoRoot, "packages/coding-agent/src/cli.ts");
 const TTY_ERROR = "interactive mode requires a terminal";
 const NO_API_KEY = "No API key found for anthropic.";
@@ -42,7 +44,7 @@ async function launchWithoutTerminal(
 		AWS_EC2_METADATA_DISABLED: "true",
 	};
 	const discoveryArgs = extensionDiscovery ? [] : ["--no-extensions"];
-	const proc = Bun.spawn([process.execPath, cliEntry, "--no-session", ...discoveryArgs, ...MODEL_ARGS, ...args], {
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), cliEntry, "--no-session", ...discoveryArgs, ...MODEL_ARGS, ...args], {
 		cwd: tempDir.path(),
 		env,
 		stdin: "ignore",
@@ -67,7 +69,7 @@ async function writeFlagExtension(
 	type: "string" | "boolean" = "string",
 ): Promise<string> {
 	const extensionPath = tempDir.join(`${name}-extension.ts`);
-	await Bun.write(
+	await bun.write(
 		extensionPath,
 		[
 			"export default function (pi) {",

@@ -1,5 +1,6 @@
 import { notificationTitleAndBody, spawnNotifier } from "./notify";
 import type { TerminalMultiplexerModule } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CMUX_SURFACE_ID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/iu;
 
@@ -9,7 +10,7 @@ export const cmuxMultiplexer = {
 	// CMUX_SOCKET_PATH is a CLI socket override and can be set outside a CMUX terminal.
 	sessionEnvKeys: ["CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID", "CMUX_REMOTE_TRANSPORT"],
 	ownsScreenGrid: true,
-	isInside(env: NodeJS.ProcessEnv = Bun.env): boolean {
+	isInside(env: NodeJS.ProcessEnv = bun.env): boolean {
 		return Boolean(env.CMUX_WORKSPACE_ID || env.CMUX_SURFACE_ID || env.CMUX_REMOTE_TRANSPORT);
 	},
 	/**

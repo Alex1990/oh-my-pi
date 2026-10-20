@@ -5,7 +5,7 @@
  * THAT session, and `hasPendingAsyncWork()` / `settleAsyncWork()` define the
  * run quiescence the task executor's barrier is built on.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
@@ -35,6 +35,7 @@ import { type OutputMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { formatOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 function observeAsyncResultEnqueue(session: AgentSession): Promise<void> {
 	const queued = Promise.withResolvers<void>();
 	const enqueue = session.yieldQueue.enqueueWithReceipt.bind(session.yieldQueue);
@@ -229,7 +230,7 @@ describe("AgentSession owner-routed async delivery", () => {
 			for (const message of [custom, persisted]) {
 				const rendered = buildAsyncResultBlock(message)
 					.render(100)
-					.map(line => Bun.stripANSI(line))
+					.map(line => bun.stripANSI(line))
 					.join("\n");
 				expect(rendered).toContain("not saved completely");
 			}
@@ -391,7 +392,7 @@ describe("AgentSession owner-routed async delivery", () => {
 			expect(followUp).toContain("Command exited with code 3");
 			const linkedPath = await store.getArtifactPath(rawArtifactId);
 			if (!linkedPath) throw new Error("Expected linked artifact on disk");
-			expect(await Bun.file(linkedPath).text()).toBe(expected);
+			expect(await bun.file(linkedPath).text()).toBe(expected);
 		} finally {
 			await session.dispose();
 			await store.close();
@@ -431,7 +432,7 @@ describe("AgentSession owner-routed async delivery", () => {
 		for (const message of [batch, persisted]) {
 			const rendered = buildAsyncResultBlock(message)
 				.render(160)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 			expect(rendered).toMatch(/batch-0[^]*artifact open failed[^]*batch-1[^]*artifact write failed[^]*batch-2/);
 			expect(rendered.match(/artifact open failed/g)).toHaveLength(1);

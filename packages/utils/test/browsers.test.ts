@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, spyOn, test, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, spyOn, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,8 @@ import {
 	getDownloadUrl,
 	install,
 } from "../src/browsers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const BUILD_ID = "123.0.6312.58";
 const ROOTS: string[] = [];
@@ -103,8 +105,12 @@ test("Chrome-for-Testing rejects linux/arm64 before producing archive or cache p
 
 test("install streams and extracts stored, deflated, nested, executable, and symlink entries", async () => {
 	const root = await makeRoot();
-	const fixture = Bun.file(path.join(import.meta.dir, "fixtures/browsers/synthetic-chrome.zip"));
-	const server = Bun.serve({ port: 0, fetch: () => new Response(fixture) });
+	const fixture = bun.file(path.join(import.meta.dirname, "fixtures/browsers/synthetic-chrome.zip"));
+	const server = await serve({
+		port: 0,
+		fetch: async () =>
+			new Response(await fixture.blob(), { headers: { "content-length": String(fixture.size) } }),
+	});
 	const progress: Array<{ downloadedBytes: number; totalBytes: number }> = [];
 	try {
 		const installed = await install({
@@ -125,7 +131,14 @@ test("install streams and extracts stored, deflated, nested, executable, and sym
 		if (process.platform !== "win32") {
 			expect((await fs.stat(path.join(installed.path, "chrome-linux64/nested/data.txt"))).mode & 0o777).toBe(0o640);
 		}
-		expect(await fs.readlink(path.join(installed.path, "chrome-linux64/chrome-link"))).toBe("chrome");
+		const linkPath = path.join(installed.path, "chrome-linux64/chrome-link");
+		if (process.platform === "win32") {
+			// Without the symlink privilege Windows extraction degrades the link
+			// to a copy of its target.
+			expect(await fs.readFile(linkPath, "utf8")).toBe("#!/bin/sh\necho synthetic chrome\n");
+		} else {
+			expect(await fs.readlink(linkPath)).toBe("chrome");
+		}
 		expect(progress.at(-1)?.downloadedBytes).toBe(fixture.size);
 		expect(progress.at(-1)?.totalBytes).toBe(fixture.size);
 	} finally {
@@ -140,7 +153,7 @@ test("install extracts a member larger than the default 64 MiB archive cap", asy
 	const root = await makeRoot();
 	const bigSize = 65 * 1024 * 1024; // > 64 MiB default member cap
 	const zip = await encodeArchive("zip", [["chrome-linux64/chrome", new Uint8Array(bigSize)]]);
-	const server = Bun.serve({ port: 0, fetch: () => new Response(new Blob([zip])) });
+	const server = await serve({ port: 0, fetch: () => new Response(new Blob([zip])) });
 	try {
 		const installed = await install({
 			platform: BrowserPlatform.LINUX,
@@ -156,8 +169,12 @@ test("install extracts a member larger than the default 64 MiB archive cap", asy
 
 test("install rejects archive traversal", async () => {
 	const root = await makeRoot();
-	const fixture = Bun.file(path.join(import.meta.dir, "fixtures/browsers/traversal.zip"));
-	const server = Bun.serve({ port: 0, fetch: () => new Response(fixture) });
+	const fixture = bun.file(path.join(import.meta.dirname, "fixtures/browsers/traversal.zip"));
+	const server = await serve({
+		port: 0,
+		fetch: async () =>
+			new Response(await fixture.blob(), { headers: { "content-length": String(fixture.size) } }),
+	});
 	try {
 		// Traversal member names are dropped while indexing, so extraction
 		// succeeds without them and the install fails its executable check —
@@ -173,17 +190,17 @@ test("install rejects archive traversal", async () => {
 
 test("concurrent installs download once without replacing the winner's browser", async () => {
 	const root = await makeRoot();
-	const fixture = Bun.file(path.join(import.meta.dir, "fixtures/browsers/synthetic-chrome.zip"));
+	const fixture = bun.file(path.join(import.meta.dirname, "fixtures/browsers/synthetic-chrome.zip"));
 	const requested = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	let requests = 0;
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		async fetch() {
 			requests++;
 			requested.resolve();
 			await release.promise;
-			return new Response(fixture);
+			return new Response(await fixture.blob(), { headers: { "content-length": String(fixture.size) } });
 		},
 	});
 	const options = { platform: BrowserPlatform.LINUX, buildId: BUILD_ID, cacheDir: root, baseUrl: String(server.url) };
@@ -195,7 +212,7 @@ test("concurrent installs download once without replacing the winner's browser",
 		const results = await Promise.all([first, second]);
 		expect(requests).toBe(1);
 		for (const result of results) {
-			expect(await Bun.file(result.executablePath).text()).toBe("#!/bin/sh\necho synthetic chrome\n");
+			expect(await bun.file(result.executablePath).text()).toBe("#!/bin/sh\necho synthetic chrome\n");
 		}
 	} finally {
 		release.resolve();
@@ -205,14 +222,15 @@ test("concurrent installs download once without replacing the winner's browser",
 
 test("a timed-out download releases its lock and partial archive so installation can be retried", async () => {
 	const root = await makeRoot();
-	const fixture = Bun.file(path.join(import.meta.dir, "fixtures/browsers/synthetic-chrome.zip"));
+	const fixture = bun.file(path.join(import.meta.dirname, "fixtures/browsers/synthetic-chrome.zip"));
 	const progressed = Promise.withResolvers<void>();
 	const deadline = new AbortController();
 	let stall = true;
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
-		fetch() {
-			if (!stall) return new Response(fixture);
+		async fetch() {
+			if (!stall)
+				return new Response(await fixture.blob(), { headers: { "content-length": String(fixture.size) } });
 			return new Response(
 				new ReadableStream({
 					start(controller) {
@@ -241,7 +259,7 @@ test("a timed-out download releases its lock and partial archive so installation
 		timeout.mockRestore();
 		stall = false;
 		const installed = await install(options);
-		expect(await Bun.file(installed.executablePath).text()).toBe("#!/bin/sh\necho synthetic chrome\n");
+		expect(await bun.file(installed.executablePath).text()).toBe("#!/bin/sh\necho synthetic chrome\n");
 	} finally {
 		timeout.mockRestore();
 		server.stop(true);

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import {
@@ -29,6 +29,7 @@ import type { HarmonyDetection } from "@oh-my-pi/pi-ai/utils/harmony-leak";
 import * as harmonyLeak from "@oh-my-pi/pi-ai/utils/harmony-leak";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
 import { createAssistantMessage, createHarmonyMitigationModel, createUserMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 declare module "@oh-my-pi/pi-agent-core/types" {
 	interface CustomAgentMessages {
@@ -1896,14 +1897,14 @@ describe("agentLoop with AgentMessage", () => {
 			parameters: toolSchema,
 			async execute(_toolCallId, params) {
 				if (params.value === "slow") {
-					startTimes.slow = Bun.nanoseconds();
+					startTimes.slow = bun.nanoseconds();
 					slowStartedResolve();
 					await slowContinue;
-					finishTimes.slow = Bun.nanoseconds();
+					finishTimes.slow = bun.nanoseconds();
 				} else {
 					await slowStarted;
-					startTimes.fast = Bun.nanoseconds();
-					finishTimes.fast = Bun.nanoseconds();
+					startTimes.fast = bun.nanoseconds();
+					finishTimes.fast = bun.nanoseconds();
 					fastFinishedResolve();
 				}
 				return {
@@ -2476,18 +2477,18 @@ describe("agentLoop with AgentMessage", () => {
 			concurrency: args => (args.exclusive === true ? "exclusive" : "shared"),
 			async execute(_toolCallId, params) {
 				if (params.value === "slow") {
-					startTimes.slow = Bun.nanoseconds();
+					startTimes.slow = bun.nanoseconds();
 					slowStartedResolve();
 					await slowContinue;
-					finishTimes.slow = Bun.nanoseconds();
+					finishTimes.slow = bun.nanoseconds();
 				} else if (params.value === "fast") {
 					await slowStarted;
-					startTimes.fast = Bun.nanoseconds();
-					finishTimes.fast = Bun.nanoseconds();
+					startTimes.fast = bun.nanoseconds();
+					finishTimes.fast = bun.nanoseconds();
 					fastFinishedResolve();
 				} else {
-					startTimes.exclusive = Bun.nanoseconds();
-					finishTimes.exclusive = Bun.nanoseconds();
+					startTimes.exclusive = bun.nanoseconds();
+					finishTimes.exclusive = bun.nanoseconds();
 				}
 				return {
 					content: [{ type: "text", text: `echoed: ${params.value}` }],
@@ -4022,7 +4023,7 @@ describe("agentLoop with AgentMessage", () => {
 					// fired, then abort the whole run before resolving.
 					await steerTriggered.promise;
 					abortController.abort();
-					await Bun.sleep(1);
+					await bun.sleep(1);
 				}
 				return {
 					content: [{ type: "text", text: `ok:${params.value}` }],
@@ -4853,7 +4854,7 @@ describe("agentLoop event-driven steering watch", () => {
 			for await (const _event of stream) {
 				// drain
 			}
-			await Bun.sleep(0);
+			await bun.sleep(0);
 
 			expect(drained).toBe(true);
 			expect(watchCanceled).toBe(true);
@@ -5027,7 +5028,7 @@ describe("agentLoop event-driven steering watch", () => {
 			parameters: toolSchema,
 			concurrency: "exclusive",
 			async execute(_toolCallId, params) {
-				await Bun.sleep(0);
+				await bun.sleep(0);
 				return { content: [{ type: "text", text: `ok:${params.value}` }], details: { value: params.value } };
 			},
 		};
@@ -8101,7 +8102,7 @@ describe("speculative tool execution", () => {
 		await coordinator.finalizeAdmissions();
 
 		expect(
-			await Promise.race([handle?.outcome.then(() => "completed"), Bun.sleep(100).then(() => "timed-out")]),
+			await Promise.race([handle?.outcome.then(() => "completed"), bun.sleep(100).then(() => "timed-out")]),
 		).toBe("completed");
 		await coordinator.close("test complete");
 	});

@@ -10,7 +10,7 @@
  *
  * Models are built from specs so the KDL rules, not baked rows, decide.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { gunzipSync } from "node:zlib";
 import { streamDevin } from "@oh-my-pi/pi-ai/providers/devin";
 import { convertMessages } from "@oh-my-pi/pi-ai/providers/openai-completions";
@@ -24,6 +24,7 @@ import {
 	GetUserJwtResponseSchema,
 } from "@oh-my-pi/pi-catalog/discovery/devin-proto";
 import { create, fromBinary, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const TRACE = "Earlier reasoning: read foo.ts, then patch bar().";
 const THINK = `<think>\n${TRACE}\n</think>`;
@@ -391,7 +392,7 @@ describe("Responses reasoning provenance is recorded at parse time", () => {
 		const body = all.map(event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join("");
 		const fetchImpl = Object.assign(
 			async () => new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } }),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		return stream(openRouterK3(), { messages: [] }, { apiKey: "test-key", fetch: fetchImpl }).result();
 	}
@@ -470,7 +471,7 @@ describe("chat-completions and Devin parsers confirm their reasoning as the trac
 		].join("");
 		const fetchImpl = Object.assign(
 			async () => new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } }),
-			{ preconnect: fetch.preconnect },
+			{ preconnect: preconnectOf(fetch) },
 		);
 		const prior = await stream(moonshotK3(), { messages: [] }, { apiKey: "test-key", fetch: fetchImpl }).result();
 

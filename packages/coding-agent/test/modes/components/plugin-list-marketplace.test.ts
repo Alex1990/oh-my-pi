@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { beforeAll, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import { stripVTControlCharacters } from "node:util";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins";
@@ -17,6 +17,7 @@ import {
 	PluginSettingsComponent,
 } from "@oh-my-pi/pi-tui/overlays/plugin-settings";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -164,7 +165,7 @@ describe("PluginSettingsComponent", () => {
 
 			for (let i = 0; i < 20; i++) {
 				if (stripVTControlCharacters(component.render(120).join("\n")).includes("toggle@mkt")) break;
-				await Bun.sleep(1);
+				await bun.sleep(1);
 			}
 			expect(stripVTControlCharacters(component.render(120).join("\n"))).toContain("toggle@mkt");
 			component.handleInput("\n");
@@ -255,7 +256,7 @@ describe("PluginSettingsComponent", () => {
 
 			for (let i = 0; i < 20; i++) {
 				if (stripVTControlCharacters(component.render(120).join("\n")).includes("survivor@mkt")) break;
-				await Bun.sleep(1);
+				await bun.sleep(1);
 			}
 			expect(stripVTControlCharacters(component.render(120).join("\n"))).toContain("survivor@mkt");
 

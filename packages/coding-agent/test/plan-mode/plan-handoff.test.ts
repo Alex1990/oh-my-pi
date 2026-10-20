@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { LocalProtocolOptions } from "@oh-my-pi/pi-coding-agent/internal-urls";
 import { loadOverallPlanReference } from "@oh-my-pi/pi-coding-agent/plan-mode/plan-handoff";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("loadOverallPlanReference", () => {
 	let tmpDir: string;
@@ -27,7 +28,7 @@ describe("loadOverallPlanReference", () => {
 
 	it("returns the plan path and full contents when the reference file exists", async () => {
 		const body = "# WP migration\n\n1. Migrate the store\n2. Update callers";
-		await Bun.write(path.join(artifactsDir, "local", "wp-migration.md"), body);
+		await bun.write(path.join(artifactsDir, "local", "wp-migration.md"), body);
 
 		const ref = await loadOverallPlanReference("local://wp-migration.md", localProtocolOptions);
 
@@ -41,7 +42,7 @@ describe("loadOverallPlanReference", () => {
 	});
 
 	it("returns undefined when the plan file is empty or whitespace-only", async () => {
-		await Bun.write(path.join(artifactsDir, "local", "PLAN.md"), "   \n\t\n");
+		await bun.write(path.join(artifactsDir, "local", "PLAN.md"), "   \n\t\n");
 
 		const ref = await loadOverallPlanReference("local://PLAN.md", localProtocolOptions);
 

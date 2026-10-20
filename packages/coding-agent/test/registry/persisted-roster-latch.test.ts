@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
@@ -6,7 +6,8 @@ import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry
 import { ensurePersistedRoster } from "@oh-my-pi/pi-coding-agent/registry/persisted-agents";
 import { CURRENT_SESSION_VERSION } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import type { BunFile } from "bun";
+import type { BunFile as NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Latch-cache bound enforced by `ensurePersistedRoster` (see MAX_PERSISTED_ROSTER_LATCHES). */
 const MAX_PERSISTED_ROSTER_LATCHES = 32;
@@ -117,11 +118,11 @@ describe("persisted roster metadata fault settling", () => {
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
 		const childFile = path.join(dir, "main", "Worker.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
 		// The metadata read on this file streams many chunks while the stat fault
 		// is immediate: the old code left the stat rejection unhandled for the
 		// whole stream, which Bun reports (and can terminate on).
-		await Bun.write(childFile, slowTranscript());
+		await bun.write(childFile, slowTranscript());
 		spyOnStatFault(childFile, "EMFILE");
 		const unhandled = captureUnhandledRejections();
 		try {
@@ -138,22 +139,22 @@ describe("persisted roster metadata fault settling", () => {
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
 		const childFile = path.join(dir, "main", "Worker.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
-		await Bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		spyOnStatFault(childFile, "EMFILE");
 		// The stream-open error fires before the stat result is consumed: the
 		// eager stat must already be settled so its fault is not abandoned.
-		const realBunFile = Bun.file;
-		vi.spyOn(Bun, "file").mockImplementation((target: string | URL | Uint8Array | ArrayBufferLike | number) => {
+		const realBunFile = bun.file;
+		vi.spyOn(bun, "file").mockImplementation((target: string | URL | NodeFile) => {
 			if (target === childFile) {
 				return {
 					exists: async () => false,
 					stream: () => {
 						throw Object.assign(new Error("too many open files"), { code: "EMFILE" });
 					},
-				} as unknown as BunFile;
+				} as unknown as NodeFile;
 			}
-			return realBunFile(target as string | URL);
+			return realBunFile(target);
 		});
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
@@ -178,7 +179,7 @@ describe("persisted roster latch semantics", () => {
 		using tempDir = TempDir.createSync("@omp-roster-single-flight-");
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -196,8 +197,8 @@ describe("persisted roster latch semantics", () => {
 		const dir = tempDir.path();
 		const rootA = path.join(dir, "a", "main.jsonl");
 		const rootB = path.join(dir, "b", "main.jsonl");
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -226,10 +227,10 @@ describe("persisted roster latch semantics", () => {
 		// A registers, then CAS-skips — a settled latch that never saw its own
 		// transcript. The serialization tail queues B behind A instead, so B
 		// observes A's registration and replaces it.
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
-		await Bun.write(childA, slowTranscriptWithInit());
-		await Bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(childA, slowTranscriptWithInit());
+		await bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		const realStat = fsp.stat;
 		const childBGate = Promise.withResolvers<void>();
 		const releaseChildB = () => childBGate.resolve();
@@ -262,10 +263,10 @@ describe("persisted roster latch semantics", () => {
 		const rootB = path.join(dir, "b", "main.jsonl");
 		const childA = path.join(dir, "a", "main", "Worker.jsonl");
 		const childB = path.join(dir, "b", "main", "Worker.jsonl");
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
-		await Bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
-		await Bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		spyOnStatFault(childA, "EACCES");
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
@@ -296,7 +297,7 @@ describe("persisted roster latch semantics", () => {
 		// The first root's scan streams slowly, so every latch is inserted
 		// (unsettled) before the first scan settles: the bound overflow at the
 		// 33rd insertion can only prune settled entries — there are none yet.
-		await Promise.all(roots.map(root => Bun.write(root, root === roots[0] ? slowTranscript() : "")));
+		await Promise.all(roots.map(root => bun.write(root, root === roots[0] ? slowTranscript() : "")));
 		const scans = await Promise.all(roots.map(root => ensurePersistedRoster(registry, root)));
 		for (const root of scans) expect(root).toBeDefined();
 		// All 33 scans were queued or in flight when the 33rd latch was inserted;
@@ -320,10 +321,10 @@ describe("persisted roster latch semantics", () => {
 		const rootB = path.join(dir, "b", "main.jsonl");
 		const childA = path.join(dir, "a", "main", "Worker.jsonl");
 		const childB = path.join(dir, "b", "main", "Worker.jsonl");
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
-		await Bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
-		await Bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -359,11 +360,11 @@ describe("persisted roster latch semantics", () => {
 		const childA1 = path.join(dir, "a", "main", "Worker1.jsonl");
 		const childA2 = path.join(dir, "a", "main", "Worker2.jsonl");
 		const childB1 = path.join(dir, "b", "main", "Worker1.jsonl");
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
-		await Bun.write(childA1, `${sessionHeader("worker1")}\n${sessionInitRecord()}\n`);
-		await Bun.write(childA2, `${sessionHeader("worker2")}\n${sessionInitRecord()}\n`);
-		await Bun.write(childB1, `${sessionHeader("worker1")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(childA1, `${sessionHeader("worker1")}\n${sessionInitRecord()}\n`);
+		await bun.write(childA2, `${sessionHeader("worker2")}\n${sessionInitRecord()}\n`);
+		await bun.write(childB1, `${sessionHeader("worker1")}\n${sessionInitRecord()}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -394,8 +395,8 @@ describe("persisted roster latch semantics", () => {
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
 		const childFile = path.join(dir, "main", "Worker.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
-		await Bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -415,9 +416,9 @@ describe("persisted roster latch semantics", () => {
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
 		const childFile = path.join(dir, "main", "Worker.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
-		await Bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
-		await Bun.write(`${childFile}.tombstone`, "");
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(`${childFile}.tombstone`, "");
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -434,8 +435,8 @@ describe("persisted roster latch semantics", () => {
 		const dir = tempDir.path();
 		const rootFile = path.join(dir, "main.jsonl");
 		const childFile = path.join(dir, "main", "Worker.jsonl");
-		await Bun.write(rootFile, `${sessionHeader("main")}\n`);
-		await Bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootFile, `${sessionHeader("main")}\n`);
+		await bun.write(childFile, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		const readdirs: string[] = [];
 		spyOnReaddirs(readdirs);
 		const registry = new AgentRegistry();
@@ -457,10 +458,10 @@ describe("persisted roster latch semantics", () => {
 		const rootB = path.join(dir, "b", "main.jsonl");
 		const childA = path.join(dir, "a", "main", "Worker.jsonl");
 		const childB = path.join(dir, "b", "main", "Worker.jsonl");
-		await Bun.write(rootA, `${sessionHeader("a")}\n`);
-		await Bun.write(rootB, `${sessionHeader("b")}\n`);
-		await Bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
-		await Bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(rootA, `${sessionHeader("a")}\n`);
+		await bun.write(rootB, `${sessionHeader("b")}\n`);
+		await bun.write(childA, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
+		await bun.write(childB, `${sessionHeader("worker")}\n${sessionInitRecord()}\n`);
 		let failChildA = false;
 		const realStat = fsp.stat;
 		vi.spyOn(fs.promises, "stat").mockImplementation((async (target: fs.PathLike) => {

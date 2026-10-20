@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,10 +20,11 @@ import { stripOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { formatOutputNotice } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { outputMeta } from "@oh-my-pi/pi-coding-agent/tools/output-meta";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const createdTempDirs: string[] = [];
-const originalForceProtocol = Bun.env.PI_FORCE_IMAGE_PROTOCOL;
-const originalAllowPassthrough = Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
+const originalForceProtocol = bun.env.PI_FORCE_IMAGE_PROTOCOL;
+const originalAllowPassthrough = bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
 
 async function createTempDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "streaming-output-test-"));
@@ -40,10 +41,10 @@ afterEach(async () => {
 	for (const dir of createdTempDirs.splice(0)) {
 		await removeWithRetries(dir);
 	}
-	if (originalForceProtocol === undefined) delete Bun.env.PI_FORCE_IMAGE_PROTOCOL;
-	else Bun.env.PI_FORCE_IMAGE_PROTOCOL = originalForceProtocol;
-	if (originalAllowPassthrough === undefined) delete Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
-	else Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = originalAllowPassthrough;
+	if (originalForceProtocol === undefined) delete bun.env.PI_FORCE_IMAGE_PROTOCOL;
+	else bun.env.PI_FORCE_IMAGE_PROTOCOL = originalForceProtocol;
+	if (originalAllowPassthrough === undefined) delete bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
+	else bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = originalAllowPassthrough;
 });
 
 describe("truncateTailBytes", () => {
@@ -288,8 +289,8 @@ describe("OutputSink", () => {
 
 	test("preserves SIXEL chunks when passthrough gates are enabled", async () => {
 		const sixel = "\x1bPqabc\x1b\\";
-		Bun.env.PI_FORCE_IMAGE_PROTOCOL = "sixel";
-		Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = "1";
+		bun.env.PI_FORCE_IMAGE_PROTOCOL = "sixel";
+		bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = "1";
 		const chunks: string[] = [];
 		const sink = new OutputSink({ onChunk: chunk => chunks.push(chunk) });
 		await sink.push(`before\n${sixel}\nafter`);
@@ -301,8 +302,8 @@ describe("OutputSink", () => {
 
 	test("strips SIXEL chunks when passthrough gates are disabled", async () => {
 		const sixel = "\x1bPqabc\x1b\\";
-		delete Bun.env.PI_FORCE_IMAGE_PROTOCOL;
-		delete Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
+		delete bun.env.PI_FORCE_IMAGE_PROTOCOL;
+		delete bun.env.PI_ALLOW_SIXEL_PASSTHROUGH;
 		const sink = new OutputSink();
 		await sink.push(sixel);
 		const dumped = await sink.dump();
@@ -334,7 +335,7 @@ describe("OutputSink", () => {
 		await sink.push("abc");
 		await sink.push("def");
 		const dumped = await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(dumped.truncated).toBe(true);
 		expect(dumped.artifactId).toBe("artifact-1");
@@ -358,7 +359,7 @@ describe("OutputSink", () => {
 		sink.push("abc");
 		sink.push("defgh");
 		const dumped = await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(dumped.truncated).toBe(true);
 		expect(artifactText).toBe("headabcdefgh");
@@ -437,7 +438,7 @@ describe("OutputSink", () => {
 		const payload = "0123456789ABCDEF".repeat(4); // 64 bytes
 		await sink.push(payload);
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText.startsWith("0123456789ABCDEF")).toBe(true);
 		expect(artifactText.endsWith("0123456789ABCDEF")).toBe(true);
@@ -464,7 +465,7 @@ describe("OutputSink", () => {
 		await sink.push("abcde");
 		await sink.push("fghij");
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText).toBe("abcdefghij");
 		expect(artifactText).not.toContain("[ARTIFACT TRUNCATED:");
@@ -489,7 +490,7 @@ describe("OutputSink", () => {
 		const payload = "0123456789ABCDEFghijklmn";
 		await sink.push(payload);
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText).toBe(payload);
 		expect(artifactText).not.toContain("[ARTIFACT TRUNCATED:");
@@ -511,7 +512,7 @@ describe("OutputSink", () => {
 			await sink.push(String(i % 10).repeat(4));
 		}
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText).toContain("[ARTIFACT TRUNCATED:");
 		const stripped = artifactText.replace(/\n?\[ARTIFACT TRUNCATED:[^\]]+\]\n?/g, "");
@@ -542,7 +543,7 @@ describe("OutputSink", () => {
 			await sink.push("abcd");
 		}
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText).toContain("[ARTIFACT TRUNCATED:");
 		const stripped = artifactText.replace(/\n?\[ARTIFACT TRUNCATED:[^\]]+\]\n?/g, "");
@@ -562,7 +563,7 @@ describe("OutputSink", () => {
 		const payload = "X".repeat(1024);
 		await sink.push(payload);
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText).toBe(payload);
 		expect(artifactText).not.toContain("[ARTIFACT TRUNCATED:");
@@ -579,7 +580,7 @@ describe("OutputSink", () => {
 		for (let i = 0; i < 320; i++) sink.push(block); // 20 MiB
 		sink.push("TAIL-END\n");
 		const summary = await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(summary.artifactId).toBe("art-oversized");
 		expect(artifactText.startsWith("HEAD-START\n")).toBe(true);
@@ -605,7 +606,7 @@ describe("OutputSink", () => {
 		expect(summary.truncated).toBe(true);
 		expect(summary.artifactId).toBe("art-small-default");
 		expect(summary.artifactElidedBytes).toBeUndefined();
-		expect(await Bun.file(artifactPath).text()).toBe(payload);
+		expect(await bun.file(artifactPath).text()).toBe(payload);
 		const notice = formatOutputNotice(outputMeta().truncationFromSummary(summary, { direction: "tail" }).get());
 		expect(notice).toContain("Read artifact://art-small-default for full output");
 	});
@@ -623,7 +624,7 @@ describe("OutputSink", () => {
 		const payload = Array.from({ length: 50 }, (_, i) => String(i).padStart(4, "0")).join(""); // 200 bytes
 		sink.push(payload);
 		await sink.dump();
-		const artifactText = await Bun.file(artifactPath).text();
+		const artifactText = await bun.file(artifactPath).text();
 
 		expect(artifactText.startsWith(payload.slice(0, 32))).toBe(true);
 		expect(artifactText.endsWith(payload.slice(-32))).toBe(true);
@@ -1008,7 +1009,7 @@ describe("OutputSink maxColumns (per-line cap)", () => {
 			"Some lines truncated to 8 bytes. Use artifact://77:raw:2-2 to read line 2 whole; cut lines run to line 4, each read the same way",
 		);
 		// The named lines are the cut lines, whole, in the artifact.
-		const artifactLines = (await Bun.file(artifactPath).text()).split("\n");
+		const artifactLines = (await bun.file(artifactPath).text()).split("\n");
 		expect(artifactLines[1]).toBe(wideX);
 		expect(artifactLines[3]).toBe(wideY);
 	});

@@ -9,7 +9,7 @@
  * unknown fallbacks, lookup ordering) — not individual entries from the
  * EXTENSION_LANG table, which would just re-state the lookup map.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { detectLanguageId, getLanguageFromPath } from "@oh-my-pi/pi-tui/lang-from-path";
 
 describe("getLanguageFromPath", () => {

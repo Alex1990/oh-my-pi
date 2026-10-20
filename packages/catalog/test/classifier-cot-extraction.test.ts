@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api } from "@oh-my-pi/pi-ai";
 import { resolveModelPolicy } from "@oh-my-pi/pi-catalog/compat/resolve";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";

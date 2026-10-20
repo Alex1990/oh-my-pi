@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { type } from "@oh-my-pi/omptype";
 import type { AgentToolContext } from "@oh-my-pi/pi-agent-core";
@@ -19,6 +19,7 @@ import * as ai from "@oh-my-pi/pi-ai";
 import type { Api, AssistantMessage, Model } from "@oh-my-pi/pi-ai";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // 1x1 transparent PNG.
 const TINY_PNG_BASE64 =
@@ -108,7 +109,7 @@ describe("AskTool cancellation", () => {
 			abort,
 		});
 
-		expect(
+		await expect(
 			tool.execute(
 				"call-1",
 				{
@@ -173,7 +174,7 @@ describe("AskTool cancellation", () => {
 			abort,
 		});
 
-		expect(
+		await expect(
 			tool.execute(
 				"call-timeout-cancel",
 				{
@@ -349,7 +350,7 @@ describe("AskTool cancellation", () => {
 		const context = createContext({
 			select: async (_prompt, _options, dialogOptions) => {
 				const timeout = dialogOptions?.timeout ?? 1;
-				await Bun.sleep(timeout + 5);
+				await bun.sleep(timeout + 5);
 				dialogOptions?.onTimeout?.();
 				return "Other (type your own)";
 			},
@@ -1080,7 +1081,7 @@ describe("AskTool multi-question navigation", () => {
 				if (prompt.includes("Second?")) {
 					secondVisits += 1;
 					if (secondVisits === 1) {
-						await Bun.sleep(5);
+						await bun.sleep(5);
 						dialogOptions?.onTimeout?.();
 						return undefined;
 					}

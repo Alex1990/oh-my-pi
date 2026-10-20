@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
-import { heapStats } from "bun:jsc";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { heapStats } from "@oh-my-pi/pi-utils/jsc-compat";
 import { exec, NonZeroExitError, spawn } from "@oh-my-pi/pi-utils/ptree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STDERR_LIMIT = NonZeroExitError.MAX_TRACE;
 const LARGE_STDERR_SIZE = 4 * 1024 * 1024;
@@ -10,14 +11,13 @@ const FULL_CAPTURE_ERROR = "Full stderr capture must be requested when spawning 
 
 function stderrFixture(size: number, exitCode = 0, stdout = ""): string[] {
 	const fillLength = size - STDERR_HEAD.length - STDERR_TAIL.length;
-	// Writing "" to a piped stdout throws EINVAL on Windows Bun; skip the write.
-	const stdoutLine = stdout.length > 0 ? `await Bun.stdout.write(${JSON.stringify(stdout)});` : null;
+	const stdoutLine = stdout.length > 0 ? `process.stdout.write(${JSON.stringify(stdout)});` : null;
 	const script = [
 		stdoutLine,
-		`await Bun.stderr.write(${JSON.stringify(STDERR_HEAD)} + "x".repeat(${fillLength}) + ${JSON.stringify(STDERR_TAIL)});`,
+		`process.stderr.write(${JSON.stringify(STDERR_HEAD)} + "x".repeat(${fillLength}) + ${JSON.stringify(STDERR_TAIL)});`,
 		`process.exitCode = ${exitCode};`,
 	].filter(line => line !== null);
-	return ["bun", "-e", script.join("\n")];
+	return [process.execPath, "-e", script.join("\n")];
 }
 
 describe("ptree stderr capture", () => {
@@ -87,11 +87,11 @@ describe("ptree stderr capture", () => {
 
 	it("does not retain drained stderr chunks while the process handle is alive", async () => {
 		const size = 32 * 1024 * 1024;
-		Bun.gc(true);
+		bun.gc(true);
 		const before = heapStats().heapSize;
 		using child = spawn(stderrFixture(size));
 		const result = await child.wait();
-		Bun.gc(true);
+		bun.gc(true);
 		const growth = heapStats().heapSize - before;
 
 		expect(result.stderr).toEndWith(STDERR_TAIL);

@@ -4,7 +4,7 @@
  * Gated by `PI_PYTHON_INTEGRATION=1` so CI without a real Python interpreter
  * (or sandboxes where subprocess spawning is restricted) does not fail.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -16,8 +16,9 @@ import {
 import { PythonKernel } from "@oh-my-pi/pi-coding-agent/eval/py/kernel";
 import { filterEnv, resolvePythonRuntime } from "@oh-my-pi/pi-coding-agent/eval/py/runtime";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const SHOULD_RUN = Bun.env.PI_PYTHON_INTEGRATION === "1";
+const SHOULD_RUN = bun.env.PI_PYTHON_INTEGRATION === "1";
 const MATPLOTLIB_TEST_CWD = process.cwd();
 
 async function hasModule(cwd: string, module: string): Promise<boolean> {
@@ -29,7 +30,7 @@ async function hasModule(cwd: string, module: string): Promise<boolean> {
 		for (const [key, value] of Object.entries(runtime.env)) {
 			if (typeof value === "string") spawnEnv[key] = value;
 		}
-		const result = Bun.spawnSync([runtime.pythonPath, "-c", `import ${module}`], {
+		const result = bun.spawnSync([runtime.pythonPath, "-c", `import ${module}`], {
 			cwd,
 			env: spawnEnv,
 			stdout: "ignore",
@@ -67,7 +68,7 @@ describe.skipIf(!SHOULD_RUN)("python runner subprocess", () => {
 			].join("\n"),
 			options,
 		);
-		expect(await Bun.file(path.join(tempDir.path(), "effects.txt")).text()).toBe("once\n");
+		expect(await bun.file(path.join(tempDir.path(), "effects.txt")).text()).toBe("once\n");
 		expect(result.cancelled).toBe(true);
 		expect(result.output).toContain("before crash");
 		expect(result.output).toContain("completion is uncertain");
@@ -75,7 +76,7 @@ describe.skipIf(!SHOULD_RUN)("python runner subprocess", () => {
 		const next = await executePython("print(21 * 2)", options);
 		expect(next.exitCode).toBe(0);
 		expect(next.output.trim()).toBe("42");
-		expect(await Bun.file(path.join(tempDir.path(), "effects.txt")).text()).toBe("once\n");
+		expect(await bun.file(path.join(tempDir.path(), "effects.txt")).text()).toBe("once\n");
 	}, 30_000);
 
 	it("streams stdout chunks as they are produced", async () => {
@@ -141,7 +142,7 @@ describe.skipIf(!SHOULD_RUN)("python runner subprocess", () => {
 		using tempDir = TempDir.createSync("@python-runner-file-");
 		const scriptDir = path.join(tempDir.path(), "scripts");
 		await fs.mkdir(scriptDir, { recursive: true });
-		await Bun.write(path.join(scriptDir, "sibling.py"), "VALUE = 2\n");
+		await bun.write(path.join(scriptDir, "sibling.py"), "VALUE = 2\n");
 		const filename = path.join(scriptDir, "loaded.py");
 		const kernel = await PythonKernel.start({ cwd: tempDir.path() });
 		try {
@@ -184,9 +185,9 @@ describe.skipIf(!SHOULD_RUN)("python runner subprocess", () => {
 		using tempDir = TempDir.createSync("@python-runner-load-");
 		const scriptDir = path.join(tempDir.path(), "script folder");
 		await fs.mkdir(scriptDir, { recursive: true });
-		await Bun.write(path.join(scriptDir, "sibling.py"), "VALUE = 2\n");
+		await bun.write(path.join(scriptDir, "sibling.py"), "VALUE = 2\n");
 		const filename = path.join(scriptDir, "loaded file.py");
-		await Bun.write(
+		await bun.write(
 			filename,
 			[
 				"import asyncio",
@@ -213,7 +214,7 @@ describe.skipIf(!SHOULD_RUN)("python runner subprocess", () => {
 			expect(second.exitCode).toBe(0);
 			expect(second.output.trim()).toBe("script output 2");
 
-			await Bun.write(filename, "raise RuntimeError('loaded traceback')\n");
+			await bun.write(filename, "raise RuntimeError('loaded traceback')\n");
 			const failed = await executePythonWithKernel(kernel, `%load "${filename}"`);
 			expect(failed.exitCode).toBe(1);
 			expect(failed.output).toContain(canonicalFilename);

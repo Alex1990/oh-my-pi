@@ -1,4 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 // Browser globals read inside page.evaluate callbacks; absent from bun-types.
 declare const devicePixelRatio: number;
@@ -23,6 +25,15 @@ import {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import type { CDPSession } from "puppeteer-core";
 import { chromiumAvailable, visibleBrowserAvailable } from "./chromium-probe";
+import { workerControl } from "../helpers/worker-mock";
+
+// The tab-worker constructor now lives in the compat module; a runtime global
+// no longer exists to patch, so the suite substitutes the module itself.
+vi.mock("@oh-my-pi/pi-utils/worker", async () => {
+	const actual = await vi.importActual<typeof import("@oh-my-pi/pi-utils/worker")>("@oh-my-pi/pi-utils/worker");
+	const { createMockWorker } = await import("../helpers/worker-mock");
+	return { ...actual, Worker: createMockWorker(actual.Worker) };
+});
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 // Headful launches additionally need a display; `CHROMIUM_AVAILABLE` only
@@ -181,7 +192,7 @@ describe("browser init deadline carry-over", () => {
 			if (!launched) throw new Error("Expected a shared headless browser");
 			// The hang server makes the ready phase burn its (floor-clamped) budget
 			// without resolving, so the first init attempt fails on its own.
-			const server = Bun.serve({
+			const server = await serve({
 				port: 0,
 				fetch: () => Promise.withResolvers<Response>().promise,
 			});
@@ -666,7 +677,7 @@ describe("browser tabs whose renderer crashed", () => {
 		async () => {
 			let requests = 0;
 			const started = Promise.withResolvers<void>();
-			const server = Bun.serve({
+			const server = await serve({
 				port: 0,
 				fetch: request => {
 					if (new URL(request.url).pathname === "/started") started.resolve();
@@ -680,18 +691,11 @@ describe("browser tabs whose renderer crashed", () => {
 			try {
 				// An inline worker runs the code in this process, where closing the tab does not stop it. Worker
 				// threads failing to start is what puts a tab on one.
-				const RealWorker = globalThis.Worker;
-				Object.defineProperty(globalThis, "Worker", {
-					configurable: true,
-					writable: true,
-					value: function UnavailableWorker(): never {
-						throw new Error("Worker threads unavailable");
-					},
-				});
+				workerControl.unavailable = true;
 				try {
 					await acquireTab(name, browser, { url, timeoutMs: 30_000 });
 				} finally {
-					globalThis.Worker = RealWorker;
+					workerControl.unavailable = false;
 				}
 				expect(getTab(name)).toMatchObject({ worker: { mode: "inline" } });
 				const run = runInTab(name, {
@@ -703,7 +707,7 @@ describe("browser tabs whose renderer crashed", () => {
 				await crashRenderer(browser, url);
 				expect(String(await run)).toContain("the tab could not be reattached and was closed");
 				// A run left going reaches the second fetch two seconds after it started; nothing marks that it did not.
-				await Bun.sleep(2_500);
+				await bun.sleep(2_500);
 				expect(requests).toBe(0);
 			} finally {
 				await releaseTab(name, { kill: true });
@@ -861,7 +865,7 @@ describe("browser tabs whose renderer crashed", () => {
 		"reattaches to a page Puppeteer has not listed yet because its URL is still empty",
 		async () => {
 			const loadGate = Promise.withResolvers<void>();
-			const server = Bun.serve({
+			const server = await serve({
 				port: 0,
 				fetch: async () => {
 					await loadGate.promise;

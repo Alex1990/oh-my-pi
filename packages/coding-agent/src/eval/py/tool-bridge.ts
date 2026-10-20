@@ -12,6 +12,7 @@ import type { ToolSession } from "../../tools";
 import type { RuntimeCallIdentity } from "../js/shared/runtime";
 import { bridgeValueFromToolResult, callSessionTool, type JsStatusEvent } from "../js/tool-bridge";
 import type { EvalShadowCellSession } from "../speculation/cell-session";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 export interface PyToolBridgeEntry {
 	toolSession: ToolSession;
@@ -149,7 +150,7 @@ async function callSessionToolPromptOnAbort(
 
 async function startServer(): Promise<BridgeServer> {
 	const token = crypto.randomUUID();
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		async fetch(req) {

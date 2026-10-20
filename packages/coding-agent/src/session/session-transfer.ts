@@ -43,6 +43,8 @@ import { findSessionFiles } from "./session-listing";
 import { loadEntriesFromFile, parseSessionContent, readSessionHeaderId } from "./session-loader";
 import { SessionManager } from "./session-manager";
 import { FileSessionStorage } from "./session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Archive format version written by {@link packSession} and the only one {@link unpackSession} reads. */
 export const SESSION_ARCHIVE_VERSION = 1;
@@ -431,7 +433,7 @@ async function readSessionArchive(archive: string): Promise<SessionArchiveConten
 		throw new SessionTransferError(`Bad session archive ${archive}: invalid session id.`);
 	}
 	for (const [hash, bytes] of blobs) {
-		const actual = new Bun.SHA256().update(bytes).digest("hex");
+		const actual = new bun.SHA256().update(bytes).digest("hex");
 		if (actual !== hash) {
 			throw new SessionTransferError(
 				`Bad session archive ${archive}: blob ${hash} fails its sha256 check (content hashes to ${actual}). Nothing was unpacked.`,
@@ -463,7 +465,7 @@ function isTranscriptPrefix(local: readonly SessionEntry[], incoming: readonly S
 async function findLocalCopies(id: string, sessionDir: string): Promise<string[]> {
 	const candidates = new Set((await findSessionFiles(id)).map(file => path.resolve(file)));
 	try {
-		for await (const name of new Bun.Glob(`*_${id}.jsonl`).scan({ cwd: sessionDir, followSymlinks: true })) {
+		for await (const name of new Glob(`*_${id}.jsonl`).scan({ cwd: sessionDir, followSymlinks: true })) {
 			candidates.add(path.resolve(sessionDir, name));
 		}
 	} catch (error) {
@@ -594,10 +596,10 @@ export async function unpackSession(archivePath: string, options: UnpackSessionO
 	const staging = await TempDir.create("@omp-session-unpack-");
 	try {
 		const stagedFile = staging.join(`${header.timestamp.replace(/[^\w-]/g, "-")}_${id}.jsonl`);
-		await Bun.write(stagedFile, contents.journal);
+		await bun.write(stagedFile, contents.journal);
 		const stagedArtifacts = stagedFile.slice(0, -".jsonl".length);
 		for (const [relative, bytes] of contents.artifacts) {
-			await Bun.write(path.join(stagedArtifacts, ...relative.split("/")), bytes);
+			await bun.write(path.join(stagedArtifacts, ...relative.split("/")), bytes);
 		}
 
 		const localCopies = await findLocalCopies(id, sessionDir);

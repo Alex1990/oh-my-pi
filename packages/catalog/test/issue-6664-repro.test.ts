@@ -6,7 +6,7 @@
  * read because their `COPILOT_API_HEADERS` could not be restored from any
  * bundled static entry.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

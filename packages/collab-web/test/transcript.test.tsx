@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { parseHTML } from "@oh-my-pi/pi-utils/dom";
 import type { AssistantMessage, SessionEntry } from "@oh-my-pi/pi-wire";
 import { renderToStaticMarkup } from "react-dom/server";
 import "./transcript-dom-shim";
@@ -72,15 +73,7 @@ function renderTranscript(props: {
 }
 
 function countElements(html: string, selector: string): number {
-	let count = 0;
-	new HTMLRewriter()
-		.on(selector, {
-			element() {
-				count++;
-			},
-		})
-		.transform(html);
-	return count;
+	return parseHTML(html).document.querySelectorAll(selector).length;
 }
 
 function countOccurrences(text: string, needle: string): number {

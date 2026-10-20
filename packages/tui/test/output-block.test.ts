@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
 import { renderMarkdownCell } from "@oh-my-pi/pi-tui/render/code-cell";

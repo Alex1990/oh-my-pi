@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { convertTools } from "@oh-my-pi/pi-ai/providers/google-shared";
 import type { Model, TJsonSchema, Tool } from "@oh-my-pi/pi-ai/types";
 import { normalizeSchemaForCCA, normalizeSchemaForGoogle } from "@oh-my-pi/pi-ai/utils/schema";

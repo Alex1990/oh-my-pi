@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSettings } from "@oh-my-pi/pi-coding-agent/config/all-settings";
 import { all, bindEffects, combine, effect, lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { logger, TempDir } from "@oh-my-pi/pi-utils";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
 
 import {
 	cfgProvidersMaxInFlightRequests,
@@ -19,6 +19,7 @@ import { cfgTaskMaxConcurrency } from "@oh-my-pi/pi-coding-agent/task/settings";
 import { cfgEvalPy } from "@oh-my-pi/pi-coding-agent/eval/settings";
 import { cfgModelRoles } from "@oh-my-pi/pi-coding-agent/config/model-settings";
 import { cfgSearxngBasicPassword, cfgSearxngEndpoint } from "@oh-my-pi/pi-coding-agent/web/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tick = () => Promise.resolve();
 
@@ -26,18 +27,18 @@ const tick = () => Promise.resolve();
 function withEnv(vars: Record<string, string | undefined>, fn: () => void): void {
 	const saved: Record<string, string | undefined> = {};
 	for (const name in vars) {
-		saved[name] = Bun.env[name];
+		saved[name] = bun.env[name];
 		const value = vars[name];
-		if (value === undefined) delete Bun.env[name];
-		else Bun.env[name] = value;
+		if (value === undefined) delete bun.env[name];
+		else bun.env[name] = value;
 	}
 	try {
 		fn();
 	} finally {
 		for (const name in saved) {
 			const value = saved[name];
-			if (value === undefined) delete Bun.env[name];
-			else Bun.env[name] = value;
+			if (value === undefined) delete bun.env[name];
+			else bun.env[name] = value;
 		}
 	}
 }
@@ -245,7 +246,7 @@ describe("settings registry", () => {
 			const cwd = tempDir.join("project");
 			fs.mkdirSync(agentDir, { recursive: true });
 			fs.mkdirSync(cwd, { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(agentDir, "config.yml"),
 				YAML.stringify({ temperature: "hot", statusLine: { leftSegments: ["modle"] } }),
 			);

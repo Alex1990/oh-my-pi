@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,7 +9,10 @@ import type { EditMode } from "@oh-my-pi/pi-tui/tools/edit";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
 
 function makeSession(cwd: string, settings: Record<string, unknown> = {}): ToolSession {
 	return {
@@ -39,8 +42,8 @@ afterEach(async () => {
 
 describe("EditTool details", () => {
 	test("apply_patch reports complete per-file update, move, and create details", async () => {
-		await Bun.write(path.join(tempDir, "update.txt"), "old\n");
-		await Bun.write(path.join(tempDir, "move.txt"), "move me\n");
+		await bun.write(path.join(tempDir, "update.txt"), "old\n");
+		await bun.write(path.join(tempDir, "move.txt"), "move me\n");
 		const input = [
 			"*** Begin Patch",
 			"*** Update File: update.txt",
@@ -96,7 +99,7 @@ describe("EditTool details", () => {
 			["b.ts", "b\n", "B"],
 		] as const) {
 			const absolute = path.join(tempDir, name);
-			await Bun.write(absolute, before);
+			await bun.write(absolute, before);
 			const tag = getEditStore(session).recordSnapshot(absolute, before);
 			sections.push(`[${name}#${tag}]`, "PUT 1-1:", `+${after}`);
 		}
@@ -127,7 +130,7 @@ describe("EditTool details", () => {
 
 	test("preserves diff metadata while native snapshot pruning removes oversized texts", async () => {
 		const before = `${"line\n".repeat(9_000)}old\n`;
-		await Bun.write(path.join(tempDir, "large.txt"), before);
+		await bun.write(path.join(tempDir, "large.txt"), before);
 
 		const result = await new EditTool(makeSession(tempDir), "patch").execute("pruned-details", {
 			path: "large.txt",
@@ -144,7 +147,7 @@ describe("EditTool details", () => {
 	});
 
 	test("promotes patch matching warnings into diagnostics metadata", async () => {
-		await Bun.write(path.join(tempDir, "warning.ts"), "function greet() {\n  return 'hello';\n}\n");
+		await bun.write(path.join(tempDir, "warning.ts"), "function greet() {\n  return 'hello';\n}\n");
 		const session = makeSession(tempDir, { "edit.fuzzyMatch": true });
 		const result = await new EditTool(session, "patch").execute("warning-details", {
 			path: "warning.ts",
@@ -170,7 +173,7 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 		async mode => {
 			const source = path.join(tempDir, "run.sh");
 			const destination = path.join(tempDir, "scripts", "renamed.sh");
-			await Bun.write(source, "#!/bin/sh\nprintf 'before\\n'\n");
+			await bun.write(source, "#!/bin/sh\nprintf 'before\\n'\n");
 			await fs.chmod(source, 0o750);
 			const session = makeSession(tempDir);
 			const read = await new ReadTool(session).execute("read-script", { path: "run.sh" });
@@ -196,8 +199,8 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 
 			const result = await new EditTool(session, mode).execute("move-script", params);
 			expect(result.isError).not.toBe(true);
-			expect(await Bun.file(source).exists()).toBe(false);
-			expect(await Bun.file(destination).text()).toBe("#!/bin/sh\nprintf 'after\\n'\n");
+			expect(await bun.file(source).exists()).toBe(false);
+			expect(await bun.file(destination).text()).toBe("#!/bin/sh\nprintf 'after\\n'\n");
 			expect((await fs.stat(destination)).mode & 0o777).toBe(0o750);
 			expect(await $`${destination}`.quiet().text()).toBe("after\n");
 		},
@@ -206,9 +209,9 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 	test("hashline MV uses the source permissions when overwriting a destination", async () => {
 		const source = path.join(tempDir, "run.sh");
 		const destination = path.join(tempDir, "renamed.sh");
-		await Bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
+		await bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
 		await fs.chmod(source, 0o700);
-		await Bun.write(destination, "replaced\n");
+		await bun.write(destination, "replaced\n");
 		await fs.chmod(destination, 0o644);
 		const session = makeSession(tempDir);
 		const read = await new ReadTool(session).execute("read-script", { path: "run.sh" });
@@ -218,7 +221,7 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 			input: `${header}\nMV renamed.sh`,
 		});
 		expect(result.isError).not.toBe(true);
-		expect(await Bun.file(source).exists()).toBe(false);
+		expect(await bun.file(source).exists()).toBe(false);
 		expect((await fs.stat(destination)).mode & 0o777).toBe(0o700);
 		expect(await $`${destination}`.quiet().text()).toBe("moved\n");
 	});
@@ -226,7 +229,7 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 	test("hashline MV keeps the setuid bit of the source", async () => {
 		const source = path.join(tempDir, "run.sh");
 		const destination = path.join(tempDir, "renamed.sh");
-		await Bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
+		await bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
 		await fs.chmod(source, 0o4750);
 		const session = makeSession(tempDir);
 		const read = await new ReadTool(session).execute("read-script", { path: "run.sh" });
@@ -242,7 +245,7 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 	test("hashline MV completes when the destination denies mode changes", async () => {
 		const source = path.join(tempDir, "run.sh");
 		const destination = path.join(tempDir, "renamed.sh");
-		await Bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
+		await bun.write(source, "#!/bin/sh\nprintf 'moved\\n'\n");
 		await fs.chmod(source, 0o750);
 		const session = makeSession(tempDir);
 		const read = await new ReadTool(session).execute("read-script", { path: "run.sh" });
@@ -257,8 +260,8 @@ describe.skipIf(process.platform === "win32")("EditTool move permissions", () =>
 			});
 			expect(result.isError).not.toBe(true);
 			expect(chmod).toHaveBeenCalledTimes(1);
-			expect(await Bun.file(source).exists()).toBe(false);
-			expect(await Bun.file(destination).text()).toBe("#!/bin/sh\nprintf 'moved\\n'\n");
+			expect(await bun.file(source).exists()).toBe(false);
+			expect(await bun.file(destination).text()).toBe("#!/bin/sh\nprintf 'moved\\n'\n");
 		} finally {
 			chmod.mockRestore();
 		}

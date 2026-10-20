@@ -7,7 +7,7 @@
  * server per (model, cache dir) that exits once idle. This test spawns the
  * real server through the CLI entry; it only pings, so no model is loaded.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

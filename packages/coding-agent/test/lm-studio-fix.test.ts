@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ModelRegistry LM Studio Fixes", () => {
 	let tempDir: string;
@@ -113,8 +114,8 @@ describe("ModelRegistry LM Studio Fixes", () => {
 	});
 
 	test("LM_STUDIO_BASE_URL can target any local OpenAI-compatible /v1 server", async () => {
-		const originalBaseUrl = Bun.env.LM_STUDIO_BASE_URL;
-		Bun.env.LM_STUDIO_BASE_URL = "http://127.0.0.1:11434/v1";
+		const originalBaseUrl = bun.env.LM_STUDIO_BASE_URL;
+		bun.env.LM_STUDIO_BASE_URL = "http://127.0.0.1:11434/v1";
 		let requestedUrl = "";
 		try {
 			const fetchMock: FetchImpl = input => {
@@ -139,9 +140,9 @@ describe("ModelRegistry LM Studio Fixes", () => {
 			expect(registry.getAll().some(m => m.provider === "lm-studio" && m.id === "omlx-model")).toBe(true);
 		} finally {
 			if (originalBaseUrl === undefined) {
-				delete Bun.env.LM_STUDIO_BASE_URL;
+				delete bun.env.LM_STUDIO_BASE_URL;
 			} else {
-				Bun.env.LM_STUDIO_BASE_URL = originalBaseUrl;
+				bun.env.LM_STUDIO_BASE_URL = originalBaseUrl;
 			}
 		}
 	});

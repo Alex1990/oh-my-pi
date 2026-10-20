@@ -16,6 +16,7 @@ import {
 	isUserInvokedSkillPrompt,
 	isUserTurnInitiator,
 } from "@oh-my-pi/pi-tui/chat/messages";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export {
 	SKILL_PROMPT_MESSAGE_TYPE,
 	LSP_LATE_DIAGNOSTIC_MESSAGE_TYPE,
@@ -210,7 +211,7 @@ export function didSessionMessagesChange(previousMessages: AgentMessage[], nextM
 	if (previousMessages.length !== nextMessages.length) return true;
 	return previousMessages.some(
 		(message, i) =>
-			!Bun.deepEquals(
+			!bun.deepEquals(
 				normalizeSessionMessageForProviderReplay(message),
 				normalizeSessionMessageForProviderReplay(nextMessages[i]),
 			),

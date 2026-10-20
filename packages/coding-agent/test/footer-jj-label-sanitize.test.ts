@@ -3,7 +3,7 @@
  * segment, so repository-controlled control characters must be sanitized
  * at the cache boundary, mirroring the status-line jj label path.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { FooterComponent } from "@oh-my-pi/pi-tui/status-line/footer";
 import { statusLineHost } from "@oh-my-pi/pi-coding-agent/modes/status-line-host";

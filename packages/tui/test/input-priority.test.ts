@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, setSystemTime, vi } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, type RenderScheduler, TUI } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
 import { BtwHistoryPanel } from "@oh-my-pi/pi-tui/overlays/btw-history-panel";

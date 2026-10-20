@@ -12,6 +12,8 @@ import { computeDefaultSessionDir } from "./session-paths";
 import { FileSessionStorage, type SessionStorage, type SessionStorageStat } from "./session-storage";
 import { lookupSessionTitle, recordSessionTitle } from "./session-index";
 
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+
 /**
  * Coarse lifecycle status of a session, derived from its last persisted message.
  *
@@ -775,7 +777,7 @@ async function scanBucketFiles(root: string, pattern: string): Promise<string[]>
 	for (const entry of entries) {
 		if (entry.isSymbolicLink() || !entry.isDirectory()) continue;
 		const dir = path.join(root, entry.name);
-		for await (const name of new Bun.Glob(pattern).scan({ cwd: dir, followSymlinks: true })) {
+		for await (const name of new Glob(pattern).scan({ cwd: dir, followSymlinks: true })) {
 			out.push(path.join(dir, name));
 		}
 	}
@@ -808,7 +810,7 @@ async function newestSessionFiles(
 			files =
 				slash >= 0
 					? await dedupeRealPaths(await scanBucketFiles(root, pattern.slice(slash + 1)))
-					: await Array.fromAsync(new Bun.Glob(pattern).scan({ cwd: root, followSymlinks: true }), name =>
+					: await Array.fromAsync(new Glob(pattern).scan({ cwd: root, followSymlinks: true }), name =>
 							path.join(root, name),
 						);
 		} else {

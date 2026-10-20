@@ -1,4 +1,4 @@
-import { Database, type Statement } from "bun:sqlite";
+import { Database, type Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -21,6 +21,7 @@ import {
 	postmortem,
 } from "@oh-my-pi/pi-utils";
 import type { RawSettings as Settings } from "../config/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Row shape for settings table queries */
 type SettingsRow = {
@@ -750,7 +751,7 @@ LIMIT ?4`,
 				}
 				if (rows.length < chunk) break;
 				// Yield so a chunked walk never freezes the TUI (bun:sqlite is sync).
-				await Bun.sleep(0);
+				await bun.sleep(0);
 			}
 			if (sums.size > 0) {
 				using upsert = this.#db.prepare(

@@ -19,6 +19,7 @@
 import { logger } from "@oh-my-pi/pi-utils";
 import type { LiveSteering, UserMessage } from "../../types";
 import type { InputItem } from "./request-transformer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Server acknowledgement of one `response.steer` submission. */
 export type CodexSteerAck = { accepted: true; id: string } | { accepted: false; code?: string; message?: string };
@@ -104,7 +105,7 @@ export class CodexSteerPump {
 				const claimedAt = performance.now();
 				const claim = await this.#source.claim(signal);
 				if (!claim) {
-					await Bun.sleep(EMPTY_CLAIM_BACKOFF_MS);
+					await bun.sleep(EMPTY_CLAIM_BACKOFF_MS);
 					continue;
 				}
 				// The response ended while the input was being prepared: the caller

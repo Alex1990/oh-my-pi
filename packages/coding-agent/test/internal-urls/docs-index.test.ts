@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { gzipSync } from "node:zlib";
 import { decodeDocsIndex } from "@oh-my-pi/pi-coding-agent/internal-urls/docs-index";
 import { buildDocsIndexPayload } from "../../scripts/generate-docs-index";

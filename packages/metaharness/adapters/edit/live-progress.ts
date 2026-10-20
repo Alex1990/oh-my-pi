@@ -9,6 +9,7 @@
  * remains the only artifact the manager consumes.
  */
 import { percentile, type ProgressEvent } from "./runner";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ANSI = {
 	reset: "\x1b[0m",
@@ -223,7 +224,7 @@ export class LiveProgress {
 	}
 
 	#writeLine(line: string): void {
-		const lineWidth = Bun.stringWidth(line);
+		const lineWidth = bun.stringWidth(line);
 		const pad = this.#lastLineLength > lineWidth ? " ".repeat(this.#lastLineLength - lineWidth) : "";
 		process.stderr.write(`\r${line}${pad}`);
 		this.#lastLineLength = lineWidth;

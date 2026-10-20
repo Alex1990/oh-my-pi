@@ -6,6 +6,7 @@
  */
 import { logger } from "@oh-my-pi/pi-utils";
 import type { Context, ImageContent, Message, Model, TextContent } from "../types";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const ANTHROPIC_MANY_IMAGE_THRESHOLD = 20;
 const ANTHROPIC_MANY_IMAGE_MAX_DIMENSION = 2000;
@@ -122,7 +123,7 @@ async function resizeAnthropicImageBlock(block: ImageContent, caps: AnthropicIma
 	const { maxDimension, payloadBudget } = caps;
 	try {
 		const inputBuffer = Buffer.from(block.data, "base64");
-		const { width, height } = await new Bun.Image(inputBuffer).metadata();
+		const { width, height } = await new Image(inputBuffer).metadata();
 		if (!width || !height) return block;
 		const overDimension = width > maxDimension || height > maxDimension;
 		const overBudget = block.data.length > payloadBudget;
@@ -138,8 +139,8 @@ async function resizeAnthropicImageBlock(block: ImageContent, caps: AnthropicIma
 			const targetHeight = Math.max(1, Math.min(maxDimension, Math.round(height * scale)));
 			// One encoder at a time: a full-resolution surface is hundreds of
 			// megabytes, so the two candidates never coexist.
-			const png = await new Bun.Image(inputBuffer).resize(targetWidth, targetHeight).png().bytes();
-			const jpeg = await new Bun.Image(inputBuffer).resize(targetWidth, targetHeight).jpeg({ quality: 85 }).bytes();
+			const png = await new Image(inputBuffer).resize(targetWidth, targetHeight).png().bytes();
+			const jpeg = await new Image(inputBuffer).resize(targetWidth, targetHeight).jpeg({ quality: 85 }).bytes();
 			best =
 				png.length <= jpeg.length
 					? { buffer: png, mimeType: "image/png" }

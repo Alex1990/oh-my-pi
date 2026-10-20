@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { CURSOR_MARKER, type Component, type Focusable, TUI, type TuiPaint } from "@oh-my-pi/pi-tui";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 withoutTerminalMultiplexer();
 
@@ -71,7 +72,7 @@ const OSC66 = "\x1b]66;";
 const ST = "\x1b\\";
 
 function screen(terminal: VirtualTerminal): string[] {
-	return terminal.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+	return terminal.getViewport().map(row => bun.stripANSI(row).trimEnd());
 }
 
 /** 1-based screen rows a paint addressed with an absolute row move. */
@@ -271,7 +272,7 @@ describe("fullscreen overlay paints", () => {
 		await scheduler.settle(terminal);
 		expect(paints).toHaveLength(1);
 		expect(paints[0]).toMatchObject({ alt: true, reset: false, rows: 3 });
-		expect(paints[0]!.viewport.map(row => Bun.stripANSI(row).trimEnd())).toEqual(overlay.lines);
+		expect(paints[0]!.viewport.map(row => bun.stripANSI(row).trimEnd())).toEqual(overlay.lines);
 		tui.stop();
 	});
 });

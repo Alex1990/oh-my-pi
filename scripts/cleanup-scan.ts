@@ -17,6 +17,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { ts } from "@ts-morph/common";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_PKGS = ["coding-agent", "ai", "catalog", "utils"];
 const EXCLUDE = /(-gen\/|\/vendor\/|\.d\.ts$|\.test\.ts$|__tests__\/|\/fixtures\/|\/snapshots\/)/;
@@ -50,7 +51,7 @@ interface CloneRegion {
 }
 
 const args = new Map<string, string>();
-for (const a of Bun.argv.slice(2)) {
+for (const a of bun.argv.slice(2)) {
 	const m = a.match(/^--([^=]+)(?:=(.*))?$/);
 	if (m) args.set(m[1], m[2] ?? "true");
 }
@@ -198,7 +199,7 @@ function detectClones(files: FileInfo[]): { regions: CloneRegion[]; sigLines: nu
 	for (let f = 0; f < files.length; f++) {
 		const s = sig[f];
 		for (let i = 0; i + CLONE_WINDOW <= s.length; i++) {
-			const h = Bun.hash(
+			const h = bun.hash(
 				s
 					.slice(i, i + CLONE_WINDOW)
 					.map(x => x[0])
@@ -294,7 +295,7 @@ async function computePublicSurface(pkgs: string[], byRel: Map<string, FileInfo>
 	for (const pkg of pkgs) {
 		let exportsMap: Record<string, unknown>;
 		try {
-			const pkgJson: { exports?: Record<string, unknown> } = await Bun.file(`packages/${pkg}/package.json`).json();
+			const pkgJson: { exports?: Record<string, unknown> } = await bun.file(`packages/${pkg}/package.json`).json();
 			exportsMap = pkgJson.exports ?? {};
 		} catch {
 			continue;
@@ -344,13 +345,13 @@ async function main() {
 	// Reference corpus = every TS file in the repo (including tests/scripts),
 	// so dead-export candidacy sees all in-repo consumers.
 	const corpusIdents = new Map<string, Set<string>>(); // identifier → referencing rel paths
-	const glob = new Bun.Glob("**/*.ts");
+	const glob = new bun.Glob("**/*.ts");
 	const corpusRoots = ["packages", "scripts"];
 	for (const root of corpusRoots) {
 		for await (const p of glob.scan({ cwd: root, onlyFiles: true })) {
 			const rel = `${root}/${p}`.replaceAll("\\", "/");
 			if (rel.includes("node_modules/") || /(-gen\/|\/vendor\/)/.test(rel)) continue;
-			const text = await Bun.file(rel).text();
+			const text = await bun.file(rel).text();
 			const isTest = /(\.test\.ts$|__tests__\/)/.test(rel);
 			for (const m of text.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) {
 				const name = m[0];

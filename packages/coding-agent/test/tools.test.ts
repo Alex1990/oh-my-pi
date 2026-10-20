@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,6 +23,8 @@ import { DEFAULT_FILE_LIMIT, GrepTool, MULTI_FILE_PER_FILE_MATCHES } from "../sr
 
 import { cfgEditFuzzyMatch, cfgEditFuzzyThreshold } from "@oh-my-pi/pi-coding-agent/edit/settings";
 import { cfgReadDefaultLimit } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 // Helper to extract text from content blocks
 function getTextOutput(result: any): string {
@@ -55,7 +57,7 @@ function createFifoOrSkip(fifoPath: string): boolean {
 		return false;
 	}
 
-	const result = Bun.spawnSync([mkfifoPath, fifoPath], { stdout: "ignore", stderr: "pipe" });
+	const result = bun.spawnSync([mkfifoPath, fifoPath], { stdout: "ignore", stderr: "pipe" });
 	if (result.exitCode !== 0) {
 		const errorText = result.stderr.toString("utf-8").trim();
 		throw new Error(`mkfifo failed${errorText ? `: ${errorText}` : ""}`);
@@ -558,8 +560,8 @@ describe("Coding Agent Tools", () => {
 
 	beforeEach(() => {
 		// Force replace mode for edit tool tests using old_string/new_string
-		originalEditVariant = Bun.env.PI_EDIT_VARIANT;
-		Bun.env.PI_EDIT_VARIANT = "replace";
+		originalEditVariant = bun.env.PI_EDIT_VARIANT;
+		bun.env.PI_EDIT_VARIANT = "replace";
 
 		// Create a unique temporary directory for each test
 		testDir = path.join(os.tmpdir(), `coding-agent-test-${Snowflake.next()}`);
@@ -583,9 +585,9 @@ describe("Coding Agent Tools", () => {
 
 		// Restore original edit variant
 		if (originalEditVariant === undefined) {
-			delete Bun.env.PI_EDIT_VARIANT;
+			delete bun.env.PI_EDIT_VARIANT;
 		} else {
-			Bun.env.PI_EDIT_VARIANT = originalEditVariant;
+			bun.env.PI_EDIT_VARIANT = originalEditVariant;
 		}
 		AsyncJobManager.resetForTests();
 	});
@@ -975,7 +977,7 @@ describe("Coding Agent Tools", () => {
 		});
 
 		it("does not claim a suppressed hashline preview was shown", async () => {
-			Bun.env.PI_EDIT_VARIANT = "hashline";
+			bun.env.PI_EDIT_VARIANT = "hashline";
 			const testFile = path.join(testDir, "hashline-preview-large.txt");
 			const firstLine = "x".repeat(70_000);
 			const tail = Array.from({ length: 9_000 }, () => "y".repeat(500)).join("\n");
@@ -1308,7 +1310,7 @@ describe("Coding Agent Tools", () => {
 					spillManager.getArtifactsDir()!,
 					`${truncation.artifactId}.mcp__server__tool.log`,
 				);
-				expect(await Bun.file(artifactPath).text()).toBe(payload);
+				expect(await bun.file(artifactPath).text()).toBe(payload);
 			} finally {
 				await spillManager.close();
 			}
@@ -2169,7 +2171,7 @@ describe("Coding Agent Tools", () => {
 			);
 			expect(fs.existsSync(archivePath)).toBe(true);
 
-			const archive = new Bun.Archive(await Bun.file(archivePath).bytes());
+			const archive = new Archive(await bun.file(archivePath).bytes());
 			const files = await archive.files();
 			expect(await files.get("pkg/new.txt")?.text()).toBe(content);
 		});
@@ -2198,7 +2200,7 @@ describe("Coding Agent Tools", () => {
 			expect(bytes[0]).toBe(0x1f);
 			expect(bytes[1]).toBe(0x8b);
 
-			const archive = new Bun.Archive(await Bun.file(archivePath).bytes());
+			const archive = new Archive(await bun.file(archivePath).bytes());
 			const files = await archive.files();
 			expect(await files.get("pkg/README.md")?.text()).toBe(content);
 			expect(await files.get("pkg/src/index.ts")?.text()).toBe("export const archiveValue = 1;\n");
@@ -2276,7 +2278,7 @@ describe("Coding Agent Tools", () => {
 			});
 
 			expect(getTextOutput(result)).toContain("qux bar qux baz qux");
-			const content = await Bun.file(testFile).text();
+			const content = await bun.file(testFile).text();
 			expect(content).toBe("qux bar qux baz qux");
 		});
 
@@ -2327,7 +2329,7 @@ function b() {
 
 			cfgEditFuzzyThreshold.set(session.settings, 0.6);
 			expect((await editTool.execute("live-fuzzy-loose", args)).isError).not.toBe(true);
-			expect(await Bun.file(testFile).text()).toBe("function greet() {\n  return 'bye';\n}\n");
+			expect(await bun.file(testFile).text()).toBe("function greet() {\n  return 'bye';\n}\n");
 		});
 
 		it("should fail with replace_all: true if no matches found", async () => {
@@ -2356,7 +2358,7 @@ function b() {
 			});
 
 			expect(getTextOutput(result)).toContain("replaced");
-			const content = await Bun.file(testFile).text();
+			const content = await bun.file(testFile).text();
 			expect(content).toBe("start\nreplaced\nend\nstart\nreplaced\nend");
 		});
 
@@ -2372,7 +2374,7 @@ function b() {
 			});
 
 			expect(getTextOutput(result)).toContain("hello universe");
-			const content = await Bun.file(testFile).text();
+			const content = await bun.file(testFile).text();
 			expect(content).toBe("hello universe");
 		});
 
@@ -2392,7 +2394,7 @@ function b() {
 			});
 
 			expect(result.isError).toBeUndefined();
-			const content = await Bun.file(testFile).text();
+			const content = await bun.file(testFile).text();
 			expect(content).toBe("ALPHA\nBETA\n");
 			const details = result.details as { diff?: string } | undefined;
 			expect(details?.diff).toContain("ALPHA");
@@ -2521,7 +2523,7 @@ function b() {
 		});
 
 		it("should persist environment variables between commands", async () => {
-			if (process.platform === "win32" || Bun.env.PI_SHELL_PERSIST !== "1") {
+			if (process.platform === "win32" || bun.env.PI_SHELL_PERSIST !== "1") {
 				return;
 			}
 
@@ -2871,7 +2873,7 @@ function b() {
 
 		it("searches all of a named file larger than the directory-walk window", async () => {
 			const testFile = path.join(testDir, "manual.txt");
-			await Bun.write(
+			await bun.write(
 				testFile,
 				`${"x".repeat(2 * 1024 * 1024)}\nEARLYNEEDLE\n${"x".repeat(5 * 1024 * 1024)}\nLATENEEDLE\n`,
 			);
@@ -3403,8 +3405,8 @@ describe("edit tool CRLF handling", () => {
 
 	beforeEach(() => {
 		// Force replace mode for edit tool tests using old_string/new_string
-		originalEditVariant = Bun.env.PI_EDIT_VARIANT;
-		Bun.env.PI_EDIT_VARIANT = "replace";
+		originalEditVariant = bun.env.PI_EDIT_VARIANT;
+		bun.env.PI_EDIT_VARIANT = "replace";
 
 		testDir = path.join(os.tmpdir(), `coding-agent-crlf-test-${Snowflake.next()}`);
 		fs.mkdirSync(testDir, { recursive: true });
@@ -3416,9 +3418,9 @@ describe("edit tool CRLF handling", () => {
 
 		// Restore original edit variant
 		if (originalEditVariant === undefined) {
-			delete Bun.env.PI_EDIT_VARIANT;
+			delete bun.env.PI_EDIT_VARIANT;
 		} else {
-			Bun.env.PI_EDIT_VARIANT = originalEditVariant;
+			bun.env.PI_EDIT_VARIANT = originalEditVariant;
 		}
 	});
 
@@ -3446,7 +3448,7 @@ describe("edit tool CRLF handling", () => {
 			new_string: "REPLACED\n",
 		});
 
-		const content = await Bun.file(testFile).text();
+		const content = await bun.file(testFile).text();
 		expect(content).toBe("first\r\nREPLACED\r\nthird\r\n");
 	});
 
@@ -3460,7 +3462,7 @@ describe("edit tool CRLF handling", () => {
 			new_string: "REPLACED\n",
 		});
 
-		const content = await Bun.file(testFile).text();
+		const content = await bun.file(testFile).text();
 		expect(content).toBe("first\nREPLACED\nthird\n");
 	});
 

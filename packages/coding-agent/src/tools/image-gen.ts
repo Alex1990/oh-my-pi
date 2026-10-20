@@ -23,6 +23,7 @@ import type { CustomTool } from "../extensibility/custom-tools/types";
 import imageGenDescription from "../prompts/tools/image-gen.md" with { type: "text" };
 import { resolveConfiguredModelTarget } from "../session/role-models";
 import { resolveReadPath, specialFileKind } from "./path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const IMAGE_TIMEOUT = 3 * 60 * 1000;
 const MAX_IMAGE_SIZE = 35 * 1024 * 1024;
@@ -95,7 +96,7 @@ async function loadImageFromPath(imagePath: string, cwd: string): Promise<{ data
 		const kind = specialFileKind(stat);
 		if (kind) throw new Error(`Cannot load '${imagePath}': it is a ${kind}, not a regular file or directory.`);
 		if (stat.size > MAX_IMAGE_SIZE) throw new Error(`Image file too large: ${imagePath}`);
-		const buffer = await Bun.file(resolved).bytes();
+		const buffer = await bun.file(resolved).bytes();
 		if (buffer.length > MAX_IMAGE_SIZE) throw new Error(`Image file too large: ${imagePath}`);
 		const mimeType = parseImageMetadata(buffer)?.mimeType;
 		if (!mimeType) throw new Error(`Unsupported image type: ${imagePath}`);
@@ -132,7 +133,7 @@ async function saveImagesToTemp(images: ImageGenerationResult["images"]): Promis
 	return Promise.all(
 		images.map(async image => {
 			const filepath = path.join(os.tmpdir(), `omp-image-${Snowflake.next()}.${imageExtension(image.mimeType)}`);
-			await Bun.write(filepath, Buffer.from(image.data, "base64"));
+			await bun.write(filepath, Buffer.from(image.data, "base64"));
 			return filepath;
 		}),
 	);

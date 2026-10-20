@@ -1,4 +1,5 @@
 import type { NativeToolView, ToolRenderer, ToolRenderResult } from "./renderer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Web Search TUI Rendering
  *
@@ -202,7 +203,7 @@ export function renderSearchResult(
 					// One line per source: the title links to its URL, followed by domain · age.
 					// Reserve room for the box borders, the tree branch, and the meta suffix.
 					const lineBudget = Math.max(24, width - 6);
-					const titleBudget = Math.max(12, lineBudget - Bun.stringWidth(metaSuffix));
+					const titleBudget = Math.max(12, lineBudget - bun.stringWidth(metaSuffix));
 					const title = theme.fg("accent", truncateToWidth(titleText, titleBudget));
 					const linkedTitle = url ? urlHyperlink(url, title) : title;
 					return [`${linkedTitle}${metaSuffix}`];

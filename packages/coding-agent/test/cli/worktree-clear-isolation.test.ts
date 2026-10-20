@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import {
 	writeRetainedBackend,
 } from "@oh-my-pi/pi-coding-agent/task/isolation-ownership";
 import { setWorktreesDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression for #6761: `omp worktree clear` (no `--all`) must delete only
@@ -40,13 +41,13 @@ describe("worktree clear task-isolation ownership", () => {
 	async function makeSandbox(name: string): Promise<string> {
 		const dir = path.join(base, name);
 		await fs.mkdir(path.join(dir, "m"), { recursive: true });
-		await Bun.write(path.join(dir, "m", "work.txt"), "uncaptured\n");
+		await bun.write(path.join(dir, "m", "work.txt"), "uncaptured\n");
 		return dir;
 	}
 
 	/** A pid that has been spawned and reaped, so `kill(pid, 0)` reports ESRCH. */
 	async function deadPid(): Promise<number> {
-		const proc = Bun.spawn(["true"], { stdout: "ignore", stderr: "ignore" });
+		const proc = bun.spawn(["true"], { stdout: "ignore", stderr: "ignore" });
 		await proc.exited;
 		return proc.pid;
 	}
@@ -56,12 +57,12 @@ describe("worktree clear task-isolation ownership", () => {
 		await writeIsolationOwner(live, "live0001"); // marker names this test process
 
 		const dead = await makeSandbox("tdead0002");
-		await Bun.write(path.join(dead, ISOLATION_OWNER_FILE), JSON.stringify({ pid: await deadPid(), id: "dead0002" }));
+		await bun.write(path.join(dead, ISOLATION_OWNER_FILE), JSON.stringify({ pid: await deadPid(), id: "dead0002" }));
 
 		const orphan = await makeSandbox("tnone0003"); // no marker at all (crashed pre-marker run)
 
 		const corrupt = await makeSandbox("tbad00004");
-		await Bun.write(path.join(corrupt, ISOLATION_OWNER_FILE), "{ not json");
+		await bun.write(path.join(corrupt, ISOLATION_OWNER_FILE), "{ not json");
 
 		// Setup race: marker written before the backend materialises `m`. The
 		// dir holds only the live-owner marker and no mount yet.
@@ -72,7 +73,7 @@ describe("worktree clear task-isolation ownership", () => {
 		// Recycled pid: the crashed owner's pid was reassigned to this live test
 		// process, but the recorded start-time token no longer matches.
 		const recycled = await makeSandbox("trecyc06");
-		await Bun.write(
+		await bun.write(
 			path.join(recycled, ISOLATION_OWNER_FILE),
 			JSON.stringify({ pid: process.pid, id: "recyc06", startToken: "not-the-current-token" }),
 		);
@@ -84,7 +85,7 @@ describe("worktree clear task-isolation ownership", () => {
 				() => true,
 				() => false,
 			);
-		expect(await Bun.file(path.join(live, "m", "work.txt")).exists()).toBe(true);
+		expect(await bun.file(path.join(live, "m", "work.txt")).exists()).toBe(true);
 		expect(await exists(dead)).toBe(false);
 		expect(await exists(orphan)).toBe(false);
 		expect(await exists(corrupt)).toBe(false);
@@ -96,7 +97,7 @@ describe("worktree clear task-isolation ownership", () => {
 
 	it("unmounts retained mounting-backend workspaces before removal", async () => {
 		const retained = await makeSandbox("tret0007");
-		await Bun.write(
+		await bun.write(
 			path.join(retained, ISOLATION_OWNER_FILE),
 			JSON.stringify({ pid: await deadPid(), id: "ret0007" }),
 		);
@@ -111,7 +112,7 @@ describe("worktree clear task-isolation ownership", () => {
 
 	it("removes sandboxes without a retained-mount sidecar without unmounting", async () => {
 		const plain = await makeSandbox("tplain08");
-		await Bun.write(path.join(plain, ISOLATION_OWNER_FILE), JSON.stringify({ pid: await deadPid(), id: "plain08" }));
+		await bun.write(path.join(plain, ISOLATION_OWNER_FILE), JSON.stringify({ pid: await deadPid(), id: "plain08" }));
 		const isoStopSpy = vi.spyOn(natives, "isoStop").mockResolvedValue(undefined);
 
 		await clearWorktrees({ all: false, dryRun: false, json: true });
@@ -122,7 +123,7 @@ describe("worktree clear task-isolation ownership", () => {
 
 	it("keeps the workspace when its retained mount cannot stop", async () => {
 		const retained = await makeSandbox("tbusy0009");
-		await Bun.write(
+		await bun.write(
 			path.join(retained, ISOLATION_OWNER_FILE),
 			JSON.stringify({ pid: await deadPid(), id: "busy0009" }),
 		);
@@ -132,21 +133,21 @@ describe("worktree clear task-isolation ownership", () => {
 		const { failed } = await clearWorktrees({ all: false, dryRun: false, json: true });
 		expect(failed).toBe(1);
 
-		expect(await Bun.file(path.join(retained, "m", "work.txt")).exists()).toBe(true);
+		expect(await bun.file(path.join(retained, "m", "work.txt")).exists()).toBe(true);
 	});
 
 	it("keeps workspaces whose retained-mount metadata is unreadable", async () => {
 		const retained = await makeSandbox("tbad0010");
-		await Bun.write(
+		await bun.write(
 			path.join(retained, ISOLATION_OWNER_FILE),
 			JSON.stringify({ pid: await deadPid(), id: "bad0010" }),
 		);
-		await Bun.write(path.join(retained, RETAINED_BACKEND_FILE), "{ not json");
+		await bun.write(path.join(retained, RETAINED_BACKEND_FILE), "{ not json");
 		const isoStopSpy = vi.spyOn(natives, "isoStop").mockResolvedValue(undefined);
 
 		await clearWorktrees({ all: false, dryRun: false, json: true });
 
 		expect(isoStopSpy).not.toHaveBeenCalled();
-		expect(await Bun.file(path.join(retained, "m", "work.txt")).exists()).toBe(true);
+		expect(await bun.file(path.join(retained, "m", "work.txt")).exists()).toBe(true);
 	});
 });

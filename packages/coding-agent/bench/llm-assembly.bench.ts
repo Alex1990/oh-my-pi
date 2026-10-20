@@ -27,10 +27,11 @@
 import { type AgentMessage, Tokenizer } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage, Usage } from "@oh-my-pi/pi-ai";
 import { convertToLlm } from "../src/session/messages";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tokenizer = new Tokenizer();
 
-const N = Number(Bun.env.LLM_ASSEMBLY_N ?? 5000);
+const N = Number(bun.env.LLM_ASSEMBLY_N ?? 5000);
 const WARMUP = 5;
 const SAMPLES = 25;
 
@@ -127,10 +128,10 @@ function sample<T>(makeWorkload: () => T, run: (workload: T) => void, batch = 1)
 		for (let b = 0; b < batch; b++) workloads.push(makeWorkload());
 		// Collect workload-allocation garbage BEFORE timing so a GC pause can't land
 		// inside the window and inflate MAD-noise.
-		Bun.gc(true);
-		const t0 = Bun.nanoseconds();
+		bun.gc(true);
+		const t0 = bun.nanoseconds();
 		for (let b = 0; b < batch; b++) run(workloads[b]);
-		samples.push((Bun.nanoseconds() - t0) / 1e6 / batch);
+		samples.push((bun.nanoseconds() - t0) / 1e6 / batch);
 	}
 	return stats(samples);
 }

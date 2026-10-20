@@ -8,7 +8,7 @@
  * enumerates every serverless model with capability metadata, so new releases
  * surface automatically with no catalog edits.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { fireworksModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Type, type } from "@oh-my-pi/omptype/ark";
 import { regex } from "arkregex";
 import type { Eq } from "./type-assert";

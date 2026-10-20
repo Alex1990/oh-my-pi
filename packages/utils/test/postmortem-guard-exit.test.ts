@@ -1,5 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { postmortem } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 // Regression for #11789: host-owned hard exits (composer double-Ctrl-C,
 // input-controller stuck-teardown) can fire while an extension-load
@@ -55,10 +64,14 @@ if (process.argv.includes(directFlag)) {
 	await Promise.withResolvers<never>().promise;
 }
 
-if (!process.argv.includes(directFlag) && !process.argv.includes(fatalFlag)) {
+const isChildProcess = process.argv.includes(directFlag) || process.argv.includes(fatalFlag);
+const testApi = isChildProcess ? undefined : await import("@oh-my-pi/pi-utils/test-runtime");
+
+if (!isChildProcess && testApi) {
+	const { describe, expect, it } = testApi;
 	describe("postmortem guard-window exit (#11789)", () => {
 		it("exits with the requested code through a poisoned guard chain", async () => {
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, directFlag], {
+			const child = bun.spawn([process.execPath, ...nodeTsArgs, import.meta.filename, directFlag], {
 				stdin: "ignore",
 				stdout: "pipe",
 				stderr: "pipe",
@@ -78,7 +91,7 @@ if (!process.argv.includes(directFlag) && !process.argv.includes(fatalFlag)) {
 			// The fix guarantees a bounded exit; an unfixed exitProcess re-throws and
 			// loops, in which case the child never exits and bun's per-test timeout
 			// surfaces the regression. No wall-clock watchdog is needed here.
-			const child = Bun.spawn([process.execPath, "run", import.meta.path, fatalFlag], {
+			const child = bun.spawn([process.execPath, ...nodeTsArgs, import.meta.filename, fatalFlag], {
 				stdin: "ignore",
 				stdout: "pipe",
 				stderr: "pipe",

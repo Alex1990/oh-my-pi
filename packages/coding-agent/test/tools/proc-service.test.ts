@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { procmgr, setProcessName, TempDir } from "@oh-my-pi/pi-utils";
@@ -24,6 +24,7 @@ import { WriteTool } from "../../src/tools/write";
 import { sharedBrowserDaemonName } from "../../src/tools/browser/shared-daemon";
 import type { ToolSession } from "../../src/tools";
 import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function startBroker(projectDir: string, runtimeDir: string): Promise<void> {
 	const previous = [
@@ -122,7 +123,7 @@ describe("proc:// background jobs", () => {
 			// nothing in-process signals when the relay thread has copied it.
 			let stream = "";
 			for (let waited = 0; stream !== "one\ntwo\nthree\n" && waited < 10_000; waited += 20) {
-				await Bun.sleep(20);
+				await bun.sleep(20);
 				const opened = (await read(`proc://${job.id}/streams`)).content.startsWith(`proc://${job.id}/streams/1 `);
 				if (opened) stream = (await read(`proc://${job.id}/streams/1`)).content;
 			}
@@ -341,14 +342,14 @@ describe("proc:// background jobs", () => {
 	it("requires file content instead of silently truncating a file", async () => {
 		using temp = TempDir.createSync("@omp-proc-write-");
 		const file = path.join(temp.path(), "keep.txt");
-		await Bun.write(file, "keep this");
+		await bun.write(file, "keep this");
 		const write = new WriteTool(toolSession(temp.path(), undefined, { launch: false }));
 		await expect(write.execute("missing-content", write.parameters.assert({ path: file }))).rejects.toThrow(
 			"content is required",
 		);
-		expect(await Bun.file(file).text()).toBe("keep this");
+		expect(await bun.file(file).text()).toBe("keep this");
 		await write.execute("empty-file", { path: file, content: "" });
-		expect(await Bun.file(file).text()).toBe("");
+		expect(await bun.file(file).text()).toBe("");
 	});
 
 	it("lists settled jobs with their frozen run duration instead of their age", async () => {
@@ -516,13 +517,13 @@ describe("bash services via proc://", () => {
 			const persisted = await proc.write(parseInternalUrl("proc://echo-service/mode"), "persist", { session });
 			expect(persisted.content[0]?.type === "text" ? persisted.content[0].text : "").toContain("persistent");
 			expect(persisted.details?.proc).toMatchObject({ action: "mode", mode: "persist", daemon: { persist: true } });
-			const spec: { persist: boolean } = await Bun.file(
+			const spec: { persist: boolean } = await bun.file(
 				path.join(runtimeDir, "daemons", "echo-service", "spec.json"),
 			).json();
 			expect(spec.persist).toBeTrue();
 			const sessionMode = await proc.write(parseInternalUrl("proc://echo-service/mode"), "session", { session });
 			expect(sessionMode.content[0]?.type === "text" ? sessionMode.content[0].text : "").toContain("mode=session");
-			const sessionSpec: { persist: boolean } = await Bun.file(
+			const sessionSpec: { persist: boolean } = await bun.file(
 				path.join(runtimeDir, "daemons", "echo-service", "spec.json"),
 			).json();
 			expect(sessionSpec.persist).toBeFalse();
@@ -548,7 +549,7 @@ describe("bash services via proc://", () => {
 			expect(detached.content[0]?.type === "text" ? detached.content[0].text : "").toContain("detached");
 			const detachedRead = await proc.resolve(parseInternalUrl("proc://detach-candidate"), { session });
 			expect(detachedRead.content).toContain("detached=true");
-			const detachedSpec: { persist: boolean; detached: boolean; pty: boolean } = await Bun.file(
+			const detachedSpec: { persist: boolean; detached: boolean; pty: boolean } = await bun.file(
 				path.join(runtimeDir, "daemons", "detach-candidate", "spec.json"),
 			).json();
 			expect(detachedSpec).toMatchObject({ detached: true, persist: true, pty: false });

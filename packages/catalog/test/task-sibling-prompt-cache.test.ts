@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { compileCascade } from "../scripts/compat-compiler/compile-cascade";
 import { buildModel } from "../src/build";
 import { resolveCatalogPolicy } from "../src/compat/catalog-policy";

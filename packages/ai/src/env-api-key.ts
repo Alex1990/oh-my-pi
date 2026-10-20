@@ -7,6 +7,7 @@
 import { providerEntries } from "@oh-my-pi/pi-catalog/compat/providers";
 import { $env, $pickenv } from "@oh-my-pi/pi-utils";
 import { PROVIDER_REGISTRY } from "./registry";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type KeyResolver = string | (() => string | undefined);
 
@@ -46,7 +47,7 @@ const serviceProviderMap: Record<string, KeyResolver> = {
  * Get API key for provider from known environment variables, e.g. OPENAI_API_KEY.
  *
  * Will not return API keys for providers that require OAuth tokens.
- * Checks Bun.env, then cwd/.env, then ~/.env.
+ * Checks bun.env, then cwd/.env, then ~/.env.
  */
 export function getEnvApiKey(provider: string): string | undefined {
 	const resolver = serviceProviderMap[provider];

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import {
 	type OpenAIResponsesOptions,
@@ -15,6 +15,7 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { type GeneratedProvider, getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import * as piUtils from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_INSTALLATION_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -1474,7 +1475,7 @@ describe("OpenAI responses history payload", () => {
 				role: "assistant",
 				content: [{ type: "output_text", text: "Signed answer", annotations: [] }],
 				status: "completed",
-				id: `msg_${Bun.hash(legacySignature).toString(36)}`,
+				id: `msg_${bun.hash(legacySignature).toString(36)}`,
 			},
 			{ role: "user", content: [{ type: "input_text", text: "follow-up" }] },
 		]);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import path from "node:path";
@@ -21,6 +21,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/session/model-compaction-threshold";
 import { compactionThresholdSettings, createSubagentSettings } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { cfgTaskAgentCompactionThresholdOverrides } from "@oh-my-pi/pi-coding-agent/task/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function withConfigDirs(run: (dirs: { root: string; agentDir: string; cwd: string }) => Promise<void>) {
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-compaction-threshold-"));
@@ -75,7 +76,7 @@ describe("task.agentCompactionThresholdOverrides", () => {
 		await withConfigDirs(async ({ agentDir, cwd }) => {
 			const configPath = path.join(agentDir, "config.yml");
 			for (const value of [[], { scout: { thresholdPercent: 80 } }, { scout: "80" }]) {
-				await Bun.write(configPath, overridesYaml(value));
+				await bun.write(configPath, overridesYaml(value));
 				await expect(Settings.loadReadOnly({ agentDir, cwd })).rejects.toThrow(
 					"task.agentCompactionThresholdOverrides",
 				);
@@ -85,9 +86,9 @@ describe("task.agentCompactionThresholdOverrides", () => {
 
 	it("lets a higher-priority layer replace or clear a lower-priority entry", async () => {
 		await withConfigDirs(async ({ root, agentDir, cwd }) => {
-			await Bun.write(path.join(agentDir, "config.yml"), overridesYaml({ scout: 90000, task: 50000 }));
+			await bun.write(path.join(agentDir, "config.yml"), overridesYaml({ scout: 90000, task: 50000 }));
 			const overlay = path.join(root, "overlay.yml");
-			await Bun.write(overlay, overridesYaml({ scout: "80%", task: null }));
+			await bun.write(overlay, overridesYaml({ scout: "80%", task: null }));
 
 			const settings = await Settings.loadReadOnly({ agentDir, cwd, configFiles: [overlay] });
 			expect(
@@ -209,7 +210,7 @@ describe("compaction.modelThresholds", () => {
 
 	it("refuses a hub edit that a project entry for the same model would shadow", async () => {
 		await withConfigDirs(async ({ agentDir, cwd }) => {
-			await Bun.write(
+			await bun.write(
 				path.join(getProjectAgentDir(cwd), "settings.json"),
 				JSON.stringify({ compaction: { modelThresholds: { "deepseek/v4": 50000 } } }),
 			);

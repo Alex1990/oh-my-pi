@@ -36,6 +36,7 @@ import {
 import { plainText } from "../native/spans";
 import { Memo } from "../native/memo";
 import { fileHref, fileRow, inlineErrorView } from "../tools/native-view";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Extract the read call's target path. `path` is the canonical arg; `file_path`
@@ -1035,11 +1036,11 @@ export class ReadToolGroupComponent extends Container implements ToolExecutionHa
 		const connector = index === total - 1 ? theme.tree.last : theme.tree.branch;
 		lines.push(`   ${theme.fg("dim", connector)} ${this.#formatRow(row)}`.trimEnd());
 
-		const connectorWidth = Bun.stringWidth(connector);
+		const connectorWidth = bun.stringWidth(connector);
 		const continuation =
 			index === total - 1
 				? " ".repeat(connectorWidth)
-				: `${theme.tree.vertical}${" ".repeat(Math.max(0, connectorWidth - Bun.stringWidth(theme.tree.vertical)))}`;
+				: `${theme.tree.vertical}${" ".repeat(Math.max(0, connectorWidth - bun.stringWidth(theme.tree.vertical)))}`;
 		this.#appendUsageRows(lines, usageRows, `   ${continuation} `);
 	}
 

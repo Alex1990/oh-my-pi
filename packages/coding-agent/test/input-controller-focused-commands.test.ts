@@ -11,7 +11,7 @@
  * agent) in a focused view, `/export` writes the main session instead of the viewed
  * one, or a model/thinking change lands on the main session instead of the agent.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AgentBusyError } from "@oh-my-pi/pi-agent-core";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { CommandController } from "@oh-my-pi/pi-coding-agent/modes/controllers/command-controller";
@@ -197,14 +197,16 @@ describe("focused subagent view slash commands", () => {
 			await Settings.init({ inMemory: true });
 			controller.cycleThinkingLevel();
 			await controller.cycleRoleModel("forward");
+
+			// Assert inside the block: `restoreSettingsTestState` calls
+			// `vi.restoreAllMocks()`, which clears the spies' call history.
+			expect(focusedCycleThinking).toHaveBeenCalledTimes(1);
+			expect(focusedCycleRoles).toHaveBeenCalledTimes(1);
+			expect(mainCycleThinking).not.toHaveBeenCalled();
+			expect(mainCycleRoles).not.toHaveBeenCalled();
 		} finally {
 			restoreSettingsTestState(settingsState);
 		}
-
-		expect(focusedCycleThinking).toHaveBeenCalledTimes(1);
-		expect(focusedCycleRoles).toHaveBeenCalledTimes(1);
-		expect(mainCycleThinking).not.toHaveBeenCalled();
-		expect(mainCycleRoles).not.toHaveBeenCalled();
 	});
 
 	it("keeps other commands gated to the main session, draft intact", async () => {

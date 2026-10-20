@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { ArchiveError } from "../../src/ar/error";
 import { readIso, sniffIso } from "../../src/ar/iso";
 import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";

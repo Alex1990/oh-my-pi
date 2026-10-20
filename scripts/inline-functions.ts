@@ -70,7 +70,7 @@ import { rm } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import type {
 	CallExpression,
 	Expression,
@@ -81,6 +81,8 @@ import type {
 	Statement,
 } from "ts-morph";
 import { IndentationText, Node, Project, SyntaxKind, VariableDeclarationKind } from "ts-morph";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -962,7 +964,7 @@ export function inlineFile(sourceFile: SourceFile, opts: Options): string[] {
 // Driver
 // ---------------------------------------------------------------------------
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
 async function formatFile(file: string): Promise<void> {
 	const oxfmt = path.join(REPO_ROOT, "node_modules/.bin/oxfmt");
@@ -977,7 +979,7 @@ async function formatFile(file: string): Promise<void> {
 
 async function showDiff(file: string, updated: string): Promise<void> {
 	const tmp = path.join(os.tmpdir(), `inline-${process.pid}-${path.basename(file)}`);
-	await Bun.write(tmp, updated);
+	await bun.write(tmp, updated);
 	await $`git --no-pager diff --no-index -- ${file} ${tmp}`.nothrow();
 	await rm(tmp, { force: true });
 }
@@ -1049,4 +1051,4 @@ async function main(): Promise<void> {
 	}
 }
 
-if (import.meta.main) await main();
+if (isMainModule(import.meta.url)) await main();

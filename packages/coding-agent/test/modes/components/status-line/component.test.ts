@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "../../../../src/config/settings";
 import { StatusLineComponent } from "@oh-my-pi/pi-tui/status-line/component";
 import { statusLineHost } from "@oh-my-pi/pi-coding-agent/modes/status-line-host";
@@ -6,6 +6,7 @@ import { loadTheme } from "@oh-my-pi/pi-tui/theme/loader";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
 import type { AgentSession } from "../../../../src/session/agent-session";
 import { StatusLineTestComponents } from "../../../helpers/status-line";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // The cost assertions below care about how the two costs are rendered, not about
 // terminal width. The status line also shows the cwd and git branch, so a long
@@ -139,8 +140,8 @@ describe("StatusLineComponent", () => {
 			),
 		);
 
-		expect(Bun.stripANSI(known.getTopBorder(120).content)).toMatch(/\d%/);
-		const border = Bun.stripANSI(unknown.getTopBorder(120).content);
+		expect(bun.stripANSI(known.getTopBorder(120).content)).toMatch(/\d%/);
+		const border = bun.stripANSI(unknown.getTopBorder(120).content);
 		expect(border).toContain("128K");
 		expect(border).not.toContain("%");
 	});

@@ -6,6 +6,7 @@ import { resolveReadPathAsync } from "../tools/path-utils";
 import { throwIfAborted } from "../tools/tool-errors";
 import { parseCommandArgs } from "../utils/command-args";
 import { normalizePackageRequirements } from "./package-requirements";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Code-only eval input; standalone percent commands prepare files or dependencies. */
 export interface EvalSourceInput {
@@ -33,12 +34,12 @@ export async function prepareEvalSource(
 	signal?: AbortSignal,
 ): Promise<PreparedEvalSource> {
 	throwIfAborted(signal);
-	const command = /^%(load|pip|bun|environment)(?:[ \t]+([\s\S]*))?$/.exec(input.code.trim());
+	const command = /^%(load|pip|npm|environment)(?:[ \t]+([\s\S]*))?$/.exec(input.code.trim());
 	if (!command || (input.language === "py" && command[1] !== "load")) return { code: input.code };
 	const rawArgs = command[2] ?? "";
 	if (/[\r\n]/.test(rawArgs)) {
 		throw new ToolError(
-			"Use %load, %pip, %bun, and %environment as standalone cells; run subsequent code in another eval call.",
+			"Use %load, %pip, %npm, and %environment as standalone cells; run subsequent code in another eval call.",
 		);
 	}
 	let args: string[];
@@ -56,10 +57,10 @@ export async function prepareEvalSource(
 		}
 		return { code: "", environment };
 	}
-	if (command[1] === "pip") throw new ToolError("Use %bun add for JavaScript dependencies.");
-	if (command[1] === "bun") {
+	if (command[1] === "pip") throw new ToolError("Use %npm add for JavaScript dependencies.");
+	if (command[1] === "npm") {
 		if (args[0] !== "add" || args.length < 2) {
-			throw new ToolError("Usage: %bun add <package requirements...>. Quote requirements containing spaces.");
+			throw new ToolError("Usage: %npm add <package requirements...>. Quote requirements containing spaces.");
 		}
 		return { code: "", packages: normalizePackageRequirements(args.slice(1)) };
 	}
@@ -77,7 +78,7 @@ export async function prepareEvalSource(
 	}
 	let code: string;
 	try {
-		code = await Bun.file(filename).text();
+		code = await bun.file(filename).text();
 	} catch (error) {
 		throw new ToolError(`Cannot load eval script ${file}: ${error instanceof Error ? error.message : String(error)}`);
 	}

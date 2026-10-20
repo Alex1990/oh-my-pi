@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AgentBusyError, type AgentTelemetryConfig, type Tracer } from "@oh-my-pi/pi-agent-core";
 import { type AssistantMessage, Effort } from "@oh-my-pi/pi-ai";
 import { kCursorExecResolved } from "@oh-my-pi/pi-ai/utils/block-symbols";
@@ -22,6 +22,7 @@ import { YieldTool } from "@oh-my-pi/pi-coding-agent/tools/yield";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { logger } from "@oh-my-pi/pi-utils";
 import { createSessionDefaults } from "../helpers/session-defaults";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createAssistantStopMessage(text: string): AssistantMessage {
 	return {
@@ -155,7 +156,7 @@ describe("runSubprocess yield reminders", () => {
 		mutableSession.sendUserMessage = async () => {
 			sendStarted = true;
 			messageInFlight = true;
-			await Bun.sleep(20);
+			await bun.sleep(20);
 			messageInFlight = false;
 		};
 		mutableSession.extensionRunner = {
@@ -1064,7 +1065,7 @@ describe("runSubprocess yield reminders", () => {
 		});
 
 		await validYieldEmitted.promise;
-		await Bun.sleep(20);
+		await bun.sleep(20);
 		expect(abortCalls).toBe(1);
 		expect(settled).toBe(false);
 

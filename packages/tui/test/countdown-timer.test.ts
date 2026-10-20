@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { CountdownTimer } from "@oh-my-pi/pi-tui/chrome/countdown-timer";
 
 describe("CountdownTimer", () => {

@@ -6,6 +6,7 @@
 import { isRecord, logger, stableStringifyJson } from "@oh-my-pi/pi-utils";
 import type { AgentStorage } from "../session/agent-storage";
 import type { MCPServerConfig, MCPToolDefinition } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CACHE_VERSION = 1;
 const CACHE_PREFIX = "mcp_tools:";
@@ -18,7 +19,7 @@ type MCPToolCachePayload = {
 };
 
 function hashConfig(config: MCPServerConfig): string {
-	return Bun.SHA256.hash(stableStringifyJson(config), "hex");
+	return bun.SHA256.hash(stableStringifyJson(config), "hex");
 }
 
 function cacheKey(serverName: string): string {

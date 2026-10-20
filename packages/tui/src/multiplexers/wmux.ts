@@ -1,4 +1,5 @@
 import type { TerminalMultiplexerModule } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * wmux is a Windows multiplexer (Electron + xterm.js) modeled on cmux/herdr that
@@ -10,7 +11,7 @@ export const wmuxMultiplexer = {
 	precedence: "session",
 	sessionEnvKeys: ["WMUX", "WMUX_SURFACE_ID"],
 	ownsScreenGrid: true,
-	isInside(env: NodeJS.ProcessEnv = Bun.env): boolean {
+	isInside(env: NodeJS.ProcessEnv = bun.env): boolean {
 		return env.WMUX === "1" || Boolean(env.WMUX_SURFACE_ID);
 	},
 } as const satisfies TerminalMultiplexerModule;

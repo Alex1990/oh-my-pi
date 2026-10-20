@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ArtifactManager } from "@oh-my-pi/pi-coding-agent/session/artifacts";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ArtifactManager tool-type sanitization", () => {
 	const dirs: string[] = [];
@@ -57,6 +58,6 @@ describe("ArtifactManager tool-type sanitization", () => {
 		const filePath = await mgr.getPath(id);
 		expect(filePath).not.toBeNull();
 		expect(path.dirname(filePath as string)).toBe(dir);
-		expect(await Bun.file(filePath as string).text()).toBe("FULL-ORIGINAL-CONTENT");
+		expect(await bun.file(filePath as string).text()).toBe("FULL-ORIGINAL-CONTENT");
 	});
 });

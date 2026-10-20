@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import { enforcePlanModeWrite, resolvePlanPath } from "@oh-my-pi/pi-coding-agent
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ARTIFACTS_DIR = path.join(os.tmpdir(), "agent-artifacts");
 const REPO_ROOT = path.join(os.tmpdir(), "repo");
@@ -234,7 +235,7 @@ describe("local:// write and read agree for sessions without artifact wiring", (
 			const read = await new ReadTool(session).execute("read-notes", { path: "local://notes.md" });
 			const text = read.content.map(block => (block.type === "text" ? block.text : "")).join("\n");
 
-			expect(await Bun.file(path.join(hostArtifacts, "local", "notes.md")).text()).toBe("shared notes\n");
+			expect(await bun.file(path.join(hostArtifacts, "local", "notes.md")).text()).toBe("shared notes\n");
 			expect(text).toContain("shared notes");
 		} finally {
 			await removeWithRetries(tempDir);

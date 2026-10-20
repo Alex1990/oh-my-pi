@@ -1,5 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** 1x1 PNG attached to image-bearing skill prompts. */
 export const ONE_PIXEL_PNG =
@@ -34,9 +35,9 @@ export async function waitForFile(file: string): Promise<void> {
 	const controller = new AbortController();
 	const events = fs.watch(path.dirname(file), { signal: controller.signal });
 	try {
-		if (await Bun.file(file).exists()) return;
+		if (await bun.file(file).exists()) return;
 		for await (const _ of events) {
-			if (await Bun.file(file).exists()) return;
+			if (await bun.file(file).exists()) return;
 		}
 		throw new Error(`watch on ${path.dirname(file)} ended before ${path.basename(file)} was created`);
 	} finally {

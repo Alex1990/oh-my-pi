@@ -17,6 +17,7 @@ import {
 import { getEditorTheme, initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { ToolSession } from "../src/tools";
 import { ReadTool } from "../src/tools/read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ITERATIONS = 500;
 const WIDTH = 100;
@@ -26,11 +27,11 @@ const longText = Array.from({ length: 200 })
 	.join("\n");
 
 function bench(name: string, fn: () => void): number {
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < ITERATIONS; i++) {
 		fn();
 	}
-	const elapsed = (Bun.nanoseconds() - start) / 1e6;
+	const elapsed = (bun.nanoseconds() - start) / 1e6;
 	const perOp = (elapsed / ITERATIONS).toFixed(6);
 	console.log(`${name}: ${elapsed.toFixed(2)}ms total (${perOp}ms/op)`);
 	return elapsed;
@@ -96,16 +97,16 @@ function makeTextMessage(text: string): AssistantMessage {
 
 /** Average ms for one call of `fn`, over `reps` repeats. */
 function benchStep(reps: number, fn: () => void): number {
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < reps; i++) fn();
-	return (Bun.nanoseconds() - start) / 1e6 / reps;
+	return (bun.nanoseconds() - start) / 1e6 / reps;
 }
 
 /** Average ms for one awaited call of `fn`, over `reps` repeats. */
 async function benchStepAsync(reps: number, fn: () => Promise<unknown>): Promise<number> {
-	const start = Bun.nanoseconds();
+	const start = bun.nanoseconds();
 	for (let i = 0; i < reps; i++) await fn();
-	return (Bun.nanoseconds() - start) / 1e6 / reps;
+	return (bun.nanoseconds() - start) / 1e6 / reps;
 }
 
 const REVEAL_CORPUS = makeMarkdownCorpus(6000);
@@ -137,7 +138,7 @@ try {
 		const sliceOf = (index: number, text: string, units: number): string => counter.slice(index, text, units);
 		const total = visibleUnits(full, false);
 		const component = new AssistantMessageComponent();
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		let revealed = 0;
 		let steps = 0;
 		while (revealed < total) {
@@ -146,7 +147,7 @@ try {
 			component.render(WIDTH);
 			steps++;
 		}
-		const ms = (Bun.nanoseconds() - start) / 1e6;
+		const ms = (bun.nanoseconds() - start) / 1e6;
 		console.log(`  len=${n}: ${ms.toFixed(2)}ms total over ${steps} steps (${(ms / steps).toFixed(4)}ms/step)`);
 	}
 } catch (err) {
@@ -175,7 +176,7 @@ try {
 		const sliceOf = (index: number, text: string, units: number): string => counter.slice(index, text, units);
 		const total = visibleUnits(full, false);
 		const component = new AssistantMessageComponent();
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		let revealed = 0;
 		let steps = 0;
 		while (revealed < total) {
@@ -184,7 +185,7 @@ try {
 			component.render(WIDTH);
 			steps++;
 		}
-		const ms = (Bun.nanoseconds() - start) / 1e6;
+		const ms = (bun.nanoseconds() - start) / 1e6;
 		console.log(
 			`  text=${n} (+2500 thinking): ${ms.toFixed(2)}ms total over ${steps} steps (${(ms / steps).toFixed(4)}ms/step)`,
 		);

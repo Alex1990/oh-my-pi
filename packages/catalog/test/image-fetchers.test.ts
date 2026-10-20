@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { identifyImageFetcher } from "@oh-my-pi/pi-catalog/wire/image-fetchers";
 
 /** Header sets captured from live provider fetches of a URL-sourced image. */

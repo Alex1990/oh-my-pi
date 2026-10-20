@@ -19,6 +19,7 @@
 
 import type { AuthStorage } from "./auth-storage";
 import type { SessionManager } from "./session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Account fields shared by `OAuthAccountIdentity` and `OAuthAccountSummary`. */
 interface CredentialPinIdentity {
@@ -50,7 +51,7 @@ export function credentialPinHash(provider: string, identity: CredentialPinIdent
 		identity.orgId ?? "",
 		identity.projectId ?? "",
 	].join("\0");
-	return new Bun.CryptoHasher("sha256").update(key).digest("hex");
+	return new bun.CryptoHasher("sha256").update(key).digest("hex");
 }
 
 /**

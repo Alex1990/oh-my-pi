@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as toolsManager from "@oh-my-pi/pi-coding-agent/utils/tools-manager";
 import * as parallelModule from "@oh-my-pi/pi-coding-agent/web/parallel";

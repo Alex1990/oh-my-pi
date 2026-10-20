@@ -107,6 +107,7 @@ import { runWorkspaceDiagnostics } from "./workspace-diagnostics";
 
 import { cfgToolsMaxTimeout } from "../tools/settings";
 import { cfgLspRequestTimeout } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MAX_RENAME_PAIRS = 1000;
 
@@ -1319,7 +1320,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 
 						await waitForProjectLoaded(client, signal);
 						throwIfAborted(signal);
-						await untilAborted(signal, () => Bun.sleep(REFERENCES_RETRY_DELAY_MS));
+						await untilAborted(signal, () => bun.sleep(REFERENCES_RETRY_DELAY_MS));
 					}
 
 					if (!result || result.length === 0) {

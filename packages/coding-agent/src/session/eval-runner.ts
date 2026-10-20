@@ -16,6 +16,7 @@ import type { PythonExecutionMessage } from "./messages";
 import type { SessionManager } from "./session-manager";
 
 import { cfgPythonInterpreter, cfgPythonKernelMode } from "../eval/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Capabilities the eval runner borrows from its owning session. */
 export interface EvalRunnerHost {
@@ -188,7 +189,7 @@ export class EvalRunner {
 			if (remainingMs <= 0) return false;
 			const settled = await Promise.race([
 				Promise.allSettled(Array.from(this.#activeExecutions)).then(() => true),
-				Bun.sleep(remainingMs).then(() => false),
+				bun.sleep(remainingMs).then(() => false),
 			]);
 			if (!settled && this.#activeExecutions.size > 0) return false;
 		}

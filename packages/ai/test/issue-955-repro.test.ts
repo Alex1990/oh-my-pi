@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, Model } from "@oh-my-pi/pi-ai/types";
 import { minimaxTokenPlanOpenAIModel } from "./helpers";

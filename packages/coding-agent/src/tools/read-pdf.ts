@@ -5,6 +5,7 @@ import type { BrowserHandle } from "./browser/registry";
 import type { ScreenshotResult } from "./browser/tab-protocol";
 import { ToolAbortError } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const PDF_IMAGE_MEMBER_RE = /^(.*\.pdf):(.*)$/i;
 const PDF_PAGE_MEMBER_RE = /^(?:p|page[-_]?)(\d+)(?:[-_].*)?\.png$/i;
@@ -91,7 +92,7 @@ export async function renderPdfPageScreenshot(
 	const deadlineStart = performance.now();
 	const timeoutSignal = AbortSignal.timeout(PDF_RENDER_TIMEOUT_MS);
 	const renderSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
-	const tabName = `read-pdf-${Bun.randomUUIDv7()}`;
+	const tabName = `read-pdf-${bun.randomUUIDv7()}`;
 	const url = pathToFileURL(absolutePdfPath);
 	url.hash = `page=${page}&toolbar=0&navpanes=0&view=Fit`;
 

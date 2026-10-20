@@ -172,7 +172,27 @@ const object = ((properties: Record<string, unknown>, opts?: ObjectOpts) => {
 	return OmpType.Object(normalizedProperties, normalizedOpts);
 }) as typeof OmpType.Object;
 
-export const Type = { ...OmpType, Object: object, Unsafe: unsafe } as unknown as OmpTypeBuilder;
+/**
+ * Process-wide facade shared by every evaluation of this module.
+ *
+ * Extensions load in place through Node's native loader while the host modules
+ * they import may already have been evaluated by the bundler. Sharing the
+ * facade keeps `Type.Object(...)` schemas produced from either copy branded by
+ * the same omptype module (`IR_BRAND` is a per-evaluation symbol), and keeps
+ * `probe === host Type` identity checks true. First evaluation wins; a single
+ * module registry (production) sees no difference.
+ */
+const LEGACY_TYPEBOX_TYPE = Symbol.for("oh-my-pi.legacy-typebox.Type");
+
+function sharedLegacyType(): OmpTypeBuilder {
+	const existing = Reflect.get(globalThis, LEGACY_TYPEBOX_TYPE) as OmpTypeBuilder | undefined;
+	if (existing) return existing;
+	const created = { ...OmpType, Object: object, Unsafe: unsafe } as unknown as OmpTypeBuilder;
+	Reflect.set(globalThis, LEGACY_TYPEBOX_TYPE, created);
+	return created;
+}
+
+export const Type = sharedLegacyType();
 export type TypeBuilder = OmpTypeBuilder;
 
 const legacyTypeBox: { Type: OmpTypeBuilder } = { Type };

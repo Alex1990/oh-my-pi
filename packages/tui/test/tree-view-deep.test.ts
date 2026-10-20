@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { TreeView } from "../src/components/tree-view";
 import { theme } from "../src/theme/theme";
 

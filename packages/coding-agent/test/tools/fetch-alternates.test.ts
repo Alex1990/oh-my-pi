@@ -1,16 +1,18 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { fetchReadUrl } from "@oh-my-pi/pi-coding-agent/tools/fetch";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const filler = "Page content that a reader must not silently replace with a site-wide alternate. ".repeat(6);
 const html = (title: string, alternate: string) =>
 	`<!doctype html><html><head><title>${title}</title>${alternate}</head><body><main><h1>${title}</h1><p>${filler}</p></main></body></html>`;
-let server: Bun.Server<undefined>;
+let server: Server<undefined>;
 let origin: string;
 
-beforeAll(() => {
-	server = Bun.serve({
+beforeAll(async () => {
+	server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch(request) {

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -12,11 +12,12 @@ import { Composer } from "@oh-my-pi/pi-tui/prompt/composer";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ROWS = 32;
 
 function screen(term: VirtualTerminal): string[] {
-	return term.getViewport().map(row => Bun.stripANSI(row).trimEnd());
+	return term.getViewport().map(row => bun.stripANSI(row).trimEnd());
 }
 
 describe("text-mode command reports on a real terminal core", () => {
@@ -92,7 +93,7 @@ describe("text-mode command reports on a real terminal core", () => {
 			await term.waitForRender(() => !screen(term).some(row => row.includes("Full Changelog")));
 			expect(screen(term).indexOf(last)).toBe(before.indexOf(last));
 			// Nothing of the page reached the main screen, and no transcript row was duplicated.
-			const buffer = term.getScrollBuffer().map(row => Bun.stripANSI(row).trimEnd());
+			const buffer = term.getScrollBuffer().map(row => bun.stripANSI(row).trimEnd());
 			expect(buffer.filter(row => row === last)).toHaveLength(1);
 			expect(buffer.some(row => row.includes("Full Changelog"))).toBe(false);
 		},
@@ -126,7 +127,7 @@ describe("text-mode command reports on a real terminal core", () => {
 		term.sendInput("\x1b");
 		await term.waitForRender(() => !screen(term).some(row => row.includes(title)));
 		expect(screen(term).indexOf(last)).toBe(lastRow);
-		const buffer = term.getScrollBuffer().map(row => Bun.stripANSI(row));
+		const buffer = term.getScrollBuffer().map(row => bun.stripANSI(row));
 		expect(buffer.some(row => row.includes(title))).toBe(false);
 	});
 });

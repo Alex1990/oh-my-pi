@@ -111,7 +111,7 @@ export type TranscriptResult = { kind: "rows"; text: string; newSize: number } |
 
 interface PendingTranscript {
 	resolve: (result: TranscriptResult | null) => void;
-	timer: Timer;
+	timer: NodeJS.Timeout;
 }
 
 export class GuestClient {
@@ -125,8 +125,8 @@ export class GuestClient {
 	#noticeSeq = 0;
 	#everConnected = false;
 	#welcomed = false;
-	#welcomeTimer: Timer | null = null;
-	#snapshotProgressTimer: Timer | null = null;
+	#welcomeTimer: NodeJS.Timeout | null = null;
+	#snapshotProgressTimer: NodeJS.Timeout | null = null;
 
 	#phase: ConnectionPhase = "connecting";
 	#endedReason: string | null = null;

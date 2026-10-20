@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { LoopWatchdog } from "@oh-my-pi/pi-tui/loop-watchdog";
 import {
 	currentLoopPhase,

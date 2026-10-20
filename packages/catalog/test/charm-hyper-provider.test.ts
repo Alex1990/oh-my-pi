@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/registry/oauth";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
@@ -8,6 +8,7 @@ import { isCatalogDescriptor, resolveModelCacheProviderId } from "@oh-my-pi/pi-c
 import { DEFAULT_MODEL_PER_PROVIDER, PROVIDER_DESCRIPTORS } from "@oh-my-pi/pi-catalog/provider-models/descriptors";
 import { charmHyperModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 import type { FetchImpl, ModelSpec } from "@oh-my-pi/pi-catalog/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Rows mirror live `https://hyper.charm.land/v1/models` payloads: the display
@@ -115,14 +116,14 @@ async function discover(fetch: FetchImpl, baseUrl?: string) {
 	return specs.map(spec => buildModel(spec as ModelSpec<"openai-completions">));
 }
 
-const originalPrimaryKey = Bun.env.CHARM_HYPER_API_KEY;
-const originalFallbackKey = Bun.env.HYPER_API_KEY;
+const originalPrimaryKey = bun.env.CHARM_HYPER_API_KEY;
+const originalFallbackKey = bun.env.HYPER_API_KEY;
 
 afterEach(() => {
-	if (originalPrimaryKey === undefined) delete Bun.env.CHARM_HYPER_API_KEY;
-	else Bun.env.CHARM_HYPER_API_KEY = originalPrimaryKey;
-	if (originalFallbackKey === undefined) delete Bun.env.HYPER_API_KEY;
-	else Bun.env.HYPER_API_KEY = originalFallbackKey;
+	if (originalPrimaryKey === undefined) delete bun.env.CHARM_HYPER_API_KEY;
+	else bun.env.CHARM_HYPER_API_KEY = originalPrimaryKey;
+	if (originalFallbackKey === undefined) delete bun.env.HYPER_API_KEY;
+	else bun.env.HYPER_API_KEY = originalFallbackKey;
 	vi.restoreAllMocks();
 });
 
@@ -252,10 +253,10 @@ describe("Charm Hyper provider support", () => {
 		expect(isCatalogDescriptor(descriptor!)).toBe(false);
 		expect(DEFAULT_MODEL_PER_PROVIDER["charm-hyper"]).toBe("glm-5.3");
 
-		delete Bun.env.CHARM_HYPER_API_KEY;
-		Bun.env.HYPER_API_KEY = "fallback-key";
+		delete bun.env.CHARM_HYPER_API_KEY;
+		bun.env.HYPER_API_KEY = "fallback-key";
 		expect(getEnvApiKey("charm-hyper")).toBe("fallback-key");
-		Bun.env.CHARM_HYPER_API_KEY = "primary-key";
+		bun.env.CHARM_HYPER_API_KEY = "primary-key";
 		expect(getEnvApiKey("charm-hyper")).toBe("primary-key");
 	});
 

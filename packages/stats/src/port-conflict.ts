@@ -2,7 +2,8 @@ import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { $which } from "@oh-my-pi/pi-utils";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const STATS_PROBE_TIMEOUT_MS = 500;
 const PROCESS_EXIT_POLL_MS = 50;
@@ -61,7 +62,7 @@ async function findLinuxPortHolder(port: number): Promise<PortHolder | null> {
 	for (const tablePath of ["/proc/net/tcp", "/proc/net/tcp6"]) {
 		let table: string;
 		try {
-			table = await Bun.file(tablePath).text();
+			table = await bun.file(tablePath).text();
 		} catch {
 			continue;
 		}
@@ -110,7 +111,7 @@ async function findLinuxPortHolder(port: number): Promise<PortHolder | null> {
 
 		let commandLine = "";
 		try {
-			const rawCommandLine = await Bun.file(`/proc/${pid}/cmdline`).text();
+			const rawCommandLine = await bun.file(`/proc/${pid}/cmdline`).text();
 			commandLine = rawCommandLine.split("\0").filter(Boolean).join(" ");
 		} catch {}
 
@@ -126,7 +127,7 @@ async function findLinuxPortHolder(port: number): Promise<PortHolder | null> {
 }
 
 async function findMacPortHolder(port: number): Promise<PortHolder | null> {
-	const lsof = $which("lsof") ?? ((await Bun.file("/usr/sbin/lsof").exists()) ? "/usr/sbin/lsof" : null);
+	const lsof = $which("lsof") ?? ((await bun.file("/usr/sbin/lsof").exists()) ? "/usr/sbin/lsof" : null);
 	if (!lsof) return null;
 
 	const selector = `-iTCP:${port}`;
@@ -188,7 +189,7 @@ async function findWindowsPortHolder(port: number): Promise<PortHolder | null> {
 
 	const powershell = $which("powershell") ?? $which("pwsh");
 	if (!powershell) return { pid, image, commandLine: "" };
-	const command = `(Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}").CommandLine`;
+	const command = `(Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}').CommandLine`;
 	const processInfo = await $`${powershell} -NoProfile -NonInteractive -Command ${command}`.quiet().nothrow();
 	return { pid, image, commandLine: processInfo.exitCode === 0 ? processInfo.text().trim() : "" };
 }
@@ -209,7 +210,7 @@ async function terminatePortHolder(holder: PortHolder): Promise<void> {
 	}
 
 	for (let attempt = 0; attempt < PROCESS_EXIT_POLLS; attempt++) {
-		await Bun.sleep(PROCESS_EXIT_POLL_MS);
+		await bun.sleep(PROCESS_EXIT_POLL_MS);
 		try {
 			process.kill(holder.pid, 0);
 		} catch (error) {
@@ -224,7 +225,7 @@ async function terminatePortHolder(holder: PortHolder): Promise<void> {
 		if (error instanceof Error && "code" in error && error.code === "ESRCH") return;
 		throw new Error(`Failed to kill ${holder.image} (PID ${holder.pid})`, { cause: error });
 	}
-	await Bun.sleep(PROCESS_EXIT_POLL_MS);
+	await bun.sleep(PROCESS_EXIT_POLL_MS);
 }
 
 async function reclaimStatsPort(port: number, hasDashboardIdentity = false): Promise<"retry"> {

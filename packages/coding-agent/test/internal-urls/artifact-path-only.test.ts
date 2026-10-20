@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -11,6 +11,7 @@ import {
 import { InternalUrlRouter } from "@oh-my-pi/pi-coding-agent/internal-urls/router";
 import { InternalUrlFilesystem } from "@oh-my-pi/pi-coding-agent/internal-urls/url-filesystem";
 import { resolveToolSearchScope } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Path consumers (search/grep, the bash shell filesystem) only need the artifact's
@@ -31,7 +32,7 @@ describe("artifact:// locate vs content resolution", () => {
 		// 9 MiB — larger than the 8 MiB inline cap so `resolve` refuses to
 		// materialize while `locate` still returns the backing file.
 		const bytes = Buffer.alloc(9 * 1024 * 1024, 65);
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), bytes);
+		await bun.write(path.join(artifactDir, "0.mcp.log"), bytes);
 		resetRegisteredArtifactDirsForTests();
 		unregister = registerArtifactsDir(artifactDir);
 	});
@@ -50,7 +51,7 @@ describe("artifact:// locate vs content resolution", () => {
 	it("materializes small artifacts on ordinary resolution", async () => {
 		const smallArtifactDir = path.join(testDir, "small-session");
 		await fs.mkdir(smallArtifactDir, { recursive: true });
-		await Bun.write(path.join(smallArtifactDir, "9.mcp.log"), "hello world\n");
+		await bun.write(path.join(smallArtifactDir, "9.mcp.log"), "hello world\n");
 		const unregisterSmall = registerArtifactsDir(smallArtifactDir);
 		try {
 			const url = parseInternalUrl("artifact://9");
@@ -73,7 +74,7 @@ describe("resolveToolSearchScope locates large artifacts", () => {
 		artifactDir = path.join(testDir, "session");
 		await fs.mkdir(artifactDir, { recursive: true });
 		const bytes = Buffer.alloc(9 * 1024 * 1024, 65);
-		await Bun.write(path.join(artifactDir, "0.mcp.log"), bytes);
+		await bun.write(path.join(artifactDir, "0.mcp.log"), bytes);
 		resetRegisteredArtifactDirsForTests();
 		unregister = registerArtifactsDir(artifactDir);
 		InternalUrlRouter.resetForTests();

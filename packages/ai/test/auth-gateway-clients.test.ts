@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -66,17 +66,17 @@ describe("auth-gateway scoped clients", () => {
 	});
 
 	/** Serve `models` the way `serve` indexes its catalog: qualified ids, then each bare id's first model. */
-	function boot(
+	async function boot(
 		models: MockModel[],
 		clients: readonly AuthGatewayClient[] | undefined,
 		bearerTokens = [GATEWAY_TOKEN],
-	): AuthGatewayServerHandle {
+	): Promise<AuthGatewayServerHandle> {
 		const byId = new Map<string, Model<Api>>();
 		for (const model of models) {
 			byId.set(`${model.provider}/${model.id}`, model);
 			if (!byId.has(model.id)) byId.set(model.id, model);
 		}
-		gateway = startAuthGateway({
+		gateway = await startAuthGateway({
 			bind: "127.0.0.1:0",
 			bearerTokens,
 			storage,
@@ -124,7 +124,7 @@ describe("auth-gateway scoped clients", () => {
 				return { content: [`served:${options?.apiKey}`] };
 			},
 		});
-		boot([granted], [CI_CLIENT]);
+		await boot([granted], [CI_CLIENT]);
 
 		const served = await chat(CI_TOKEN, "mock/granted", "conversation-1");
 		expect(served.status).toBe(200);
@@ -154,7 +154,7 @@ describe("auth-gateway scoped clients", () => {
 		const other = createMockModel({ provider: "mock", id: "other", handler: { content: ["refused"] } });
 		// An aggregator-style id that spells another provider's qualified id.
 		const lookalike = createMockModel({ provider: "mock", id: "alpha/shared", handler: { content: ["lookalike"] } });
-		boot(
+		await boot(
 			[decoy, granted, shared, other, lookalike],
 			[{ ...CI_CLIENT, models: ["mock/granted", "mock/shared", "mock/alpha/shared"] }],
 		);
@@ -187,7 +187,7 @@ describe("auth-gateway scoped clients", () => {
 			handler: (_context, options) => ({ content: [`served:${options?.apiKey}`] }),
 		});
 		await storage.credentials.set("alpha", [{ type: "api_key", key: "alpha-key" }]);
-		boot([unbound, bound], [{ name: "ci", tokenSha256: CI_CLIENT.tokenSha256, accounts: CI_CLIENT.accounts }]);
+		await boot([unbound, bound], [{ name: "ci", tokenSha256: CI_CLIENT.tokenSha256, accounts: CI_CLIENT.accounts }]);
 
 		expect((await chat(CI_TOKEN, "alpha/free")).status).toBe(404);
 		expect(unbound.calls).toHaveLength(0);
@@ -200,7 +200,7 @@ describe("auth-gateway scoped clients", () => {
 
 	it("keeps bearer auth on for an empty table and refuses a removed client's token", async () => {
 		const granted = createMockModel({ provider: "mock", id: "granted", handler: { content: ["ok"] } });
-		const handle = boot([granted], [], []);
+		const handle = await boot([granted], [], []);
 		expect((await fetch(`${handle.url}/v1/models`)).status).toBe(401);
 
 		handle.setClients([CI_CLIENT]);
@@ -218,10 +218,10 @@ describe("auth-gateway scoped clients", () => {
 		).toThrow("same tokenSha256");
 	});
 
-	it("refuses a client that claims the gateway token", () => {
-		expect(() =>
+	it("refuses a client that claims the gateway token", async () => {
+		await expect(
 			boot([], [{ name: "impostor", tokenSha256: hashAuthGatewayToken(GATEWAY_TOKEN) }], [GATEWAY_TOKEN]),
-		).toThrow("gateway token's digest");
+		).rejects.toThrow("gateway token's digest");
 	});
 
 	it.each([false, true])(
@@ -241,7 +241,7 @@ describe("auth-gateway scoped clients", () => {
 					return { content: [`served:${options?.apiKey}`] };
 				},
 			});
-			const handle = boot([granted], [{ ...CI_CLIENT, accounts: { mock: ["account:acc-a"] } }]);
+			const handle = await boot([granted], [{ ...CI_CLIENT, accounts: { mock: ["account:acc-a"] } }]);
 
 			const inFlight = chat(CI_TOKEN, "mock/granted", undefined, stream);
 			await entered.promise;
@@ -271,7 +271,7 @@ describe("auth-gateway scoped clients", () => {
 				return { content: ["ok"] };
 			},
 		});
-		const handle = boot([granted], [CI_CLIENT]);
+		const handle = await boot([granted], [CI_CLIENT]);
 		const accountA = storage.credentials
 			.list("mock")
 			.find(row => row.credential.type === "oauth" && row.credential.accountId === "acc-a");
@@ -306,7 +306,7 @@ describe("auth-gateway scoped clients", () => {
 				return { content: ["ok"] };
 			},
 		});
-		boot([granted], [CI_CLIENT, { name: "ops", tokenSha256: hashAuthGatewayToken("ops-token") }]);
+		await boot([granted], [CI_CLIENT, { name: "ops", tokenSha256: hashAuthGatewayToken("ops-token") }]);
 
 		for (const token of [CI_TOKEN, "ops-token", GATEWAY_TOKEN, CI_TOKEN]) {
 			expect((await chat(token, "mock/granted", "same-key")).status).toBe(200);

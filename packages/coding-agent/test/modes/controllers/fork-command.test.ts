@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +17,7 @@ import {
 	type TerminalLaunchResult,
 } from "../../../src/subprocess/terminal-launch";
 import { type FakeAnswer, type FakeDaemon, startFakeDaemon } from "../../tools/tern-fake-daemon";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tempDirectory: string;
 let sourceSessionFile: string;
@@ -24,7 +25,7 @@ let sourceSessionFile: string;
 beforeEach(async () => {
 	tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-fork-command-"));
 	sourceSessionFile = path.join(tempDirectory, "current-session.jsonl");
-	await Bun.write(sourceSessionFile, '{"type":"session"}\n');
+	await bun.write(sourceSessionFile, '{"type":"session"}\n');
 });
 
 afterEach(async () => {
@@ -320,7 +321,7 @@ describe("/fork terminal placement", () => {
 		await fs.mkdir(oldCwd, { recursive: true });
 		await fs.mkdir(newCwd, { recursive: true });
 		await fs.mkdir(agentDir, { recursive: true });
-		await Bun.write(overlayPath, "defaultThinkingLevel: high\n");
+		await bun.write(overlayPath, "defaultThinkingLevel: high\n");
 		const settings = await Settings.loadReadOnly({
 			cwd: oldCwd,
 			agentDir,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { substitutePluginRoot } from "@oh-my-pi/pi-coding-agent/discovery/substitute-plugin-root";
 
 // Use concatenation to avoid noTemplateCurlyInString lint rule on literal placeholder names

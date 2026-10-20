@@ -22,6 +22,8 @@ import {
 	type FileStreamUpdate,
 	type MediaRef,
 } from "@oh-my-pi/pi-tui/apps/git/state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 /** SHA of git's canonical empty tree: diff base for a root commit. */
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -122,7 +124,7 @@ function looksLikeSvg(bytes: Uint8Array, filePath: string): boolean {
 	}
 }
 
-function imageMimeType(format: Bun.Image.Format): string {
+function imageMimeType(format: string): string {
 	switch (format) {
 		case "jpeg":
 			return "image/jpeg";
@@ -140,6 +142,8 @@ function imageMimeType(format: Bun.Image.Format): string {
 			return "image/tiff";
 		case "gif":
 			return "image/gif";
+		default:
+			return "application/octet-stream";
 	}
 }
 
@@ -151,11 +155,11 @@ async function decodeReviewImage(
 	bytes: Uint8Array,
 	options: { filePath: string; lfsOid?: string },
 ): Promise<ReviewImage | null> {
-	const key = options.lfsOid ?? Bun.hash.xxHash64(bytes).toString(16);
+	const key = options.lfsOid ?? bun.hash.xxHash64(bytes).toString(16);
 	if (looksLikeSvg(bytes.subarray(0, BINARY_SNIFF_BYTES), options.filePath)) {
 		try {
 			const png = await rasterizeSvg(bytes, SVG_PREVIEW_MAX_PX, SVG_PREVIEW_MAX_PX);
-			const metadata = await new Bun.Image(png, { maxPixels: MAX_IMAGE_PIXELS }).metadata();
+			const metadata = await new Image(png, { maxPixels: MAX_IMAGE_PIXELS }).metadata();
 			return {
 				data: bytesToBase64(png),
 				mimeType: "image/png",
@@ -171,7 +175,7 @@ async function decodeReviewImage(
 		}
 	}
 	try {
-		const image = new Bun.Image(bytes, { maxPixels: MAX_IMAGE_PIXELS });
+		const image = new Image(bytes, { maxPixels: MAX_IMAGE_PIXELS });
 		const metadata = await image.metadata();
 		return {
 			data: metadata.format === "png" ? bytesToBase64(bytes) : await image.png().toBase64(),
@@ -578,7 +582,7 @@ export class GitModel {
 		signal?: AbortSignal,
 	): Promise<FileAssetSide> {
 		signal?.throwIfAborted();
-		const file = Bun.file(filePath);
+		const file = bun.file(filePath);
 		const byteLength = file.size;
 		if (byteLength > MAX_FILE_BYTES) {
 			stream.markTooLarge(side);
@@ -614,7 +618,7 @@ export class GitModel {
 			},
 		);
 		while (!done) {
-			await Bun.sleep(4);
+			await bun.sleep(4);
 			emit();
 		}
 		const progress = await reading;
@@ -681,7 +685,7 @@ export class GitModel {
 		if (!mediaDir) return { kind: "lfsMissing", oid: pointer.oid, byteLength: pointer.size };
 		const objectPath = path.join(mediaDir, pointer.oid.slice(0, 2), pointer.oid.slice(2, 4), pointer.oid);
 		try {
-			const bytes = await Bun.file(objectPath).bytes();
+			const bytes = await bun.file(objectPath).bytes();
 			signal?.throwIfAborted();
 			if (bytes.byteLength !== pointer.size) {
 				return { kind: "lfsMissing", oid: pointer.oid, byteLength: pointer.size };

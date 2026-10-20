@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage } from "@oh-my-pi/pi-ai/auth-storage";
 import type { UsageReport } from "@oh-my-pi/pi-ai/usage";
 import { claudeUsageProvider } from "@oh-my-pi/pi-ai/usage/claude";
 import { withEnv } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 async function probeEnvUsage(apiKey: string) {
 	const result: { authorizations: (string | null)[]; reports: UsageReport[] | null } = {
@@ -22,7 +23,7 @@ async function probeEnvUsage(apiKey: string) {
 						five_hour: { utilization: 38, resets_at: new Date(Date.now() + 3_600_000).toISOString() },
 					});
 				},
-				{ preconnect: fetch.preconnect },
+				{ preconnect: preconnectOf(fetch) },
 			),
 		});
 		try {

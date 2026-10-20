@@ -15,6 +15,7 @@ import {
 import { isEnoent } from "@oh-my-pi/pi-utils/fs-error";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 import type { SessionStorage } from "./session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const migratedSessionRoots = new Set<string>();
 
@@ -66,7 +67,7 @@ function encodeHashedSessionDirName(canonicalCwd: string, scope: "home" | "tmp" 
 		.replace(/[^a-zA-Z0-9._-]+/g, "-")
 		.replace(/^-+|-+$/g, "")
 		.slice(-80);
-	const digest = Bun.SHA256.hash(normalized, "hex");
+	const digest = bun.SHA256.hash(normalized, "hex");
 	return `${scope}-${readable || "project"}-${digest}`;
 }
 
@@ -521,7 +522,7 @@ export async function readTerminalBreadcrumbEntry(): Promise<TerminalBreadcrumb 
 
 	try {
 		const breadcrumbFile = path.join(getTerminalSessionsDir(), terminalId);
-		const parsed = parseTerminalBreadcrumb(await Bun.file(breadcrumbFile).text());
+		const parsed = parseTerminalBreadcrumb(await bun.file(breadcrumbFile).text());
 		if (!parsed) return null;
 		const { cwd: breadcrumbCwd, sessionFile, fresh, cwdIdentity } = parsed;
 

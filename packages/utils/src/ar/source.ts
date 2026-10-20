@@ -1,5 +1,6 @@
 import { LRUCache } from "../lru";
 import { ArchiveError } from "./error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * A byte window into an archive — file-backed (lazy, ranged reads) or
@@ -39,7 +40,7 @@ export function memoryByteSource(buffer: Uint8Array): ByteSource {
 
 /** Lazily read ranges of a file on disk as a {@link ByteSource}. */
 export function fileByteSource(filePath: string): ByteSource {
-	const file = Bun.file(filePath);
+	const file = bun.file(filePath);
 	const size = file.size;
 	if (!Number.isSafeInteger(size)) {
 		throw new ArchiveError("Archive is too large to read safely");

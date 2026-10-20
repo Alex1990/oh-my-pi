@@ -5,7 +5,7 @@
  * never selectable, and componentless tool results fold into the turn that
  * rendered their call so rewinding a turn keeps its tool output.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -13,6 +13,7 @@ import { type BranchVariantPath, RewindSelectorComponent } from "@oh-my-pi/pi-tu
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { SessionMessageEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { setKeybindings, type TUI } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const UP = "\x1b[A";
 const DOWN = "\x1b[B";
@@ -140,7 +141,7 @@ describe("RewindSelectorComponent", () => {
 			// The cutoff turn keeps its folded tool result after the reload.
 			selector.handleInput(DOWN);
 			selector.handleInput(DOWN);
-			expect(Bun.stripANSI(selector.render(120).join("\n"))).toContain("file.txt");
+			expect(bun.stripANSI(selector.render(120).join("\n"))).toContain("file.txt");
 			selector.handleInput(ENTER);
 
 			for (let index = entries.length; index > 0; index--) selector.handleInput(UP);
@@ -270,7 +271,7 @@ describe("RewindSelectorComponent", () => {
 		const siblings = (entryId: string): BranchVariantPath[] =>
 			entryId === "u2" ? [{ rootId: "u2b", entries: [entry("u2b", "a2", userMessage("alternate prompt"))] }] : [];
 		const selector = makeSelector(() => {}, siblings);
-		const lines = selector.render(120).map(line => Bun.stripANSI(line));
+		const lines = selector.render(120).map(line => bun.stripANSI(line));
 		selector.dispose();
 
 		const joined = lines.join("\n");
@@ -293,7 +294,7 @@ describe("RewindSelectorComponent", () => {
 				: [];
 		const selector = makeSelector(() => {}, siblings);
 
-		const first = selector.render(120).map(line => Bun.stripANSI(line));
+		const first = selector.render(120).map(line => bun.stripANSI(line));
 		const initialRail = first.find(line => line.includes("◉"));
 		expect(initialRail).toBeDefined();
 		// Four columns, current active: one filled dot, three hollow, more to the
@@ -305,7 +306,7 @@ describe("RewindSelectorComponent", () => {
 		selector.handleInput(RIGHT);
 		selector.handleInput(RIGHT);
 		selector.handleInput(RIGHT);
-		const slid = selector.render(120).map(line => Bun.stripANSI(line));
+		const slid = selector.render(120).map(line => bun.stripANSI(line));
 		selector.dispose();
 		const slidRail = slid.find(line => line.includes("◉"));
 		// Last column active: content now overflows on the left instead.
@@ -314,7 +315,7 @@ describe("RewindSelectorComponent", () => {
 
 	it("outlines exactly the selected block with dotted verticals", () => {
 		const selector = makeSelector(() => {});
-		const lines = selector.render(80).map(line => Bun.stripANSI(line));
+		const lines = selector.render(80).map(line => bun.stripANSI(line));
 
 		const boxed = lines.filter(line => line.startsWith("┆"));
 		expect(boxed.length).toBeGreaterThan(0);
@@ -335,7 +336,7 @@ describe("RewindSelectorComponent", () => {
 		for (const key of ["f", ..."ls"]) selector.handleInput(key);
 		const body = selector
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		expect(body).toContain("Running a command.");
 		expect(body).not.toContain("first prompt");
@@ -366,11 +367,11 @@ describe("RewindSelectorComponent", () => {
 
 		// A word prefix is not a match.
 		for (const key of ["f", ..."prom"]) selector.handleInput(key);
-		expect(Bun.stripANSI(selector.render(80).join("\n"))).toContain('No items match "prom"');
+		expect(bun.stripANSI(selector.render(80).join("\n"))).toContain('No items match "prom"');
 
 		// Both words must appear: "second" rules out u1 even though it has "prompt".
 		for (const key of "pt second") selector.handleInput(key);
-		expect(Bun.stripANSI(selector.render(80).join("\n"))).not.toContain("first prompt");
+		expect(bun.stripANSI(selector.render(80).join("\n"))).not.toContain("first prompt");
 		selector.handleInput(ENTER);
 
 		expect(selected).toEqual(["u2"]);
@@ -395,7 +396,7 @@ describe("RewindSelectorComponent", () => {
 		selector.render(80);
 
 		for (const key of ["f", ..."你好"]) selector.handleInput(key);
-		const body = Bun.stripANSI(selector.render(80).join("\n"));
+		const body = bun.stripANSI(selector.render(80).join("\n"));
 		expect(body).not.toContain('No items match "你好"');
 		expect(body).not.toContain("first prompt");
 		selector.handleInput(ENTER);
@@ -422,7 +423,7 @@ describe("RewindSelectorComponent", () => {
 		expect(cancelled).toBe(false);
 		const body = selector
 			.render(80)
-			.map(line => Bun.stripANSI(line))
+			.map(line => bun.stripANSI(line))
 			.join("\n");
 		// Full transcript is back; the filtered selection survives.
 		expect(body).toContain("second prompt");

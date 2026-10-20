@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as http2 from "node:http2";
 import { streamCursor } from "@oh-my-pi/pi-ai/providers/cursor";
 import type { Context, Model } from "@oh-my-pi/pi-ai/types";
@@ -16,6 +16,7 @@ import {
 	TurnEndedUpdateSchema,
 } from "@oh-my-pi/pi-catalog/discovery/cursor-proto";
 import { create, fromBinary, toBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function frameConnectMessage(data: Uint8Array): Buffer {
 	const frame = Buffer.alloc(5 + data.length);
@@ -156,8 +157,10 @@ it("resumes from the latest replay-safe checkpoint after an incomplete stream", 
 		// The first request rebuilds history from `context`, which never matches
 		// the checkpoint; the resume sends the checkpoint's partial turn verbatim.
 		expect(runRequests[0]?.conversationState?.turns).not.toEqual(checkpointTurns);
-		expect(runRequests[1]?.conversationState?.turns).toEqual(checkpointTurns);
-		expect(runRequests[1]?.conversationState?.rootPromptMessagesJson).toEqual(checkpointRootPrompt);
+		expect(runRequests[1]?.conversationState?.turns.map(turn => new Uint8Array(turn))).toEqual(checkpointTurns);
+		expect(runRequests[1]?.conversationState?.rootPromptMessagesJson.map(message => new Uint8Array(message))).toEqual(
+			checkpointRootPrompt,
+		);
 		expect(delays).toEqual([500]);
 		expect(startEvents).toBe(1);
 		expect(originalRequestIds).toEqual(["", requestIds[0]]);
@@ -260,7 +263,7 @@ async function runStaleCheckpointScenario(dropAfterResult: boolean) {
 						// Real-socket gap: the client exposes no signal for "drop
 						// observed". Too short only degrades this into the
 						// result-before-drop case, which must pass as well.
-						await Bun.sleep(50);
+						await bun.sleep(50);
 					}
 					return {
 						role: "toolResult",

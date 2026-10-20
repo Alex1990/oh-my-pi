@@ -1,12 +1,17 @@
-import { afterAll, afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, mock, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import type { ClientBridge, ClientBridgeTerminalHandle } from "@oh-my-pi/pi-coding-agent/session/client-bridge";
+import type {
+	ClientBridge,
+	ClientBridgeCreateTerminalParams,
+	ClientBridgeTerminalHandle,
+} from "@oh-my-pi/pi-coding-agent/session/client-bridge";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { BashTool } from "@oh-my-pi/pi-coding-agent/tools/bash";
 import { encodeTerminalImage } from "@oh-my-pi/pi-coding-agent/utils/terminal-graphics";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // `getShellConfig()` validates that `shellPath` exists, and `/bin/bash` does not
 // on Windows. The ACP route only forwards the path to the stubbed client
@@ -45,14 +50,13 @@ function makeSession(bridge: ClientBridge): ToolSession {
 // conservative wall-clock deadline and cleanup grace periods.
 function shortenAcpWaits(): void {
 	const realSetTimeout = globalThis.setTimeout;
-	spyOn(globalThis, "setTimeout").mockImplementation(((handler: () => void, ms?: number, ...args: unknown[]) =>
-		realSetTimeout(
-			handler,
-			typeof ms === "number" && ms >= 1000 ? 50 : ms,
-			...args,
-		)) as typeof globalThis.setTimeout);
-	const realSleep = Bun.sleep.bind(Bun);
-	spyOn(Bun, "sleep").mockImplementation((duration?: number | Date) => {
+	spyOn(globalThis, "setTimeout").mockImplementation(((
+		handler: (...callbackArgs: unknown[]) => void,
+		ms?: number,
+		...args: unknown[]
+	) => realSetTimeout(handler, typeof ms === "number" && ms >= 1000 ? 50 : ms, ...args)) as typeof globalThis.setTimeout);
+	const realSleep = bun.sleep;
+	spyOn(bun, "sleep").mockImplementation((duration?: number) => {
 		if (duration === 250) return realSleep(1);
 		if (typeof duration === "number" && duration >= 1000) return realSleep(5);
 		return realSleep(duration ?? 0);
@@ -75,12 +79,13 @@ describe("BashTool ACP terminal routing", () => {
 			release: async () => {},
 		};
 
+		const createTerminal = vi.fn(async (_params: ClientBridgeCreateTerminalParams) => handle);
+
 		const bridge: ClientBridge = {
 			capabilities: { terminal: true },
-			createTerminal: async () => handle,
+			createTerminal,
 		};
 
-		const createSpy = spyOn(bridge, "createTerminal");
 		const releaseSpy = spyOn(handle, "release");
 
 		const updates: Array<{ details?: { terminalId?: string } }> = [];
@@ -94,8 +99,8 @@ describe("BashTool ACP terminal routing", () => {
 		// spec-conformant ACP clients that spawn `command` directly (no implicit
 		// shell) still get bash semantics — never `cmd.exe`, which would break
 		// `$VAR`, `$(...)`, `source`, and POSIX quoting on Windows.
-		expect(createSpy).toHaveBeenCalledTimes(1);
-		const params = createSpy.mock.calls[0]![0];
+		expect(createTerminal).toHaveBeenCalledTimes(1);
+		const params = createTerminal.mock.calls[0]![0];
 		expect(params.command).toBe(STUB_BASH);
 		expect(params.args).toEqual(["-l", "-c", "echo hi"]);
 

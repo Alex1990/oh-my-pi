@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ToolCall } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -12,6 +12,7 @@ import { buildSessionContext } from "@oh-my-pi/pi-coding-agent/session/session-c
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression for issue #6879 — a tool call renders twice (follow-up to #6516).
@@ -52,7 +53,7 @@ function assistantMessage(content: AssistantMessage["content"], stopReason: stri
 }
 
 function countCommand(mode: InteractiveMode): number {
-	const rendered = Bun.stripANSI(mode.chatContainer.render(120).join("\n"));
+	const rendered = bun.stripANSI(mode.chatContainer.render(120).join("\n"));
 	let count = 0;
 	let index = 0;
 	while (true) {
@@ -333,7 +334,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 			isError: false,
 		} as Extract<AgentSessionEvent, { type: "tool_execution_end" }>);
 
-		const rendered = Bun.stripANSI(mode.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(mode.chatContainer.render(120).join("\n"));
 		expect(rendered).toContain(READ_PATH);
 	});
 
@@ -361,7 +362,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 		enableTtsrRewind(true);
 		await streamReadToolCall("read-superseded", "aborted", supersededPath);
 
-		const rendered = Bun.stripANSI(mode.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(mode.chatContainer.render(120).join("\n"));
 		expect(mode.pendingTools.has("read-superseded")).toBeFalse();
 		expect(rendered).toContain(keptPath);
 		expect(rendered).not.toContain(supersededPath);
@@ -438,7 +439,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 		mode.rebuildChatFromMessages();
 
 		const replayCards = mode.chatContainer.children.filter(child =>
-			Bun.stripANSI(child.render(120).join("\n")).includes(memoryPath),
+			bun.stripANSI(child.render(120).join("\n")).includes(memoryPath),
 		);
 		expect(replayCards).toHaveLength(1);
 		const replayChildCount = mode.chatContainer.children.length;
@@ -454,7 +455,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 		} as Extract<AgentSessionEvent, { type: "tool_execution_end" }>);
 
 		const matchingCards = mode.chatContainer.children.filter(child =>
-			Bun.stripANSI(child.render(120).join("\n")).includes(memoryPath),
+			bun.stripANSI(child.render(120).join("\n")).includes(memoryPath),
 		);
 		expect(matchingCards).toHaveLength(1);
 		expect(mode.chatContainer.children).toHaveLength(replayChildCount);
@@ -515,7 +516,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 		await runToolCallToCompletion("call-real");
 		expect(countCommand(mode)).toBe(1);
 		// The result routes into the surviving card (no orphaned pending preview).
-		expect(Bun.stripANSI(mode.chatContainer.render(120).join("\n"))).toContain("(no output)");
+		expect(bun.stripANSI(mode.chatContainer.render(120).join("\n"))).toContain("(no output)");
 	});
 
 	it("re-keys a grouped read when its id is populated after the block appears", async () => {
@@ -554,7 +555,7 @@ describe("issue #6879 — tool output appears twice after a superseded turn", ()
 		expect(mode.pendingTools.has("")).toBeFalse();
 		expect(mode.pendingTools.has("read-real")).toBeTrue();
 		const matchingCards = mode.chatContainer.children.filter(child =>
-			Bun.stripANSI(child.render(120).join("\n")).includes(READ_PATH),
+			bun.stripANSI(child.render(120).join("\n")).includes(READ_PATH),
 		);
 		expect(matchingCards).toHaveLength(1);
 	});

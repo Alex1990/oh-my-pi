@@ -30,6 +30,10 @@ import {
 	cfgComputerMaxWidth,
 	cfgToolsMaxTimeout,
 } from "./settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // Image transports that cannot preserve native screenshot detail resize frames
 // without returning transformed dimensions. Keep their native coordinate frames
@@ -329,7 +333,7 @@ async function saveComputerOutputArtifact(session: ToolSession, fullText: string
 	try {
 		const alloc = await session.allocateOutputArtifact?.("computer-original");
 		if (!alloc?.path || !alloc.id) return undefined;
-		await Bun.write(alloc.path, fullText);
+		await bun.write(alloc.path, fullText);
 		return alloc.id;
 	} catch {
 		return undefined;

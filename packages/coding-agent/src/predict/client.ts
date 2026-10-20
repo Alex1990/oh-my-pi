@@ -28,6 +28,7 @@ import {
 	type TextPredictResponse,
 	textPredictDaemon,
 } from "./protocol";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LABEL = "text-predict daemon";
 const CONNECT_TIMEOUT_MS = 1_500;
@@ -335,7 +336,7 @@ export async function smokeTestTextPredictDaemon(): Promise<void> {
 		const deadline = Date.now() + SMOKE_TEST_TIMEOUT_MS;
 		while (!connection && Date.now() < deadline && proc.exitCode === null) {
 			connection = await connectDaemon(endpoint);
-			if (!connection) await Bun.sleep(200);
+			if (!connection) await bun.sleep(200);
 		}
 		if (!connection) {
 			throw new Error(

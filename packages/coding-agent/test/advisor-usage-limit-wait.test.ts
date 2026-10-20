@@ -5,7 +5,7 @@
  * a transient 429 (issue #11947) or, inverted, makes it sleep on a genuine
  * multi-hour quota window instead of pausing.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { planAdvisorUsageLimitWait } from "@oh-my-pi/pi-coding-agent/session/session-advisors";
 
 const NOW = 1_000_000;

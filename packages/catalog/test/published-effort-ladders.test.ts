@@ -8,7 +8,7 @@
  * unrecognized ids with only a neutral wire default. Novita supplies the
  * complementary case: an unrecognized id with a provider-wide class default.
  */
-import { expect, test } from "bun:test";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { hasModelScopedEffortLadder, resolveModelPolicy } from "@oh-my-pi/pi-catalog/compat/resolve";
 import { Effort } from "@oh-my-pi/pi-catalog/effort";
 import {

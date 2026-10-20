@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { loginXiaomi } from "@oh-my-pi/pi-ai/registry/oauth/xiaomi";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 

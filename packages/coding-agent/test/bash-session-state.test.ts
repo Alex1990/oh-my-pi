@@ -6,7 +6,7 @@
  * session is pinned in `crates/pi-shell` (`exit_and_errexit_keep_session_state`):
  * pull-request CI runs these tests against main's native addon.
  */
-import { afterEach, beforeEach, expect, it } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

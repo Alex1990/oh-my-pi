@@ -3,6 +3,8 @@ import * as path from "node:path";
 import type { RpcAgentProcess } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-client";
 import { type Client, connect, type HostGateway, type Process, type Sandbox } from "@stencil-hq/vibemon";
 import type { GuestArch, VmonConfig } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
 
 /**
  * SDK HTTP request deadline. The default (60 s) aborts unary `run` calls
@@ -72,7 +74,7 @@ async function waitUntilRunning(sandbox: Sandbox, timeoutSec: number): Promise<v
 		if (["exited", "failed", "stopped", "terminated"].includes(state)) {
 			throw new Error(`Vibemon VM ${sandbox.id} entered ${state} before becoming ready`);
 		}
-		await Bun.sleep(250);
+		await bun.sleep(250);
 	}
 	throw new Error(`Timed out waiting ${timeoutSec} seconds for Vibemon VM ${sandbox.id} to become ready`);
 }
@@ -86,12 +88,12 @@ async function archiveDirectory(root: string): Promise<Blob> {
 				await visit(absolute);
 			} else if (entry.isFile()) {
 				const relative = path.relative(root, absolute).split(path.sep).join("/");
-				entries[relative] = new Uint8Array(await Bun.file(absolute).arrayBuffer());
+				entries[relative] = new Uint8Array(await bun.file(absolute).arrayBuffer());
 			}
 		}
 	};
 	await visit(root);
-	return new Bun.Archive(entries, { compress: "gzip", level: 6 }).blob();
+	return new Archive(entries, { compress: "gzip", level: 6 }).blob();
 }
 
 async function captureProcess(process: Process): Promise<VmonCommandResult> {
@@ -251,7 +253,7 @@ export class TrialVm {
 
 	/** Stream one host file into the guest without a gRPC message-size copy. */
 	async copyTo(hostPath: string, guestPath: string): Promise<void> {
-		const file = Bun.file(hostPath);
+		const file = bun.file(hostPath);
 		if (!(await file.exists())) throw new Error(`Host file does not exist: ${hostPath}`);
 		const result = await this.#pipeInput(
 			file,

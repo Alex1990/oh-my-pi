@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { createLspWritethrough } from "@oh-my-pi/pi-coding-agent/lsp";
@@ -6,12 +6,13 @@ import { type FileDiagnosticsResult, FileFormatResult } from "@oh-my-pi/pi-tui/t
 import * as lspClient from "@oh-my-pi/pi-coding-agent/lsp/client";
 import * as lspConfig from "@oh-my-pi/pi-coding-agent/lsp/config";
 import { formatContent, INLINE_DIAGNOSTICS_WAIT_TIMEOUT_MS } from "@oh-my-pi/pi-coding-agent/lsp/diagnostics";
-import type { Diagnostic, LinterClient, LspClient, ServerConfig } from "@oh-my-pi/pi-coding-agent/lsp/types";
+import type { Diagnostic, LinterClient, LspClient, LspTransport, ServerConfig } from "@oh-my-pi/pi-coding-agent/lsp/types";
 import { EquivalentUriMap, fileToUri } from "@oh-my-pi/pi-coding-agent/lsp/utils";
 import type { DeferredDiagnosticsEntry, ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EditTool } from "@oh-my-pi/pi-coding-agent/edit";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
-import { type ptree, TempDir } from "@oh-my-pi/pi-utils";
+import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_SERVER: ServerConfig = {
 	command: "test-lsp",
@@ -48,7 +49,7 @@ function createClient(cwd: string, config: ServerConfig): LspClient {
 		name: "test-lsp",
 		cwd,
 		config,
-		proc: {} as ptree.ChildProcess<"pipe">,
+		proc: {} as LspTransport,
 		requestId: 0,
 		diagnostics: new EquivalentUriMap(),
 		diagnosticsVersion: 0,
@@ -74,9 +75,9 @@ function publishDiagnostics(client: LspClient, uri: string, diagnostics: Diagnos
  * Deterministic virtual clock that drives the production diagnostics poll/settle
  * loop and the inline-vs-deferred race without any real wall-clock waiting.
  *
- * The writethrough's only time sources are `Bun.sleep` (100ms poll interval,
+ * The writethrough's only time sources are `bun.sleep` (100ms poll interval,
  * 500ms inline budget) and `Date.now()` (poll-loop deadline + settle window).
- * {@link installVirtualTime} routes both through this clock: each `Bun.sleep(ms)`
+ * {@link installVirtualTime} routes both through this clock: each `bun.sleep(ms)`
  * advances virtual time by `ms` (firing any publish callbacks that come due) and
  * resolves on the microtask queue, so the loop spins to completion instantly and
  * `Date.now()` math stays consistent with the same advancing time. Server
@@ -113,10 +114,10 @@ class VirtualClock {
  */
 function installVirtualTime(clock: VirtualClock): void {
 	vi.spyOn(Date, "now").mockImplementation(() => clock.now);
-	vi.spyOn(Bun, "sleep").mockImplementation(((ms: number) => {
+	vi.spyOn(bun, "sleep").mockImplementation(((ms: number) => {
 		clock.advance(ms);
 		return Promise.resolve();
-	}) as typeof Bun.sleep);
+	}) as typeof bun.sleep);
 }
 
 describe("LSP diagnostics freshness", () => {
@@ -144,7 +145,7 @@ describe("LSP diagnostics freshness", () => {
 		const result = await writethrough(filePath, ".section {}\n");
 
 		expect(result.finalContent).toBe(".section {}\n");
-		expect(await Bun.file(filePath).text()).toBe(".section {}\n");
+		expect(await bun.file(filePath).text()).toBe(".section {}\n");
 		expect(notify).toHaveBeenCalledWith(
 			tempDir.path(),
 			[{ filePath, type: lspClient.FileChangeType.Created }],
@@ -168,7 +169,7 @@ describe("LSP diagnostics freshness", () => {
 		const result = await writethrough(filePath, "export const value = 1;\n");
 
 		expect(result.finalContent).toBe("export const value = 1;\n");
-		expect(await Bun.file(filePath).text()).toBe("export const value = 1;\n");
+		expect(await bun.file(filePath).text()).toBe("export const value = 1;\n");
 		expect(notify).toHaveBeenCalledWith(
 			tempDir.path(),
 			[{ filePath, type: lspClient.FileChangeType.Created }],
@@ -202,7 +203,7 @@ describe("LSP diagnostics freshness", () => {
 		const result = await writethrough(filePath, "export const value=1\n");
 
 		expect(result?.diagnostics?.formatter).toBe(FileFormatResult.FORMATTED);
-		expect(await Bun.file(filePath).text()).toBe("export const value = 1;\n");
+		expect(await bun.file(filePath).text()).toBe("export const value = 1;\n");
 		expect(getOrCreate).not.toHaveBeenCalled();
 		expect(sync).not.toHaveBeenCalled();
 		expect(notifySaved).not.toHaveBeenCalled();
@@ -224,7 +225,7 @@ describe("LSP diagnostics freshness", () => {
 		const result = await writethrough(filePath, content);
 
 		expect(result?.diagnostics?.formatter).toBe(FileFormatResult.FAILED);
-		expect(await Bun.file(filePath).text()).toBe(content);
+		expect(await bun.file(filePath).text()).toBe(content);
 	});
 
 	it("keeps an earlier formatter failure when a later server is unsupported", async () => {
@@ -340,7 +341,7 @@ describe("LSP diagnostics freshness", () => {
 			enableDiagnostics: false,
 		});
 		const resultPromise = writethrough(filePath, "export const value=1\n");
-		await Bun.sleep(0);
+		await bun.sleep(0);
 		expect(sync).not.toHaveBeenCalled();
 		pendingClient.resolve(client);
 		await resultPromise;
@@ -390,7 +391,7 @@ describe("LSP diagnostics freshness", () => {
 
 		expect(result?.diagnostics?.formatter).toBe(FileFormatResult.FORMATTED);
 		expect(result?.diagnostics?.messages).toEqual([]);
-		expect(await Bun.file(filePath).text()).toBe("export const value = 1;\n");
+		expect(await bun.file(filePath).text()).toBe("export const value = 1;\n");
 	});
 
 	it("announces batched sibling writes before syncing the diagnostic target", async () => {
@@ -478,7 +479,7 @@ describe("LSP diagnostics freshness", () => {
 		expect(result?.diagnostics?.messages).toEqual([]);
 		expect(result?.diagnostics?.summary).toBe("OK");
 		expect(result?.diagnostics?.errored).toBe(false);
-		expect(await Bun.file(filePath).text()).toBe("export const value = 2;\n");
+		expect(await bun.file(filePath).text()).toBe("export const value = 2;\n");
 	});
 
 	it("settles on the latest unversioned publish when the server never echoes a version", async () => {
@@ -531,7 +532,7 @@ describe("LSP diagnostics freshness", () => {
 		installVirtualTime(clock);
 		// Let diagnostic polls advance the clock; a racing 500ms timeout must not
 		// skip past the 250ms settle window before the poll loop observes it.
-		vi.spyOn(Bun, "sleep").mockImplementation(((ms: number) => {
+		vi.spyOn(bun, "sleep").mockImplementation(((ms: number) => {
 			if (ms === INLINE_DIAGNOSTICS_WAIT_TIMEOUT_MS) {
 				const timeout = Promise.withResolvers<void>();
 				clock.in(ms, timeout.resolve);
@@ -539,7 +540,7 @@ describe("LSP diagnostics freshness", () => {
 			}
 			clock.advance(ms);
 			return Promise.resolve();
-		}) as typeof Bun.sleep);
+		}) as typeof bun.sleep);
 		const client = createClient(tempDir.path(), TEST_SERVER);
 
 		vi.spyOn(lspConfig, "loadConfig").mockReturnValue({ servers: {}, idleTimeoutMs: undefined });
@@ -729,7 +730,7 @@ describe("LSP diagnostics freshness", () => {
 		expect(lateResult.messages.some(m => m.includes("deferred error"))).toBe(true);
 
 		// The edit still landed on disk regardless of diagnostics timing.
-		expect(await Bun.file(filePath).text()).toBe("export const value: number = 'x';\n");
+		expect(await bun.file(filePath).text()).toBe("export const value: number = 'x';\n");
 	});
 
 	it("returns the write tool result before slow diagnostics and queues them for the agent", async () => {
@@ -784,13 +785,13 @@ describe("LSP diagnostics freshness", () => {
 		expect(late.isStale()).toBe(false);
 		expect(late.errored).toBe(true);
 		expect(late.messages.some(message => message.includes("write tool deferred error"))).toBe(true);
-		expect(await Bun.file(filePath).text()).toBe("export const value: number = 'x';\n");
+		expect(await bun.file(filePath).text()).toBe("export const value: number = 'x';\n");
 	});
 
 	it("queues fresh late diagnostics for a slow server after an edit", async () => {
 		const filePath = path.join(tempDir.path(), "edit-tool.ts");
 		const uri = fileToUri(filePath);
-		await Bun.write(filePath, "export const value = 1;\n");
+		await bun.write(filePath, "export const value = 1;\n");
 		const client = createClient(tempDir.path(), TEST_SERVER);
 		const clock = new VirtualClock(Date.now());
 		installVirtualTime(clock);
@@ -885,14 +886,14 @@ describe("LSP diagnostics freshness", () => {
 			});
 
 			const writethrough = createLspWritethrough(tempDir.path(), { enableFormat: false, enableDiagnostics: true });
-			const result = await writethrough(filePath, 'import { Database } from "bun:sqlite";\nawait Bun.sleep(1)\n');
+			const result = await writethrough(filePath, 'import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";\nawait bun.sleep(1)\n');
 
 			expect(result).toBeDefined();
 			expect(result?.diagnostics?.errored).toBe(true);
 			expect(result?.diagnostics?.messages?.some(message => message.includes("bun:sqlite"))).toBe(false);
 			expect(result?.diagnostics?.messages?.some(message => message.includes("Cannot find name 'Bun'"))).toBe(false);
 			expect(result?.diagnostics?.messages?.some(message => message.includes("';' expected."))).toBe(true);
-			expect(await Bun.file(filePath).text()).toBe('import { Database } from "bun:sqlite";\nawait Bun.sleep(1)\n');
+			expect(await bun.file(filePath).text()).toBe('import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";\nawait bun.sleep(1)\n');
 		} finally {
 			orphanDir.removeSync();
 		}

@@ -34,6 +34,7 @@ import { normalizeToolNames } from "../tools/builtin-names";
 
 import { realpathIfExists, resolveContainedPath } from "./contained-path";
 import { buildPluginDirRoot } from "./plugin-dir-roots";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Standard paths for each config source.
@@ -538,14 +539,14 @@ export async function scanSkillsFromDir(
  *
  * Inherited members of either map (`__proto__`, `constructor`, `toString`, …)
  * are never substitutable: `extraEnv` is consulted by own property only, and
- * `Bun.env`'s getter falls through to `Object.prototype`, so `${constructor}`
+ * `bun.env`'s getter falls through to `Object.prototype`, so `${constructor}`
  * would otherwise stringify into the value as `function Object() { [native
  * code] }`. Every real variable is a string, so a non-string ambient hit means
  * the name resolved to a prototype member and counts as unset.
  */
 function lookupEnvValue(varName: string, extraEnv?: Record<string, string>): string | undefined {
 	if (extraEnv !== undefined && Object.hasOwn(extraEnv, varName)) return extraEnv[varName];
-	const ambient = Bun.env[varName];
+	const ambient = bun.env[varName];
 	return typeof ambient === "string" ? ambient : undefined;
 }
 
@@ -1524,7 +1525,7 @@ export async function injectPluginDirRoots(home: string, dirs: string[], cwd?: s
 				const contained = await resolveContainedPath(realRoot, manifestPath);
 				if (contained.status !== "ok") continue;
 				try {
-					const manifest = await Bun.file(contained.realPath).json();
+					const manifest = await bun.file(contained.realPath).json<{ name?: unknown }>();
 					if (typeof manifest?.name === "string" && manifest.name) {
 						pluginName = manifest.name;
 						break;

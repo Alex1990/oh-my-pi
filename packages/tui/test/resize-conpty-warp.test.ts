@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type TerminalFramePlan, type TerminalFrameProvider, TUI, type ViewportSize } from "@oh-my-pi/pi-tui";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Regression coverage for a resize on Warp under Windows ConPTY leaving the
 // screen unrecoverable (scrolled-up duplicate transcript, apparently dead
@@ -121,8 +122,8 @@ withoutTerminalMultiplexer();
 
 describe("resize on Warp hosted by Windows ConPTY", () => {
 	beforeEach(() => {
-		Bun.env.TERM = "xterm-256color";
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM = "xterm-256color";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 	});
 
 	it("rebuilds the transcript instead of anchoring a repaint conhost already overwrote", async () => {
@@ -175,7 +176,7 @@ describe("resize on Warp hosted by Windows ConPTY", () => {
 	it("keeps the DSR probe inside a multiplexer, which answers it from its own grid", async () => {
 		// WSL-in-tmux is ConPTY-hosted, but tmux consumes the CSI 6n and replies
 		// from the grid it owns, so the reply carries the tag column after all.
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
+		bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
 		const { terminal, tui, renderScheduler, writes } = startRig();
 		// A rebuild settle repaints from row zero and needs no anchor; the probe
 		// serves every settle that repaints over retained history.
@@ -197,7 +198,7 @@ describe("resize on Warp hosted by Windows ConPTY", () => {
 	it("keeps the DSR probe when PI_TUI_RESIZE_IN_PLACE=1 forces in-place repaint", async () => {
 		// The escape hatch restores the whole pre-change path, anchor probe
 		// included: an in-place repaint is only as good as its anchor.
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "1";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "1";
 		const { terminal, tui, renderScheduler, writes } = startRig();
 		try {
 			renderScheduler.settle();

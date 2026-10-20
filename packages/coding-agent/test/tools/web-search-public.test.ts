@@ -1,10 +1,11 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import type { SearchParams } from "@oh-my-pi/pi-coding-agent/web/search/providers/base";
 import { searchPublicWeb } from "@oh-my-pi/pi-coding-agent/web/search/providers/public";
 import { SearchProviderError } from "@oh-my-pi/pi-coding-agent/web/search/types";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const authStorage = createInMemoryAuthStorage();
 const modelRegistry = new ModelRegistry(authStorage);
@@ -156,7 +157,7 @@ describe("Public Web aggregate provider", () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = typeof input === "string" ? input : input.toString();
 			if (url.includes("duckduckgo.com")) {
-				await Bun.sleep(60);
+				await bun.sleep(60);
 				return new Response(ddgResult("https://a.example/one", "Alpha", "alpha snippet"), { status: 200 });
 			}
 			if (url.includes("google.com")) return new Response(GOOGLE_CHALLENGE, { status: 200 });

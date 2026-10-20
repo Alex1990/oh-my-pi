@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -8,9 +8,11 @@ import { createBrowserPrelude } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import { releaseAllTabs } from "@oh-my-pi/pi-coding-agent/tools/browser/tab-supervisor";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";
 import { chromiumAvailable } from "./chromium-probe";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
-const server = Bun.serve({
+const server = await serve({
 	port: 0,
 	fetch(request) {
 		const { pathname } = new URL(request.url);
@@ -191,7 +193,7 @@ return { body, seen };`,
 			}),
 		);
 		expect(stoppedPath).toBe(harPath);
-		const har = JSON.parse(await Bun.file(harPath).text()) as { log: { entries: unknown[] } };
+		const har = JSON.parse(await bun.file(harPath).text()) as { log: { entries: unknown[] } };
 		expect(har.log.entries).toHaveLength(2);
 	});
 

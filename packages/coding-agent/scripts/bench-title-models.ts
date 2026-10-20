@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Title-generation benchmark harness.
  *
@@ -239,7 +240,7 @@ function parseArgs(argv: string[]): BenchConfig {
 }
 
 async function main(): Promise<void> {
-	const config = parseArgs(Bun.argv.slice(2));
+	const config = parseArgs(bun.argv.slice(2));
 	const rng = createRng(config.seed);
 	const rows = sampleHistoryPrompts(config.dbPath, config.count, rng);
 	if (rows.length === 0) throw new Error(`No history prompts found in ${config.dbPath}`);
@@ -297,7 +298,7 @@ async function main(): Promise<void> {
 		matrix,
 		lanes,
 	};
-	await Bun.write(config.outPath, JSON.stringify(report, null, 2));
+	await bun.write(config.outPath, JSON.stringify(report, null, 2));
 
 	for (const entry of matrix) {
 		console.info(`\n[#${entry.id}] ${entry.raw.replace(/\s+/g, " ").slice(0, 140)}`);

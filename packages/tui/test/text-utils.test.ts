@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	encodeTextSized,
 	extractSegments,
@@ -6,6 +6,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@oh-my-pi/pi-tui/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("text utils", () => {
 	it("ignores OSC hyperlinks in visible width", () => {
@@ -52,7 +53,7 @@ describe("text utils", () => {
 		]) {
 			const text = `\x1b[31mASCII\x1b[0m${suffix}`;
 			expect(visibleWidth(text)).toBe(
-				Bun.stringWidth(text, { countAnsiEscapeCodes: false, ambiguousIsNarrow: true }),
+				bun.stringWidth(text, { countAnsiEscapeCodes: false, ambiguousIsNarrow: true }),
 			);
 		}
 		expect(visibleWidth("\x1b[31mASCII\x1b[0m\x1b_payload\x07")).toBe(5);

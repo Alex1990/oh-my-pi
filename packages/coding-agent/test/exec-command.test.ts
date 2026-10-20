@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { execCommand } from "../src/exec/exec";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const HANG = ["-e", "setTimeout(() => {}, 30_000)"];
 
@@ -32,7 +33,7 @@ describe("execCommand", () => {
 		try {
 			const controller = new AbortController();
 			// The child signals readiness after installing its handler; its timer never fires.
-			const script = `process.on("SIGTERM", () => process.exit(0)); await Bun.write(${JSON.stringify(marker)}, "ready"); setTimeout(() => {}, 30_000);`;
+			const script = `process.on("SIGTERM", () => process.exit(0)); await bun.write(${JSON.stringify(marker)}, "ready"); setTimeout(() => {}, 30_000);`;
 			const pending = execCommand(process.execPath, ["-e", script], process.cwd(), { signal: controller.signal });
 			await ready.promise;
 			controller.abort();

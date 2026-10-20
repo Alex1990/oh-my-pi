@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsSync from "node:fs";
 import * as fs from "node:fs/promises";
 import * as Module from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { isEnoent } from "../src/fs-error";
 import {
 	ensureRuntimeInstalled,
@@ -12,6 +13,7 @@ import {
 	splitBareSpecifier,
 	writeRuntimeManifest,
 } from "../src/runtime-install";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Contract under test: runtime-installed packages (fastembed, Transformers.js
 // graphs) load inside compiled binaries through resolveRuntimeModule, which
@@ -21,6 +23,12 @@ import {
 
 const tempDirs: string[] = [];
 const resolverUninstalls: Array<() => void> = [];
+const nodeTsArgs = [
+	"--no-warnings",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 afterEach(async () => {
 	// Restore the process-wide module resolver first: a leaked patch breaks
@@ -41,9 +49,9 @@ async function makeNodeModules(packages: Record<string, { manifest: Record<strin
 	for (const name in packages) {
 		const pkg = packages[name];
 		const pkgDir = path.join(nodeModules, ...name.split("/"));
-		await Bun.write(path.join(pkgDir, "package.json"), JSON.stringify({ name, ...pkg.manifest }));
+		await bun.write(path.join(pkgDir, "package.json"), JSON.stringify({ name, ...pkg.manifest }));
 		for (const file of pkg.files) {
-			await Bun.write(path.join(pkgDir, file), "");
+			await bun.write(path.join(pkgDir, file), "");
 		}
 	}
 	return nodeModules;
@@ -168,7 +176,7 @@ describe("installRuntimeModuleResolver", () => {
 		});
 		const runtimeDir = path.dirname(nodeModules);
 		const sharpStub = path.join(runtimeDir, "sharp-stub.cjs");
-		await Bun.write(sharpStub, "module.exports = {};\n");
+		await bun.write(sharpStub, "module.exports = {};\n");
 
 		resolverUninstalls.push(
 			installRuntimeModuleResolver({ runtimeNodeModules: nodeModules, stubs: { sharp: sharpStub } }),
@@ -285,7 +293,10 @@ describe("writeRuntimeManifest", () => {
 		});
 		expect(manifest.dependencies).toEqual({ "kokoro-js": "1.2.1" });
 		expect(manifest.overrides).toEqual({ "onnxruntime-node": "1.26.0" });
-		expect(manifest.trustedDependencies).toEqual(["onnxruntime-node"]);
+		expect(manifest.pnpm).toEqual({
+			overrides: { "onnxruntime-node": "1.26.0" },
+			onlyBuiltDependencies: ["onnxruntime-node"],
+		});
 	});
 
 	test("omits overrides when none are provided or the map is empty", async () => {
@@ -336,7 +347,7 @@ describe("ensureRuntimeInstalled install lock", () => {
 			lockSleepMs: 50,
 		});
 
-		expect(await Bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
+		expect(await bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
 		await expect(fs.stat(`${runtimeDir}.lock`)).rejects.toThrow();
 	}, 15_000);
 
@@ -359,18 +370,18 @@ describe("ensureRuntimeInstalled install lock", () => {
 		});
 
 		// Integration timing: the reclaim decision runs on the module's own
-		// `Bun.sleep` poll loop and a real `bun install` subprocess, so fake
+		// `bun.sleep` poll loop and a real `bun install` subprocess, so fake
 		// timers cannot drive it. Wait past the retry window (lockAttempts x
 		// lockSleepMs) — under the old bug the install would have reclaimed the
 		// fresh lock and populated node_modules by now; it must not have.
-		await Bun.sleep(sleepMs * 8);
+		await bun.sleep(sleepMs * 8);
 		expect((await fs.stat(`${runtimeDir}.lock`)).isDirectory()).toBe(true);
-		expect(await Bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(false);
+		expect(await bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(false);
 
 		// The legacy owner finishes and releases; only now does the install proceed.
 		await fs.rm(`${runtimeDir}.lock`, { recursive: true, force: true });
 		await install;
-		expect(await Bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
+		expect(await bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
 		await expect(fs.stat(`${runtimeDir}.lock`)).rejects.toThrow();
 	}, 15_000);
 
@@ -395,7 +406,7 @@ describe("ensureRuntimeInstalled install lock", () => {
 		});
 
 		expect(observedDownload).toBe(true);
-		expect(await Bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
+		expect(await bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
 		await expect(fs.stat(`${runtimeDir}.lock`)).rejects.toThrow();
 	}, 15_000);
 
@@ -406,16 +417,17 @@ describe("ensureRuntimeInstalled install lock", () => {
 		const readyPath = `${runtimeDir}.holder-ready`;
 		// Enter the real ensureRuntimeInstalled critical section, including its
 		// legacy namespace reservation, then die before bun install starts.
-		const holder = Bun.spawn(
+		const holder = bun.spawn(
 			[
 				process.execPath,
-				path.join(import.meta.dir, "fixtures/runtime-install-holder.ts"),
+				...nodeTsArgs,
+				path.join(import.meta.dirname, "fixtures/runtime-install-holder.ts"),
 				runtimeDir,
 				spec,
 				readyPath,
 			],
 			{
-				cwd: path.resolve(import.meta.dir, "../../.."),
+				cwd: path.resolve(import.meta.dirname, "../../.."),
 				env: { HOME: process.env.HOME ?? "", PATH: process.env.PATH ?? "" },
 				stdin: "ignore",
 				stdout: "ignore",
@@ -451,7 +463,7 @@ describe("ensureRuntimeInstalled install lock", () => {
 				lockAttempts: 20,
 				lockSleepMs: 50,
 			});
-			expect(await Bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
+			expect(await bun.file(path.join(runtimeDir, "node_modules", probe, "package.json")).exists()).toBe(true);
 			await expect(fs.stat(`${runtimeDir}.lock`)).rejects.toThrow();
 		} finally {
 			if (holder.exitCode === null) {

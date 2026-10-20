@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { MacAppearanceObserver, MacOSAppearance, rasterizeSvg } from "@oh-my-pi/pi-natives";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
+import { MacOSAppearance, rasterizeSvg } from "@oh-my-pi/pi-natives";
 import { TranscriptContainer } from "@oh-my-pi/pi-tui/chrome/transcript-container";
 import { Image } from "@oh-my-pi/pi-tui/components/image";
 import type { TerminalAppearance } from "@oh-my-pi/pi-tui/terminal";
@@ -20,8 +21,31 @@ import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { ManualScheduler, TspHarness, TspTestTerminal } from "./native/tsp-harness";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import type * as NativesModule from "@oh-my-pi/pi-natives";
 
 withoutTerminalMultiplexer();
+
+// The native addon's static methods are non-configurable, so `vi.spyOn` cannot
+// replace them. Swap only `MacAppearanceObserver` and forward `start` to the
+// hoisted spy below.
+const nativeObserver = vi.hoisted(() => ({
+	start: vi.fn<(callback: (err: null | Error, appearance: MacOSAppearance) => void) => { stop(): void }>(),
+}));
+
+vi.mock("@oh-my-pi/pi-natives", async importOriginal => {
+	const actual = await importOriginal<typeof NativesModule>();
+	return {
+		...actual,
+		MacAppearanceObserver: class {
+			static start(callback: (err: null | Error, appearance: MacOSAppearance) => void): { stop(): void } {
+				return nativeObserver.start(callback);
+			}
+
+			stop(): void {}
+		},
+	};
+});
 
 class AppearanceTerminal extends VirtualTerminal {
 	readonly #reports = new Set<(appearance: TerminalAppearance) => void>();
@@ -205,8 +229,8 @@ describe("terminal background SIXEL repaint", () => {
 	});
 
 	it("repaints multiplexer viewports without clearing their native history", async () => {
-		const previousZellij = Bun.env.ZELLIJ;
-		Bun.env.ZELLIJ = "1";
+		const previousZellij = bun.env.ZELLIJ;
+		bun.env.ZELLIJ = "1";
 		const terminal = new AppearanceTerminal(40, 5);
 		const scheduler = new VirtualRenderScheduler();
 		const tui = new TUI(terminal, undefined, { renderScheduler: scheduler });
@@ -232,8 +256,8 @@ describe("terminal background SIXEL repaint", () => {
 			expect(terminal.writes.join("")).not.toContain("\x1b[3J");
 		} finally {
 			tui.stop();
-			if (previousZellij === undefined) delete Bun.env.ZELLIJ;
-			else Bun.env.ZELLIJ = previousZellij;
+			if (previousZellij === undefined) delete bun.env.ZELLIJ;
+			else bun.env.ZELLIJ = previousZellij;
 		}
 	});
 
@@ -400,13 +424,13 @@ describe("terminal background SIXEL repaint", () => {
 
 		beforeEach(async () => {
 			platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform")!;
-			previousColorfgbg = Bun.env.COLORFGBG;
-			previousZellij = Bun.env.ZELLIJ;
+			previousColorfgbg = bun.env.COLORFGBG;
+			previousZellij = bun.env.ZELLIJ;
 			Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
-			Bun.env.ZELLIJ = "1";
-			delete Bun.env.COLORFGBG;
+			bun.env.ZELLIJ = "1";
+			delete bun.env.COLORFGBG;
 			setTerminalBackgroundColor(undefined);
-			vi.spyOn(MacAppearanceObserver, "start").mockImplementation(callback => {
+			nativeObserver.start.mockImplementation(callback => {
 				reportAppearance = appearance => callback(null, appearance);
 				return { stop() {} };
 			});
@@ -418,10 +442,10 @@ describe("terminal background SIXEL repaint", () => {
 			stopThemeWatcher();
 			vi.restoreAllMocks();
 			Object.defineProperty(process, "platform", platformDescriptor);
-			if (previousColorfgbg === undefined) delete Bun.env.COLORFGBG;
-			else Bun.env.COLORFGBG = previousColorfgbg;
-			if (previousZellij === undefined) delete Bun.env.ZELLIJ;
-			else Bun.env.ZELLIJ = previousZellij;
+			if (previousColorfgbg === undefined) delete bun.env.COLORFGBG;
+			else bun.env.COLORFGBG = previousColorfgbg;
+			if (previousZellij === undefined) delete bun.env.ZELLIJ;
+			else bun.env.ZELLIJ = previousZellij;
 		});
 
 		async function startFallbackImage() {
@@ -468,7 +492,7 @@ describe("terminal background SIXEL repaint", () => {
 				await scheduler.settle(terminal);
 				expect(terminal.writes).toEqual([]);
 
-				Bun.env.COLORFGBG = "15;0";
+				bun.env.COLORFGBG = "15;0";
 				reportAppearance(MacOSAppearance.Light);
 				await scheduler.settle(terminal);
 				expect(terminal.writes).toEqual([]);

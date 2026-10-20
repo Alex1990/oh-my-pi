@@ -29,7 +29,7 @@
  * If a module throws before its final statement, no end marker is recorded.
  *
  * **Tree shape:** `onResolve` observes importer → specifier edges and resolves
- * them with `Bun.resolveSync` without taking over Bun's real resolution. The
+ * them with `bun.resolveSync` without taking over Bun's real resolution. The
  * logger renders these edges as a DAG/tree and computes module `self` time by
  * subtracting the union of child intervals, avoiding misleading flat inclusive
  * totals.
@@ -41,8 +41,9 @@
  *   into bunfs, so `onLoad` never fires; profile with a `bun --preload` dev run.
  */
 import { readFileSync } from "node:fs";
-import { plugin } from "bun";
+import { plugin } from "@oh-my-pi/pi-utils/module-hooks";
 import { moduleLoadBuffer } from "./timing-buffer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Restrict to TS/TSX only. node_modules ships CommonJS `.js`/`.cjs` that Bun
 // auto-detects when loaded via its default path; if we intercept and return
@@ -95,7 +96,7 @@ function addImportEdges(importsByPath: Map<string, Set<string>>, importer: strin
 		const specifier = match[1] ?? match[2];
 		if (!specifier) continue;
 		try {
-			const resolved = Bun.resolveSync(specifier, importerDir(importer));
+			const resolved = bun.resolveSync(specifier, importerDir(importer));
 			if (MODULE_LOADER_FILTER.test(resolved) && resolved !== importer) {
 				childSetFor(importsByPath, importer).add(resolved);
 			}

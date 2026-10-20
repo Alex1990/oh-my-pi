@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import type { OAuthController } from "@oh-my-pi/pi-ai/oauth/types";
@@ -9,6 +9,7 @@ import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { parseCloudflareCredential, serializeCloudflareCredential } from "@oh-my-pi/pi-catalog/wire/cloudflare";
 import { CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL } from "@oh-my-pi/pi-catalog/wire/cloudflare-ai-gateway";
 import { withEnv } from "./helpers";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const ANTHROPIC_MODEL = buildModel({
 	id: "anthropic/claude-sonnet-4.5",
@@ -71,7 +72,7 @@ function captureRequest(captured: CapturedRequest): FetchImpl {
 			captured.body = typeof init?.body === "string" ? init.body : undefined;
 			return Response.json({ error: { message: "captured" } }, { status: 400 });
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 

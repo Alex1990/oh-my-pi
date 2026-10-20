@@ -25,7 +25,7 @@
  * transcript -- not merely the exit-record bookkeeping -- is reported lost.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	IndexedSessionStorage,
 	type SessionStorageBackend,

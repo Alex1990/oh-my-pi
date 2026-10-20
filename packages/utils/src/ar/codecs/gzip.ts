@@ -13,13 +13,14 @@ export function isGzip(bytes: Uint8Array): boolean {
 /** Decompress one gzip stream, bounded so a gzip bomb cannot inflate without limit. */
 export async function gzipDecompress(bytes: Uint8Array, maxOutput: number): Promise<Uint8Array> {
 	try {
-		return await gunzipAsync(bytes, { maxOutputLength: Math.max(maxOutput, 1) });
+		// Node's zlib resolves a Buffer; the archive API promises a plain view.
+		return new Uint8Array(await gunzipAsync(bytes, { maxOutputLength: Math.max(maxOutput, 1) }));
 	} catch (error) {
 		throw new ArchiveError(error instanceof Error ? error.message : String(error));
 	}
 }
 
 /** Compress bytes as one gzip stream (tar.gz writing). */
-export function gzipCompress(bytes: Uint8Array): Promise<Uint8Array> {
-	return gzipAsync(bytes);
+export async function gzipCompress(bytes: Uint8Array): Promise<Uint8Array> {
+	return new Uint8Array(await gzipAsync(bytes));
 }

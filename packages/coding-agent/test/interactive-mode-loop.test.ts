@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -15,6 +15,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgLoopMode } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function flushMicrotasks(): Promise<void> {
 	await Promise.resolve();
@@ -438,7 +439,7 @@ describe("InteractiveMode loop auto-submit", () => {
 	it("resubmits a /skill: prompt dispatched inline by the submit handler", async () => {
 		vi.useFakeTimers();
 		const skillPath = path.join(tempDir.path(), "recap.md");
-		await Bun.write(skillPath, "---\nname: recap\n---\nSummarize recent changes.\n");
+		await bun.write(skillPath, "---\nname: recap\n---\nSummarize recent changes.\n");
 		mode.skillCommands.set("skill:recap", {
 			name: "recap",
 			description: "",
@@ -474,7 +475,7 @@ describe("InteractiveMode loop auto-submit", () => {
 	it("paints no optimistic user row for a resubmitted /skill: loop prompt", async () => {
 		vi.useFakeTimers();
 		const skillPath = path.join(tempDir.path(), "recap.md");
-		await Bun.write(skillPath, "---\nname: recap\n---\nSummarize recent changes.\n");
+		await bun.write(skillPath, "---\nname: recap\n---\nSummarize recent changes.\n");
 		mode.skillCommands.set("skill:recap", {
 			name: "recap",
 			description: "",

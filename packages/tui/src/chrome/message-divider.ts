@@ -5,6 +5,7 @@ import { node, span, text } from "../native/describe";
 import type { NativeNode } from "../native/node";
 import { plainText } from "../native/spans";
 import { Memo } from "../native/memo";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Presentation policy for a compact message divider. */
 export interface MessageDividerOptions {
@@ -71,7 +72,7 @@ export class MessageDividerComponent implements Component {
 
 	#renderDivider(width: number): string {
 		const label = this.#options.label();
-		const labelWidth = Bun.stringWidth(label, { countAnsiEscapeCodes: false });
+		const labelWidth = bun.stringWidth(label, { countAnsiEscapeCodes: false });
 		const ruleWidth = Math.min(this.#options.ruleWidth ?? 10, width - labelWidth - 1);
 		const paintedLabel = theme.fg(this.#options.labelColor, label);
 		if (ruleWidth < 1) {

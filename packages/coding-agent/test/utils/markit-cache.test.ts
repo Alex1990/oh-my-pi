@@ -6,7 +6,7 @@
  * cached. The underlying converter (`Markit.prototype.convert`) is mocked so the
  * tests assert cache hit/miss/skipped behavior and converter call counts.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -131,7 +131,7 @@ describe("document conversion cache", () => {
 
 		await pruneMarkitConversionCache(cacheDir);
 
-		expect(await fs.exists(stalePath)).toBe(false);
-		expect(await fs.exists(freshPath)).toBe(true);
+		await expect(fs.stat(stalePath)).rejects.toThrow();
+		await expect(fs.stat(freshPath)).resolves.toBeDefined();
 	});
 });

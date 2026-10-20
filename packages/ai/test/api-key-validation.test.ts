@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ApiKeyRequiredError } from "../src/error/auth";
 import { ProviderHttpError } from "../src/error/classes";
 import { classify, Flag, is } from "../src/error/flags";

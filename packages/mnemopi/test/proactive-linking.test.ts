@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import "./setup";
 import { configureRecallFeatures } from "@oh-my-pi/pi-mnemopi/config";

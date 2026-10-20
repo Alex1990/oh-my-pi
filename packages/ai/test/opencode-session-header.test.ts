@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { completeSimple, stream } from "@oh-my-pi/pi-ai";
 import { buildAnthropicClientOptions } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { resolveOpenAIRequestSetup } from "@oh-my-pi/pi-ai/providers/openai-shared";

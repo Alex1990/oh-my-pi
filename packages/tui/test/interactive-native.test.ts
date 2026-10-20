@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspListProps } from "@oh-my-pi/pi-wire";
 import { CountdownTimer } from "@oh-my-pi/pi-tui/chrome/countdown-timer";
 import { Editor } from "@oh-my-pi/pi-tui/components/editor";

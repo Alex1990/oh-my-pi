@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { AgentEvent } from "@oh-my-pi/pi-agent-core";
@@ -11,6 +11,7 @@ import type {
 } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-types";
 import { toolReadsSkillUris } from "@oh-my-pi/pi-coding-agent/system-prompt";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempPaths: string[] = [];
 
@@ -134,7 +135,7 @@ describe("RpcClient custom tools", () => {
 	it("registers host custom tools and serves tool calls over the RPC transport", async () => {
 		const scriptPath = path.join(os.tmpdir(), `omp-rpc-host-tools-${Date.now()}.js`);
 		tempPaths.push(scriptPath);
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`
 const encoder = new TextEncoder();
@@ -256,7 +257,7 @@ function handle(frame) {
 		const scriptPath = path.join(os.tmpdir(), `omp-rpc-host-skill-${Date.now()}.js`);
 		const capturePath = `${scriptPath}.tools.json`;
 		tempPaths.push(scriptPath, capturePath);
-		await Bun.write(
+		await bun.write(
 			scriptPath,
 			`
 			process.stdout.write(JSON.stringify({ type: "ready" }) + "\\n");
@@ -297,7 +298,7 @@ function handle(frame) {
 
 		try {
 			await client.start();
-			const tools = await Bun.file(capturePath).json();
+			const tools = await bun.file(capturePath).json();
 			expect(tools).toMatchObject([{ name: "host_read", readsSkillUris: true }]);
 		} finally {
 			await client.stop();

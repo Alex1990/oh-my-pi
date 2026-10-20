@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { type AgentMessage, type AgentTelemetryConfig, Tokenizer } from "@oh-my-pi/pi-agent-core";
 import {
@@ -43,6 +43,7 @@ import { SecretObfuscator } from "../../src/secrets/obfuscator";
 import { getOpenAiRemoteCompactionPayload } from "../../src/session/session-context";
 import { formatSessionHistoryMarkdown } from "../../src/session/session-history-format";
 import { YieldQueue } from "../../src/session/yield-queue";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Poll until the drain loop reaches the asserted state — waitForCatchup
  *  releases IMMEDIATELY on advisor failure (the primary must never park on a
@@ -70,7 +71,7 @@ function promptText(input: string | AgentMessage[]): string {
 /** High-entropy secret with no repeated 8-char window, so any surviving window is a leak. */
 function distinctSecret(length: number): string {
 	let secret = "";
-	for (let i = 0; secret.length < length; i++) secret += Bun.hash(`secret-${i}`).toString(36);
+	for (let i = 0; secret.length < length; i++) secret += bun.hash(`secret-${i}`).toString(36);
 	return secret.slice(0, length);
 }
 

@@ -1,7 +1,6 @@
-import { describe, expect, it, type Mock, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
-type Spy = Mock<(...args: unknown[]) => unknown>;
 
 function createLoopContext(options: {
 	isStreaming: boolean;
@@ -25,6 +24,9 @@ function createLoopContext(options: {
 	const pauseLoop = vi.fn(() => {
 		loopPrompt = undefined;
 	});
+	const queueCompactionMessage = vi.fn();
+	const handleBashCommand = vi.fn();
+	const showError = vi.fn();
 	const editor = {
 		pendingImages: [],
 		pendingImageLinks: [],
@@ -65,9 +67,9 @@ function createLoopContext(options: {
 		withLocalSubmission: async (_text: string, fn: () => unknown) => fn(),
 		updatePendingMessagesDisplay: vi.fn(),
 		updateEditorBorderColor: vi.fn(),
-		showError: vi.fn(),
-		handleBashCommand: vi.fn(),
-		queueCompactionMessage: vi.fn(),
+		showError,
+		handleBashCommand,
+		queueCompactionMessage,
 		onInputCallback: options.onInputCallback,
 		skillCommands: new Map(),
 		fileSlashCommands: new Set<string>(),
@@ -84,9 +86,9 @@ function createLoopContext(options: {
 		pauseLoop,
 		prompt,
 		getLoopPrompt: () => loopPrompt,
-		queueCompactionMessage: ctx.queueCompactionMessage as Spy,
-		handleBashCommand: ctx.handleBashCommand as Spy,
-		showError: ctx.showError as Spy,
+		queueCompactionMessage,
+		handleBashCommand,
+		showError,
 	};
 }
 

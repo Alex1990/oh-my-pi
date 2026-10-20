@@ -12,7 +12,7 @@
 // These tests pin the contract: each `function_call_arguments.{delta,done}` and
 // `output_item.done` event must be routed by `output_index`/`item_id`, not by
 // arrival order.
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ResponseStreamEvent } from "@oh-my-pi/pi-ai/providers/openai-responses-wire";
 import { processResponsesStream } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import type { AssistantMessage, Model } from "@oh-my-pi/pi-ai/types";

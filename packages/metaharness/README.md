@@ -7,7 +7,7 @@ their live progress, scores, token usage, costs, and traces.
 
 ```bash
 # Dashboard + API on :4700; launch every benchmark from the same “new run” form
-bun run serve --port 4700
+pnpm run serve --port 4700
 ```
 
 ## How Harbor runs execute
@@ -16,8 +16,8 @@ bun run serve --port 4700
    read-only into each task container (`--install source`) and runs omp
    straight from `packages/coding-agent/src/cli.ts` — TS edits apply to the
    next trial with no rebuild. A cached linux `node_modules` tree (built once
-   per lockfile change inside `oven/bun`, stored in `<jobs-dir>/_bench/_deps/`)
-   shadows the host's darwin one, and a linux `bun` binary is mounted at
+   per lockfile change inside `node:24`, stored in `<jobs-dir>/_bench/_deps/`)
+   shadows the host's darwin one, and a linux `node` binary is mounted at
    `/opt/omp/bin` — so trial setup needs zero outbound network. Alternatives:
    `--install local` (pack a tarball per run) or `--binary` (prebuilt
    `dist/omp-linux-*` self-contained binaries).
@@ -87,7 +87,7 @@ protocol through `vmon exec --pipe`, runs the verifier in the same mutated VM,
 and writes resumable epochs plus artifacts under `runs/tb`.
 
 ```bash
-bun run bench:tb \
+pnpm run bench:tb \
   --dataset /path/to/terminal-bench-2-1 \
   --concurrency 4 --forever --budget 25
 ```
@@ -96,7 +96,7 @@ For the measured workstation defaults (seven-model pool, `:floor`, concurrency
 20), use the resumable wrapper:
 
 ```bash
-bun --cwd packages/metaharness run bench:tb-floor
+pnpm --dir packages/metaharness run bench:tb-floor
 ```
 
 It writes to `runs/tb-floor`; rerunning resumes an incomplete epoch or starts
@@ -161,8 +161,8 @@ It map/reduces the normalized trace through two cheap OpenRouter models
 arc; ~$0.001 per report). API keys resolve through omp's auth storage.
 
 ```bash
-bun scripts/trace-report.ts <run> <trace> [--focus "reviewer notes"] [--out report.md]
-bun scripts/trace-report.ts "sb3-ntg|django__django-12325__ddQroP4"   # run|trace also accepted
+node --experimental-transform-types scripts/trace-report.ts <run> <trace> [--focus "reviewer notes"] [--out report.md]
+node --experimental-transform-types scripts/trace-report.ts "sb3-ntg|django__django-12325__ddQroP4"   # run|trace also accepted
 ```
 
 Flags: `--base` (server, default `http://localhost:4700`), `--tiny` / `--synth`

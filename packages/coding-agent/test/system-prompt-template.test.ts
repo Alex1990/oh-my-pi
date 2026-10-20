@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import * as path from "node:path";
 import { __resetDirsFromEnvForTests, CONFIG_DIR_NAME, getConfigAgentDirName, TempDir } from "@oh-my-pi/pi-utils";
@@ -13,6 +13,9 @@ import eagerTasksTemplate from "./fixtures/system-prompt-template/eager-tasks.md
 import literalDataTemplate from "./fixtures/system-prompt-template/literal-data.md" with { type: "text" };
 import liveDataTemplate from "./fixtures/system-prompt-template/live-data.md" with { type: "text" };
 import { restoreEnvValue } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 const EMPTY_TREE = {
 	rootPath: "",
@@ -82,8 +85,8 @@ describe("system prompt Handlebars templates", () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig }) => {
 			const templatePath = path.join(projectConfig, "SYSTEM_TEMPLATE.md");
 			const textPath = path.join(projectConfig, "SYSTEM.md");
-			await Bun.write(templatePath, eagerTasksTemplate);
-			await Bun.write(textPath, "project literal prompt");
+			await bun.write(templatePath, eagerTasksTemplate);
+			await bun.write(textPath, "project literal prompt");
 
 			expect(await discoverSystemPromptOverride(cwd)).toEqual({
 				kind: "text",
@@ -101,8 +104,8 @@ describe("system prompt Handlebars templates", () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig, userConfig }) => {
 			const projectPath = path.join(projectConfig, "SYSTEM.md");
 			const userTemplatePath = path.join(userConfig, "SYSTEM_TEMPLATE.md");
-			await Bun.write(projectPath, "project literal prompt");
-			await Bun.write(userTemplatePath, eagerTasksTemplate);
+			await bun.write(projectPath, "project literal prompt");
+			await bun.write(userTemplatePath, eagerTasksTemplate);
 
 			expect(await discoverSystemPromptOverride(cwd)).toEqual({
 				kind: "text",
@@ -116,11 +119,11 @@ describe("system prompt Handlebars templates", () => {
 		it(`preserves ancestor ${directory}/SYSTEM.md over a user template`, async () => {
 			await withDiscoveryHome(async ({ cwd, userConfig }) => {
 				const nestedCwd = path.join(cwd, "nested");
-				await Bun.write(path.join(nestedCwd, "file.txt"), "");
-				await Bun.write(path.join(cwd, directory, "SYSTEM.md"), literalDataTemplate);
+				await bun.write(path.join(nestedCwd, "file.txt"), "");
+				await bun.write(path.join(cwd, directory, "SYSTEM.md"), literalDataTemplate);
 				expect(await loadSystemPromptFiles({ cwd: nestedCwd })).toBe(literalDataTemplate);
 
-				await Bun.write(path.join(userConfig, "SYSTEM_TEMPLATE.md"), eagerTasksTemplate);
+				await bun.write(path.join(userConfig, "SYSTEM_TEMPLATE.md"), eagerTasksTemplate);
 				const result = await buildSystemPrompt(options(nestedCwd));
 				expect(result.systemPrompt.join("\n")).toContain(literalDataTemplate.trim());
 				expect(result.systemPrompt.join("\n")).not.toContain("TASK_BRANCH=");
@@ -131,9 +134,9 @@ describe("system prompt Handlebars templates", () => {
 		it(`discovers an ancestor ${directory}/SYSTEM_TEMPLATE.md from a nested cwd`, async () => {
 			await withDiscoveryHome(async ({ cwd, userConfig }) => {
 				const nestedCwd = path.join(cwd, "nested");
-				await Bun.write(path.join(nestedCwd, "file.txt"), "");
-				await Bun.write(path.join(cwd, directory, "SYSTEM_TEMPLATE.md"), eagerTasksTemplate);
-				await Bun.write(path.join(userConfig, "SYSTEM.md"), "user literal prompt");
+				await bun.write(path.join(nestedCwd, "file.txt"), "");
+				await bun.write(path.join(cwd, directory, "SYSTEM_TEMPLATE.md"), eagerTasksTemplate);
+				await bun.write(path.join(userConfig, "SYSTEM.md"), "user literal prompt");
 
 				const override = await discoverSystemPromptOverride(nestedCwd);
 				expect(override?.kind).toBe("template");
@@ -148,8 +151,8 @@ describe("system prompt Handlebars templates", () => {
 		await withDiscoveryHome(async ({ cwd, userConfig }) => {
 			const templatePath = path.join(userConfig, "SYSTEM_TEMPLATE.md");
 			const textPath = path.join(userConfig, "SYSTEM.md");
-			await Bun.write(templatePath, eagerTasksTemplate);
-			await Bun.write(textPath, "user literal prompt");
+			await bun.write(templatePath, eagerTasksTemplate);
+			await bun.write(textPath, "user literal prompt");
 
 			expect(await discoverSystemPromptOverride(cwd)).toEqual({
 				kind: "text",
@@ -161,7 +164,7 @@ describe("system prompt Handlebars templates", () => {
 
 	it("lets explicit raw prompts suppress a discovered native template", async () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig }) => {
-			await Bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), liveDataTemplate);
+			await bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), liveDataTemplate);
 
 			const explicitTemplate = await render(cwd, eagerTasksTemplate, { eagerTasks: true });
 			expect(explicitTemplate.text).toContain("TASK_BRANCH=eager");
@@ -177,7 +180,7 @@ describe("system prompt Handlebars templates", () => {
 	for (const key of ["customPrompt", "resolvedCustomPrompt"] as const) {
 		it(`keeps always-apply rules when ${key} is explicitly empty`, async () => {
 			await withDiscoveryHome(async ({ cwd, projectConfig }) => {
-				await Bun.write(path.join(projectConfig, "SYSTEM.md"), literalDataTemplate);
+				await bun.write(path.join(projectConfig, "SYSTEM.md"), literalDataTemplate);
 				const result = await buildSystemPrompt(
 					options(cwd, {
 						[key]: "",
@@ -194,8 +197,8 @@ describe("system prompt Handlebars templates", () => {
 
 	it("prefers the discovered literal without rendering a same-scope malformed template", async () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig }) => {
-			await Bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), "{{#if eagerTasks}}");
-			await Bun.write(path.join(projectConfig, "SYSTEM.md"), "fallback literal prompt");
+			await bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), "{{#if eagerTasks}}");
+			await bun.write(path.join(projectConfig, "SYSTEM.md"), "fallback literal prompt");
 
 			const result = await buildSystemPrompt(options(cwd));
 			const text = result.systemPrompt.join("\n\n");
@@ -206,7 +209,7 @@ describe("system prompt Handlebars templates", () => {
 
 	it("warns on a malformed discovered template and falls back to the bundled prompt", async () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig }) => {
-			await Bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), "{{#if eagerTasks}}");
+			await bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), "{{#if eagerTasks}}");
 
 			const result = await buildSystemPrompt(options(cwd));
 			const text = result.systemPrompt.join("\n\n");
@@ -217,8 +220,8 @@ describe("system prompt Handlebars templates", () => {
 
 	it("warns on an empty discovered template and falls back to the discovered literal", async () => {
 		await withDiscoveryHome(async ({ cwd, projectConfig }) => {
-			await Bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), " \n\t");
-			await Bun.write(path.join(projectConfig, "SYSTEM.md"), "fallback literal prompt");
+			await bun.write(path.join(projectConfig, "SYSTEM_TEMPLATE.md"), " \n\t");
+			await bun.write(path.join(projectConfig, "SYSTEM.md"), "fallback literal prompt");
 
 			const result = await buildSystemPrompt(options(cwd));
 			const text = result.systemPrompt.join("\n\n");

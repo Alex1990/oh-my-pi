@@ -7,6 +7,7 @@ import type { NativeNode } from "../native/node";
 import { isNativeSettled, settleNative } from "../native/settle";
 import { isUsageRowBlock } from "../overlays/usage-row";
 import { isToolActivityComponent } from "./tool-activity";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Shared animation time supplied by the constrained transcript root. */
 export interface AnimationFrame {
@@ -168,7 +169,7 @@ function isPlainBlank(line: string): boolean {
 /** Letters and digits of `rows` in reading order: the content rewrapping preserves. */
 function contentOf(rows: readonly string[]): string {
 	let text = "";
-	for (const row of rows) text += Bun.stripANSI(row).replace(/[^\p{L}\p{N}]/gu, "");
+	for (const row of rows) text += bun.stripANSI(row).replace(/[^\p{L}\p{N}]/gu, "");
 	return text;
 }
 
@@ -180,7 +181,7 @@ function contentOf(rows: readonly string[]): string {
  */
 function rowSplit(scrollback: readonly string[], rows: number, width: number): RowSplit {
 	const committed = scrollback.slice(0, rows);
-	return { rows, width, hash: Bun.hash(committed.join("\n")), text: contentOf(committed) };
+	return { rows, width, hash: bun.hash(committed.join("\n")), text: contentOf(committed) };
 }
 
 /** Whether `prefix` matches `rows` byte-for-byte from the top. */
@@ -1091,7 +1092,7 @@ export class TranscriptContainer extends Container {
 		if (
 			width === split.width &&
 			rendered.length >= split.rows &&
-			Bun.hash(rendered.slice(0, split.rows).join("\n")) === split.hash
+			bun.hash(rendered.slice(0, split.rows).join("\n")) === split.hash
 		) {
 			count = split.rows;
 		} else {

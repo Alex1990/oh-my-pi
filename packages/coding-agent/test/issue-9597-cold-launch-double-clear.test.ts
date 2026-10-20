@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ComposerPreferences } from "@oh-my-pi/pi-tui/prompt/composer";
 import { InteractiveMode } from "@oh-my-pi/pi-coding-agent/modes/interactive-mode";
@@ -24,6 +24,7 @@ import {
 	cfgTuiMaxInlineImages,
 	cfgTuiResizeScrollback,
 } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Every destructive reset emits one erase-scrollback (ED3). Count that
 // operation without coupling this regression to the ED2/ED3 ordering.
@@ -120,9 +121,9 @@ describe("issue #9597 — cold-launch welcome duplication", () => {
 			await terminal.waitForRender(
 				() =>
 					!resuming ||
-					terminal.getScrollBuffer().some(line => Bun.stripANSI(line).includes("resume marker answer")),
+					terminal.getScrollBuffer().some(line => bun.stripANSI(line).includes("resume marker answer")),
 			);
-			const rows = terminal.getScrollBuffer().map(l => Bun.stripANSI(l));
+			const rows = terminal.getScrollBuffer().map(l => bun.stripANSI(l));
 			return {
 				resets: terminal.countResets(),
 				welcomeRows: rows.filter(l => l.includes("18.0.4")).length,

@@ -27,6 +27,7 @@ import type {
 	TraceToolStat,
 	TraceTrack,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Client-supplied path escaped the sessions root or is not a transcript. Maps to HTTP 400. */
 export class TracePathError extends Error {}
@@ -170,8 +171,8 @@ function resolveSessionPath(fileParam: string): string {
 
 /** Read a transcript, transparently gunzipping gc-compressed sessions. */
 async function readTranscript(resolved: string): Promise<Uint8Array> {
-	const bytes = await Bun.file(resolved).bytes();
-	return resolved.endsWith(".gz") ? Bun.gunzipSync(bytes) : bytes;
+	const bytes = await bun.file(resolved).bytes();
+	return resolved.endsWith(".gz") ? bun.gunzipSync(bytes) : bytes;
 }
 
 // ---------------------------------------------------------------------------
@@ -998,9 +999,9 @@ const metadataCache = new Map<string, SessionMetadata & { mtimeMs: number }>();
 
 /** Read enough decompressed transcript bytes to cover the title slot and session header. */
 async function readSessionMetadataHead(file: string): Promise<string> {
-	if (!file.endsWith(".gz")) return Bun.file(file).slice(0, TITLE_SCAN_BYTES).text();
+	if (!file.endsWith(".gz")) return bun.file(file).slice(0, TITLE_SCAN_BYTES).text();
 
-	const reader = Bun.file(file).stream().pipeThrough(new DecompressionStream("gzip")).getReader();
+	const reader = bun.file(file).stream().pipeThrough(new DecompressionStream("gzip")).getReader();
 	const decoder = new TextDecoder();
 	let remaining = TITLE_SCAN_BYTES;
 	let head = "";

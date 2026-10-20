@@ -105,6 +105,7 @@ import type {
 	RpcSessionState,
 	RpcSubagentSubscriptionLevel,
 } from "./rpc-types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const INVALID_TEXT_CURSOR_ERROR = "cursor must be an integer UTF-16 offset within text";
 
@@ -2678,7 +2679,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions 
 	// as an error frame and the loop keeps running instead of throwing out of
 	// the reader and killing the whole process (issue #5194).
 	await readRpcInputFrames(
-		input ?? Bun.stdin.stream(),
+		input ?? bun.stdin.stream(),
 		parsed => inputDispatcher.dispatch(parsed),
 		message => output(error(undefined, "parse", message)),
 	);

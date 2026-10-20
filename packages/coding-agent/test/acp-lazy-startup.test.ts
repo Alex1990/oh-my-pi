@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -26,6 +26,7 @@ import {
 	cfgBashAutoBackgroundEnabled,
 	cfgBashAutoBackgroundThresholdMs,
 } from "@oh-my-pi/pi-coding-agent/exec/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_MODEL: Model = buildModel({
 	id: "claude-sonnet-4-20250514",
@@ -399,7 +400,7 @@ describe("ACP lazy startup", () => {
 		using tempDir = TempDir.createSync("@omp-acp-lazy-api-key-");
 		const cwd = tempDir.path();
 
-		await Bun.write(
+		await bun.write(
 			path.join(cwd, "runtime-provider.ts"),
 			`export default function(pi) {
 	pi.registerProvider("runtime-provider", {

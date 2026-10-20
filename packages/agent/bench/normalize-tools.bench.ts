@@ -10,6 +10,7 @@
 import { type } from "@oh-my-pi/omptype";
 import { normalizeTools } from "../src/agent-loop";
 import type { AgentTool } from "../src/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const toolSchema = type({
 	path: type("string").describe("where to read"),
@@ -33,7 +34,7 @@ const tools = Array.from({ length: 50 }, (_, i) => makeTool(`tool-${i}`));
 normalizeTools(tools, { injectIntent: true }); // warmup: populate schema memos
 
 const N = 200;
-const start = Bun.nanoseconds();
+const start = bun.nanoseconds();
 for (let i = 0; i < N; i++) normalizeTools(tools, { injectIntent: true });
-const ms = (Bun.nanoseconds() - start) / 1e6;
+const ms = (bun.nanoseconds() - start) / 1e6;
 console.log(`normalizeTools x${N} (50 tools): ${ms.toFixed(1)}ms (${((ms / N) * 1000).toFixed(1)}us/op)`);

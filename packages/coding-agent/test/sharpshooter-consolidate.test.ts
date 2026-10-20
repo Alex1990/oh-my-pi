@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import * as ai from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -21,6 +21,7 @@ import {
 import type { SharpshooterDelta } from "@oh-my-pi/pi-coding-agent/sharpshooter/types";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface Harness {
 	agentDir: string;
@@ -161,11 +162,11 @@ describe("runSharpshooterConsolidation", () => {
 
 		expect(result).toEqual({ ran: true, sessions: 2, deltas: 2 });
 		for (const file of completeFiles) {
-			expect(await Bun.file(sharpshooterMemoryFilePath(harness.agentDir, harness.cwd, file.name)).text()).toBe(
+			expect(await bun.file(sharpshooterMemoryFilePath(harness.agentDir, harness.cwd, file.name)).text()).toBe(
 				file.content,
 			);
 		}
-		for (const file of listedFiles) expect(await Bun.file(file).exists()).toBe(false);
+		for (const file of listedFiles) expect(await bun.file(file).exists()).toBe(false);
 		const remaining = await listSharpshooterDeltas(harness.agentDir, harness.cwd);
 		expect(remaining).toHaveLength(1);
 		expect(remaining[0]?.deltas.map(item => item.delta.statement)).toEqual(["Late arrival."]);
@@ -179,9 +180,9 @@ describe("runSharpshooterConsolidation", () => {
 		const harness = createHarness(temp.path());
 		await appendSharpshooterDelta(harness.agentDir, harness.cwd, delta("session-a", 1, "Keep one boundary."));
 		const bankDir = sharpshooterBankDir(harness.agentDir, harness.cwd);
-		await Bun.write(path.join(bankDir, "architecture.md"), "old architecture");
-		await Bun.write(path.join(bankDir, "product.md"), "old product");
-		await Bun.write(path.join(bankDir, "style.md"), "old style");
+		await bun.write(path.join(bankDir, "architecture.md"), "old architecture");
+		await bun.write(path.join(bankDir, "product.md"), "old product");
+		await bun.write(path.join(bankDir, "style.md"), "old style");
 		vi.spyOn(ai, "completeSimple").mockResolvedValue(
 			completion([
 				{ name: "architecture.md", content: Array.from({ length: 121 }, (_, index) => `line ${index}`).join("\n") },
@@ -195,9 +196,9 @@ describe("runSharpshooterConsolidation", () => {
 		expect(result.ran).toBe(false);
 		expect(result.reason).toBe("error");
 		expect(result.error).toContain("120-line limit");
-		expect(await Bun.file(path.join(bankDir, "architecture.md")).text()).toBe("old architecture");
-		expect(await Bun.file(path.join(bankDir, "product.md")).text()).toBe("old product");
-		expect(await Bun.file(path.join(bankDir, "style.md")).text()).toBe("old style");
+		expect(await bun.file(path.join(bankDir, "architecture.md")).text()).toBe("old architecture");
+		expect(await bun.file(path.join(bankDir, "product.md")).text()).toBe("old product");
+		expect(await bun.file(path.join(bankDir, "style.md")).text()).toBe("old style");
 		expect(await listSharpshooterDeltas(harness.agentDir, harness.cwd)).toHaveLength(1);
 		const state = await readSharpshooterState(harness.agentDir, harness.cwd);
 		expect(state.lastError?.message).toContain("120-line limit");
@@ -208,9 +209,9 @@ describe("runSharpshooterConsolidation", () => {
 		const harness = createHarness(temp.path());
 		await appendSharpshooterDelta(harness.agentDir, harness.cwd, delta("session-a", 1, "Keep one boundary."));
 		const bankDir = sharpshooterBankDir(harness.agentDir, harness.cwd);
-		await Bun.write(path.join(bankDir, "architecture.md"), "old architecture");
-		await Bun.write(path.join(bankDir, "product.md"), "old product");
-		await Bun.write(path.join(bankDir, "style.md"), "old style");
+		await bun.write(path.join(bankDir, "architecture.md"), "old architecture");
+		await bun.write(path.join(bankDir, "product.md"), "old product");
+		await bun.write(path.join(bankDir, "style.md"), "old style");
 		vi.spyOn(ai, "completeSimple").mockResolvedValue(
 			completion([
 				{ name: "architecture.md", content: "" },
@@ -224,9 +225,9 @@ describe("runSharpshooterConsolidation", () => {
 		expect(result.ran).toBe(false);
 		expect(result.reason).toBe("error");
 		expect(result.error).toContain("all-empty");
-		expect(await Bun.file(path.join(bankDir, "architecture.md")).text()).toBe("old architecture");
-		expect(await Bun.file(path.join(bankDir, "product.md")).text()).toBe("old product");
-		expect(await Bun.file(path.join(bankDir, "style.md")).text()).toBe("old style");
+		expect(await bun.file(path.join(bankDir, "architecture.md")).text()).toBe("old architecture");
+		expect(await bun.file(path.join(bankDir, "product.md")).text()).toBe("old product");
+		expect(await bun.file(path.join(bankDir, "style.md")).text()).toBe("old style");
 		expect(await listSharpshooterDeltas(harness.agentDir, harness.cwd)).toHaveLength(1);
 		const state = await readSharpshooterState(harness.agentDir, harness.cwd);
 		expect(state.lastError?.message).toContain("all-empty");

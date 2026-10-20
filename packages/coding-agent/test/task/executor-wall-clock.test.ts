@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { LoadExtensionsResult } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/types";
@@ -10,6 +10,7 @@ import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import type { AgentDefinition } from "@oh-my-pi/pi-coding-agent/task/types";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { createSessionDefaults } from "../helpers/session-defaults";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Contract: when `task.maxRuntimeMs` is set, a subagent whose inference call
@@ -748,7 +749,7 @@ describe("runSubprocess wall clock (task.maxRuntimeMs)", () => {
 				// executor's setTimeout(maxRuntimeMs) and its async teardown, so the
 				// teardown must outlast the deadline against the real clock. Fake
 				// timers would dictate that ordering instead of observing it.
-				await Bun.sleep(1500);
+				await bun.sleep(1500);
 				releaseHang();
 			},
 		};
@@ -800,7 +801,7 @@ describe("runSubprocess wall clock (task.maxRuntimeMs)", () => {
 				// Genuine delay: post-yield teardown must outlast the real
 				// setTimeout(maxRuntimeMs) so the timer fires after the yield has
 				// committed. See the budget test above for why fake timers do not fit.
-				await Bun.sleep(1500);
+				await bun.sleep(1500);
 			},
 		};
 		mockCreateAgentSession(session as AgentSession);

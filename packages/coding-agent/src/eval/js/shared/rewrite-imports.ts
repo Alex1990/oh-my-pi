@@ -1,4 +1,6 @@
 import type * as BabelParser from "@babel/parser";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Transpiler } from "@oh-my-pi/pi-utils/transpiler";
 
 // Static ESM `import` declarations are not valid inside vm.runInContext (script-mode parsing),
 // and dynamic `import(...)` would otherwise resolve specifiers against the worker module's URL
@@ -175,7 +177,7 @@ function buildCellSyntaxError(code: string, error: unknown): SyntaxError | undef
 			// Keep tabs so the caret lines up with the source line above it.
 			let pad = "";
 			for (const char of text.slice(0, caretColumn)) {
-				pad += char === "\t" ? char : " ".repeat(Bun.stringWidth(char));
+				pad += char === "\t" ? char : " ".repeat(bun.stringWidth(char));
 			}
 			frame.push(`${" ".repeat(gutterWidth)} | ${pad}^`);
 		}
@@ -1154,8 +1156,8 @@ async function requiresAsyncWrapper(code: string): Promise<boolean> {
  */
 type TypeScriptStripLoader = "ts" | "tsx";
 
-const TS_TRANSPILER = new Bun.Transpiler({ loader: "ts" });
-const TSX_TRANSPILER = new Bun.Transpiler({ loader: "tsx" });
+const TS_TRANSPILER = new Transpiler({ loader: "ts" });
+const TSX_TRANSPILER = new Transpiler({ loader: "tsx" });
 
 function stripTypeScript(code: string, options: { force?: boolean; loader?: TypeScriptStripLoader } = {}): string {
 	if (!options.force && !LOOKS_LIKE_TS.test(code)) return code;

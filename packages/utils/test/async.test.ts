@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { scheduler } from "node:timers/promises";
 import { MAX_TIMER_DELAY_MS, sleepLong } from "@oh-my-pi/pi-utils/async";
 
@@ -62,7 +62,8 @@ describe("sleepLong", () => {
 		const controller = new AbortController();
 		controller.abort();
 
-		await expect(sleepLong(0, controller.signal)).rejects.toThrow("The operation was aborted");
+		// Node's DOMException wording differs from Bun's; the contract is the abort signal.
+		await expect(sleepLong(0, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
 		expect(clock.wait).not.toHaveBeenCalled();
 	});
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { resolveBrowserKind, resolveTernKind, type TernKind } from "@oh-my-pi/pi-coding-agent/tools/browser";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools/index";

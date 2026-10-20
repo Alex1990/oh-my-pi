@@ -159,6 +159,7 @@ import {
 	cfgCompactionThresholdPercent,
 	cfgCompactionThresholdTokens,
 } from "../session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type { YieldItem } from "@oh-my-pi/pi-tui/tools/task";
 
@@ -2508,7 +2509,7 @@ async function driveSessionToResult(
 				}
 				throw err;
 			}
-			await untilAborted(abortSignal, () => Bun.sleep(250 * 2 ** (attempt - 1)));
+			await untilAborted(abortSignal, () => bun.sleep(250 * 2 ** (attempt - 1)));
 		}
 	};
 

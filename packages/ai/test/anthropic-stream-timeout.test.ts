@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamAnthropic } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { AnthropicMessagesClient, type AnthropicMessagesClientLike } from "@oh-my-pi/pi-ai/providers/anthropic-client";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { waitForDelayOrAbort } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const model: Model<"anthropic-messages"> = buildModel({
 	id: "claude-sonnet-4-5",
@@ -220,8 +221,8 @@ const originalStreamTimeoutEnv: Record<StreamTimeoutEnvKey, string | undefined> 
 
 beforeEach(() => {
 	for (const key of STREAM_TIMEOUT_ENV_KEYS) {
-		originalStreamTimeoutEnv[key] = Bun.env[key];
-		delete Bun.env[key];
+		originalStreamTimeoutEnv[key] = bun.env[key];
+		delete bun.env[key];
 	}
 });
 
@@ -229,9 +230,9 @@ afterEach(() => {
 	for (const key of STREAM_TIMEOUT_ENV_KEYS) {
 		const previous = originalStreamTimeoutEnv[key];
 		if (previous === undefined) {
-			delete Bun.env[key];
+			delete bun.env[key];
 		} else {
-			Bun.env[key] = previous;
+			bun.env[key] = previous;
 		}
 	}
 

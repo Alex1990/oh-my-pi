@@ -2,21 +2,22 @@
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { compareSecurityProducers, importCodexSecurityBundle, parseSecurityScanBundle } from "../src/security";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function readBundle(directory: string) {
 	const root = path.resolve(directory);
 	let scan: unknown;
 	try {
-		scan = JSON.parse(await Bun.file(path.join(root, "scan.json")).text()) as unknown;
+		scan = JSON.parse(await bun.file(path.join(root, "scan.json")).text()) as unknown;
 	} catch (error) {
 		if (!isEnoent(error)) throw error;
 		return importCodexSecurityBundle(root, { repositoryRoot: root });
 	}
-	const findings = JSON.parse(await Bun.file(path.join(root, "findings.json")).text()) as unknown;
-	const report = await Bun.file(path.join(root, "report.md"))
+	const findings = JSON.parse(await bun.file(path.join(root, "findings.json")).text()) as unknown;
+	const report = await bun.file(path.join(root, "report.md"))
 		.text()
 		.catch(() => undefined);
-	const sarifText = await Bun.file(path.join(root, "results.sarif"))
+	const sarifText = await bun.file(path.join(root, "results.sarif"))
 		.text()
 		.catch(() => undefined);
 	return parseSecurityScanBundle({
@@ -36,5 +37,5 @@ if (!referenceDirectory || !candidateDirectory) {
 }
 const report = compareSecurityProducers(await readBundle(referenceDirectory), await readBundle(candidateDirectory));
 const serialized = `${JSON.stringify(report, null, 2)}\n`;
-if (outputPath) await Bun.write(path.resolve(outputPath), serialized);
+if (outputPath) await bun.write(path.resolve(outputPath), serialized);
 else process.stdout.write(serialized);

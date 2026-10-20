@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -207,7 +207,7 @@ describe("exact security OAuth resolver", () => {
 		});
 		const brokerStorage = createBrokerAuthStorage(store);
 		await brokerStorage.credentials.reload();
-		const handle = startAuthBroker({
+		const handle = await startAuthBroker({
 			storage: brokerStorage,
 			bind: "127.0.0.1:0",
 			bearerTokens: ["security-broker-token"],

@@ -33,6 +33,7 @@ import sampleDoc from "./snapcompact-shape-preview-doc.md" with { type: "text" }
 import type { DescribeContext, NativeNode } from "../native/node";
 import { col, node, span, text } from "../native/describe";
 import { nativeImageNode } from "../native/blobs";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 /** Mini-frame edge in px — a small page from the real rasterizer ≈ a zoomed crop. */
 const SRC_FRAME_PX = 128;
@@ -195,7 +196,7 @@ export class SnapcompactShapePreview implements Component {
 			const frame = (await renderMany(text, { shape, frameSize: SRC_FRAME_PX, maxFrames: 1 }))[0];
 			if (!frame) throw new Error("empty sample frame");
 			const edgePx = SRC_FRAME_PX * ZOOM_SCALE;
-			const zoomed = await new Bun.Image(Buffer.from(frame.data, "base64"))
+			const zoomed = await new Image(Buffer.from(frame.data, "base64"))
 				.resize(edgePx, edgePx, { filter: "nearest" })
 				.png()
 				.bytes();

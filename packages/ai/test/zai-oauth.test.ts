@@ -1,11 +1,12 @@
-import type { Mock } from "bun:test";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import type { Mock } from "@oh-my-pi/pi-utils/test-runtime";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import * as nativeSchemeCallback from "@oh-my-pi/pi-ai/registry/oauth/native-scheme-callback";
 import type { NativeSchemeCallbackReceiver } from "@oh-my-pi/pi-ai/registry/oauth/native-scheme-callback";
 import type { OAuthCredentials, OAuthController } from "@oh-my-pi/pi-ai/registry/oauth/types";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
 const AUTHORIZE_URL = "https://chat.z.ai/api/oauth/authorize";
@@ -135,7 +136,7 @@ describe("zai oauth flow", () => {
 		// reused ZCode client; only `zcode://zai-auth/callback` validates, so the flow
 		// skips the local callback server and uses native capture when available,
 		// while retaining pasted input as its portable fallback.
-		const serveSpy = vi.spyOn(Bun, "serve");
+		const serveSpy = vi.spyOn(bun, "serve");
 		const controller = new AbortController();
 		let url = "";
 		const login = getProviderDefinition("zai-coding-plan")?.login;

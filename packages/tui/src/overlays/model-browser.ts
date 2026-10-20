@@ -50,6 +50,7 @@ import { pickerFuzzyHits } from "../native/picker";
 import type { NativeChild, NativeNode, NativeUiEvent } from "../native/node";
 import { sameItems } from "../native/memo";
 import { plainText } from "../native/spans";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Canonical display ordering of built-in model roles. */
 export type ModelRole =
@@ -1574,8 +1575,8 @@ export class ModelBrowser implements Component {
 		if (overContext) {
 			// Gray the whole row but keep the selection cursor visible: over-context
 			// models stay selectable (the host compacts before switching).
-			const plainPrefix = Bun.stripANSI(prefix);
-			line = `${prefix}${theme.fg("dim", Bun.stripANSI(line).slice(plainPrefix.length))}`;
+			const plainPrefix = bun.stripANSI(prefix);
+			line = `${prefix}${theme.fg("dim", bun.stripANSI(line).slice(plainPrefix.length))}`;
 		}
 		// The bg band is reserved for the mouse: it marks hover, nothing else.
 		// Keyboard selection is the cursor glyph + accent name.
@@ -2035,7 +2036,7 @@ export class ModelBrowser implements Component {
 			...(int !== undefined ? { title: `Intelligence ${Math.round(int)}` } : {}),
 		};
 		// Discovery re-mints Model objects for unchanged models; an equal row keeps its identity.
-		const kept = cached && Bun.deepEquals(cached.value, value) ? cached.value : value;
+		const kept = cached && bun.deepEquals(cached.value, value) ? cached.value : value;
 		this.#pickerItemCache.set(item.selector, { model, label: item.id, held, epoch: this.#pickerEpoch, value: kept });
 		return kept;
 	}

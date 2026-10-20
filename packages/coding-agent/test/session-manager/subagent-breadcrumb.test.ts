@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -9,6 +9,7 @@ import { getTerminalId } from "@oh-my-pi/pi-tui";
 import { getConfigRootDir, getTerminalSessionsDir, setAgentDir } from "@oh-my-pi/pi-utils";
 
 import { makeAssistantMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const JSONL_SUFFIX = ".jsonl";
 
@@ -103,7 +104,7 @@ describe("SessionManager subagent breadcrumb isolation", () => {
 		const mainFile = await createParentSession();
 		const subFile = await writeSubagentSession(mainFile, "HeaderWorker", "subagent work");
 
-		const freshHeader = JSON.parse((await Bun.file(subFile).text()).split("\n")[1] ?? "null") as {
+		const freshHeader = JSON.parse((await bun.file(subFile).text()).split("\n")[1] ?? "null") as {
 			parentSession?: string;
 		};
 		expect(freshHeader.parentSession).toBe(mainFile);

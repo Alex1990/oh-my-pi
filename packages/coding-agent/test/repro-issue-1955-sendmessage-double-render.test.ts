@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { ImageContent, TextContent } from "@oh-my-pi/pi-ai";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -15,6 +15,7 @@ import { UiHelpers } from "@oh-my-pi/pi-coding-agent/modes/utils/ui-helpers";
 import { buildSessionContext, type SessionContext } from "@oh-my-pi/pi-coding-agent/session/session-context";
 import type { CustomMessageEntry, SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { Container } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Issue #1955: `sendMessage` with `display: true` renders twice during
@@ -216,13 +217,13 @@ describe("issue #1955 — sendMessage(display:true) during session_start", () =>
 
 		// Drain the `.then(applyCustomMessageDisplay)` microtask chain queued by
 		// `actions.sendMessage` before the host's renderInitialMessages fires.
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
 		// Mirror main.ts: after `mode.init()` returns, the host renders the
 		// initial transcript while preserving anything previously added to chat.
 		await harness.helpers.renderInitialMessages({ preserveExistingChat: true });
 
-		const rendered = Bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
 		const occurrences = countOccurrences(rendered, marker);
 		expect(occurrences).toBe(1);
 	});
@@ -246,9 +247,9 @@ describe("issue #1955 — sendMessage(display:true) during session_start", () =>
 			},
 			{ deliverAs: "nextTurn" },
 		);
-		await Bun.sleep(0);
+		await bun.sleep(0);
 
-		const rendered = Bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
 		expect(countOccurrences(rendered, marker)).toBe(1);
 	});
 
@@ -281,7 +282,7 @@ describe("issue #1955 — sendMessage(display:true) during session_start", () =>
 		);
 		await initialReplay;
 
-		const rendered = Bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
 		expect(countOccurrences(rendered, initialMarker)).toBe(1);
 		expect(countOccurrences(rendered, lateMarker)).toBe(1);
 		expect(rendered.indexOf(initialMarker)).toBeLessThan(rendered.indexOf(lateMarker));
@@ -314,7 +315,7 @@ describe("issue #1955 — sendMessage(display:true) during session_start", () =>
 		);
 		await replay;
 
-		const rendered = Bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
+		const rendered = bun.stripANSI(harness.ctx.chatContainer.render(120).join("\n"));
 		expect(countOccurrences(rendered, existingMarker)).toBe(1);
 		expect(countOccurrences(rendered, lateMarker)).toBe(1);
 		expect(rendered.indexOf(existingMarker)).toBeLessThan(rendered.indexOf(lateMarker));

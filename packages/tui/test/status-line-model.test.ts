@@ -1,8 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type { SegmentContext } from "../src/status-line/segments";
 import { renderSegment } from "../src/status-line/segments";
 import { initTheme, theme } from "../src/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme();
@@ -162,14 +163,14 @@ describe("status line model segment compact thinking level", () => {
 		const display = theme.thinking.high;
 		const modelPrefix = theme.icon.model ? `${theme.icon.model} ` : "";
 		const rendered = renderSegment("model", createThinkingContext(false));
-		expect(Bun.stripANSI(rendered.content)).toBe(`${modelPrefix}Test Model${theme.sep.dot}${display}`);
+		expect(bun.stripANSI(rendered.content)).toBe(`${modelPrefix}Test Model${theme.sep.dot}${display}`);
 	});
 
 	it("swaps the model icon for the level glyph and drops the suffix when compact", () => {
 		const display = theme.thinking.high;
 		const glyph = display.includes(" ") ? display.slice(0, display.indexOf(" ")) : display;
 		const rendered = renderSegment("model", createThinkingContext(true));
-		expect(Bun.stripANSI(rendered.content)).toBe(`${glyph} Test Model`);
-		expect(Bun.stripANSI(rendered.content)).not.toContain(theme.sep.dot);
+		expect(bun.stripANSI(rendered.content)).toBe(`${glyph} Test Model`);
+		expect(bun.stripANSI(rendered.content)).not.toContain(theme.sep.dot);
 	});
 });

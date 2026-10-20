@@ -5,7 +5,7 @@
 // are real charges, so `applyProviderReportedCost` records their sum; reading
 // `cost` alone used to drop the spend (verified live 2026-10-02 on
 // openrouter/openai/gpt-6.1-sol: cost=0, is_byok=true, upstream=6.6e-05).
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { applyProviderReportedCost } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import type { Model, Usage } from "@oh-my-pi/pi-ai/types";
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type Component,
 	type TerminalFramePlan,
@@ -10,6 +10,7 @@ import type { RenderTimer } from "@oh-my-pi/pi-tui/tui";
 import { withoutTerminalMultiplexer } from "./helpers/terminal-multiplexer";
 import { VirtualRenderScheduler } from "./virtual-render-scheduler";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Warp re-reports size when the alternate buffer toggles. The resize path
 // borrows that buffer, waits 120 ms, restores it, then starts a CPR probe.
@@ -78,21 +79,21 @@ describe("resize on Warp, which SIGWINCHes on alt-buffer toggle", () => {
 	beforeEach(() => {
 		saved = {};
 		for (const key of TERMINAL_ENV) {
-			saved[key] = Bun.env[key];
-			delete Bun.env[key];
+			saved[key] = bun.env[key];
+			delete bun.env[key];
 		}
 	});
 
 	afterEach(() => {
 		for (const key of TERMINAL_ENV) {
-			if (saved[key] === undefined) delete Bun.env[key];
-			else Bun.env[key] = saved[key];
+			if (saved[key] === undefined) delete bun.env[key];
+			else bun.env[key] = saved[key];
 		}
 		saved = {};
 	});
 
 	it("does not borrow the alt buffer for a Warp pane resize", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new AltToggleEchoTerminal(40, 12);
 		const scheduler = new VirtualRenderScheduler();
 		const tui = new TUI(term, undefined, { renderScheduler: scheduler });
@@ -114,8 +115,8 @@ describe("resize on Warp, which SIGWINCHes on alt-buffer toggle", () => {
 	});
 
 	it("borrows the alt buffer once when Warp in-place is forced off", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
 		const term = new AltToggleEchoTerminal(40, 12);
 		const scheduler = new VirtualRenderScheduler();
 		const tui = new TUI(term, undefined, { renderScheduler: scheduler });
@@ -156,7 +157,7 @@ describe("resize on Warp, which SIGWINCHes on alt-buffer toggle", () => {
 	});
 
 	it("paints after a restart during the in-place settle window", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -185,7 +186,7 @@ describe("resize on Warp, which SIGWINCHes on alt-buffer toggle", () => {
 		}
 	});
 	it("repaints the modal instead of probing on an overlay toggle echo", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -214,7 +215,7 @@ describe("resize on Warp, which SIGWINCHes on alt-buffer toggle", () => {
 		}
 	});
 	it("parks the cursor before the shell handoff when stopping mid-resize", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -248,21 +249,21 @@ describe("Warp in-place resize with a frame provider in rebuild mode", () => {
 	beforeEach(() => {
 		saved = {};
 		for (const key of TERMINAL_ENV) {
-			saved[key] = Bun.env[key];
-			delete Bun.env[key];
+			saved[key] = bun.env[key];
+			delete bun.env[key];
 		}
 	});
 
 	afterEach(() => {
 		for (const key of TERMINAL_ENV) {
-			if (saved[key] === undefined) delete Bun.env[key];
-			else Bun.env[key] = saved[key];
+			if (saved[key] === undefined) delete bun.env[key];
+			else bun.env[key] = saved[key];
 		}
 		saved = {};
 	});
 
 	it("coalesces a drag into one ED3-free repaint with no alt borrow", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -308,7 +309,7 @@ describe("Warp in-place resize with a frame provider in rebuild mode", () => {
 	});
 
 	it("drops ordinary paints while the in-place resize settles", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -349,7 +350,7 @@ describe("Warp in-place resize with a frame provider in rebuild mode", () => {
 		}
 	});
 	it("settles a shrink drag in place with history and viewport intact", async () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
 		const term = new VirtualTerminal(40, 12);
 		const scheduler = new VirtualRenderScheduler();
 		const tui = new TUI(term, undefined, { renderScheduler: scheduler });
@@ -383,22 +384,22 @@ describe("Warp echo expectation is single-shot", () => {
 	beforeEach(() => {
 		saved = {};
 		for (const key of TERMINAL_ENV) {
-			saved[key] = Bun.env[key];
-			delete Bun.env[key];
+			saved[key] = bun.env[key];
+			delete bun.env[key];
 		}
 	});
 
 	afterEach(() => {
 		for (const key of TERMINAL_ENV) {
-			if (saved[key] === undefined) delete Bun.env[key];
-			else Bun.env[key] = saved[key];
+			if (saved[key] === undefined) delete bun.env[key];
+			else bun.env[key] = saved[key];
 		}
 		saved = {};
 	});
 
 	it("consumes the echo expectation so a later one-row resize restarts", () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -439,8 +440,8 @@ describe("Warp echo expectation is single-shot", () => {
 		}
 	});
 	it("re-probes a delayed echo that arrives after its probe resolved", () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -477,8 +478,8 @@ describe("Warp echo expectation is single-shot", () => {
 		}
 	});
 	it("never probes while the resize borrow owns the alt buffer", () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
-		Bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
+		bun.env.PI_TUI_RESIZE_IN_PLACE = "0";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -511,9 +512,9 @@ describe("Warp echo expectation is single-shot", () => {
 		}
 	});
 	it("keeps the borrow path for Warp sessions inside a multiplexer", () => {
-		Bun.env.TERM_PROGRAM = "WarpTerminal";
-		const previousTmux = Bun.env.TMUX;
-		Bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
+		bun.env.TERM_PROGRAM = "WarpTerminal";
+		const previousTmux = bun.env.TMUX;
+		bun.env.TMUX = "/tmp/tmux-1000/default,1,0";
 		const term = new VirtualTerminal(40, 12);
 		const writes: string[] = [];
 		const originalWrite = term.write.bind(term);
@@ -545,8 +546,8 @@ describe("Warp echo expectation is single-shot", () => {
 			expect(countNeedle(all, "\x1b[6n")).toBe(2);
 		} finally {
 			tui.stop();
-			if (previousTmux === undefined) delete Bun.env.TMUX;
-			else Bun.env.TMUX = previousTmux;
+			if (previousTmux === undefined) delete bun.env.TMUX;
+			else bun.env.TMUX = previousTmux;
 		}
 	});
 });

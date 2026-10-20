@@ -60,7 +60,23 @@ export interface RegisteredCustomApi {
 	sourceId?: string;
 }
 
-const customApiRegistry = new Map<string, RegisteredCustomApi>();
+/**
+ * Process-wide registry shared by every evaluation of this module.
+ *
+ * Extensions load in place through Node's native loader while the host itself
+ * runs through the bundler; without a shared map a custom API registered by the
+ * host is invisible to the extension's `streamSimple` (and vice versa).
+ */
+const CUSTOM_API_REGISTRY = Symbol.for("oh-my-pi.pi-ai.customApiRegistry");
+
+function customApiRegistry(): Map<string, RegisteredCustomApi> {
+	let registry = Reflect.get(globalThis, CUSTOM_API_REGISTRY) as Map<string, RegisteredCustomApi> | undefined;
+	if (!registry) {
+		registry = new Map();
+		Reflect.set(globalThis, CUSTOM_API_REGISTRY, registry);
+	}
+	return registry;
+}
 
 function assertCustomApiName(api: string): void {
 	if (BUILTIN_APIS.has(api as KnownApi)) {
@@ -78,7 +94,7 @@ export function registerCustomApi(
 	stream?: CustomStreamFn,
 ): void {
 	assertCustomApiName(api);
-	customApiRegistry.set(api, {
+	customApiRegistry().set(api, {
 		stream: stream ?? ((model, context, options) => streamSimple(model, context, options as SimpleStreamOptions)),
 		streamSimple,
 		sourceId,
@@ -89,16 +105,16 @@ export function registerCustomApi(
  * Get a custom API provider by API identifier.
  */
 export function getCustomApi(api: string): RegisteredCustomApi | undefined {
-	return customApiRegistry.get(api);
+	return customApiRegistry().get(api);
 }
 
 /**
  * Remove all custom APIs registered by a specific source (e.g., extension path).
  */
 export function unregisterCustomApis(sourceId: string): void {
-	for (const [api, entry] of customApiRegistry.entries()) {
+	for (const [api, entry] of customApiRegistry().entries()) {
 		if (entry.sourceId === sourceId) {
-			customApiRegistry.delete(api);
+			customApiRegistry().delete(api);
 		}
 	}
 }
@@ -107,5 +123,5 @@ export function unregisterCustomApis(sourceId: string): void {
  * Clear all custom API registrations.
  */
 export function clearCustomApis(): void {
-	customApiRegistry.clear();
+	customApiRegistry().clear();
 }

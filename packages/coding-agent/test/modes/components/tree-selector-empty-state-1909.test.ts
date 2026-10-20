@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TreeSelectorComponent } from "@oh-my-pi/pi-tui/overlays/tree-selector";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false, undefined, undefined, "dark", "light");
@@ -47,7 +48,7 @@ function userMessageTree(): SessionTreeNode[] {
 
 function renderSelector(selector: TreeSelectorComponent): string {
 	const lines = (selector as unknown as { render: (w: number) => string[] }).render(120);
-	return Bun.stripANSI(lines.join("\n"));
+	return bun.stripANSI(lines.join("\n"));
 }
 
 describe("issue #1909: tree-selector empty-state messaging", () => {

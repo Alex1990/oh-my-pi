@@ -28,6 +28,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { IpcConnection, IpcServer, ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { getBaseConfigRoot, isEnoent, isFsError } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Discovery metadata / IPC protocol version. Mixed omp versions fail safely. */
 export const COLLAB_REGISTRY_VERSION = 1;
@@ -604,7 +605,7 @@ interface LiveEntry {
 async function listEntry(dir: string, name: string, timeoutMs: number): Promise<LiveEntry | null> {
 	let text: string;
 	try {
-		text = await Bun.file(path.join(dir, name)).text();
+		text = await bun.file(path.join(dir, name)).text();
 	} catch {
 		return null;
 	}

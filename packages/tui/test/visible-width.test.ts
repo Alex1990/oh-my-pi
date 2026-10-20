@@ -1,5 +1,5 @@
 /**
- * `visibleWidth` measures terminal column width via `Bun.stringWidth` (a JSC
+ * `visibleWidth` measures terminal column width via `bun.stringWidth` (a JSC
  * builtin) instead of the native scanner, to keep the render loop off the
  * N-API number-boxing path that traps under Bun 1.3.x GC pressure.
  *
@@ -7,10 +7,10 @@
  * same input, because `truncateToWidth` / `sliceWithWidth` / `wrapTextWithAnsi`
  * cut text using that native model — any divergence makes padding / cursor math
  * (`width - visibleWidth(...)`) drift. This guards the two corrections layered
- * on top of `Bun.stringWidth` (tabs, OSC 66 scaling) and catches silent
- * `Bun.stringWidth` width-table drift across Bun upgrades.
+ * on top of `bun.stringWidth` (tabs, OSC 66 scaling) and catches silent
+ * `bun.stringWidth` width-table drift across Bun upgrades.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { visibleWidth as nativeVisibleWidth } from "@oh-my-pi/pi-natives";
 import {
 	DEFAULT_TAB_WIDTH,
@@ -21,6 +21,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@oh-my-pi/pi-tui/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ESC = "\x1b";
 const ST = "\x1b\\";
@@ -93,7 +94,7 @@ describe("visibleWidth — parity with the native width engine", () => {
 	});
 
 	it("measures APC payloads as zero cells (Kitty placement prefix on placeholder rows)", () => {
-		// Regression: `Bun.stringWidth` counts APC payloads as printable, which
+		// Regression: `bun.stringWidth` counts APC payloads as printable, which
 		// broke centering math for Unicode-placeholder thumbnail rows — the
 		// composer attachment chip painted its right border inside the card.
 		const cells = "\u{10eeee}\u0305\u030d".repeat(9);
@@ -103,7 +104,7 @@ describe("visibleWidth — parity with the native width engine", () => {
 });
 
 describe("visibleWidth — runtime Hangul Compatibility Jamo profile", () => {
-	// `Bun.stringWidth` reports Compatibility Jamo (U+3131..U+318E) at 2 cells,
+	// `bun.stringWidth` reports Compatibility Jamo (U+3131..U+318E) at 2 cells,
 	// but the real width is terminal-dependent and detected at runtime. The
 	// profile pushed by the probe must steer `visibleWidth` (and the native
 	// width engine) so the hardware cursor and truncation math stay aligned.

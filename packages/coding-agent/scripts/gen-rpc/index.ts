@@ -15,8 +15,10 @@ import { buildWireModel } from "./model";
 import { emitPython } from "./python";
 import { emitRust } from "./rust";
 import { emitTypeScript } from "./typescript";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
-const PACKAGE_DIR = path.resolve(import.meta.dir, "../..");
+const PACKAGE_DIR = path.resolve(import.meta.dirname, "../..");
 const WIRE_DIR = path.join(PACKAGE_DIR, "src/modes/rpc/wire");
 const SDK_DIR = path.resolve(PACKAGE_DIR, "../../sdk");
 
@@ -33,9 +35,9 @@ export function generateRpcArtifacts(): Map<string, string> {
 	]);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	for (const [file, contents] of generateRpcArtifacts()) {
-		await Bun.write(file, contents);
+		await bun.write(file, contents);
 		console.log(`wrote ${path.relative(process.cwd(), file)}`);
 	}
 }

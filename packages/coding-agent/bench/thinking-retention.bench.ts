@@ -1,8 +1,9 @@
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
-import { heapStats } from "bun:jsc";
+import { heapStats } from "@oh-my-pi/pi-utils/jsc-compat";
 import { Settings } from "../src/config/settings";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const steps = Number(process.argv[2] ?? 500);
 if (!Number.isSafeInteger(steps) || steps <= 0) throw new Error("Expected a positive publication count");
@@ -41,7 +42,7 @@ function stream(count: number): AssistantMessageComponent {
 }
 
 stream(20);
-Bun.gc(true);
+bun.gc(true);
 const before = heapStats().heapSize;
 const started = performance.now();
 const cpuStarted = process.cpuUsage();
@@ -49,7 +50,7 @@ const component = stream(steps);
 const elapsedMs = performance.now() - started;
 const cpu = process.cpuUsage(cpuStarted);
 const cpuMs = (cpu.user + cpu.system) / 1000;
-Bun.gc(true);
+bun.gc(true);
 const retainedBytes = heapStats().heapSize - before;
 const publications = component.getTranscriptStableRows().length;
 const identityBytes = component.getTranscriptStableRows().reduce((total, row) => total + row.key.length * 2, 0);

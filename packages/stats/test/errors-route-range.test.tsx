@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { parseHTML } from "@oh-my-pi/pi-utils/dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ErrorsRoute } from "../src/client/routes/ErrorsRoute";
 
 type FetchInput = string | URL | Request;
-type FetchInit = RequestInit | BunFetchRequestInit;
+type FetchInit = RequestInit;
 
 const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
 let root: Root | null = null;
@@ -52,13 +52,10 @@ describe("ErrorsRoute range", () => {
 		installGlobal("IS_REACT_ACT_ENVIRONMENT", true);
 
 		const requestedUrls: string[] = [];
-		const fetchStub = Object.assign(
-			async (input: FetchInput, _init?: FetchInit) => {
-				requestedUrls.push(input instanceof Request ? input.url : input.toString());
-				return Response.json([]);
-			},
-			{ preconnect: globalThis.fetch.preconnect },
-		);
+		const fetchStub = async (input: FetchInput, _init?: FetchInit) => {
+			requestedUrls.push(input instanceof Request ? input.url : input.toString());
+			return Response.json([]);
+		};
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 
 		const container = domWindow.document.getElementById("root");

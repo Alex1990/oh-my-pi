@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { isFilesystemSourcePath } from "@oh-my-pi/pi-coding-agent/tools/path-utils";
 import { parseLineRangeChunk, parseLineRanges } from "@oh-my-pi/pi-tui/tools/line-ranges";
 import { splitPathAndSel } from "@oh-my-pi/pi-tui/tools/read";

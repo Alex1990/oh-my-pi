@@ -31,12 +31,14 @@ import {
 	RENDER_CALLBACK_TOKEN_HEADER,
 } from "./protocol";
 import { type BlobBrokerSavingsStatus, readBlobBrokerSavingsStatus } from "./savings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const CALLBACK_TIMEOUT_MS = 30_000;
 
 /** Stable identity for a worker config, used by clients to detect drift. */
 export function blobBrokerConfigKey(config: BlobBrokerWorkerConfig): string {
-	return Bun.hash(JSON.stringify(config)).toString(16);
+	return bun.hash(JSON.stringify(config)).toString(16);
 }
 
 function json(body: unknown, status = 200): Response {
@@ -146,8 +148,8 @@ export function createControlHandler(
 
 /** Boot the blob daemon from worker environment variables and serve forever. */
 export async function startBlobBrokerFromEnvironment(): Promise<void> {
-	const socketPath = Bun.env[BLOB_BROKER_SOCKET_ENV];
-	const configJson = Bun.env[BLOB_BROKER_CONFIG_ENV];
+	const socketPath = bun.env[BLOB_BROKER_SOCKET_ENV];
+	const configJson = bun.env[BLOB_BROKER_CONFIG_ENV];
 	if (!socketPath || !configJson) {
 		throw new Error(`blob broker worker requires ${BLOB_BROKER_SOCKET_ENV} and ${BLOB_BROKER_CONFIG_ENV}`);
 	}
@@ -164,7 +166,7 @@ export async function startBlobBrokerFromEnvironment(): Promise<void> {
 	} catch {
 		// A live daemon holding the socket loses the start race in the broker.
 	}
-	Bun.serve({ unix: socketPath, fetch: createControlHandler(backend, config, baseUrl) });
+	serve({ unix: socketPath, fetch: createControlHandler(backend, config, baseUrl) });
 	// The daemon broker tears us down with a signal; flush the persisted
 	// url index rather than losing the debounced write.
 	process.on("SIGTERM", () => {

@@ -2,7 +2,7 @@
  * Tests for secrets regex parsing, compilation, and obfuscation.
  */
 
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -49,6 +49,9 @@ import {
 } from "@oh-my-pi/pi-coding-agent/secrets/placeholder";
 import { compileSecretRegex } from "@oh-my-pi/pi-coding-agent/secrets/regex";
 import { getActiveProfile, getAgentDir, setProfile } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 describe("compileSecretRegex", () => {
 	it("adds global flag when not provided", () => {
@@ -558,7 +561,7 @@ describe("getSecretPlaceholderKey", () => {
 			const eventualKey = "C".repeat(43);
 			// Real delay is intentional: this exercises readPlaceholderKeyFile's retry
 			// loop against an actual concurrent filesystem write, not a mockable timer.
-			const writer = Bun.sleep(25).then(() => fs.writeFile(keyPath, eventualKey));
+			const writer = bun.sleep(25).then(() => fs.writeFile(keyPath, eventualKey));
 
 			await expect(getExistingSecretPlaceholderKey()).resolves.toBe(eventualKey);
 			await writer;

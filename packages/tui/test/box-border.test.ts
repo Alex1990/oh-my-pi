@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { Box, type BoxBorder, Text } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CHARS: BoxBorder["chars"] = {
 	topLeft: "+",
@@ -12,7 +13,7 @@ const CHARS: BoxBorder["chars"] = {
 
 function borderedBox(border?: Partial<BoxBorder>): Box {
 	// paddingY 0 keeps the row count predictable; ignoreTight pins paddingX to exactly 1.
-	// Real SGR escapes so Bun.stripANSI removes both bg and border color before width checks.
+	// Real SGR escapes so bun.stripANSI removes both bg and border color before width checks.
 	const box = new Box(1, 0, t => `\x1b[48;5;236m${t}\x1b[49m`, {
 		chars: CHARS,
 		color: t => `\x1b[31m${t}\x1b[39m`,
@@ -23,8 +24,8 @@ function borderedBox(border?: Partial<BoxBorder>): Box {
 	return box;
 }
 
-const widths = (rows: readonly string[]): number[] => rows.map(r => Bun.stringWidth(Bun.stripANSI(r)));
-const plain = (rows: readonly string[]): string[] => rows.map(r => Bun.stripANSI(r));
+const widths = (rows: readonly string[]): number[] => rows.map(r => bun.stringWidth(bun.stripANSI(r)));
+const plain = (rows: readonly string[]): string[] => rows.map(r => bun.stripANSI(r));
 
 describe("Box border", () => {
 	it("frames content without exceeding the given width", () => {
@@ -56,8 +57,8 @@ describe("Box border", () => {
 		const rows = box.render(20);
 		// No border rows now; the single content row fills the full width.
 		expect(rows.length).toBe(1);
-		expect(Bun.stringWidth(Bun.stripANSI(rows[0]!))).toBe(20);
-		expect(Bun.stripANSI(rows[0]!)).not.toContain("+");
+		expect(bun.stringWidth(bun.stripANSI(rows[0]!))).toBe(20);
+		expect(bun.stripANSI(rows[0]!)).not.toContain("+");
 	});
 
 	it("frames at the boundary width without overflowing", () => {

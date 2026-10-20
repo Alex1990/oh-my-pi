@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { UiHelpers } from "@oh-my-pi/pi-coding-agent/modes/utils/ui-helpers";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { Text } from "@oh-my-pi/pi-tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Regression for issue #6337: a status message presented while the auto-theme
@@ -118,7 +119,7 @@ describe("lazy status color re-resolves on theme switch", () => {
 		for (const prefix of Object.values(lightPrefixes)) expect(lightOutput).toContain(prefix);
 		for (const prefix of Object.values(darkPrefixes)) expect(lightOutput).not.toContain(prefix);
 
-		const semanticLines = Bun.stripANSI(lightOutput)
+		const semanticLines = bun.stripANSI(lightOutput)
 			.split("\n")
 			.map(line => line.trim())
 			.filter(line => line === "Update Available" || line.startsWith("New version "));

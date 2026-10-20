@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import { formatHashlineHeader } from "@oh-my-pi/pi-tui/tools/hashline-format";
 import type { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createGuard(
 	streamingAbort: boolean,
@@ -56,7 +57,7 @@ describe("streamed edit revisions", () => {
 		try {
 			const filePath = path.join(cwd, "sample.jl");
 			const initial = "value = original\n";
-			await Bun.write(filePath, initial);
+			await bun.write(filePath, initial);
 			const settings = Settings.isolated({ "edit.mode": "hashline" });
 			const toolSession = {
 				cwd,
@@ -88,7 +89,7 @@ describe("streamed edit revisions", () => {
 			const result = await tool.execute("revised-edit", revised);
 
 			expect(result.isError).not.toBe(true);
-			expect(await Bun.file(filePath).text()).toBe("value = if condition\n    left\nelse\n    right\nend\n");
+			expect(await bun.file(filePath).text()).toBe("value = if condition\n    left\nelse\n    right\nend\n");
 		} finally {
 			await removeWithRetries(cwd);
 		}
@@ -99,7 +100,7 @@ describe("streaming edit abort", () => {
 	test("aborts from a final preview emitted by EditTool.openArgStream", async () => {
 		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "stream-preview-"));
 		try {
-			await Bun.write(path.join(cwd, "sample.txt"), "alpha\n");
+			await bun.write(path.join(cwd, "sample.txt"), "alpha\n");
 			const settings = Settings.isolated({ "edit.mode": "patch", "edit.streamingAbort": true });
 			const { guard, aborts } = createGuard(true, cwd, settings);
 			const toolSession = {
@@ -159,7 +160,7 @@ describe("streaming edit abort", () => {
 	test("does not abort on a native no-op identical replacement preview", async () => {
 		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "stream-preview-noop-"));
 		try {
-			await Bun.write(path.join(cwd, "sample.txt"), "alpha\n");
+			await bun.write(path.join(cwd, "sample.txt"), "alpha\n");
 			const settings = Settings.isolated({ "edit.mode": "replace", "edit.streamingAbort": true });
 			const { guard, aborts } = createGuard(true, cwd, settings);
 			const toolSession = {

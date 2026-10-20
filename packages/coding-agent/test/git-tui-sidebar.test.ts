@@ -1,12 +1,13 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { AvatarLoader } from "../src/cli/git-tui/avatar";
 import { Sidebar, type SidebarAction } from "@oh-my-pi/pi-tui/apps/git/sidebar";
 import { GitModel } from "../src/cli/git-tui/state";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 beforeAll(async () => {
 	await initTheme(false);
@@ -19,12 +20,12 @@ async function withDirtyRepo(run: (harness: SidebarHarness) => Promise<void>): P
 		await $`git init --initial-branch=main`.cwd(repo).quiet();
 		await $`git config user.name "Test User"`.cwd(repo).quiet();
 		await $`git config user.email "test@example.com"`.cwd(repo).quiet();
-		await Bun.write(path.join(repo, "seed.txt"), "seed\n");
+		await bun.write(path.join(repo, "seed.txt"), "seed\n");
 		await $`git add seed.txt`.cwd(repo).quiet();
 		await $`git commit -m base`.cwd(repo).quiet();
-		await Bun.write(path.join(repo, "a/one.txt"), "one\n");
-		await Bun.write(path.join(repo, "a/two.txt"), "two\n");
-		await Bun.write(path.join(repo, "b/three.txt"), "three\n");
+		await bun.write(path.join(repo, "a/one.txt"), "one\n");
+		await bun.write(path.join(repo, "a/two.txt"), "two\n");
+		await bun.write(path.join(repo, "b/three.txt"), "three\n");
 		await run(await SidebarHarness.create(repo));
 	} finally {
 		await fs.rm(repo, { recursive: true, force: true });
@@ -38,11 +39,11 @@ async function withMixedRepo(run: (harness: SidebarHarness) => Promise<void>): P
 		await $`git init --initial-branch=main`.cwd(repo).quiet();
 		await $`git config user.name "Test User"`.cwd(repo).quiet();
 		await $`git config user.email "test@example.com"`.cwd(repo).quiet();
-		await Bun.write(path.join(repo, "a/tracked.txt"), "before\n");
+		await bun.write(path.join(repo, "a/tracked.txt"), "before\n");
 		await $`git add a/tracked.txt`.cwd(repo).quiet();
 		await $`git commit -m base`.cwd(repo).quiet();
-		await Bun.write(path.join(repo, "a/tracked.txt"), "after\n");
-		await Bun.write(path.join(repo, "a/new.txt"), "new\n");
+		await bun.write(path.join(repo, "a/tracked.txt"), "after\n");
+		await bun.write(path.join(repo, "a/new.txt"), "new\n");
 		await run(await SidebarHarness.create(repo));
 	} finally {
 		await fs.rm(repo, { recursive: true, force: true });

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { ensureAutoresearchBranch } from "../src/autoresearch/git";
 import type { ExtensionAPI } from "../src/extensibility/extensions";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const tempDirs: string[] = [];
 
@@ -16,7 +17,7 @@ async function mkTempDir(prefix: string): Promise<string> {
 
 async function runGit(cwd: string, args: string[]): Promise<void> {
 	const env = { ...process.env, HOME: cwd, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
-	const proc = Bun.spawn(["git", "-C", cwd, ...args], { env, stdout: "ignore", stderr: "pipe" });
+	const proc = bun.spawn(["git", "-C", cwd, ...args], { env, stdout: "ignore", stderr: "pipe" });
 	const code = await proc.exited;
 	if (code !== 0) {
 		const stderr = await new Response(proc.stderr).text();

@@ -26,8 +26,9 @@
  * To run: `bun --cwd packages/ai test test/auth-gateway-cross-protocol-caching.test.ts`
  * with the gateway live (`omp auth-gateway serve` or pm2).
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AUTH_GATEWAY_E2E_URL, checkAuthGatewayE2EAvailable } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface OpenAIResponsesUsage {
 	input_tokens: number;
@@ -47,7 +48,7 @@ interface OpenAIResponse {
 	error?: { type?: string; message: string };
 }
 
-const MODEL = Bun.env.OMP_E2E_ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
+const MODEL = bun.env.OMP_E2E_ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
 
 const gateway = await checkAuthGatewayE2EAvailable();
 

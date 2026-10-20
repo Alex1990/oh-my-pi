@@ -53,10 +53,10 @@ factory only if the provider supports model listing.
    create a runtime factory. The bespoke Google OAuth and Codex managers are
    constructed by the coding-agent runtime instead.
 5. **Regenerate compiled rules and the bundled catalog.** From the repo root,
-   run `bun run gen:compat`, then `bun run gen:models` with the discovery
+   run `pnpm run gen:compat`, then `pnpm run gen:models` with the discovery
    credentials needed by the provider. `gen:compat` writes `rules.json`,
    `auth-ids.ts`, and `provider-ids.ts` under `packages/catalog/src/compat/`.
-   For a provider-only catalog update, use `bun run gen:models --provider <id>`
+   For a provider-only catalog update, use `pnpm run gen:models --provider <id>`
    to regenerate that provider while preserving every other provider's committed
    snapshot. Cross-provider reference data remains available to the generator.
    Do not edit these generated files by hand.

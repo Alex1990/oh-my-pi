@@ -1,4 +1,4 @@
-import { describe, expect, it, type Mock, vi } from "bun:test";
+import { describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Agent, AgentEvent, AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent } from "@oh-my-pi/pi-ai";
 import type { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";

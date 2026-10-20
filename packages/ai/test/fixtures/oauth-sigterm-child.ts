@@ -1,5 +1,6 @@
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const db = process.argv[2];
 const release = process.argv[3];
@@ -13,7 +14,7 @@ await auth.oauth.refreshStored("anthropic", {
 	refresh: async current => {
 		// The provider has consumed the old token before its response reaches the client.
 		process.stdout.write("rotated\n");
-		while (!(await Bun.file(release).exists())) await Bun.sleep(10);
+		while (!(await bun.file(release).exists())) await bun.sleep(10);
 		return { ...current, access: "new", refresh: "new-refresh", expires: Date.now() + 3_600_000 };
 	},
 });

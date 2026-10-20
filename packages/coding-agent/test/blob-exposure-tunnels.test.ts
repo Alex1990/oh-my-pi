@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,7 @@ import {
 	startExposure,
 } from "../src/blob-broker/exposure";
 import { writeFakeExecutable } from "./helpers/fake-executable";
+import { listen } from "@oh-my-pi/pi-utils/net-compat";
 
 const PORT = 43127;
 const originalPath = process.env.PATH;
@@ -71,7 +72,10 @@ if (config.restartPort !== undefined) {
 		fs.writeFileSync(config.restartMarker, "first\\n");
 		process.exit(23);
 	}
-	(await Bun.connect({ hostname: "127.0.0.1", port: config.restartPort, socket: { data() {} } })).end();
+	const { createConnection } = await import("node:net");
+	const socket = createConnection({ host: "127.0.0.1", port: config.restartPort });
+	await new Promise(resolve => socket.once("connect", resolve));
+	socket.end();
 }
 if (config.exitCode !== undefined) process.exit(config.exitCode);
 // A live tunnel never exits on its own; the timer only keeps the stub alive
@@ -209,7 +213,7 @@ describe("startExposure tunnel adapters", () => {
 	it("uses a configured stable Pinggy base with authenticated SSH", async () => {
 		// The adapter exposes no restart event, so the restarted fake reports in.
 		const restarted = Promise.withResolvers<void>();
-		const restartListener = Bun.listen({
+		const restartListener = await listen({
 			hostname: "127.0.0.1",
 			port: 0,
 			socket: { open: () => restarted.resolve(), data() {} },

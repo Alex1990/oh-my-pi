@@ -1328,7 +1328,7 @@ function renderableUnicodeChars(chars: readonly string[], font: Shape["font"] | 
 }
 
 function normalizedInputChars(text: string): string[] {
-	const stripped = text.includes("\u001b") ? Bun.stripANSI(text) : text;
+	const stripped = text.includes("\u001b") ? bun.stripANSI(text) : text;
 	const collapsed = stripped
 		// A run of pure format chars (BOM is both \s and Cf) vanishes; only a
 		// run containing genuine whitespace separates words.
@@ -2500,3 +2500,4 @@ export async function compact<TMessage = Message>(
 		preserveData: { ...basePreserve, [PRESERVE_KEY]: archive },
 	};
 }
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";

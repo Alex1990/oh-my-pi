@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { repairDoubleEncodedJsonString, repairTaskParams } from "@oh-my-pi/pi-tui/tools/task-repair-args";
 import type { TaskParams } from "@oh-my-pi/pi-tui/tools/task";
 

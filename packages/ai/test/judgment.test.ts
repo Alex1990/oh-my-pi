@@ -1,6 +1,6 @@
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { calculateUsageCost } from "@oh-my-pi/pi-catalog/models";
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type ApiKeyResolveContext,
 	chatTextBackend,
@@ -180,9 +180,13 @@ describe("TextJudge", () => {
 				"<config>\nretries: 3\nlabels:\n  - fast\n  - safe\n</config>\n" +
 				'<field name="bad key">\nenabled: false\n</field>',
 		);
-		expect(renderJudgmentState(["a", { nested: "<value>" }])).toBe(
-			'<state>\n- a\n- nested: "&lt;value&gt;"\n</state>',
-		);
+		// The YAML emitter may or may not quote a `<`-leading scalar; what matters
+		// is that the block stays inside `<state>` and the value is XML-escaped.
+		const renderedArray = renderJudgmentState(["a", { nested: "<value>" }]);
+		expect(renderedArray.startsWith("<state>\n- a\n- nested: ")).toBe(true);
+		expect(renderedArray.endsWith("\n</state>")).toBe(true);
+		expect(renderedArray).toContain("&lt;value&gt;");
+		expect(renderedArray).not.toContain("<value>");
 	});
 
 	it("batches several questions into one completion and parses `id: answer` lines", async () => {

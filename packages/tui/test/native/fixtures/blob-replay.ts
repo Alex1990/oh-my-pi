@@ -47,7 +47,7 @@ try {
 	h.terminal.ackAll();
 	h.flush();
 	assert.ok(h.find(image => image.k === "image" && image.p?.blob === id));
-	assert.deepEqual(h.terminal.blobs.get(id), Buffer.from(PNG, "base64"));
+	assert.deepEqual(h.terminal.blobs.get(id), Uint8Array.from(Buffer.from(PNG, "base64")));
 	assert.equal(h.terminal.log.filter(message => message.verb === "b").length, 1);
 	assert.deepEqual(
 		h.terminal.log.filter(message => message.verb === "q").map(message => message.body),
@@ -68,7 +68,7 @@ try {
 		"the alternate surface shares the connection's uploaded blobs",
 	);
 	assert.ok(h.find(image => image.k === "image" && image.p?.blob === id));
-	assert.deepEqual(h.terminal.blobs.get(id), Buffer.from(PNG, "base64"));
+	assert.deepEqual(h.terminal.blobs.get(id), Uint8Array.from(Buffer.from(PNG, "base64")));
 	overlay.hide();
 	h.terminal.ackAll();
 	h.flush();
@@ -89,7 +89,7 @@ try {
 		"remounting an image on the same connection must reuse the uploaded blob",
 	);
 	assert.ok(h.find(image => image.k === "image" && image.p?.blob === id));
-	assert.deepEqual(h.terminal.blobs.get(id), Buffer.from(PNG, "base64"));
+	assert.deepEqual(h.terminal.blobs.get(id), Uint8Array.from(Buffer.from(PNG, "base64")));
 
 	h.tui.stop();
 	h.flush();
@@ -113,7 +113,7 @@ try {
 		],
 	);
 	assert.ok(h.find(image => image.k === "image" && image.p?.blob === id));
-	assert.deepEqual(h.terminal.blobs.get(id), Buffer.from(PNG, "base64"));
+	assert.deepEqual(h.terminal.blobs.get(id), Uint8Array.from(Buffer.from(PNG, "base64")));
 	const lostSurface = h.terminal.surface!;
 	h.terminal.docs.delete(lostSurface);
 	h.terminal.blobs.clear();
@@ -132,7 +132,7 @@ try {
 		],
 	);
 	assert.ok(h.find(image => image.k === "image" && image.p?.blob === id));
-	assert.deepEqual(h.terminal.blobs.get(id), Buffer.from(PNG, "base64"));
+	assert.deepEqual(h.terminal.blobs.get(id), Uint8Array.from(Buffer.from(PNG, "base64")));
 	assert.deepEqual(h.errors, []);
 } finally {
 	h.stop();

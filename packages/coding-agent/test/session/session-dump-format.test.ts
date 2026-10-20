@@ -7,7 +7,7 @@
  * (not the schema instance's internals) and must include examples, which the
  * previous `<parameter>`-per-key JSON Schema dump dropped entirely.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import type { Model, Usage } from "@oh-my-pi/pi-ai";
 import { formatSessionDumpText, formatSubagentDumpText } from "@oh-my-pi/pi-coding-agent/session/session-dump-format";

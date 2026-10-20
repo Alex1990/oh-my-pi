@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as os from "node:os";
 import {
 	formatMCPConnectingMessage,
 	formatMCPConnectionStatusMessage,
 	isMcpConnectionStatusEvent,
 } from "@oh-my-pi/pi-coding-agent/mcp/startup-events";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Cross-module contract guard.
 //
@@ -99,10 +100,10 @@ describe("mcp/startup-events — connection-status cross-module contract", () =>
 				failedServers: [{ serverName: "broken", error: "ENOENT", sourcePath }],
 			}));
 		`;
-		const result = Bun.spawnSync({
-			cmd: [process.execPath, "-e", script],
-			env: { ...process.env, HOME: homeDir, USERPROFILE: homeDir },
-		});
+		const result = bun.spawnSync(
+			{ cmd: [process.execPath, "-e", script] },
+			{ env: { ...process.env, HOME: homeDir, USERPROFILE: homeDir } },
+		);
 		const message = result.stdout.toString();
 
 		expect(result.exitCode).toBe(0);

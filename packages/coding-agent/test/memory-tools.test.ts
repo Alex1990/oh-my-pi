@@ -7,8 +7,8 @@
  * session — these tools only need a populated state accessor and Settings.
  */
 
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { getManagedSkillsDir } from "@oh-my-pi/pi-coding-agent/autolearn/managed-skills";
@@ -36,6 +36,7 @@ import { MemoryRetainTool } from "@oh-my-pi/pi-coding-agent/tools/memory-retain"
 import { resetMemoryForTests } from "@oh-my-pi/pi-mnemopi";
 import { currentLoopPhase, logger, TempDir } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Mnemopi is lazy-loaded at runtime; preload it for synchronous state construction.
 await Promise.all([loadMnemopi(), loadMnemopiCore()]);
@@ -737,7 +738,7 @@ describe("learn.execute (Mnemopi backend)", () => {
 		expect((error as Error).message).toMatch(/requires global or per-project-tagged scoping/i);
 		expect((error as Error).message).not.toContain("Mnemopi did not store the lesson");
 		expect(state.memory.beam.db.query("SELECT content FROM working_memory").all()).toEqual([]);
-		expect(await Bun.file(path.join(getManagedSkillsDir(), "global-lesson", "SKILL.md")).exists()).toBe(false);
+		expect(await bun.file(path.join(getManagedSkillsDir(), "global-lesson", "SKILL.md")).exists()).toBe(false);
 	});
 });
 
@@ -1198,9 +1199,9 @@ describe("Mnemopi backend lifecycle", () => {
 		});
 
 		const BUDGET_MS = 20;
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		await state.dispose({ timeoutMs: BUDGET_MS });
-		const elapsedMs = (Bun.nanoseconds() - start) / 1_000_000;
+		const elapsedMs = (bun.nanoseconds() - start) / 1_000_000;
 
 		// Dispose must surrender within the budget; the in-flight consolidate is
 		// detached, not awaited. The ceiling is only there to catch a hang, so

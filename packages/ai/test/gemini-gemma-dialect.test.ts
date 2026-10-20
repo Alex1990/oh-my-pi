@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ToolCall } from "@oh-my-pi/pi-ai";
 import { createInbandScanner, type Dialect, getDialectDefinition, type InbandScanEvent } from "@oh-my-pi/pi-ai/dialect";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	parseArgs,
 	reportInvalidFlagValues,
@@ -9,6 +9,7 @@ import {
 } from "../src/cli/args";
 import { OPTIONAL_VALUE_FLAGS, restartArgv, STRING_VALUE_FLAGS } from "../src/cli/flag-tables";
 import { CliUsageError } from "../src/cli/usage-error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Catches the set → args.ts direction of drift between
@@ -73,16 +74,16 @@ describe("--external-thinking", () => {
 });
 describe("--session-dir", () => {
 	it("uses PI_CODING_AGENT_SESSION_DIR unless the CLI flag overrides it", () => {
-		const previous = Bun.env.PI_CODING_AGENT_SESSION_DIR;
-		Bun.env.PI_CODING_AGENT_SESSION_DIR = "/env/sessions";
+		const previous = bun.env.PI_CODING_AGENT_SESSION_DIR;
+		bun.env.PI_CODING_AGENT_SESSION_DIR = "/env/sessions";
 		try {
 			expect(parseArgs([]).sessionDir).toBe("/env/sessions");
 			expect(parseArgs(["--session-dir", "/cli/sessions"]).sessionDir).toBe("/cli/sessions");
 		} finally {
 			if (previous === undefined) {
-				delete Bun.env.PI_CODING_AGENT_SESSION_DIR;
+				delete bun.env.PI_CODING_AGENT_SESSION_DIR;
 			} else {
-				Bun.env.PI_CODING_AGENT_SESSION_DIR = previous;
+				bun.env.PI_CODING_AGENT_SESSION_DIR = previous;
 			}
 		}
 	});

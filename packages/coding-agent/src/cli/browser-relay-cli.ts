@@ -14,6 +14,7 @@ import optionsJs from "../tools/browser/relay/extension-assets/options.js.txt" w
 import thirdPartyNotices from "../tools/browser/relay/extension-assets/THIRD-PARTY-NOTICES.txt" with { type: "text" };
 import { DEFAULT_RELAY_URL } from "../tools/browser/relay/kind";
 import { type RelayServer, startRelayServer } from "../tools/browser/relay/server";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const BROWSER_RELAY_ACTIONS = ["serve", "install"] as const;
 export type BrowserRelayAction = (typeof BROWSER_RELAY_ACTIONS)[number];
@@ -52,7 +53,7 @@ export async function runBrowserRelayCommand(args: BrowserRelayCommandArgs): Pro
 async function runInstall(dirOverride: string | undefined): Promise<void> {
 	const dir = dirOverride ? path.resolve(dirOverride) : path.join(getBrowserRelayDir(), "extension");
 	for (const name in EXTENSION_FILES) {
-		await Bun.write(path.join(dir, name), EXTENSION_FILES[name]!);
+		await bun.write(path.join(dir, name), EXTENSION_FILES[name]!);
 	}
 	console.log(`Installed the OMP Browser Relay extension to ${dir}`);
 	console.log("");
@@ -77,7 +78,7 @@ async function runServe(args: BrowserRelayCommandArgs): Promise<void> {
 		: undefined;
 	let relay: RelayServer;
 	try {
-		relay = startRelayServer({ port: args.port, token: args.token, group: args.group !== false, log });
+		relay = await startRelayServer({ port: args.port, token: args.token, group: args.group !== false, log });
 	} catch (err) {
 		// The port is machine-global while relays can be started by any project's
 		// broker (or by hand): losing the bind to a live relay is success.

@@ -370,7 +370,7 @@ export interface ServerConfig {
 // Transport
 // =============================================================================
 
-/** Minimal write sink for the server-bound byte stream (satisfied by `Bun.FileSink` and the mux link adapter). */
+/** Minimal write sink for the server-bound byte stream (satisfied by `FileSink` and the mux link adapter). */
 export interface LspWriteSink {
 	write(data: string | Uint8Array): number | Promise<number>;
 	flush(): number | void | Promise<number | void>;

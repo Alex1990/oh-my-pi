@@ -18,7 +18,7 @@
  *
  * The byte-write that `write`, `edit` and `apply_patch` perform on an ordinary
  * file path goes through the same two-line primitive
- * (`file ? file.write(content) : Bun.write(dst, content)`). It has four call
+ * (`file ? file.write(content) : bun.write(dst, content)`). It has four call
  * sites, and all of them route here:
  *
  * - `writethroughNoop` and `runLspWritethrough`'s `writeContent` (`lsp/writethrough.ts`),
@@ -95,7 +95,7 @@
  *
  * That refusal is load-bearing for more than symlink safety, and relaxing it needs
  * care. `apply_patch`'s `create` and rename-destination refuse to overwrite, and
- * they decide that with `Bun.file(dst).exists()`, which reports `false` when the
+ * they decide that with `bun.file(dst).exists()`, which reports `false` when the
  * parent hides the target's metadata rather than distinguishing "absent" from
  * "unknown". The non-overwrite contract holds today only because the same denied
  * `lstat` that fools that check also stops this seam from brokering — a privileged
@@ -129,9 +129,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isEnoent, isFsError, logger } from "@oh-my-pi/pi-utils";
-import type { BunFile } from "bun";
+import type { BunFile as NodeFile } from "@oh-my-pi/pi-utils/node-runtime";
 import type { ExtensionContext } from "../extensibility/extensions/types";
 import { resolveSyscallTarget } from "./path-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** A denied write, captured for a registered fallback to retry through a privileged channel. */
 export interface FileWriteFallbackRequest {
@@ -302,10 +303,10 @@ export function withFileMutationSession<T>(sessionId: string | undefined, fn: ()
  * created on the way, so an `ENOENT` here means the file genuinely is not there and
  * must propagate — `edit`'s `REM` turns it into a `NotFoundError`.
  */
-export async function deleteFileWithFallback(dst: string, file?: BunFile): Promise<void> {
+export async function deleteFileWithFallback(dst: string, file?: NodeFile): Promise<void> {
 	try {
 		if (file) {
-			await file.unlink();
+			await fs.unlink(file.name);
 		} else {
 			await fs.unlink(dst);
 		}
@@ -370,7 +371,7 @@ type WriteFailureKind = { kind: "denied"; cause: unknown } | { kind: "retry" } |
 /**
  * Decide whether a failed write hit a permission boundary.
  *
- * `Bun.write` and `BunFile.write` create missing parent directories themselves,
+ * `bun.write` and `BunFile.write` create missing parent directories themselves,
  * but when that `mkdir` is the thing being denied they report the subsequent
  * `open()`'s `ENOENT` rather than the denial — so a sandboxed write into a new
  * out-of-tree directory is indistinguishable from an ordinary missing path.
@@ -394,12 +395,12 @@ async function classifyWriteFailure(dst: string, error: unknown): Promise<WriteF
 	}
 	// The parent exists now, so the `ENOENT` was a lost race rather than a
 	// boundary. Any directory just created stays, matching what a permitted
-	// `Bun.write` would have left behind; removing it could race a concurrent
+	// `bun.write` would have left behind; removing it could race a concurrent
 	// writer that legitimately needs it.
 	return { kind: "retry" };
 }
 
-export async function writeFileWithFallback(dst: string, content: string, file?: BunFile): Promise<void> {
+export async function writeFileWithFallback(dst: string, content: string, file?: NodeFile): Promise<void> {
 	// Attempt 0 is the plain write. The single retry is reachable only when the
 	// first failure turned out to be a parent-directory race this call repaired,
 	// which bounds the loop at two writes.
@@ -408,7 +409,7 @@ export async function writeFileWithFallback(dst: string, content: string, file?:
 			if (file) {
 				await file.write(content);
 			} else {
-				await Bun.write(dst, content);
+				await bun.write(dst, content);
 			}
 			return;
 		} catch (error) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type Component, Container } from "@oh-my-pi/pi-tui";
 
 function inert(dispose?: () => void): Component {

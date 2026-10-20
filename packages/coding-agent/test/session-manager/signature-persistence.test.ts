@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AssistantMessage, CursorHistoryPayload, ImageContent } from "@oh-my-pi/pi-ai";
 import type { SessionMessageEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { getBlobsDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function isAssistantSessionEntry(entry: unknown): entry is SessionMessageEntry & { message: AssistantMessage } {
 	return (
@@ -70,7 +71,7 @@ describe("SessionManager signature persistence", () => {
 		});
 		await session.flush();
 
-		const expectedBlobHash = new Bun.SHA256().update(Buffer.from(largeImageUrl, "utf8")).digest("hex");
+		const expectedBlobHash = new bun.SHA256().update(Buffer.from(largeImageUrl, "utf8")).digest("hex");
 		const persistedBlob = await fs.readFile(path.join(getBlobsDir(), expectedBlobHash), "utf8");
 		expect(persistedBlob).toBe(largeImageUrl);
 
@@ -146,8 +147,8 @@ describe("SessionManager signature persistence", () => {
 		expect(rawSession).not.toContain(contentImage.data);
 		expect(rawSession).not.toContain(detailImage.data);
 
-		const contentHash = new Bun.SHA256().update(Buffer.from(contentImage.data, "base64")).digest("hex");
-		const detailHash = new Bun.SHA256().update(Buffer.from(detailImage.data, "base64")).digest("hex");
+		const contentHash = new bun.SHA256().update(Buffer.from(contentImage.data, "base64")).digest("hex");
+		const detailHash = new bun.SHA256().update(Buffer.from(detailImage.data, "base64")).digest("hex");
 		await expect(fs.readFile(path.join(getBlobsDir(), contentHash))).resolves.toBeDefined();
 		await expect(fs.readFile(path.join(getBlobsDir(), detailHash))).resolves.toBeDefined();
 

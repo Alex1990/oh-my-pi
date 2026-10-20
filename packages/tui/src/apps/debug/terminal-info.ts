@@ -15,6 +15,7 @@ import {
 	TERMINAL_ID,
 } from "../../terminal-capabilities";
 import { classifyTerminalMultiplexer } from "../../terminal-multiplexer";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Live values the debug view reads off the running TUI, not the static capability table. */
 export interface TerminalRuntimeState {
@@ -57,7 +58,7 @@ const NOTIFY_PROTOCOL_NAMES: Record<NotifyProtocol, string> = {
 
 /** Snapshot the active terminal capabilities and the live runtime geometry. */
 export function collectTerminalState(runtime: TerminalRuntimeState): TerminalStateInfo {
-	const env = Bun.env;
+	const env = bun.env;
 	const cell = getCellDimensions();
 	return {
 		detectedId: TERMINAL_ID,

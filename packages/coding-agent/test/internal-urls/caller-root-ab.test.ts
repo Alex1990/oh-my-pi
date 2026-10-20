@@ -14,7 +14,7 @@
  * - a caller root with no artifacts falls back gracefully to the global scan,
  * - no caller session file keeps the pre-existing global behavior.
  */
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
@@ -29,6 +29,7 @@ import { CURRENT_SESSION_VERSION } from "@oh-my-pi/pi-coding-agent/session/sessi
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { GrepTool } from "@oh-my-pi/pi-coding-agent/tools/grep";
 import { ShellFsOp } from "@oh-my-pi/pi-natives";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function sessionHeader(id: string): string {
 	return JSON.stringify({
@@ -42,7 +43,7 @@ function sessionHeader(id: string): string {
 
 /** Transcript with a distinguishable user line: header + session_init + message. */
 async function writeTranscriptWithLine(sessionFile: string, id: string, secret: string): Promise<void> {
-	await Bun.write(
+	await bun.write(
 		sessionFile,
 		`${[
 			sessionHeader(id),
@@ -114,12 +115,12 @@ async function setupAbRoots(
 	const childB = path.join(dir, "b", "main", "Worker.jsonl");
 	const artifactA = path.join(dir, "a", "main", "Worker.md");
 	const artifactB = path.join(dir, "b", "main", "Worker.md");
-	await Bun.write(rootA, `${sessionHeader("a")}\n`);
-	await Bun.write(rootB, `${sessionHeader("b")}\n`);
+	await bun.write(rootA, `${sessionHeader("a")}\n`);
+	await bun.write(rootB, `${sessionHeader("b")}\n`);
 	await writeTranscriptWithLine(childA, "worker", "A");
 	await writeTranscriptWithLine(childB, "worker", "B");
-	await Bun.write(artifactA, "A OUTPUT");
-	await Bun.write(artifactB, "B OUTPUT");
+	await bun.write(artifactA, "A OUTPUT");
+	await bun.write(artifactB, "B OUTPUT");
 	return { rootA, rootB, childA, childB, artifactA, artifactB };
 }
 

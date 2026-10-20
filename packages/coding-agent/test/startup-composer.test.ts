@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
@@ -48,6 +48,7 @@ import {
 	cfgTuiMaxInlineImages,
 	cfgTuiResizeScrollback,
 } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class CountingTerminal extends VirtualTerminal {
 	starts = 0;
@@ -429,7 +430,7 @@ describe("Composer prepaint", () => {
 			expect(mode.editor.getExpandedText()).toBe(expectedDraft);
 			expect(mode.editor.getCursor()).toEqual(expectedCursor);
 			expect(terminal.starts).toBe(1);
-			const adoptedEditor = Bun.stripANSI(mode.editor.render(40).join("\n"));
+			const adoptedEditor = bun.stripANSI(mode.editor.render(40).join("\n"));
 			expect(adoptedEditor.startsWith("+")).toBe(true);
 			expect(adoptedEditor).not.toContain("╭");
 
@@ -721,25 +722,25 @@ describe("Composer prepaint", () => {
 			welcome: { version: "9.9.9" },
 		});
 		composer.start();
-		await terminal.waitForRender(() => terminal.getViewport().some(row => Bun.stripANSI(row).includes("v9.9.9")));
+		await terminal.waitForRender(() => terminal.getViewport().some(row => bun.stripANSI(row).includes("v9.9.9")));
 
 		const output = terminal
 			.getViewport()
-			.map(r => Bun.stripANSI(r))
+			.map(r => bun.stripANSI(r))
 			.join("\n");
 		expect(output).not.toContain("Starting OMP");
 		expect(output).toContain("╰");
 		const initialEditorRow = terminal
 			.getViewport()
-			.map(row => Bun.stripANSI(row))
+			.map(row => bun.stripANSI(row))
 			.findLastIndex(row => row.startsWith("╰"));
 		composer.updateWelcome({ version: "10.0.0-authoritative" });
 		await terminal.waitForRender(() =>
-			terminal.getViewport().some(row => Bun.stripANSI(row).includes("v10.0.0-authoritative")),
+			terminal.getViewport().some(row => bun.stripANSI(row).includes("v10.0.0-authoritative")),
 		);
 		const updatedEditorRow = terminal
 			.getViewport()
-			.map(row => Bun.stripANSI(row))
+			.map(row => bun.stripANSI(row))
 			.findLastIndex(row => row.startsWith("╰"));
 		expect(updatedEditorRow).toBe(initialEditorRow);
 		composer.stop();
@@ -754,8 +755,8 @@ describe("Composer prepaint", () => {
 			welcome: { version: "9.9.8" },
 		});
 		composer.start();
-		await terminal.waitForRender(() => terminal.getViewport().some(row => Bun.stripANSI(row).includes("v9.9.8")));
-		const prepaintRows = terminal.getViewport().map(row => Bun.stripANSI(row));
+		await terminal.waitForRender(() => terminal.getViewport().some(row => bun.stripANSI(row).includes("v9.9.8")));
+		const prepaintRows = terminal.getViewport().map(row => bun.stripANSI(row));
 		expect(prepaintRows.join("\n")).toContain("v9.9.8");
 		const prepaintEditorRow = prepaintRows.findLastIndex(row => row.startsWith("╰"));
 
@@ -790,20 +791,20 @@ describe("Composer prepaint", () => {
 			expect(mode.editor.getExpandedText()).toBe("draft message between");
 			const output = terminal
 				.getViewport()
-				.map(r => Bun.stripANSI(r))
+				.map(r => bun.stripANSI(r))
 				.join("\n");
 			expect(output).toContain("v9.9.9");
 			expect(output).not.toContain("v9.9.8");
 			realTopBorder.mockReturnValue({ content: "real status bar *18 ?5", width: 21, revision: 2 });
 			mode.ui.requestRender();
 			await terminal.waitForRender(() =>
-				terminal.getViewport().some(row => Bun.stripANSI(row).includes("real status bar *18 ?5")),
+				terminal.getViewport().some(row => bun.stripANSI(row).includes("real status bar *18 ?5")),
 			);
 			const welcomeMatches = (output.match(/v9\.9\.9/g) || []).length;
 			expect(welcomeMatches).toBe(1);
 			const adoptedEditorRow = terminal
 				.getViewport()
-				.map(row => Bun.stripANSI(row))
+				.map(row => bun.stripANSI(row))
 				.findLastIndex(row => row.startsWith("╰"));
 			expect(adoptedEditorRow).toBe(prepaintEditorRow);
 		} finally {
@@ -822,7 +823,7 @@ describe("Composer prepaint", () => {
 			version: "9.9.9",
 			cache: false,
 		});
-		await terminal.waitForRender(() => terminal.getViewport().some(row => Bun.stripANSI(row).includes("v9.9.9")));
+		await terminal.waitForRender(() => terminal.getViewport().some(row => bun.stripANSI(row).includes("v9.9.9")));
 
 		applyStartupComposerPreferences({
 			quiet: true,
@@ -842,7 +843,7 @@ describe("Composer prepaint", () => {
 
 		const output = terminal
 			.getViewport()
-			.map(r => Bun.stripANSI(r))
+			.map(r => bun.stripANSI(r))
 			.join("\n");
 		expect(output).not.toContain("v9.9.9");
 
@@ -851,7 +852,7 @@ describe("Composer prepaint", () => {
 		expect(
 			terminal
 				.getViewport()
-				.map(r => Bun.stripANSI(r))
+				.map(r => bun.stripANSI(r))
 				.join("\n"),
 		).toContain("still editable");
 	});
@@ -869,7 +870,7 @@ describe("Composer prepaint", () => {
 		});
 		// The prepaint must be physically written before any async runtime import
 		// can monopolize the event loop; a merely queued render is still a blind gap.
-		expect(terminal.getViewport().some(row => Bun.stripANSI(row).includes("9.9.9"))).toBeTrue();
+		expect(terminal.getViewport().some(row => bun.stripANSI(row).includes("9.9.9"))).toBeTrue();
 		expect(terminal.startOptions?.deferInput).toBeTrue();
 		expect(terminal.inputEnables).toBe(0);
 

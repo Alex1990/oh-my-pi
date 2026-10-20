@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/collab/registry";
 import Collab from "@oh-my-pi/pi-coding-agent/commands/collab";
 import { type CliConfig, CliUsageError } from "@oh-my-pi/pi-utils/cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface HostFixture {
 	snapshot: CollabHostSnapshot;
@@ -93,7 +94,7 @@ function collector(): Collector {
 	const calls: string[] = [];
 	return {
 		print: line => calls.push(line),
-		plain: () => Bun.stripANSI(calls.join("\n")),
+		plain: () => bun.stripANSI(calls.join("\n")),
 		calls,
 	};
 }

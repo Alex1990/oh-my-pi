@@ -3,6 +3,7 @@ import type { FetchImpl } from "../../types";
 import { isRecord } from "../../utils";
 import { generatePKCE } from "./pkce";
 import type { OAuthController, OAuthCredentials } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CURSOR_LOGIN_URL = "https://cursor.com/loginDeepControl";
 const CURSOR_POLL_URL = "https://api2.cursor.sh/auth/poll";
@@ -48,7 +49,7 @@ export async function pollCursorAuth(
 	let consecutiveErrors = 0;
 
 	for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
-		await Bun.sleep(delay);
+		await bun.sleep(delay);
 
 		try {
 			const response = await fetch(`${CURSOR_POLL_URL}?uuid=${uuid}&verifier=${verifier}`);

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { PersistCadence } from "../src/predict/daemon";
 
 const DEBOUNCE_MS = 5 * 60_000;

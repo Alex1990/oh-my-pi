@@ -4,7 +4,7 @@
 // and shutdown is observed by awaiting the broker's own run() promise — its resolution IS the signal
 // (no polling, no fixed sleep). A regression leaves the broker alive, so the test's own timeout
 // surfaces the failure.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { TempDir } from "@oh-my-pi/pi-utils";

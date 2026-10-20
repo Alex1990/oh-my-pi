@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { crc16Arc, crc32, crc64 } from "@oh-my-pi/pi-utils/ar/checksums";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Containers store these exact values on the wire; if any of them drifts
-// (e.g. Bun.hash.crc32 seed semantics stop matching zlib chaining), every
+// (e.g. bun.hash.crc32 seed semantics stop matching zlib chaining), every
 // archive CRC verification in ar/ starts rejecting valid archives.
 const CHECK = new TextEncoder().encode("123456789");
 

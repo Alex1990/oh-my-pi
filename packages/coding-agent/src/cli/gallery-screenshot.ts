@@ -18,6 +18,8 @@ import { $which } from "@oh-my-pi/pi-utils";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import { quotePosixArgument } from "../utils/shell-quote";
 import type { GallerySection } from "./gallery-cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 
 /** Nerd Font family so the gallery's icon glyphs (PUA) render instead of tofu. */
 export const DEFAULT_SCREENSHOT_FONT = "JetBrainsMono Nerd Font";
@@ -119,8 +121,8 @@ async function renderChunk(args: RenderChunkArgs): Promise<void> {
 
 	// CRLF so each gallery line is its own terminal row regardless of how the
 	// captured shell handles bare LF.
-	await Bun.write(ansiPath, `${args.lines.join("\r\n")}\r\n`);
-	await Bun.write(
+	await bun.write(ansiPath, `${args.lines.join("\r\n")}\r\n`);
+	await bun.write(
 		tapePath,
 		buildTape({
 			gifPath,
@@ -135,8 +137,8 @@ async function renderChunk(args: RenderChunkArgs): Promise<void> {
 	);
 
 	try {
-		const result = await Bun.$`${args.vhs} ${tapePath}`.quiet().nothrow();
-		if (result.exitCode !== 0 || !(await Bun.file(args.outPng).exists())) {
+		const result = await $`${args.vhs} ${tapePath}`.quiet().nothrow();
+		if (result.exitCode !== 0 || !(await bun.file(args.outPng).exists())) {
 			const detail = result.stderr.toString().trim() || result.stdout.toString().trim();
 			throw new Error(`VHS failed to render the gallery screenshot${detail ? `: ${detail.slice(-600)}` : ""}`);
 		}

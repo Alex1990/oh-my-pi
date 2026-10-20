@@ -13,6 +13,8 @@ import { isVideoPath } from "@oh-my-pi/pi-tui/prompt/video";
 import { untilAborted } from "@oh-my-pi/pi-utils/abortable";
 import { TempDir } from "@oh-my-pi/pi-utils/temp";
 import { $which } from "@oh-my-pi/pi-utils/which";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Image } from "@oh-my-pi/pi-utils/node-image";
 
 const VIDEO_MIME_BY_EXT: Record<string, string> = {
 	".mp4": "video/mp4",
@@ -118,7 +120,7 @@ async function framePassthroughFlag(): Promise<string[]> {
 	if (cachedFpsModeFlag) return cachedFpsModeFlag;
 	try {
 		const ffmpeg = requireMediaBinary("ffmpeg");
-		const child = Bun.spawn([ffmpeg, "-version"], { stdout: "pipe", stderr: "pipe" });
+		const child = bun.spawn([ffmpeg, "-version"], { stdout: "pipe", stderr: "pipe" });
 		const [stdout, ,] = await Promise.all([readStream(child.stdout), readStream(child.stderr), child.exited]);
 		const major = Number.parseInt(stdout.split("\n")[0]?.split("version")[1]?.trim().split(".")[0] ?? "", 10);
 		cachedFpsModeFlag = Number.isFinite(major) && major < 5 ? ["-vsync", "0"] : ["-fps_mode", "passthrough"];
@@ -173,7 +175,7 @@ function parseFrameRate(value: string | undefined): number | undefined {
 export async function probeVideo(absolutePath: string, signal?: AbortSignal): Promise<VideoMetadata> {
 	const ffprobe = requireMediaBinary("ffprobe");
 	if (signal?.aborted) throw new VideoError("Video operation aborted.");
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			ffprobe,
 			"-v",
@@ -307,7 +309,7 @@ export interface VideoPng {
 export async function runFfmpeg(args: string[], signal?: AbortSignal): Promise<void> {
 	const ffmpeg = requireMediaBinary("ffmpeg");
 	if (signal?.aborted) throw new VideoError("Video operation aborted.");
-	const child = Bun.spawn([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", ...args], {
+	const child = bun.spawn([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", ...args], {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -360,7 +362,7 @@ export async function extractVideoFramePng(
 				signal,
 			);
 		}
-		const bytes = await Bun.file(out)
+		const bytes = await bun.file(out)
 			.bytes()
 			.catch(() => null);
 		if (!bytes || bytes.length === 0) {
@@ -429,7 +431,7 @@ export async function buildVideoContactSheetPng(
 				}),
 			),
 		);
-		const available = thumbPaths.filter(thumb => Bun.file(thumb).size > 0);
+		const available = thumbPaths.filter(thumb => bun.file(thumb).size > 0);
 		if (available.length === 0) throw new VideoError("Could not extract any preview frames from this video.");
 		const sheet = tmp.join("sheet.png");
 		const inputs = available.flatMap(thumb => ["-i", thumb]);
@@ -447,7 +449,7 @@ export async function buildVideoContactSheetPng(
 			],
 			signal,
 		);
-		const bytes = await Bun.file(sheet)
+		const bytes = await bun.file(sheet)
 			.bytes()
 			.catch(() => null);
 		if (!bytes || bytes.length === 0) throw new VideoError("Could not build a video preview grid for this file.");
@@ -516,7 +518,7 @@ async function selectChangedFrames(
 	signal?: AbortSignal,
 ): Promise<number[]> {
 	const frameBytes = CHANGE_SAMPLE_WIDTH * CHANGE_SAMPLE_HEIGHT;
-	const reader = Bun.file(rawPath).stream().getReader();
+	const reader = bun.file(rawPath).stream().getReader();
 	let pending = Buffer.alloc(0);
 	let previous: Buffer | undefined;
 	let frameIndex = 0;
@@ -610,7 +612,7 @@ export async function buildChangedFrameContactSheetPng(
 					);
 					const labelSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${RECORDING_CONTACT_THUMB_WIDTH}" height="30"><rect width="100%" height="100%" fill="#000" fill-opacity=".7"/><text x="8" y="22" fill="#fff" font-size="18" font-family="monospace">${label}</text></svg>`;
 					const labelPng = await rasterizeSvg(Buffer.from(labelSvg), RECORDING_CONTACT_THUMB_WIDTH, 30);
-					await Bun.write(labelPaths[i]!, labelPng);
+					await bun.write(labelPaths[i]!, labelPng);
 					await runFfmpeg(
 						[
 							"-i",
@@ -630,7 +632,7 @@ export async function buildChangedFrameContactSheetPng(
 				}
 			}),
 		);
-		const available = thumbPaths.filter(thumb => Bun.file(thumb).size > 0);
+		const available = thumbPaths.filter(thumb => bun.file(thumb).size > 0);
 		if (available.length === 0) throw new VideoError("Could not extract contact-sheet frames from the recording.");
 		const cols = Math.min(CONTACT_SHEET_COLS, available.length);
 		const rows = Math.ceil(available.length / cols);
@@ -647,11 +649,11 @@ export async function buildChangedFrameContactSheetPng(
 			],
 			signal,
 		);
-		const bytes = await Bun.file(options.outputPath)
+		const bytes = await bun.file(options.outputPath)
 			.bytes()
 			.catch(() => null);
 		if (!bytes || bytes.length === 0) throw new VideoError("Could not build the recording contact sheet.");
-		const metadata = await new Bun.Image(bytes).metadata();
+		const metadata = await new Image(bytes).metadata();
 		return {
 			path: options.outputPath,
 			png: { data: Buffer.from(bytes).toBase64(), mimeType: "image/png" },

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { buildAnthropicClientOptions, resolveAnthropicPrewarmTarget } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { prewarmModelConnection, resetConnectionPrewarmForTesting } from "@oh-my-pi/pi-ai/providers/connection-prewarm";
 import type { FetchImpl, Model } from "@oh-my-pi/pi-ai/types";

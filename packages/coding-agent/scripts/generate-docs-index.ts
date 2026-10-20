@@ -1,8 +1,9 @@
 import * as path from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
-import { Glob } from "bun";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const packageDir = path.resolve(import.meta.dir, "..");
+const packageDir = path.resolve(import.meta.dirname, "..");
 const docsDir = path.resolve(packageDir, "../../docs");
 
 export interface DocsIndexPayload {
@@ -29,7 +30,7 @@ export async function buildDocsIndexPayload(): Promise<DocsIndexPayload> {
 	}
 	files.sort();
 
-	const bodies = await Promise.all(files.map(file => Bun.file(path.join(docsDir, file)).text()));
+	const bodies = await Promise.all(files.map(file => bun.file(path.join(docsDir, file)).text()));
 	const bodiesB64 = Buffer.from(gzipSync(Buffer.from(JSON.stringify(bodies)), { level: 9 })).toString("base64");
 	return {
 		files,

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Forked-title experiment harness.
  *
@@ -55,7 +56,7 @@ import { normalizeGeneratedTitle } from "../src/tiny/text";
 import { shutdownTinyTitleClient } from "../src/tiny/title-client";
 
 /** The fork's title request when `--prompt` names none. */
-const DEFAULT_PROMPT = path.join(import.meta.dir, "bench-title-fork.md");
+const DEFAULT_PROMPT = path.join(import.meta.dirname, "bench-title-fork.md");
 
 /** One emoji: ZWJ sequences and variation selectors included. */
 const EMOJI = String.raw`\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic}\uFE0F?)*`;
@@ -308,14 +309,14 @@ async function loadOrDrawSample(config: Config): Promise<SampleEntry[]> {
 	const samplePath = path.join(config.dir, "sample.json");
 	if (!config.resample) {
 		try {
-			const sample: SampleEntry[] = await Bun.file(samplePath).json();
+			const sample: SampleEntry[] = await bun.file(samplePath).json();
 			return sample;
 		} catch (err) {
 			if (!isEnoent(err)) throw err;
 		}
 	}
 	const sample = await drawSample(config);
-	await Bun.write(samplePath, JSON.stringify(sample, null, 2));
+	await bun.write(samplePath, JSON.stringify(sample, null, 2));
 	console.info(`Drew ${sample.length} sessions → ${samplePath}`);
 	return sample;
 }
@@ -595,7 +596,7 @@ async function runForkEntry(
 async function readResults(resultsPath: string): Promise<RunRecord[]> {
 	try {
 		// Written only by this script, one RunRecord per line.
-		const records = Bun.JSONL.parse(await Bun.file(resultsPath).text()) as RunRecord[];
+		const records = bun.JSONL.parse(await bun.file(resultsPath).text()) as RunRecord[];
 		return records;
 	} catch (err) {
 		if (isEnoent(err)) return [];
@@ -745,9 +746,9 @@ function printReport(records: RunRecord[], glyphs?: string): void {
 }
 
 async function main(): Promise<void> {
-	const config = parseArgs(Bun.argv.slice(2));
+	const config = parseArgs(bun.argv.slice(2));
 	// The baseline is requested explicitly; keep skill prompts from starting a second one.
-	Bun.env.PI_NO_TITLE = "1";
+	bun.env.PI_NO_TITLE = "1";
 	await fs.mkdir(config.dir, { recursive: true });
 	const sample = await loadOrDrawSample(config);
 	const promptName = path.basename(config.promptPath, ".md");
@@ -764,7 +765,7 @@ async function main(): Promise<void> {
 		const done = new Set((await readResults(resultsPath)).map(record => record.sessionId));
 		const pending = sample.filter(entry => !done.has(entry.sessionId)).slice(0, config.limit);
 		if (pending.length > 0) {
-			const titlePrompt = prompt.render(await Bun.file(config.promptPath).text());
+			const titlePrompt = prompt.render(await bun.file(config.promptPath).text());
 			const fallbackCwd = path.join(config.dir, "cwd");
 			await fs.mkdir(fallbackCwd, { recursive: true });
 			if (config.tiny) {

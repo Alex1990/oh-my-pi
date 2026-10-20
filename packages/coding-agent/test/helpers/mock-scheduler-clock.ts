@@ -1,4 +1,4 @@
-import { vi } from "bun:test";
+import { vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { scheduler } from "node:timers/promises";
 
 /** Resolve scheduler waits immediately while advancing the monotonic clock by the requested delay. */

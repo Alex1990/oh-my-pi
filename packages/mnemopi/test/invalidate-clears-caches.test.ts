@@ -8,7 +8,7 @@
  * itself uses — the `invalidate()` hook on `beam.caches.queryCache` — so they hold regardless of
  * which cache implementation a host wires in.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { initBeam } from "@oh-my-pi/pi-mnemopi/core/beam/schema";
 import { invalidate, remember } from "@oh-my-pi/pi-mnemopi/core/beam/store";
 import type { BeamMemoryState } from "@oh-my-pi/pi-mnemopi/core/beam/types";

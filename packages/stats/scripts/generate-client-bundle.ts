@@ -2,7 +2,11 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { $ } from "bun";
+import { gzipSync } from "node:zlib";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Archive } from "@oh-my-pi/pi-utils/node-archive";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const GENERATED_FILE = path.join("src", "embedded-client.generated.txt");
 const DIST_CLIENT_DIR = path.join("dist", "client");
@@ -81,17 +85,17 @@ export async function buildArchiveBase64(dir: string): Promise<string> {
 	const entries: Record<string, Uint8Array> = {};
 	for (const filePath of files) {
 		const relativePath = path.relative(dir, filePath).split(path.sep).join("/");
-		entries[relativePath] = await Bun.file(filePath).bytes();
+		entries[relativePath] = await bun.file(filePath).bytes();
 	}
 
-	const archiveBytes = await new Bun.Archive(entries).bytes();
+	const archiveBytes = await new Archive(entries).bytes();
 	normalizeTarMetadata(archiveBytes);
-	return Buffer.from(Bun.gzipSync(archiveBytes, { level: 9 })).toString("base64");
+	return Buffer.from(gzipSync(archiveBytes, { level: 9 })).toString("base64");
 }
 
 async function main(): Promise<void> {
 	if (process.argv.includes(RESET_FLAG)) {
-		await Bun.write(GENERATED_FILE, "");
+		await bun.write(GENERATED_FILE, "");
 		console.log(`Reset ${GENERATED_FILE}`);
 		return;
 	}
@@ -101,10 +105,10 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	await $`bun run build`;
+	await $`pnpm run build`;
 	const archiveBase64 = await buildArchiveBase64(DIST_CLIENT_DIR);
-	await Bun.write(GENERATED_FILE, archiveBase64);
+	await bun.write(GENERATED_FILE, archiveBase64);
 	console.log(`Generated ${GENERATED_FILE}`);
 }
 
-if (import.meta.main) await main();
+if (isMainModule(import.meta.url)) await main();

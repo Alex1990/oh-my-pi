@@ -1,14 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type DownloadActivity, onDownloadActivity } from "@oh-my-pi/pi-coding-agent/downloads/activity";
 import { ensureTool } from "@oh-my-pi/pi-coding-agent/utils/tools-manager";
 import * as ptree from "@oh-my-pi/pi-utils/ptree";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("ensureTool signal abort handling", () => {
 	const originalPath = process.env.PATH;
 
 	beforeEach(() => {
 		process.env.PATH = "/mock/hermetic/path";
-		vi.spyOn(Bun, "which").mockImplementation(cmd => {
+		vi.spyOn(bun, "which").mockImplementation(cmd => {
 			if (cmd === "trafilatura") return null;
 			if (cmd === "uv") return "/mock/bin/uv";
 			if (cmd === "pip" || cmd === "pip3") return "/mock/bin/pip";

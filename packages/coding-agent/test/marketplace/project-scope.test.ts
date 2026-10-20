@@ -8,7 +8,7 @@
  * This file imports from helpers.ts directly — the native addon IS present in the
  * test environment (verified: `bun run import-helpers.ts` succeeds).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -29,6 +29,9 @@ import {
 } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import * as piUtils from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -190,11 +193,11 @@ describe("resolveActiveProjectRegistryPath", () => {
 		fs.mkdirSync(path.join(anchor, ".omp", "agent"), { recursive: true });
 		fs.mkdirSync(cwd, { recursive: true });
 		fs.mkdirSync(pluginDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(pluginsDir, "package.json"),
 			JSON.stringify({ dependencies: { "omp-project-agent": "*" } }),
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(pluginDir, "package.json"),
 			JSON.stringify({ name: "omp-project-agent", version: "1.0.0", omp: { tools: "tools" } }),
 		);

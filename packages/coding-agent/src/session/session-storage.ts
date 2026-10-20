@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { FileLock as NativeFileLock } from "@oh-my-pi/pi-natives";
 import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
-import { isBunTestRuntime } from "@oh-my-pi/pi-utils/env";
+import { isTestRuntime } from "@oh-my-pi/pi-utils/env";
 import { type FileLockHandle, tryAcquireFileLock, withFileLockSync } from "@oh-my-pi/pi-utils/file-lock";
 import { type FsError, hasFsCode, isEnoent } from "@oh-my-pi/pi-utils/fs-error";
 import { openCloexecSync } from "@oh-my-pi/pi-utils/fs-open";
@@ -19,6 +19,8 @@ import {
 	type SessionTitleUpdate,
 	serializeTitleSlot,
 } from "./session-title-slot";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Shared base flags for the held transcript descriptor; callers add `O_APPEND` or `O_TRUNC`. */
 const SESSION_WRITE_FLAGS = fs.constants.O_WRONLY | fs.constants.O_CREAT;
@@ -503,14 +505,8 @@ class FileSessionStorageWriter implements SessionStorageWriter {
 const SESSION_PUBLISH_LOCK_WAIT_MS = 500;
 const SESSION_PUBLISH_LOCK_POLL_MS = 2;
 
-const publishLockSleepBuffer = new Int32Array(new SharedArrayBuffer(4));
-
 function sleepSyncMs(ms: number): void {
-	if ("sleepSync" in Bun && typeof Bun.sleepSync === "function") {
-		Bun.sleepSync(ms);
-		return;
-	}
-	Atomics.wait(publishLockSleepBuffer, 0, 0, ms);
+	bun.sleepSync(ms);
 }
 
 function publishLockPid(content: string): number | undefined {
@@ -551,7 +547,7 @@ const TEST_SESSION_OWNERS_DIR_ENV = "PI_TEST_SESSION_OWNERS_DIR";
  */
 function testSessionOwnersDir(): string | undefined {
 	const exported = process.env[TEST_SESSION_OWNERS_DIR_ENV];
-	if (exported || !isBunTestRuntime()) return exported;
+	if (exported || !isTestRuntime()) return exported;
 	const uid = typeof process.getuid === "function" ? process.getuid() : os.userInfo().username;
 	const dir = path.join(os.tmpdir(), `omp-test-session-owners-${uid}`);
 	process.env[TEST_SESSION_OWNERS_DIR_ENV] = dir;
@@ -610,7 +606,7 @@ function readSessionHeaderIdSync(sessionPath: string): string | undefined {
 export function tryAcquireSessionLease(sessionId: string): FileLockHandle | null {
 	const name = /^[A-Za-z0-9_-]{1,128}$/.test(sessionId)
 		? sessionId
-		: `h-${Bun.hash.wyhash(sessionId).toString(16).padStart(16, "0")}`;
+		: `h-${bun.hash.wyhash(sessionId).toString(16).padStart(16, "0")}`;
 	const lockPath = path.join(sessionOwnersDir(), name);
 	// Linux (abstract socket) and Windows (named mutex) locks never touch the
 	// filesystem; elsewhere the lock is a `flock` sidecar in that directory. The
@@ -656,7 +652,7 @@ function writeLinesToFileSync(target: string, lines: readonly string[]): void {
  * `target` must be a fresh path: a sink does not truncate an existing file.
  */
 async function writeLinesToFile(target: string, lines: readonly string[]): Promise<void> {
-	const sink = Bun.file(target).writer({ highWaterMark: LINE_STREAM_CHUNK });
+	const sink = bun.file(target).writer({ highWaterMark: LINE_STREAM_CHUNK });
 	try {
 		for (const line of lines) {
 			// Backpressured writes can reject after end() has otherwise completed.
@@ -1031,10 +1027,10 @@ export class FileSessionStorage implements SessionStorage {
 
 	listFilesSync(dir: string, pattern: string): string[] {
 		try {
-			// Bun.Glob walks no symlink unless asked, and a transcript placed in
+			// Glob walks no symlink unless asked, and a transcript placed in
 			// a session directory as one — a launcher's, a supervisor's — is a
 			// transcript like any other (#15878)
-			return Array.from(new Bun.Glob(pattern).scanSync({ cwd: dir, followSymlinks: true })).map(name =>
+			return Array.from(new Glob(pattern).scanSync({ cwd: dir, followSymlinks: true })).map(name =>
 				path.join(dir, name),
 			);
 		} catch {
@@ -1053,7 +1049,7 @@ export class FileSessionStorage implements SessionStorage {
 	}
 
 	readText(path: string): Promise<string> {
-		return Bun.file(path).text();
+		return bun.file(path).text();
 	}
 
 	readTextSync(path: string): string {
@@ -1080,7 +1076,7 @@ export class FileSessionStorage implements SessionStorage {
 	}
 
 	async writeText(path: string, content: string): Promise<void> {
-		await Bun.write(path, content, { createPath: true });
+		await bun.write(path, content, { createPath: true });
 	}
 
 	async writeTextAtomic(fpath: string, content: string, options?: WriteTextAtomicOptions): Promise<void> {

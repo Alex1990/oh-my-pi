@@ -96,6 +96,7 @@ import { ACP_TERMINAL_AUTH_FLAG } from "./terminal-auth";
 
 import { cfgDisabledExtensions } from "../../extensibility/settings";
 import { cfgPlanEnabled } from "../../plan-mode/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ACP_DEFAULT_MODE_ID = "default";
 const ACP_PLAN_MODE_ID = "plan";
@@ -1997,7 +1998,7 @@ export class AcpAgent implements Agent {
 	async #readAcpPlanFile(session: AgentSession, planFilePath: string): Promise<string | null> {
 		const resolvedPath = this.#resolveAcpPlanFilePath(session, planFilePath);
 		try {
-			return await Bun.file(resolvedPath).text();
+			return await bun.file(resolvedPath).text();
 		} catch (error) {
 			if (isEnoent(error)) {
 				return null;

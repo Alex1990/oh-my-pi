@@ -11,6 +11,8 @@ import type { RenderResult, SpecialHandler } from "./types";
 import { buildResult, formatMediaDuration, formatNumber } from "./types";
 
 import { cfgProvidersFetch } from "../../session/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface YouTubeUrl {
 	videoId: string;
@@ -248,9 +250,9 @@ export const handleYouTube: SpecialHandler = async (
 		// The metadata spawn already wrote English manual subtitles next to tmpBase
 		if (hasManualSubs) {
 			// Find the downloaded subtitle file using glob
-			const subFiles = await Array.fromAsync(new Bun.Glob(`${tmpBase}*.vtt`).scan({ absolute: true }));
+			const subFiles = await Array.fromAsync(new Glob(`${tmpBase}*.vtt`).scan({ absolute: true }));
 			if (subFiles.length > 0) {
-				const vttContent = await Bun.file(subFiles[0]).text();
+				const vttContent = await bun.file(subFiles[0]).text();
 				transcript = cleanVttToText(vttContent);
 				transcriptSource = "manual";
 				notes.push("Using manual subtitles");
@@ -281,9 +283,9 @@ export const handleYouTube: SpecialHandler = async (
 			);
 
 			if (autoResult.ok) {
-				const subFiles = await Array.fromAsync(new Bun.Glob(`${tmpBase}*.vtt`).scan({ absolute: true }));
+				const subFiles = await Array.fromAsync(new Glob(`${tmpBase}*.vtt`).scan({ absolute: true }));
 				if (subFiles.length > 0) {
-					const vttContent = await Bun.file(subFiles[0]).text();
+					const vttContent = await bun.file(subFiles[0]).text();
 					transcript = cleanVttToText(vttContent);
 					transcriptSource = "auto-generated";
 					notes.push("Using auto-generated captions");
@@ -292,7 +294,7 @@ export const handleYouTube: SpecialHandler = async (
 		}
 	} finally {
 		// Cleanup temp files (fire-and-forget with error suppression)
-		Array.fromAsync(new Bun.Glob(`${tmpBase}*`).scan({ absolute: true }))
+		Array.fromAsync(new Glob(`${tmpBase}*`).scan({ absolute: true }))
 			.then(tmpFiles => Promise.all(tmpFiles.map(f => fs.unlink(f).catch(() => {}))))
 			.catch(() => {});
 	}

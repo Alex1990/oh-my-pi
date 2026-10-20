@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +17,9 @@ import {
 } from "@oh-my-pi/pi-coding-agent/skillshare/manifest";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 function lockEntry(scope: string, name: string, version: string) {
 	return {
@@ -30,8 +33,8 @@ function lockEntry(scope: string, name: string, version: string) {
 async function storeSkill(scope: string, name: string, version: string, description: string): Promise<string> {
 	const dir = getSkillStorePath(scope, name, version);
 	await fs.mkdir(dir, { recursive: true });
-	await Bun.write(path.join(dir, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n---\n# ${name}\n`);
-	await Bun.write(path.join(dir, STORE_INTEGRITY_FILE), `${lockEntry(scope, name, version).integrity}\n`);
+	await bun.write(path.join(dir, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n---\n# ${name}\n`);
+	await bun.write(path.join(dir, STORE_INTEGRITY_FILE), `${lockEntry(scope, name, version).integrity}\n`);
 	return dir;
 }
 
@@ -205,7 +208,7 @@ describe("skillshare discovery provider", () => {
 			skills: { "@alice/pdf-tools": lockEntry("alice", "pdf-tools", "1.2.0") },
 		});
 		const storeDir = await storeSkill("alice", "pdf-tools", "1.2.0", "PDF helpers");
-		await Bun.write(path.join(storeDir, "references", "a.md"), "reference body\n");
+		await bun.write(path.join(storeDir, "references", "a.md"), "reference body\n");
 
 		const { skills } = await loadSkills({ cwd: project });
 		const handler = new SkillProtocolHandler();
@@ -224,7 +227,7 @@ describe("skillshare discovery provider", () => {
 		await storeSkill("alice", "pdf-tools", "1.2.0", "Registry PDF helpers");
 		const authored = path.join(project, ".omp", "skills", "pdf-tools", "SKILL.md");
 		await fs.mkdir(path.dirname(authored), { recursive: true });
-		await Bun.write(authored, "---\nname: pdf-tools\ndescription: Local PDF helpers\n---\n# local\n");
+		await bun.write(authored, "---\nname: pdf-tools\ndescription: Local PDF helpers\n---\n# local\n");
 
 		const { skills } = await loadSkills({ cwd: project });
 		const pdf = skills.filter(skill => skill.name === "pdf-tools");
@@ -247,7 +250,7 @@ describe("skillshare discovery provider", () => {
 			});
 			const evilDir = await storeSkill("mallory", "evil", "1.0.0", "Registry skill squatting a namespaced name");
 			const evilPath = path.join(await fs.realpath(evilDir), "SKILL.md");
-			await Bun.write(
+			await bun.write(
 				evilPath,
 				`---\nname: '${rawName}'\ndescription: Registry skill squatting a namespaced name\n---\n# evil\n`,
 			);

@@ -7,7 +7,7 @@
  * `agent_start` via `ctx.clearPinnedError`. Aborts and normal stops must NOT
  * pin a banner.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -21,6 +21,7 @@ import { PREVIEW_LIMITS, TRUNCATE_LENGTHS } from "@oh-my-pi/pi-tui/render/render
 import { createInteractiveModeContext } from "./helpers/interactive-mode-context";
 
 import { cfgDisplaySmoothStreaming } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function makeAssistantMessage(overrides: Partial<AssistantMessage> = {}): AssistantMessage {
 	return {
@@ -136,7 +137,7 @@ describe("EventController error banner", () => {
 		expect(lines).toHaveLength(2);
 		expect(lines[1]).toContain("503 unavailable");
 		expect(lines[1]).not.toContain("\u001b");
-		expect(Bun.stringWidth(lines[1])).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE * PREVIEW_LIMITS.COLLAPSED_LINES);
+		expect(bun.stringWidth(lines[1])).toBeLessThanOrEqual(TRUNCATE_LENGTHS.LINE * PREVIEW_LIMITS.COLLAPSED_LINES);
 	});
 
 	it("pins the provider error above the editor when an assistant turn ends on stopReason error", async () => {
@@ -397,7 +398,7 @@ describe("EventController error banner", () => {
 				errorMessage,
 			}),
 		);
-		const rendered = Bun.stripANSI(component.render(120).join("\n"));
+		const rendered = bun.stripANSI(component.render(120).join("\n"));
 		expect(rendered).toContain("provider error detail line 29");
 		expect(rendered).not.toContain("more lines");
 	});
@@ -430,7 +431,7 @@ describe("EventController thinking visibility", () => {
 			},
 		} as Extract<AgentSessionEvent, { type: "message_update" }>);
 
-		expect(Bun.stripANSI(component.render(80).join("\n"))).toContain("server-side reasoning");
+		expect(bun.stripANSI(component.render(80).join("\n"))).toContain("server-side reasoning");
 	});
 });
 
@@ -546,7 +547,7 @@ describe("ErrorBannerComponent", () => {
 	it("caps an oversized multi-line error to a few rows and points at expansion", () => {
 		const huge = Array.from({ length: 50 }, (_, i) => `error detail line ${i}`).join("\n");
 		const banner = new ErrorBannerComponent(huge);
-		const rendered = Bun.stripANSI(banner.render(120).join("\n"));
+		const rendered = bun.stripANSI(banner.render(120).join("\n"));
 		const detailLines = rendered.split("\n").filter(line => line.includes("error detail line"));
 		expect(detailLines.length).toBe(4);
 		expect(rendered).toMatch(/\+46 more lines \(.+ to expand\)/);
@@ -555,7 +556,7 @@ describe("ErrorBannerComponent", () => {
 	it("wraps a long single-line error across rows instead of cutting it", () => {
 		const body = `400 ${JSON.stringify({ error: { message: "The requested model is not supported.", code: "model_not_supported", param: "model", type: "invalid_request_error" } })}`;
 		const banner = new ErrorBannerComponent(body);
-		const rendered = Bun.stripANSI(banner.render(60).join("\n"));
+		const rendered = bun.stripANSI(banner.render(60).join("\n"));
 		expect(rendered.replace(/\n\s*/g, "")).toContain('"type":"invalid_request_error"}}');
 		expect(rendered).not.toContain("more line");
 	});
@@ -570,12 +571,12 @@ describe("AssistantMessageComponent error pinning", () => {
 		});
 		const component = new AssistantMessageComponent(message);
 
-		expect(Bun.stripANSI(component.render(120).join("\n"))).toContain("Error: 400 invalid reasoning value");
+		expect(bun.stripANSI(component.render(120).join("\n"))).toContain("Error: 400 invalid reasoning value");
 
 		component.setErrorPinned(true);
-		expect(Bun.stripANSI(component.render(120).join("\n"))).not.toContain("Error: 400 invalid reasoning value");
+		expect(bun.stripANSI(component.render(120).join("\n"))).not.toContain("Error: 400 invalid reasoning value");
 
 		component.setErrorPinned(false);
-		expect(Bun.stripANSI(component.render(120).join("\n"))).toContain("Error: 400 invalid reasoning value");
+		expect(bun.stripANSI(component.render(120).join("\n"))).toContain("Error: 400 invalid reasoning value");
 	});
 });

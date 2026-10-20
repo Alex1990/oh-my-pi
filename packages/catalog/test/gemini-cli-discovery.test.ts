@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { fetchGeminiCliQuotaModels } from "@oh-my-pi/pi-catalog/discovery/gemini-cli";
 import { googleGeminiCliModelManagerOptions } from "@oh-my-pi/pi-catalog/provider-models/google";
 
@@ -32,7 +32,6 @@ function standardTierFetcher(
 			}
 			return Promise.resolve(new Response("Not Found", { status: 404 }));
 		},
-		{ preconnect: fetch.preconnect },
 	);
 }
 
@@ -101,7 +100,6 @@ describe("gemini-cli quota discovery fallback", () => {
 				}
 				return Promise.resolve(new Response("nf", { status: 404 }));
 			},
-			{ preconnect: fetch.preconnect },
 		);
 
 		const models = await fetchGeminiCliQuotaModels({

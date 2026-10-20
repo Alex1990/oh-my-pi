@@ -25,6 +25,7 @@ import type {
 } from "./types";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_MEMORY_FILE = "memory_summary.md";
 const MEMORY_NAMESPACE = "root";
@@ -137,7 +138,7 @@ async function tryResolveInRoot(url: InternalUrl, memoryRoot: string): Promise<I
 		throw new Error(`memory:// URL must resolve to a file or directory: ${url.href}`);
 	}
 
-	const content = await Bun.file(realTargetPath).text();
+	const content = await bun.file(realTargetPath).text();
 
 	return {
 		url: url.href,

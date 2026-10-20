@@ -29,8 +29,12 @@
  * underneath; this only adds curated context.
  */
 
-import { $, Glob } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
+
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 import { compareVersions } from "../packages/utils/src/version";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const changelogGlob = new Glob("packages/*/CHANGELOG.md");
 const REPO = process.env.OMP_REPO ?? process.env.GITHUB_REPOSITORY ?? "can1357/oh-my-pi";
@@ -167,7 +171,7 @@ export function mergePackageSection(content: string, floorExclusive: string | nu
 
 async function loadPackageName(pkgDir: string): Promise<string> {
 	try {
-		const pkg = (await Bun.file(`${pkgDir}/package.json`).json()) as { name?: unknown };
+		const pkg = (await bun.file(`${pkgDir}/package.json`).json()) as { name?: unknown };
 		return typeof pkg.name === "string" ? pkg.name : pkgDir;
 	} catch {
 		return pkgDir;
@@ -236,7 +240,7 @@ async function main(): Promise<void> {
 	const outputPath = process.argv[3] ?? "release-notes.md";
 	if (/^\d+\.\d+\.\d+-canary\.\d+$/.test(version)) {
 		const upcomingVersion = version.replace(/-canary\.\d+$/, "");
-		await Bun.write(
+		await bun.write(
 			outputPath,
 			`This is a canary prerelease of ${upcomingVersion}. Install it with \`omp update --canary\`.\n`,
 		);
@@ -254,7 +258,7 @@ async function main(): Promise<void> {
 	const changelogPaths = await Array.fromAsync(changelogGlob.scan("."));
 	changelogPaths.sort();
 	for (const changelogPath of changelogPaths) {
-		const content = await Bun.file(changelogPath).text();
+		const content = await bun.file(changelogPath).text();
 		const merged = mergePackageSection(content, floor, version);
 		if (merged === "") continue;
 		const pkgDir = changelogPath.replace(/\/CHANGELOG\.md$/, "");
@@ -264,17 +268,17 @@ async function main(): Promise<void> {
 
 	if (sections.length === 0) {
 		console.warn(`No CHANGELOG entries found for version ${version}; writing empty release notes to ${outputPath}.`);
-		await Bun.write(outputPath, "");
+		await bun.write(outputPath, "");
 		process.exit(0);
 	}
 
 	const body = `${sections.join("\n\n")}\n`;
-	await Bun.write(outputPath, body);
+	await bun.write(outputPath, body);
 	console.log(
 		`Wrote ${sections.length} package section(s) to ${outputPath} (version ${version}${floor ? `, floor ${floor}` : ""}).`,
 	);
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	await main();
 }

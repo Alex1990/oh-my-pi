@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createMockModel, registerMockApi } from "@oh-my-pi/pi-ai/providers/mock";
@@ -23,6 +23,8 @@ import type { PreparedSeanceSession } from "@oh-my-pi/pi-coding-agent/task/seanc
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { getAgentDir, setAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MOCK_API_SOURCE = "seance-artifact-lifecycle-test";
 const AGENT_ID = "SeanceArtifactLifecycle";
@@ -141,7 +143,7 @@ describe("seance artifact lifecycle", () => {
 		];
 		const sourceText = `${sourceEntries.map(entry => JSON.stringify(entry)).join("\n")}\n`;
 		await fs.mkdir(path.dirname(sourceFile), { recursive: true });
-		await Bun.write(sourceFile, sourceText);
+		await bun.write(sourceFile, sourceText);
 
 		const mock = createMockModel({
 			provider: "mock",
@@ -195,12 +197,12 @@ describe("seance artifact lifecycle", () => {
 			const publishedPath = path.join(artifactsDir, `${AGENT_ID}.md`);
 			expect(result.outputPath).toBe(publishedPath);
 			expect(AgentRegistry.global().get(AGENT_ID)?.history?.outputPath).toBe(publishedPath);
-			expect(await Bun.file(publishedPath).text()).toContain("initial answer");
+			expect(await bun.file(publishedPath).text()).toContain("initial answer");
 
 			const liveSession = AgentRegistry.global().get(AGENT_ID)?.session;
 			if (!liveSession) throw new Error("Expected the initial seance session to stay alive");
 			await waitForWake(liveSession, eventBus, AGENT_ID, "warm-follow-up");
-			expect(await Bun.file(publishedPath).text()).toContain("warm answer");
+			expect(await bun.file(publishedPath).text()).toContain("warm answer");
 
 			await lifecycle.park(AGENT_ID);
 			AgentLifecycleManager.resetGlobalForTests();
@@ -217,7 +219,7 @@ describe("seance artifact lifecycle", () => {
 			const coldSession = await lifecycle.ensureLive(AGENT_ID);
 			await waitForWake(coldSession, eventBus, AGENT_ID, "cold-follow-up");
 
-			expect(await Bun.file(publishedPath).text()).toContain("cold answer");
+			expect(await bun.file(publishedPath).text()).toContain("cold answer");
 			expect(await fs.readFile(sourceFile, "utf8")).toBe(sourceText);
 		} finally {
 			await AgentLifecycleManager.global()
@@ -265,7 +267,7 @@ describe("seance artifact lifecycle", () => {
 			},
 		];
 		const sourceText = `${sourceEntries.map(entry => JSON.stringify(entry)).join("\n")}\n`;
-		await Bun.write(sourceFile, sourceText);
+		await bun.write(sourceFile, sourceText);
 
 		const mock = createMockModel({
 			provider: "mock",
@@ -318,14 +320,14 @@ describe("seance artifact lifecycle", () => {
 			const publishedPath = path.join(artifactsDir, `${UNSTRUCTURED_AGENT_ID}.md`);
 			const persisted = await SessionManager.peekSessionInit(childSessionFile);
 			expect(persisted?.init?.tools).not.toContain("yield");
-			expect(await Bun.file(publishedPath).text()).toContain("Initial unstructured answer");
+			expect(await bun.file(publishedPath).text()).toContain("Initial unstructured answer");
 
 			const liveSession = AgentRegistry.global().get(UNSTRUCTURED_AGENT_ID)?.session;
 			if (!liveSession) throw new Error("Expected the initial seance session to stay alive");
 			expect(liveSession.getActiveToolNames()).not.toContain("yield");
 			mock.push({ content: ["Warm unstructured answer"] });
 			await waitForWake(liveSession, eventBus, UNSTRUCTURED_AGENT_ID, "warm-unstructured-follow-up");
-			expect(await Bun.file(publishedPath).text()).toContain("Initial unstructured answer");
+			expect(await bun.file(publishedPath).text()).toContain("Initial unstructured answer");
 
 			await lifecycle.park(UNSTRUCTURED_AGENT_ID);
 			AgentLifecycleManager.resetGlobalForTests();
@@ -344,7 +346,7 @@ describe("seance artifact lifecycle", () => {
 			mock.push({ content: ["Cold unstructured answer"] });
 			await waitForWake(coldSession, eventBus, UNSTRUCTURED_AGENT_ID, "cold-unstructured-follow-up");
 
-			expect(await Bun.file(publishedPath).text()).toContain("Initial unstructured answer");
+			expect(await bun.file(publishedPath).text()).toContain("Initial unstructured answer");
 			expect(await fs.readFile(sourceFile, "utf8")).toBe(sourceText);
 		} finally {
 			await AgentLifecycleManager.global()
@@ -361,16 +363,16 @@ describe("seance artifact lifecycle", () => {
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");
 		const sourceArtifacts = sourceFile.slice(0, -".jsonl".length);
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${JSON.stringify({ type: "session", version: CURRENT_SESSION_VERSION, id: "host", timestamp: "2026-10-01T00:00:00.000Z", cwd })}\n`,
 		);
 		for (let id = 0; id < 5; id++) {
-			await Bun.write(path.join(sourceArtifacts, `${id}.read.log`), `source artifact ${id}`);
+			await bun.write(path.join(sourceArtifacts, `${id}.read.log`), `source artifact ${id}`);
 		}
 		const otherFile = path.join(tempDir.path(), "other", "other.jsonl");
-		await Bun.write(path.join(otherFile.slice(0, -".jsonl".length), "2.read.log"), "other session artifact 2");
-		await Bun.write(path.join(otherFile.slice(0, -".jsonl".length), "9.bash.log"), "other session only");
+		await bun.write(path.join(otherFile.slice(0, -".jsonl".length), "2.read.log"), "other session artifact 2");
+		await bun.write(path.join(otherFile.slice(0, -".jsonl".length), "9.bash.log"), "other session only");
 		AgentRegistry.global().register({
 			id: "OtherSession",
 			displayName: "task",
@@ -417,7 +419,7 @@ describe("seance artifact lifecycle", () => {
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");
 		const artifactsDir = sourceFile.slice(0, -".jsonl".length);
-		await Bun.write(
+		await bun.write(
 			sourceFile,
 			`${[
 				{
@@ -438,7 +440,7 @@ describe("seance artifact lifecycle", () => {
 				.map(entry => JSON.stringify(entry))
 				.join("\n")}\n`,
 		);
-		await Bun.write(path.join(artifactsDir, "0.read.log"), "host artifact bytes");
+		await bun.write(path.join(artifactsDir, "0.read.log"), "host artifact bytes");
 
 		const seanceIds = ["SeanceRepeatOne", "SeanceRepeatTwo"];
 		const mock = createMockModel({
@@ -486,7 +488,7 @@ describe("seance artifact lifecycle", () => {
 				expect(result.exitCode).toBe(0);
 			}
 
-			const files = await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: artifactsDir }), file =>
+			const files = await Array.fromAsync(new Glob("**/*").scan({ cwd: artifactsDir }), file =>
 				file.replaceAll("\\", "/"),
 			);
 			expect(files.toSorted()).toEqual([

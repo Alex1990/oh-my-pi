@@ -1,14 +1,15 @@
 import { RawSseDebugBuffer } from "@oh-my-pi/pi-tui/apps/debug/raw-sse-buffer";
 import { truncateHead, truncateTail } from "@oh-my-pi/pi-tui/tools/streaming-output";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EVENTS = 16;
 const PARENT_BYTES = 8 * 1024 * 1024;
 const WINDOW_BYTES = 32_000;
 
 async function liveBytes(): Promise<number> {
-	Bun.gc(true);
-	Bun.gc(true);
-	await Bun.sleep(50);
+	bun.gc(true);
+	bun.gc(true);
+	await bun.sleep(50);
 	const memory = process.memoryUsage();
 	return Math.max(memory.heapUsed, memory.external);
 }
@@ -48,4 +49,4 @@ if (mode === "raw-sse") {
 const retainedBytes = Math.max(0, (await liveBytes()) - baseline);
 const retainedChars =
 	owner instanceof RawSseDebugBuffer ? owner.toRawText().length : owner.reduce((sum, text) => sum + text.length, 0);
-await Bun.write(Bun.stdout, `${retainedBytes}\n${retainedChars}\n`);
+await bun.write(bun.stdout, `${retainedBytes}\n${retainedChars}\n`);

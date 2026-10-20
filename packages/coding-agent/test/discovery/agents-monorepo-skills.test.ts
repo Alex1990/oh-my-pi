@@ -6,7 +6,7 @@
  * this test verifies the building blocks (getProjectPathCandidates, scanSkillsFromDir)
  * with the same walk-up pattern used by the agents provider.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

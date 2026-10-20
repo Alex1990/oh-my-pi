@@ -85,6 +85,7 @@ import { getCacheWarmingDelayMs } from "../../session/cache-warmer";
 import { cfgCompaction } from "../../session/context-settings";
 import { cfgReadToolResultPreview, cfgToolsApproval, cfgToolsApprovalMode } from "../../tools/settings";
 import { cfgSpeechEnabled, cfgSpeechMode } from "../../tts/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type AgentSessionEventKind = AgentSessionEvent["type"];
 
@@ -1030,7 +1031,7 @@ export class EventController {
 			// dot), so it gets it whatever the setting says. Tern's panes carry
 			// `KITTY_WINDOW_ID`, so `TERMINAL.id` says kitty there.
 			const wanted =
-				Bun.env.TERM_PROGRAM?.toLowerCase() === "tern" ||
+				bun.env.TERM_PROGRAM?.toLowerCase() === "tern" ||
 				(this.ctx.settings ? cfgTerminalShowProgress.get(this.ctx.settings) : undefined) === true;
 			if (this.#terminalProgressActive || !wanted) return;
 			this.ctx.ui.terminal.setProgress(true);

@@ -8,6 +8,7 @@ import type { GhToolDetails } from "@oh-my-pi/pi-tui/tools/github";
 import type { GhLabel, GhUser } from "./gh-types";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export function normalizeText(value: string | null | undefined): string {
 	return (value ?? "").replaceAll("\r\n", "\n").replaceAll("\r", "\n").replaceAll("\t", "    ").trim();
@@ -322,7 +323,7 @@ export async function saveArtifactText(
 		return undefined;
 	}
 
-	await Bun.write(artifactPath, text);
+	await bun.write(artifactPath, text);
 	return artifactId;
 }
 

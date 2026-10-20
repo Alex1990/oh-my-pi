@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import * as fs from "node:fs/promises";
 import { redactHeaders } from "./http-inspector";
 import { decodeRequestBodyBytes } from "./request-body";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const REQUEST_DEBUG_ENV = "PI_REQ_DEBUG";
 const textEncoder = new TextEncoder();
@@ -48,7 +49,7 @@ export interface RequestDebugSession {
 }
 
 function isRequestDebugEnvEnabled(): boolean {
-	return Bun.env[REQUEST_DEBUG_ENV] === "1";
+	return bun.env[REQUEST_DEBUG_ENV] === "1";
 }
 
 export function isRequestDebugEnabled(): boolean {

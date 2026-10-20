@@ -1,4 +1,5 @@
-import { afterAll, describe, expect, it, vi } from "bun:test";
+import { vi } from "vitest";
+import { afterAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +16,8 @@ import { wrapStreamFnWithBlobUrlFallback } from "../src/blob-broker/stream-fallb
 import { createCommandUploader, extractUploadUrl, splitCommandTemplate } from "../src/blob-broker/uploaders";
 import { BlobStore as SessionBlobStore } from "../src/session/blob-store";
 import { writeFakeExecutable } from "./helpers/fake-executable";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs", { spy: true });
 
 const PNG_B64 = Buffer.from("blob-broker-test-bytes-1").toString("base64");
 const OTHER_B64 = Buffer.from("blob-broker-test-bytes-2").toString("base64");
@@ -241,7 +244,7 @@ describe("BlobRegistry persistence", () => {
 
 	it("keeps the flushed index when a background save that started earlier finishes later", async () => {
 		const persist = makePersist(60_000);
-		const write = vi.spyOn(Bun, "write");
+		const write = vi.spyOn(bun, "write");
 		vi.useFakeTimers();
 		try {
 			const registry = new BlobRegistry({ persist });

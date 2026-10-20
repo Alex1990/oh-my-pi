@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import { removeWithRetries } from "@oh-my-pi/pi-utils";
 
 import { cfgEditMode } from "@oh-my-pi/pi-coding-agent/edit/settings";
 import { cfgReadSummarizeEnabled } from "@oh-my-pi/pi-coding-agent/tools/settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function textOutput(result: AgentToolResult<ReadToolDetails>): string {
 	return result.content
@@ -75,14 +76,14 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 		const resultText = result.content.map(part => (part.type === "text" ? part.text : "")).join("\n");
 
 		expect(resultText).not.toContain("File not found");
-		expect(await Bun.file(outFile).text()).toBe("ALPHA\nbeta\n");
+		expect(await bun.file(outFile).text()).toBe("ALPHA\nbeta\n");
 	});
 
 	it("round-trips a home-relative path through read and edit", async () => {
 		homeDir = await fs.mkdtemp(path.join(os.homedir(), ".omp-read-edit-"));
 		const homeFile = path.join(homeDir, "settings.txt");
 		const authoredPath = `~/${path.relative(os.homedir(), homeFile)}`;
-		await Bun.write(homeFile, "alpha\nbeta\n");
+		await bun.write(homeFile, "alpha\nbeta\n");
 
 		const session = createSession(cwdDir);
 		const header = textOutput(await new ReadTool(session).execute("read-home", { path: authoredPath })).split(
@@ -93,7 +94,7 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 		});
 
 		expect(result.isError).not.toBe(true);
-		expect(await Bun.file(homeFile).text()).toBe("ALPHA\nbeta\n");
+		expect(await bun.file(homeFile).text()).toBe("ALPHA\nbeta\n");
 	});
 
 	it("keeps an in-cwd relative path so an existing basename cannot capture a follow-up edit", async () => {
@@ -115,8 +116,8 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 			input: `${header}\nPUT 1.=1:\n+ALPHA\n`,
 		});
 
-		expect(await Bun.file(nestedFile).text()).toBe("ALPHA\nbeta\n");
-		expect(await Bun.file(rootFile).text()).toBe("root\n");
+		expect(await bun.file(nestedFile).text()).toBe("ALPHA\nbeta\n");
+		expect(await bun.file(rootFile).text()).toBe("root\n");
 	});
 
 	it("uses the read-resolved workspace suffix across direct edit modes", async () => {
@@ -163,7 +164,7 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 		for (const testCase of cases) {
 			const fileName = `${testCase.mode}.txt`;
 			const workspaceFile = path.join(cwdDir, "src", fileName);
-			await Bun.write(workspaceFile, "alpha\nbeta\n");
+			await bun.write(workspaceFile, "alpha\nbeta\n");
 
 			const session = createSession(cwdDir);
 			cfgEditMode.set(session.settings, testCase.mode);
@@ -173,14 +174,14 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 			expect(textOutput(readResult)).toContain("alpha");
 
 			await testCase.run(new EditTool(session), fileName);
-			expect(await Bun.file(workspaceFile).text()).toBe("ALPHA\nbeta\n");
+			expect(await bun.file(workspaceFile).text()).toBe("ALPHA\nbeta\n");
 		}
 	});
 
 	it("keeps the resolved workspace target across delete/add hunks for the same authored path", async () => {
 		const fileName = "recreate.txt";
 		const workspaceFile = path.join(cwdDir, "src", fileName);
-		await Bun.write(workspaceFile, "alpha\nbeta\n");
+		await bun.write(workspaceFile, "alpha\nbeta\n");
 
 		const session = createSession(cwdDir);
 		cfgEditMode.set(session.settings, "apply_patch");
@@ -197,7 +198,7 @@ describe("read → edit round-trip for out-of-cwd files", () => {
 		].join("\n");
 		await new EditTool(session).execute("edit-workspace-suffix-recreate", { input });
 
-		expect(await Bun.file(workspaceFile).text()).toBe("rewritten\n");
-		expect(await Bun.file(path.join(cwdDir, fileName)).exists()).toBe(false);
+		expect(await bun.file(workspaceFile).text()).toBe("rewritten\n");
+		expect(await bun.file(path.join(cwdDir, fileName)).exists()).toBe(false);
 	});
 });

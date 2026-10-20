@@ -4,6 +4,8 @@ import * as Module from "node:module";
 import * as path from "node:path";
 import { withFileLock } from "./file-lock";
 import { isEexist, isEnoent } from "./fs-error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { productionInstallArgs, resolvePackageManager } from "./package-manager";
 
 /**
  * On-demand runtime dependency support for native-heavy optional packages
@@ -385,7 +387,7 @@ async function withLegacyInstallLock<T>(runtimeDir: string, sleepMs: number, fn:
 			if (Date.now() - stat.mtimeMs > STALE_LEGACY_LOCK_MS) {
 				await fsp.rm(legacy, { recursive: true, force: true });
 			} else {
-				await Bun.sleep(sleepMs);
+				await bun.sleep(sleepMs);
 			}
 			continue;
 		}
@@ -407,8 +409,15 @@ export async function writeRuntimeManifest(runtimeDir: string, install: RuntimeI
 		dependencies: install.dependencies,
 	};
 	if (install.overrides && Object.keys(install.overrides).length) manifest.overrides = install.overrides;
-	if (install.trustedDependencies?.length) manifest.trustedDependencies = install.trustedDependencies;
-	await Bun.write(path.join(runtimeDir, "package.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
+	// pnpm reads its own `pnpm.overrides`/`pnpm.onlyBuiltDependencies` blocks; npm
+	// reads the top-level `overrides` written above.
+	if ((install.overrides && Object.keys(install.overrides).length) || install.trustedDependencies?.length) {
+		manifest.pnpm = {
+			...(install.overrides && Object.keys(install.overrides).length ? { overrides: install.overrides } : {}),
+			...(install.trustedDependencies?.length ? { onlyBuiltDependencies: install.trustedDependencies } : {}),
+		};
+	}
+	await bun.write(path.join(runtimeDir, "package.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
 }
 
 async function readPipe(stream: ReadableStream<Uint8Array> | null): Promise<string> {
@@ -417,10 +426,10 @@ async function readPipe(stream: ReadableStream<Uint8Array> | null): Promise<stri
 }
 
 async function runRuntimeInstall(runtimeDir: string): Promise<void> {
-	// `process.execPath` is plain bun in source/bundle mode and the compiled
-	// binary otherwise; BUN_BE_BUN makes the compiled binary act as bun.
-	const proc = Bun.spawn([process.execPath, "install", "--cwd", runtimeDir, "--production"], {
-		env: { ...Bun.env, BUN_BE_BUN: "1" },
+	const manager = resolvePackageManager();
+	const proc = bun.spawn([manager.command, ...productionInstallArgs(manager.kind)], {
+		cwd: runtimeDir,
+		env: { ...bun.env },
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -432,7 +441,7 @@ async function runRuntimeInstall(runtimeDir: string): Promise<void> {
 	if (exitCode === 0) return;
 	const output = `${stdout}\n${stderr}`.trim();
 	throw new Error(
-		`Failed to install runtime at ${runtimeDir} with ${process.execPath} install (exit ${exitCode}): ${output}`,
+		`Failed to install runtime at ${runtimeDir} with ${manager.command} (exit ${exitCode}): ${output}`,
 	);
 }
 
@@ -457,7 +466,7 @@ export async function ensureRuntimeInstalled(options: EnsureRuntimeInstalledOpti
 		}
 	}
 	if (!probePackage) throw new Error(`Runtime install at ${runtimeDir} declares no dependencies`);
-	const probeManifest = Bun.file(path.join(runtimeDir, "node_modules", ...probePackage.split("/"), "package.json"));
+	const probeManifest = bun.file(path.join(runtimeDir, "node_modules", ...probePackage.split("/"), "package.json"));
 	if (await probeManifest.exists()) return runtimeDir;
 
 	onPhase?.("initiate");

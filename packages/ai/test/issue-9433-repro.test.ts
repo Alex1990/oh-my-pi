@@ -1,7 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 // Issue #9433: the openai-completions consumer threw
 // `OpenAI completions stream closed before a finish_reason was received` whenever
@@ -31,7 +32,7 @@ function fetchFor(frames: readonly unknown[]): FetchImpl {
 	const body = frames.map(f => `data: ${typeof f === "string" ? f : JSON.stringify(f)}\n\n`).join("");
 	return Object.assign(
 		async (): Promise<Response> => new Response(body, { headers: { "content-type": "text/event-stream" } }),
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 }
 

@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { clearRenderCache, Markdown, type MarkdownTheme } from "@oh-my-pi/pi-tui/components/markdown";
 import { getMarkdownTheme, getMarkdownThemeWithLinkTargets, theme } from "@oh-my-pi/pi-tui/theme";
 import { TERMINAL } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { Lexer } from "@oh-my-pi/pi-utils/marked";
 import { defaultMarkdownTheme } from "./test-themes.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // E2 contract: the streaming incremental lexer (lex(prefix) ++ lex(tail), reusing
 // frozen blank-line-bounded blocks) must produce BYTE-IDENTICAL output to a fresh
@@ -957,12 +958,12 @@ describe("Streamed Markdown equals a one-shot render across the frozen prefix", 
 	function streamTime(doc: string, step: number): number {
 		const streaming = new Markdown("", 0, 0, THEME);
 		streaming.transientRenderCache = true;
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		for (let len = step; len < doc.length + step; len += step) {
 			streaming.setText(doc.slice(0, len));
 			streaming.render(100);
 		}
-		return Bun.nanoseconds() - start;
+		return bun.nanoseconds() - start;
 	}
 
 	/** Streaming `doc` costs less than three times streaming `baseline`, best of up to three runs. */
@@ -1004,10 +1005,10 @@ describe("Streamed Markdown equals a one-shot render across the frozen prefix", 
 		// lexes only the new text instead of everything after the opener.
 		const doc = `Intro.\n\n$$\nx = 1\n\n${paragraphs(1500)}\n\n`;
 		const frameTime = (streaming: Markdown, text: string): number => {
-			const start = Bun.nanoseconds();
+			const start = bun.nanoseconds();
 			streaming.setText(text);
 			streaming.render(100);
-			return Bun.nanoseconds() - start;
+			return bun.nanoseconds() - start;
 		};
 		let closing = 0;
 		let after = Number.POSITIVE_INFINITY;

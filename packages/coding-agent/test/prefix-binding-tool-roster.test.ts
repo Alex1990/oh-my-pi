@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, type Mock, vi } from "bun:test";
+import { afterEach, describe, expect, it, type Mock, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { Message, Model } from "@oh-my-pi/pi-ai";
@@ -10,6 +10,7 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { convertToLlm } from "@oh-my-pi/pi-coding-agent/session/messages";
 import { SessionMaintenance } from "@oh-my-pi/pi-coding-agent/session/session-maintenance";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createPrefixBindingModel(): Model<"anthropic-messages"> {
 	return buildModel({
@@ -425,7 +426,7 @@ describe("prefix-bound tool roster changes", () => {
 				const nextTask = Promise.withResolvers<void>();
 				setImmediate(nextTask.resolve);
 				await nextTask.promise;
-				Bun.gc(true);
+				bun.gc(true);
 			}
 			expect(reply.deref()).toBeUndefined();
 		});

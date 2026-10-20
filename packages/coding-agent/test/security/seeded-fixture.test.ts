@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface SeedManifest {
 	schemaVersion: number;
@@ -7,11 +8,11 @@ interface SeedManifest {
 	seeds: Array<{ id: string; path: string; expectedClass: string; expectedDisposition: string }>;
 }
 
-const ROOT = path.join(import.meta.dir, "..", "fixtures", "security", "seeded-repository");
+const ROOT = path.join(import.meta.dirname, "..", "fixtures", "security", "seeded-repository");
 
 describe("security seeded validation repository", () => {
 	test("manifest points only at present non-production fixture files", async () => {
-		const manifest = (await Bun.file(path.join(ROOT, "manifest.json")).json()) as SeedManifest;
+		const manifest = (await bun.file(path.join(ROOT, "manifest.json")).json()) as SeedManifest;
 		expect(manifest.schemaVersion).toBe(1);
 		expect(manifest.nonProduction).toBeTrue();
 		expect(manifest.seeds).toHaveLength(8);
@@ -29,7 +30,7 @@ describe("security seeded validation repository", () => {
 			expect(seed.id in expectedClasses).toBeTrue();
 			expect(expectedClasses[seed.id]).toBe(seed.expectedClass);
 			expect(["finding", "no-finding"]).toContain(seed.expectedDisposition);
-			expect(await Bun.file(path.join(ROOT, seed.path)).exists()).toBeTrue();
+			expect(await bun.file(path.join(ROOT, seed.path)).exists()).toBeTrue();
 		}
 	});
 });

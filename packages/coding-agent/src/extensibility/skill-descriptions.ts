@@ -1,4 +1,4 @@
-import { Database, type Statement } from "bun:sqlite";
+import { Database, type Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { type AgentTelemetry, instrumentedCompleteSimple } from "@oh-my-pi/pi-agent-core";
@@ -7,7 +7,7 @@ import { roleDefaultModels } from "@oh-my-pi/pi-catalog/compat/behavior";
 import {
 	getAgentDir,
 	getSkillDescriptionsDbPath,
-	isBunTestRuntime,
+	isTestRuntime,
 	isEexist,
 	logger,
 	postmortem,
@@ -19,6 +19,7 @@ import type { Settings } from "../config/settings";
 import compressDescriptionPrompt from "../prompts/skills/compress-description.md" with { type: "text" };
 import { Semaphore } from "../task/parallel";
 import type { Skill } from "./skills";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MAX_PREVIEW_CHARS = 100;
 const MAX_COMPRESSED_CHARS = 160;
@@ -100,7 +101,7 @@ export function createSkillDescriptionCompressor(
 }
 
 function keyFor(skill: Pick<Skill, "name" | "description">): string {
-	return new Bun.CryptoHasher("sha256")
+	return new bun.CryptoHasher("sha256")
 		.update(compressDescriptionPrompt)
 		.update("\0")
 		.update(skill.name)
@@ -143,7 +144,7 @@ let shared: SkillDescriptionStore | null | undefined;
  * cache; tests open {@link SkillDescriptionStore.open} explicitly.
  */
 export function sharedSkillDescriptionStore(): SkillDescriptionStore | undefined {
-	if (isBunTestRuntime()) return undefined;
+	if (isTestRuntime()) return undefined;
 	if (shared === undefined) {
 		try {
 			const store = SkillDescriptionStore.open();
@@ -164,7 +165,7 @@ export function sharedSkillDescriptionStore(): SkillDescriptionStore | undefined
  * cannot be opened (logged; the catalog then uses the shared store).
  */
 export function openSessionSkillDescriptionStore(agentDir: string): SkillDescriptionStore | undefined {
-	if (isBunTestRuntime()) return undefined;
+	if (isTestRuntime()) return undefined;
 	try {
 		return SkillDescriptionStore.open(resolveSkillDescriptionsDbPath(agentDir));
 	} catch (error) {

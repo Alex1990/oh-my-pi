@@ -37,12 +37,13 @@ import type { OAuthCredentials } from "@oh-my-pi/pi-ai/oauth/types";
 import { $which, APP_NAME, getAgentDbPath, getConfigRootDir, logger, VERSION } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { setTransports as setLoggerTransports } from "@oh-my-pi/pi-utils/logger";
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 import { refreshManagedMcpOAuthCredential } from "../mcp/oauth-credentials";
 import { isManagedMCPOAuthCredentialId, mcpOAuthServerUrlFromCredentialId } from "../mcp/oauth-flow";
 import { resolveAuthBrokerConfig } from "../session/auth-broker-config";
 import { pickIndex, pickOAuthProvider, runTerminalOAuthLogin } from "./oauth-terminal";
 import { generateToken, readTokenFile, writeTokenFile } from "./token-file";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export type AuthBrokerAction = "serve" | "token" | "login" | "logout" | "status" | "import" | "migrate" | "list";
 
@@ -148,7 +149,7 @@ async function runServe(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 	const store = await SqliteAuthCredentialStore.open(dbPath);
 	const storage = createBrokerAuthStorage(store);
 	await storage.credentials.reload();
-	const handle = startAuthBroker({
+	const handle = await startAuthBroker({
 		storage,
 		bind,
 		bearerTokens: [token],
@@ -256,7 +257,7 @@ async function runRemoteLogin(provider: string, via: string, dryRun: boolean): P
 	if (!sshBin) {
 		throw new Error("ssh binary not found in PATH");
 	}
-	const proc = Bun.spawn({
+	const proc = bun.spawn({
 		cmd: [sshBin, ...sshArgs],
 		stdin: "inherit",
 		stdout: "inherit",

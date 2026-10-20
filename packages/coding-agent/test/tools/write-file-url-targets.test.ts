@@ -1,13 +1,14 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { InternalUrlRouter, VaultProtocolHandler } from "@oh-my-pi/pi-coding-agent/internal-urls";
-import * as vaultProtocol from "@oh-my-pi/pi-coding-agent/internal-urls/vault-protocol";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
+import { cfgVaultEnabled } from "../../src/tools/settings";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createSession(cwd: string): ToolSession {
 	return {
@@ -40,7 +41,7 @@ describe("write to file-backed internal URLs", () => {
 		VaultProtocolHandler.resetForTests();
 		InternalUrlRouter.resetForTests();
 		VaultProtocolHandler.setVaultDirectoryForTests({ Work: vaultRoot });
-		vi.spyOn(vaultProtocol, "isVaultEnabled").mockReturnValue(true);
+		vi.spyOn(cfgVaultEnabled, "get").mockReturnValue(true);
 	});
 
 	afterEach(async () => {
@@ -57,13 +58,13 @@ describe("write to file-backed internal URLs", () => {
 		expect(tool.approval(args)).toBe("write");
 		const result = await tool.execute("vault-write", args);
 
-		expect(await Bun.file(path.join(vaultRoot, "new", "deep", "note.md")).text()).toBe("# Note\n");
+		expect(await bun.file(path.join(vaultRoot, "new", "deep", "note.md")).text()).toBe("# Note\n");
 		expect(resultText(result)).toContain("vault://Work/new/deep/note.md");
 		expect(resultText(result)).not.toContain(vaultRoot);
 	});
 
 	it("refuses vault:// writes while vault.enabled is off", async () => {
-		vi.spyOn(vaultProtocol, "isVaultEnabled").mockReturnValue(false);
+		vi.spyOn(cfgVaultEnabled, "get").mockReturnValue(false);
 
 		await expect(
 			new WriteTool(createSession(tmpDir)).execute("vault-disabled", {
@@ -71,7 +72,7 @@ describe("write to file-backed internal URLs", () => {
 				content: "x\n",
 			}),
 		).rejects.toThrow("vault:// is disabled");
-		expect(await fs.exists(path.join(vaultRoot, "note.md"))).toBe(false);
+		await expect(fs.stat(path.join(vaultRoot, "note.md"))).rejects.toThrow();
 	});
 
 	it("refuses a URL write that resolves to an existing directory", async () => {

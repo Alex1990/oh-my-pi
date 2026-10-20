@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -10,6 +10,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import type { StartupChangelogSelection } from "@oh-my-pi/pi-coding-agent/utils/changelog";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * The startup header is built once, while the auto theme may still be on its
@@ -98,7 +99,7 @@ describe("InteractiveMode startup header after the terminal reports a light back
 	}
 
 	function renderedLine(text: string): string {
-		const line = mode.ui.render(120).find(row => Bun.stripANSI(row).includes(text));
+		const line = mode.ui.render(120).find(row => bun.stripANSI(row).includes(text));
 		if (line === undefined) throw new Error(`Expected a rendered row containing ${JSON.stringify(text)}`);
 		return line;
 	}

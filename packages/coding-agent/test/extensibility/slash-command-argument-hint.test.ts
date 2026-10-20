@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { loadSlashCommands } from "@oh-my-pi/pi-coding-agent/extensibility/slash-commands";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("loadSlashCommands argument-hint", () => {
 	test("parses argument-hint frontmatter into FileSlashCommand.argumentHint", async () => {
@@ -10,7 +11,7 @@ describe("loadSlashCommands argument-hint", () => {
 		try {
 			const commandsDir = path.join(cwd, ".agent", "commands");
 			await fs.mkdir(commandsDir, { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(commandsDir, "git-sync-branch.md"),
 				[
 					"---",
@@ -21,7 +22,7 @@ describe("loadSlashCommands argument-hint", () => {
 					"",
 				].join("\n"),
 			);
-			await Bun.write(
+			await bun.write(
 				path.join(commandsDir, "plain.md"),
 				["---", "description: No hint here", "---", "Body", ""].join("\n"),
 			);

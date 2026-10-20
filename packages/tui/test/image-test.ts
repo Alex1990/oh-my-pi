@@ -4,15 +4,16 @@ import { Spacer } from "@oh-my-pi/pi-tui/components/spacer";
 import { Text } from "@oh-my-pi/pi-tui/components/text";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { TUI } from "@oh-my-pi/pi-tui/tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const testImagePath = Bun.argv[2] || "/tmp/test-image.png";
+const testImagePath = bun.argv[2] || "/tmp/test-image.png";
 
 console.log("Terminal capabilities:", TERMINAL);
 console.log("Loading image from:", testImagePath);
 
 let imageBuffer: Uint8Array;
 try {
-	const file = Bun.file(testImagePath);
+	const file = bun.file(testImagePath);
 	imageBuffer = await file.bytes();
 } catch {
 	console.error(`Failed to load image: ${testImagePath}`);

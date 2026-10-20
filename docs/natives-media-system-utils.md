@@ -22,7 +22,7 @@ This document covers the media/system/conversion exports in `@oh-my-pi/pi-native
 - `crates/pi-natives/src/task.rs`
 - `packages/natives/native/index.d.ts`
 
-There is no native `PhotonImage` class or `image.rs` in the addon. General-purpose image processing stays in `Bun.Image`; the native image surface supplies SIXEL encoding/decoding, bounded SVG rasterization, and snapcompact frame rendering. Filesystem isolation is a separate subsystem.
+There is no native `PhotonImage` class or `image.rs` in the addon. General-purpose image processing stays in the Node-side `Image` helper; the native image surface supplies SIXEL encoding/decoding, bounded SVG rasterization, and snapcompact frame rendering. Filesystem isolation is a separate subsystem.
 
 ## JS API ↔ Rust export/module mapping
 

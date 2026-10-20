@@ -14,6 +14,7 @@ import { isRecord, logger, readImageMetadata } from "@oh-my-pi/pi-utils";
 import { LRUCache } from "@oh-my-pi/pi-utils/lru";
 import { resolveReadPath } from "../tools/path-utils";
 import { formatDimensionNote, type ImageResizeOptions, resizeImage } from "./image-resize";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Largest edge rasterized from SVG before it enters the image pipeline. */
 const SVG_IMAGE_MAX_EDGE_PX = 2048;
@@ -67,7 +68,7 @@ function modelBoundaryImageCacheKey(image: ImageContent, resize: ImageResizeOpti
 		resize?.maxBytes,
 		resize?.jpegQuality,
 	]);
-	return `${resizeKey}:${image.mimeType}:${image.data.length}:${image.data.slice(0, 32)}:${image.data.slice(-32)}:${String(Bun.hash(image.data))}`;
+	return `${resizeKey}:${image.mimeType}:${image.data.length}:${image.data.slice(0, 32)}:${image.data.slice(-32)}:${String(bun.hash(image.data))}`;
 }
 
 async function memoizedStbImageNormalization(
@@ -345,7 +346,7 @@ export async function loadImageInput(options: LoadImageInputOptions): Promise<Lo
 	const mimeType = metadata?.mimeType;
 	if (!mimeType) return null;
 
-	const stat = await Bun.file(resolvedPath).stat();
+	const stat = await bun.file(resolvedPath).stat();
 	if (stat.size > maxBytes) {
 		throw new ImageInputTooLargeError(stat.size, maxBytes);
 	}
@@ -369,7 +370,7 @@ export async function loadSvgImageInput(options: LoadImageInputOptions): Promise
 	if (extension !== ".svg" && extension !== ".svgz") return null;
 
 	const maxBytes = options.maxBytes ?? MAX_IMAGE_INPUT_BYTES;
-	const stat = await Bun.file(resolvedPath).stat();
+	const stat = await bun.file(resolvedPath).stat();
 	if (stat.size > maxBytes) {
 		throw new ImageInputTooLargeError(stat.size, maxBytes);
 	}

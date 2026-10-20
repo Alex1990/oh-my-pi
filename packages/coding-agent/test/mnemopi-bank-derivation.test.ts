@@ -1,10 +1,11 @@
-import { Database } from "bun:sqlite";
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterAll, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsSync from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { computeMnemopiBankScope, extendRecallWithLegacyBanks } from "@oh-my-pi/pi-coding-agent/mnemopi/config";
 import { removeWithRetries, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Set up a fixture filesystem we can reuse across the two regression
 // suites — same shape as `~/.omp/memories/mnemopi/` on a real install.
@@ -22,7 +23,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-	await Bun.sleep(0);
+	await bun.sleep(0);
 	await rootDir.remove();
 });
 
@@ -76,7 +77,7 @@ describe("computeMnemopiBankScope (#2412)", () => {
 			const afterGitRemoved = computeMnemopiBankScope(undefined, project, "per-project").bank;
 			expect(afterGitRemoved).toBe(withoutGit);
 		} finally {
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			await baseDir.remove();
 		}
 	});

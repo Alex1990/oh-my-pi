@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,6 +16,8 @@ import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { ReadTool } from "@oh-my-pi/pi-coding-agent/tools/read";
 import { getThemeByName, initTheme } from "@oh-my-pi/pi-tui/theme";
 import { readToolRenderer } from "@oh-my-pi/pi-tui/tools/read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
 function makeSkillMd(name: string, dir: string) {
 	return `---\nname: ${name}\ndescription: ${name} skill.\n---\n\n# ${name} from ${dir}\n`;
@@ -45,7 +47,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		tempDirs.push(tempDir);
 		const skillDir = path.join(tempDir, "my-custom-skill");
 		await fs.mkdir(skillDir, { recursive: true });
-		await Bun.write(path.join(skillDir, "SKILL.md"), makeSkillMd("my-custom-skill", tempDir));
+		await bun.write(path.join(skillDir, "SKILL.md"), makeSkillMd("my-custom-skill", tempDir));
 
 		const { skills } = await loadSkills({
 			...ALL_DEFAULT_SOURCES_DISABLED,
@@ -71,7 +73,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 			const baseDir = path.join(pluginRoot, "skills", name);
 			await fs.mkdir(baseDir, { recursive: true });
 			const filePath = path.join(baseDir, "SKILL.md");
-			await Bun.write(filePath, makeSkillMd(name, plugin));
+			await bun.write(filePath, makeSkillMd(name, plugin));
 			skills.push({
 				name,
 				description: name,
@@ -83,11 +85,11 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		}
 		const helper = skills[1];
 		await fs.mkdir(path.join(helper.baseDir, "scripts"));
-		await Bun.write(
+		await bun.write(
 			path.join(helper.baseDir, "scripts", "helper.ts"),
 			'process.stdout.write("helper from plugin-b");',
 		);
-		await Bun.write(
+		await bun.write(
 			helper.filePath,
 			`${makeSkillMd(helper.name, "plugin-b")}Run scripts/helper.ts next to this skill file.\n`,
 		);
@@ -106,7 +108,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		// Consume the visible provenance, not renderer-only details, to locate the sibling.
 		const sourcePath = text.match(/\[Skill file: (.+)\]/)?.[1];
 		expect(sourcePath).toBe(helper.filePath);
-		const proc = Bun.spawn([process.execPath, path.join(path.dirname(sourcePath!), "scripts", "helper.ts")], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), path.join(path.dirname(sourcePath!), "scripts", "helper.ts")], {
 			cwd: skills[0].baseDir,
 			stdout: "pipe",
 			stderr: "pipe",
@@ -130,7 +132,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 			const rendered = readToolRenderer
 				.renderResult(outOfRange, { expanded, isPartial: false }, uiTheme, outOfRangeArgs)
 				.render(120)
-				.map(line => Bun.stripANSI(line))
+				.map(line => bun.stripANSI(line))
 				.join("\n");
 			expect(rendered).toContain("Line 9999 is beyond end of file");
 		}
@@ -140,7 +142,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 			path: "skill://helper-skill:raw",
 		});
 		const rawText = raw.content.flatMap(block => (block.type === "text" ? [block.text] : [])).join("\n");
-		expect(rawText).toBe(await Bun.file(helper.filePath).text());
+		expect(rawText).toBe(await bun.file(helper.filePath).text());
 	});
 
 	it("reads semicolon-delimited lists across routed URL schemes", async () => {
@@ -149,7 +151,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		for (const name of ["first-skill", "second-skill"]) {
 			const skillDir = path.join(tempDir, name);
 			await fs.mkdir(skillDir, { recursive: true });
-			await Bun.write(path.join(skillDir, "SKILL.md"), makeSkillMd(name, tempDir));
+			await bun.write(path.join(skillDir, "SKILL.md"), makeSkillMd(name, tempDir));
 		}
 
 		const { skills } = await loadSkills({
@@ -192,7 +194,7 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		const skillDir = path.join(tempDir, "tail-skill");
 		await fs.mkdir(skillDir, { recursive: true });
 		const body = Array.from({ length: 30 }, (_, i) => `body-line-${i + 1}`).join("\n");
-		await Bun.write(path.join(skillDir, "SKILL.md"), `${makeSkillMd("tail-skill", tempDir)}${body}\n`);
+		await bun.write(path.join(skillDir, "SKILL.md"), `${makeSkillMd("tail-skill", tempDir)}${body}\n`);
 
 		const { skills } = await loadSkills({ ...ALL_DEFAULT_SOURCES_DISABLED, customDirectories: [tempDir] });
 		setActiveSkills(skills);
@@ -223,8 +225,8 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		const skillB = path.join(dirB, "same-name");
 		await fs.mkdir(skillA, { recursive: true });
 		await fs.mkdir(skillB, { recursive: true });
-		await Bun.write(path.join(skillA, "SKILL.md"), makeSkillMd("same-name", dirA));
-		await Bun.write(path.join(skillB, "SKILL.md"), makeSkillMd("same-name", dirB));
+		await bun.write(path.join(skillA, "SKILL.md"), makeSkillMd("same-name", dirA));
+		await bun.write(path.join(skillB, "SKILL.md"), makeSkillMd("same-name", dirB));
 
 		const { skills, warnings } = await loadSkills({
 			...ALL_DEFAULT_SOURCES_DISABLED,
@@ -257,12 +259,12 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		// A default discovery path (Claude project skills) claims the name first.
 		const defaultSkill = path.join(cwd, ".claude", "skills", "shared-name");
 		await fs.mkdir(defaultSkill, { recursive: true });
-		await Bun.write(path.join(defaultSkill, "SKILL.md"), makeSkillMd("shared-name", "default"));
+		await bun.write(path.join(defaultSkill, "SKILL.md"), makeSkillMd("shared-name", "default"));
 
 		// The explicitly configured custom directory holds the same name.
 		const customSkill = path.join(customDir, "shared-name");
 		await fs.mkdir(customSkill, { recursive: true });
-		await Bun.write(path.join(customSkill, "SKILL.md"), makeSkillMd("shared-name", "custom"));
+		await bun.write(path.join(customSkill, "SKILL.md"), makeSkillMd("shared-name", "custom"));
 
 		const { skills } = await loadSkills({
 			cwd,
@@ -302,12 +304,12 @@ describe("skill:// resolution honors skills.customDirectories (#7190)", () => {
 		// with the SAME body the custom-directory skill below will also carry.
 		const defaultSkill = path.join(cwd, ".claude", "skills", "shared-name");
 		await fs.mkdir(defaultSkill, { recursive: true });
-		await Bun.write(path.join(defaultSkill, "SKILL.md"), makeSkillMd("shared-name", "same"));
+		await bun.write(path.join(defaultSkill, "SKILL.md"), makeSkillMd("shared-name", "same"));
 
 		// The explicitly configured custom directory holds an identical body.
 		const customSkill = path.join(customDir, "shared-name");
 		await fs.mkdir(customSkill, { recursive: true });
-		await Bun.write(path.join(customSkill, "SKILL.md"), makeSkillMd("shared-name", "same"));
+		await bun.write(path.join(customSkill, "SKILL.md"), makeSkillMd("shared-name", "same"));
 
 		const { skills } = await loadSkills({
 			cwd,

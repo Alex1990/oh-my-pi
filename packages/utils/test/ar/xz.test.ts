@@ -1,14 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { crc32 } from "../../src/ar/checksums";
 import { lzmaAloneDecompress } from "../../src/ar/codecs/lzma";
 import { isXz, xzDecompress } from "../../src/ar/codecs/xz";
 import { ArchiveError } from "../../src/ar/error";
 import { arFixture as fixture } from "./fixtures";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEXT_HASH = "ee8e31cbfe3ffd471a71273fc17c68c50db0aa63d48d6b6b294f5560bfc08c2a";
 
 function sha256(bytes: Uint8Array): string {
-	return Bun.SHA256.hash(bytes, "hex");
+	return bun.SHA256.hash(bytes, "hex");
 }
 
 function read32LE(bytes: Uint8Array, offset: number): number {

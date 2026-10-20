@@ -25,7 +25,7 @@
  * helper so it can be tested host-agnostically.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -36,6 +36,7 @@ import {
 	getAddonFilenames,
 	resolveLoaderCandidates,
 } from "../native/loader-state.js";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("issue 823: standalone-binary native loader path resolution", () => {
 	it("detects compiled-binary mode from embedded-addon presence when env and url markers are absent", () => {
@@ -195,8 +196,8 @@ describe("issue 823: standalone-binary native loader path resolution", () => {
 			const baselineFilename = "pi_natives.linux-x64-baseline.node";
 			const modernZstdPath = path.join(testDir, `${modernFilename}.zst`);
 			const baselineZstdPath = path.join(testDir, `${baselineFilename}.zst`);
-			await Bun.write(modernZstdPath, Bun.zstdCompressSync(modern));
-			await Bun.write(baselineZstdPath, Bun.zstdCompressSync(baseline));
+			await bun.write(modernZstdPath, bun.zstdCompressSync(modern));
+			await bun.write(baselineZstdPath, bun.zstdCompressSync(baseline));
 
 			const files: EmbeddedAddonFile[] = [
 				{ variant: "modern", filename: modernFilename, size: modern.length, zstdPath: modernZstdPath },
@@ -218,7 +219,7 @@ describe("issue 823: standalone-binary native loader path resolution", () => {
 		const testDir = await fs.mkdtemp(path.join(os.tmpdir(), "natives-embedded-zstd-"));
 		try {
 			const zstdPath = path.join(testDir, "pi_natives.linux-arm64.node.zst");
-			await Bun.write(zstdPath, Bun.zstdCompressSync(Buffer.from("addon")));
+			await bun.write(zstdPath, bun.zstdCompressSync(Buffer.from("addon")));
 			const files: EmbeddedAddonFile[] = [
 				{ variant: "default", filename: "pi_natives.linux-arm64.node", size: 6, zstdPath },
 			];
@@ -226,7 +227,9 @@ describe("issue 823: standalone-binary native loader path resolution", () => {
 			expect(() => extractEmbeddedAddons({ files, targetDir: testDir })).toThrow(
 				"Embedded addon size mismatch for pi_natives.linux-arm64.node: expected 6, got 5",
 			);
-			expect(await fs.exists(path.join(testDir, "pi_natives.linux-arm64.node"))).toBe(false);
+			expect(await fs.access(path.join(testDir, "pi_natives.linux-arm64.node")).then(() => true, () => false)).toBe(
+				false,
+			);
 		} finally {
 			await fs.rm(testDir, { recursive: true, force: true });
 		}

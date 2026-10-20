@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { stripVTControlCharacters } from "node:util";
 import { Markdown } from "@oh-my-pi/pi-tui/components/markdown";
 import { visibleWidth, wrapTextWithAnsi } from "@oh-my-pi/pi-tui/utils";

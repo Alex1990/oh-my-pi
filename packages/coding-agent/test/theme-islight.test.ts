@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +14,7 @@ import {
 } from "@oh-my-pi/pi-tui/theme";
 import { Editor } from "@oh-my-pi/pi-tui";
 import { getAgentDir, getCustomThemesDir, removeWithRetries, setAgentDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function createBaseThemes() {
 	const builtins = getBuiltinThemes();
@@ -204,7 +205,7 @@ describe("getResolvedThemeColors HTML export defaults", () => {
 
 		const { export: _ignoredExport, ...themeWithoutExport } = defaultThemes.porcelain;
 		const customThemeName = "light-status-dark-export-derived";
-		await Bun.write(
+		await bun.write(
 			path.join(getCustomThemesDir(), `${customThemeName}.json`),
 			JSON.stringify({ ...themeWithoutExport, name: customThemeName }),
 		);

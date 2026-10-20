@@ -6,7 +6,7 @@
  * activity in memory.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { type } from "@oh-my-pi/omptype";
 import { agentLoop, agentLoopDetailed } from "@oh-my-pi/pi-agent-core/agent-loop";
 import {
@@ -30,6 +30,7 @@ import type {
 	Tracer,
 } from "@opentelemetry/api";
 import { createUserMessage } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface RecordedSpan {
 	readonly name: string;
@@ -509,7 +510,7 @@ describe("onRunEnd is non-fatal", () => {
 		expect(messages.length).toBe(2);
 		// `fireOnRunEnd` can run in `runLoop`'s finally, after `result()` resolves — flush
 		// the trailing microtasks of the fire-and-forget agent loop before asserting.
-		await Bun.sleep(5);
+		await bun.sleep(5);
 
 		expect(warnings.length).toBeGreaterThanOrEqual(1);
 		expect(warnings.some(w => w.code === "on_run_end_failed" && w.message.includes("onRunEnd"))).toBe(true);

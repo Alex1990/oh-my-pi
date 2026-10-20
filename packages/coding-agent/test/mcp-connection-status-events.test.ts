@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,7 +7,7 @@ import type { McpConnectionStatusEvent } from "@oh-my-pi/pi-coding-agent/mcp/sta
 import type { MCPServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "many-tools-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "many-tools-mcp.ts");
 const BUN_EXEC = process.execPath;
 
 describe("MCPManager connection status events", () => {

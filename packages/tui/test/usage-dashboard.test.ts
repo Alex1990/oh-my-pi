@@ -1,5 +1,5 @@
 import * as os from "node:os";
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { DailyActivityPoint, UnavailableUsageAccount } from "@oh-my-pi/pi-tui/overlays/usage-dashboard";
 import type { UsageReport } from "@oh-my-pi/pi-ai";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@oh-my-pi/pi-tui/overlays/usage-dashboard";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { visibleWidth } from "@oh-my-pi/pi-tui/utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function day(day: string, cost: number, requests = 1): DailyActivityPoint {
 	return { day, cost, requests };
@@ -305,7 +306,7 @@ describe("UsageDashboardComponent", () => {
 				[100, 2, false],
 				[120, 3, true],
 			] as const) {
-				const lines = component.render(width).map(line => Bun.stripANSI(line));
+				const lines = component.render(width).map(line => bun.stripANSI(line));
 				const labelLine = lines.find(line => line.includes("Claude 7 Day"))!;
 				expect(labelLine).toContain("Codex 5h");
 				expect(/[█░]/.test(labelLine)).toBe(!stacked);
@@ -341,7 +342,7 @@ describe("UsageDashboardComponent", () => {
 				expect(line).not.toContain("\x1b[2J");
 				expect(visibleWidth(line)).toBeLessThanOrEqual(100);
 			}
-			const output = Bun.stripANSI(lines.join("\n"));
+			const output = bun.stripANSI(lines.join("\n"));
 			expect(output).toMatch(/Claude +7 Day +\(Fable\)/);
 			expect(output).toMatch(/5 +h/);
 			expect(output).toMatch(/7 +d/);
@@ -363,7 +364,7 @@ describe("UsageDashboardComponent", () => {
 			]),
 		]);
 		try {
-			const lines = component.render(72).map(line => Bun.stripANSI(line));
+			const lines = component.render(72).map(line => bun.stripANSI(line));
 			for (const suffix of ["(Fable)", "(Mythos)"]) expect(lines.join("\n")).toContain(suffix);
 			const starts = lines.flatMap((line, index) => (line.includes("Weekly extended") ? [index] : []));
 			const bars = lines.flatMap((line, index) => (/[█░]/.test(line) ? [index] : []));
@@ -384,7 +385,7 @@ describe("UsageDashboardComponent", () => {
 		const label = "Claude 7 Day (Extended Thinking)";
 		const component = dashboard([report("anthropic", "a@test", [limit("anthropic", "a", "7d", label, 0.4, "ok")])]);
 		try {
-			const lines = component.render(24).map(line => Bun.stripANSI(line));
+			const lines = component.render(24).map(line => bun.stripANSI(line));
 			const first = lines.findIndex(line => line.includes("Claude"));
 			const bar = lines.findIndex(line => /[█░]/.test(line));
 			expect(bar - first).toBeLessThanOrEqual(2);
@@ -421,7 +422,7 @@ describe("UsageDashboardComponent", () => {
 			await rendered;
 			for (const width of [36, 60]) {
 				const lines = component.render(width);
-				const output = Bun.stripANSI(lines.join("\n"));
+				const output = bun.stripANSI(lines.join("\n"));
 				expect(output).toContain("Claude 7 Day (Fable)");
 				expect(output).toContain("Claude Extra Usage");
 				expect(output).toContain("84%");
@@ -439,7 +440,7 @@ describe("UsageDashboardComponent", () => {
 			[{ provider: "anthropic", label: "b@test" }],
 		);
 		try {
-			const output = Bun.stripANSI(component.render(100).join("\n"));
+			const output = bun.stripANSI(component.render(100).join("\n"));
 			const title = output.split("\n").find(line => line.includes("2 accts"));
 			expect(title?.replace(/^[│\s]+/, "")).toStartWith(`${theme.status.error} Anthropic`);
 		} finally {

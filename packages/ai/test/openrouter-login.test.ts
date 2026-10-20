@@ -1,23 +1,24 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, describe, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai/auth-storage";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const originalOpenRouterApiKey = Bun.env.OPENROUTER_API_KEY;
+const originalOpenRouterApiKey = bun.env.OPENROUTER_API_KEY;
 
 afterEach(() => {
 	if (originalOpenRouterApiKey === undefined) {
-		delete Bun.env.OPENROUTER_API_KEY;
+		delete bun.env.OPENROUTER_API_KEY;
 	} else {
-		Bun.env.OPENROUTER_API_KEY = originalOpenRouterApiKey;
+		bun.env.OPENROUTER_API_KEY = originalOpenRouterApiKey;
 	}
 	vi.restoreAllMocks();
 });
 
 describe("openrouter login wiring", () => {
 	test("resolves OPENROUTER_API_KEY from environment", () => {
-		Bun.env.OPENROUTER_API_KEY = "or-test-key";
+		bun.env.OPENROUTER_API_KEY = "or-test-key";
 		expect(getEnvApiKey("openrouter")).toBe("or-test-key");
 	});
 

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +8,15 @@ import { resetSettingsForTest } from "../../src/config/settings";
 import { AgentStorage } from "../../src/session/agent-storage";
 import { getAgentDir, removeWithRetries, setAgentDir, Snowflake } from "@oh-my-pi/pi-utils";
 import { CliUsageError } from "@oh-my-pi/pi-utils/cli";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+
+// `node:os` is a frozen ESM namespace; route `homedir()` through a hoisted
+// seam instead of spying on the namespace object.
+const osMock = vi.hoisted(() => ({ homedir: (): string => "" }));
+vi.mock("node:os", async importOriginal => {
+	const actual = await importOriginal<typeof import("node:os")>();
+	return { ...actual, homedir: () => osMock.homedir() };
+});
 
 // Every test below discovers skills through the real capability loader, which
 // walks `os.homedir()` and `getAgentDir()` for user-level providers (native
@@ -20,27 +30,26 @@ let originalAgentDir: string;
 beforeEach(async () => {
 	originalAgentDir = getAgentDir();
 	tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "omp-skill-list-home-"));
-	spyOn(os, "homedir").mockReturnValue(tempHome);
+	osMock.homedir = () => tempHome;
 	setAgentDir(path.join(tempHome, ".omp", "agent"));
 });
 
 afterEach(async () => {
-	spyOn(os, "homedir").mockRestore();
 	setAgentDir(originalAgentDir);
 	await removeWithRetries(tempHome);
 });
 
 describe("runSkillsCommand", () => {
 	test("lists skills for a directory with public metadata", async () => {
-		const directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-skills-cmd-"));
+		const directory = await fs.mkdtemp(path.join(tempHome, "omp-skills-cmd-"));
 		const skillsRoot = path.join(directory, "skills-fixture");
 		await fs.mkdir(path.join(skillsRoot, "first", "calendar"), { recursive: true });
 		await fs.mkdir(path.join(skillsRoot, "second", "reviewer"), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(skillsRoot, "first", "calendar", "SKILL.md"),
 			"---\nname: calendar\ndescription: First calendar.\n---\n\n# Calendar (First)\n",
 		);
-		await Bun.write(
+		await bun.write(
 			path.join(skillsRoot, "second", "reviewer", "SKILL.md"),
 			"---\nname: reviewer\ndescription: Review code.\n---\n\n# Reviewer\n",
 		);
@@ -75,9 +84,9 @@ describe("runSkillsCommand", () => {
 	});
 
 	test("resolves relative custom directories against the requested directory", async () => {
-		const directory = await fs.mkdtemp(path.join(os.tmpdir(), `omp-skills-rel-${Snowflake.next()}-`));
+		const directory = await fs.mkdtemp(path.join(tempHome, `omp-skills-rel-${Snowflake.next()}-`));
 		await fs.mkdir(path.join(directory, "rel-root", "calendar"), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(directory, "rel-root", "calendar", "SKILL.md"),
 			"---\nname: calendar\ndescription: Relative calendar.\n---\n\n# Calendar\n",
 		);
@@ -106,15 +115,15 @@ describe("handleSkillList", () => {
 	});
 
 	test("keeps stdout to TSV rows and sends warnings to stderr", async () => {
-		const directory = await fs.mkdtemp(path.join(os.tmpdir(), `omp-skills-list-${Snowflake.next()}-`));
+		const directory = await fs.mkdtemp(path.join(tempHome, `omp-skills-list-${Snowflake.next()}-`));
 		for (const root of ["first", "second"]) {
 			await fs.mkdir(path.join(directory, root, "calendar"), { recursive: true });
-			await Bun.write(
+			await bun.write(
 				path.join(directory, root, "calendar", "SKILL.md"),
 				`---\nname: calendar\ndescription: ${root} calendar.\n---\n\n# Calendar\n`,
 			);
 		}
-		await Bun.write(
+		await bun.write(
 			path.join(directory, ".omp", "config.yml"),
 			"skills:\n  customDirectories:\n    - first\n    - second\n",
 		);
@@ -147,9 +156,9 @@ describe("handleSkillList", () => {
 	});
 
 	test("rejects a target that is not a directory", async () => {
-		const directory = await fs.mkdtemp(path.join(os.tmpdir(), `omp-skills-list-${Snowflake.next()}-`));
+		const directory = await fs.mkdtemp(path.join(tempHome, `omp-skills-list-${Snowflake.next()}-`));
 		const file = path.join(directory, "file.txt");
-		await Bun.write(file, "not a directory");
+		await bun.write(file, "not a directory");
 		try {
 			const missing = path.join(directory, "missing");
 			await expect(handleSkillList(["missing"], directory, false)).rejects.toThrow(

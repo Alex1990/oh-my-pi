@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
+	type AgentCostSnapshot,
 	type AgentMetrics,
 	aggregateCost,
 	aggregateMetrics,
@@ -188,7 +189,7 @@ describe("aggregateCost", () => {
 			getSessionStats: () => ({ contextUsage: undefined }),
 		};
 		const ref = { id: "worker", session } as unknown as AgentRecordLike;
-		const args = { rows: [ref], observedById: new Map(), sessionCosts: new WeakMap() };
+		const args = { rows: [ref], observedById: new Map(), sessionCosts: new WeakMap<object, AgentCostSnapshot>() };
 		expect(aggregateCost(args)).toBeCloseTo(0.9);
 		messages[1].usage.cost.total = 0.5;
 		expect(aggregateCost(args)).toBeCloseTo(1.1);
@@ -209,7 +210,7 @@ describe("aggregateCost", () => {
 
 	it("does not invent a parked row from direct-cost history without a retained snapshot", () => {
 		const ref = { id: "worker", session: null, history: { directCost: 2 } } as unknown as AgentRecordLike;
-		const args = { rows: [ref], observedById: new Map(), sessionCosts: new WeakMap() };
+		const args = { rows: [ref], observedById: new Map(), sessionCosts: new WeakMap<object, AgentCostSnapshot>() };
 		expect(aggregateCost(args)).toBe(0);
 		ref.history!.metrics = { tokens: 1, requests: 1, tools: 0, durationMs: 0, cost: 0.4 };
 		expect(aggregateCost(args)).toBe(2);
@@ -231,7 +232,7 @@ describe("aggregateCost", () => {
 		const args = {
 			rows: [ref],
 			observedById: new Map([[ref.id, observed]]),
-			sessionCosts: new WeakMap(),
+			sessionCosts: new WeakMap<object, AgentCostSnapshot>(),
 		};
 		expect(aggregateCost(args)).toBeCloseTo(0.2);
 		ref.history!.directCost = 0.4;
@@ -254,7 +255,7 @@ describe("aggregateCost", () => {
 		const args = {
 			rows: [{ id: "worker", session }] as unknown as AgentRecordLike[],
 			observedById: new Map(),
-			sessionCosts: new WeakMap(),
+			sessionCosts: new WeakMap<object, AgentCostSnapshot>(),
 		};
 		expect(aggregateCost(args)).toBeCloseTo(0.6);
 		indexed.cost = 0.1;

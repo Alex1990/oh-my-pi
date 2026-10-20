@@ -58,7 +58,7 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
   	? new Worker(hostEntry, { type: "module", argv: ["__omp_worker_<name>"] })
   	: new Worker(new URL("./<worker>.ts", import.meta.url).href, { type: "module" });
   ```
-  When the process was started from the omp CLI — source `cli.ts`, npm-bundle `dist/cli.js`, or compiled binary — `workerHostEntry()` is `Bun.main` and the worker re-enters the single entry module, so no per-worker `--compile` entrypoints or bundle entries exist. Outside a CLI host (`bun test`, SDK embedding, standalone `omp-stats`) it returns `null` and the direct-module fallback loads the worker source. New worker kinds MUST add their selector to the dispatch table in `cli.ts` and keep the fallback branch.
+  When the process was started from the omp CLI — source `cli.ts`, npm-bundle `dist/cli.js`, or compiled binary — `workerHostEntry()` is `process.argv[1]` and the worker re-enters the single entry module, so no per-worker `--compile` entrypoints or bundle entries exist. Outside a CLI host (`pnpm exec vitest run`, SDK embedding, standalone `omp-stats`) it returns `null` and the direct-module fallback loads the worker source. New worker kinds MUST add their selector to the dispatch table in `cli.ts` and keep the fallback branch.
   History: `with { type: "file" }` only copied the entry as a raw asset (workers crashed silently in compiled binaries — issues #1011, #1027), and the later literal-path + extra-entrypoint pattern required keeping spawn literals and two build scripts in sync (issue #1150). The smoke probe below is the live validation of this contract.
   Validate any new worker with the dedicated smoke probe: `omp --smoke-test` spawns the stats sync worker and the tiny-model subprocess, pings them, and exits — it's wired into `ci:test:smoke` and `scripts/install-tests/run-ci.sh` so binary, source-link, and tarball installs all exercise it. Add a sibling smoke if the new worker is on a different module graph.
 
@@ -67,36 +67,46 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 Before writing a helper, check whether one already exists — `packages/coding-agent/src/utils/`, `@oh-my-pi/pi-utils`, `@oh-my-pi/pi-tui`, and the domain modules next to your callsite. This applies to **everything**: VCS wrappers, formatting/truncation/path-display helpers, image handling, clipboard, streams, temp files, caching. The central versions carry hardening a fresh copy always loses (timeouts, output caps, non-interactive env, lock avoidance, caching, TUI sanitization).
 
 - Search first: `grep` for the operation before implementing it. Two implementations of the same thing is a bug even when both work.
-- Examples of the pattern: `@oh-my-pi/pi-natives/vcs` and `src/utils/active-repo-context.ts` are the only sanctioned way to run git/jj (`import * as vcs from "@oh-my-pi/pi-natives/vcs"` — never hand-spawn via `$`/`Bun.spawn`); rendering goes through the helpers in TUI Sanitization below (`replaceTabs`, `truncateToWidth`, `shortenPath`, `PREVIEW_LIMITS`) rather than ad-hoc string math.
+- Examples of the pattern: `@oh-my-pi/pi-natives/vcs` and `src/utils/active-repo-context.ts` are the only sanctioned way to run git/jj (`import * as vcs from "@oh-my-pi/pi-natives/vcs"` — never hand-spawn via `$`/`bun.spawn`); rendering goes through the helpers in TUI Sanitization below (`replaceTabs`, `truncateToWidth`, `shortenPath`, `PREVIEW_LIMITS`) rather than ad-hoc string math.
 - Missing capability? Extend the central helper (new option, new sub-function on the namespace) and call it — don't fork its logic locally.
 
-## Bun Over Node
+## Node.js Runtime
 
-Use Bun APIs where they provide a cleaner alternative; fall back to `node:*` only for what Bun doesn't cover. **Never spawn shell commands for operations with proper APIs** (e.g., don't `Bun.spawnSync(["mkdir", "-p", dir])` — use `mkdirSync`).
+The agent runs on Node.js (>= 22.12) only. Bun is gone: no `Bun.*` globals, no `bun:sqlite`/`bun:ffi`/`bun:test`. Code that needs a file/blob/spawn/serve helper imports it from the compatibility layer instead of a global:
+
+- `@oh-my-pi/pi-utils/node-runtime` — `bun` namespace (`file`, `write`, `spawn`, `sleep`, `hash`, …), `NodeFile`, `Subprocess`, `serve`.
+- `@oh-my-pi/pi-utils/node-serve` — async `serve()`/`Server`/DOM-shaped `WebSocket`.
+- `@oh-my-pi/pi-utils/net-compat` — `connect`/`listen`/`NodeSocket` (unix paths map to named pipes on Windows).
+- `@oh-my-pi/pi-utils/worker` — Web-Worker-shaped `Worker` over `node:worker_threads`.
+- `@oh-my-pi/pi-utils/sqlite-compat` — `Database`/`Statement` over `node:sqlite`.
+- `@oh-my-pi/pi-utils/ffi` — Koffi-backed `dlopen`/`FFIType`/`ptr`.
+- `@oh-my-pi/pi-utils/test-runtime` — Vitest plus Bun's extra matchers.
+
+**Never spawn shell commands for operations with proper APIs** (e.g., don't `bun.spawn(["mkdir", "-p", dir])` — use `mkdirSync`).
 
 ### Quick reference
 
 | Operation       | Use                                       | Not                                |
 | --------------- | ----------------------------------------- | ---------------------------------- |
-| File read/write | `Bun.file()`, `Bun.write()`               | `readFileSync`, `writeFileSync`    |
-| Spawn process   | `` $`cmd` ``, `Bun.spawn()`               | `child_process`                    |
-| Sleep           | `Bun.sleep(ms)`                           | `setTimeout` promise               |
+| File read/write | `bun.file()`, `bun.write()` (compat)      | `readFileSync`, `writeFileSync`    |
+| Spawn process   | `bun.spawn()`, `bun.spawnSync()`          | `child_process` directly           |
+| Sleep           | `bun.sleep(ms)` (compat)                  | `setTimeout` promise               |
 | Binary lookup   | `$which("git")` from `@oh-my-pi/pi-utils` | `spawnSync(["which", "git"])`      |
-| HTTP server     | `Bun.serve()`                             | `http.createServer()`              |
-| SQLite          | `bun:sqlite`                              | `better-sqlite3`                   |
-| Hashing         | `Bun.hash()`, `Bun.password.*`, WebCrypto | `node:crypto`                      |
-| Path resolution | `import.meta.dir`, `import.meta.path`     | `fileURLToPath` dance              |
-| JSON5           | `Bun.JSON5.parse()` / `.stringify()`      | `json5` package                    |
-| JSONL           | `Bun.JSONL.parse()` / `.parseChunk()`     | `text.split("\n").map(JSON.parse)` |
-| String width    | `Bun.stringWidth()`                       | `get-east-asian-width`, custom     |
-| Text wrapping   | `Bun.wrapAnsi()`                          | custom ANSI-aware wrappers         |
+| HTTP server     | `serve()` from `pi-utils/node-serve`      | `http.createServer()`              |
+| SQLite          | `Database` from `pi-utils/sqlite-compat`  | `better-sqlite3`                   |
+| Hashing         | `bun.hash()`, WebCrypto                    | hand-rolled digests                |
+| Path resolution | `import.meta.dirname`, `import.meta.filename` | `fileURLToPath` dance          |
+| JSON5           | `bun.JSON5.parse()` / `.stringify()`      | `json5` package                    |
+| JSONL           | `bun.JSONL.parse()` / `.parseChunk()`     | `text.split("\n").map(JSON.parse)` |
+| String width    | `bun.stringWidth()`                       | `get-east-asian-width`, custom     |
+| Text wrapping   | `bun.wrapAnsi()`                          | custom ANSI-aware wrappers         |
 
 ### Process execution
 
-Prefer Bun Shell (`` $`cmd` ``) for simple commands:
+Prefer the shell helper (`` $`cmd` ``) for simple commands:
 
 ```typescript
-import { $ } from "bun";
+import { $ } from "@oh-my-pi/pi-utils/shell";
 
 const result = await $`git status`.cwd(dir).quiet().nothrow();
 if (result.exitCode === 0) {
@@ -108,12 +118,12 @@ $`do-stuff ${tmpFile}`.quiet().nothrow(); // fire and forget
 
 Methods: `.quiet()`, `.nothrow()`, `.text()`, `.cwd(path)`.
 
-Use `Bun.spawn`/`Bun.spawnSync` only for: long-running processes (LSP, kernels), streaming stdin/stdout/stderr (SSE, JSON-RPC), or process control (signals, kill, complex lifecycle).
+Use `bun.spawn`/`bun.spawnSync` only for: long-running processes (LSP, kernels), streaming stdin/stdout/stderr (SSE, JSON-RPC), or process control (signals, kill, complex lifecycle).
 
 When using `pipe` mode, cast the stream:
 
 ```typescript
-const child = Bun.spawn(["cmd"], { stdout: "pipe", stderr: "pipe" });
+const child = bun.spawn(["cmd"], { stdout: "pipe", stderr: "pipe" });
 const reader = (child.stdout as ReadableStream<Uint8Array>).getReader();
 ```
 
@@ -135,29 +145,29 @@ import * as os from "node:os";
 Prefer Bun:
 
 ```typescript
-const text = await Bun.file(path).text();
-const data = await Bun.file(path).json();
-await Bun.write(path, data); // auto-creates parent dirs
+const text = await bun.file(path).text();
+const data = await bun.file(path).json();
+await bun.write(path, data); // auto-creates parent dirs
 ```
 
 Use `node:fs/promises` for directory ops (`fs.mkdir`, `fs.rm`, `fs.readdir`) — Bun has no native directory APIs. Avoid sync APIs in async flows; use sync only when forced by a synchronous interface.
 
 **Anti-patterns:**
 
-- `existsSync`/`readFileSync`/`writeFileSync` in async code → `Bun.file()` APIs.
-- `mkdir(dirname(path), …)` before `Bun.write(path, …)` → redundant; `Bun.write` handles it.
+- `existsSync`/`readFileSync`/`writeFileSync` in async code → `bun.file()` APIs.
+- `mkdir(dirname(path), …)` before `bun.write(path, …)` → redundant; `bun.write` handles it.
 - `if (await file.exists()) { await file.json() }` → two syscalls plus race. Use try-catch with `isEnoent`:
   ```typescript
   import { isEnoent } from "@oh-my-pi/pi-utils";
   try {
-  	return await Bun.file(path).json();
+  	return await bun.file(path).json();
   } catch (err) {
   	if (isEnoent(err)) return null;
   	throw err;
   }
   ```
-- Multiple `Bun.file(path)` handles for the same path (including across `checkX`/`loadX` helpers).
-- `Buffer.from(await Bun.file(x).arrayBuffer())` → `await fs.readFile(path)`.
+- Multiple `bun.file(path)` handles for the same path (including across `checkX`/`loadX` helpers).
+- `Buffer.from(await bun.file(x).arrayBuffer())` → `await fs.readFile(path)`.
 - Existence check + try-catch around the same read → drop the existence check.
 
 ### Streams
@@ -176,14 +186,14 @@ Manual reader loops only when the protocol requires it (SSE, streaming JSON-RPC)
 
 ### Misc
 
-- **Sleep**: `await Bun.sleep(ms)`, never `new Promise(r => setTimeout(r, ms))`.
-- **Password hashing**: `Bun.password.hash(pw, "bcrypt")` / `Bun.password.verify(pw, hash)`.
-- **String width**: `Bun.stringWidth(text, { countAnsiEscapeCodes?: false })`.
-- **Wrapping**: `Bun.wrapAnsi(text, width, { wordWrap, hard, trim })`.
+- **Sleep**: `await bun.sleep(ms)` (keeps the loop referenced), never a bare `new Promise(r => setTimeout(r, ms))`.
+- **Password hashing**: `Bun.password.hash(pw, "bcrypt")` / `Bun.password.verify(pw, hash)` is not exposed on Node — use `node:crypto` (`scrypt`, `timingSafeEqual`).
+- **String width**: `bun.stringWidth(text, { countAnsiEscapeCodes?: false })`.
+- **Wrapping**: `bun.wrapAnsi(text, width, { wordWrap, hard, trim })`.
 
 ## Model/Provider Policy Lives in KDL
 
-**NEVER hard-code model- or provider-conditional policy in TypeScript.** No `id.includes("claude")`, no model-name regexes, no per-model lookup tables (effort ladders, pricing, context windows, modalities, API routing, quirk flags). All of it belongs in the KDL rule tree at `packages/catalog/src/compat/rules/`, compiled by `bun run gen:compat` into the committed `rules.json` and resolved at build time via `resolveModelPolicy`/`buildModel`.
+**NEVER hard-code model- or provider-conditional policy in TypeScript.** No `id.includes("claude")`, no model-name regexes, no per-model lookup tables (effort ladders, pricing, context windows, modalities, API routing, quirk flags). All of it belongs in the KDL rule tree at `packages/catalog/src/compat/rules/`, compiled by `pnpm run gen:compat` into the committed `rules.json` and resolved at build time via `resolveModelPolicy`/`buildModel`.
 
 Ownership strata (see `src/compat/rules/README.md`):
 
@@ -198,11 +208,11 @@ Rules for TS code:
 - Discovery mappers map authoritative upstream fields as reported; seed neutral values only for fields the upstream omits or misreports **and** KDL explicitly owns via a correction axis (`input-modalities`, `cost-patch`, `limits-patch`, `context-window-floor`, thinking axes). Assert rule-owned corrections through `buildModel`; raw discovery specs remain the right assertion surface for parsing/normalization contracts.
 - An id that no selector can isolate gets an exact-id `models` residue rule with a comment — never a special case in TS.
 - Equal-rank rule overlaps throw `AmbiguousOverlapError` at resolve time; fix with an explicit `priority=` in KDL, not code.
-- After editing rules: `bun run gen:compat` and commit `rules.json` alongside the `.kdl` change.
+- After editing rules: `pnpm run gen:compat` and commit `rules.json` alongside the `.kdl` change.
 
 ## Generated Files
 
-**NEVER edit `packages/catalog/src/models.json` directly.** It is generated from upstream sources (stencil.so, provider catalog discovery, OpenCode docs) by `packages/catalog/scripts/generate-models.ts` and the descriptors/resolvers in `packages/catalog/src/provider-models/`. Hand-edits get overwritten on the next regen. The same applies to `packages/catalog/src/compat/rules.json`, compiled from the KDL tree by `bun run gen:compat`.
+**NEVER edit `packages/catalog/src/models.json` directly.** It is generated from upstream sources (stencil.so, provider catalog discovery, OpenCode docs) by `packages/catalog/scripts/generate-models.ts` and the descriptors/resolvers in `packages/catalog/src/provider-models/`. Hand-edits get overwritten on the next regen. The same applies to `packages/catalog/src/compat/rules.json`, compiled from the KDL tree by `pnpm run gen:compat`.
 
 To change an entry, fix the source:
 
@@ -211,7 +221,7 @@ To change an entry, fix the source:
 - **Discovery/request plumbing** (endpoint shapes, auth, response parsing) → the mappers in `packages/catalog/src/provider-models/openai-compat.ts`.
 - **Generator wiring** (upstream merges, premium multipliers, post-processing order) → `packages/catalog/scripts/generate-models.ts`.
 
-Regenerate with `bun run gen:compat` and/or `bun run gen:models` and commit the generated files alongside the source change. Add a regression test against the **rule/descriptor/mapper**, not the bundled JSON, so it survives upstream metadata shifts.
+Regenerate with `pnpm run gen:compat` and/or `pnpm run gen:models` and commit the generated files alongside the source change. Add a regression test against the **rule/descriptor/mapper**, not the bundled JSON, so it survives upstream metadata shifts.
 
 ## Logging and CLI Output
 
@@ -259,8 +269,8 @@ For the bash tool specifically:
 ## Commands
 
 - NEVER commit unless asked.
-- Never use `tsc`/`npx tsc` — always `bun check`.
-- Never run `cargo test` directly for Rust tests — use `bun run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (pi-natives is a `cdylib`, which rustdoc skips; pi-builtins' examples are `ignore`d vendored uutils docs).
+- Never use `tsc`/`npx tsc` — always `pnpm check`.
+- Never run `cargo test` directly for Rust tests — use `pnpm run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (pi-natives is a `cdylib`, which rustdoc skips; pi-builtins' examples are `ignore`d vendored uutils docs).
 - Merge commits (maintainer merges of PRs) follow: `Merge PR #<number>: <conventional PR subject> (@<author>)` — e.g. `Merge PR #6386: feat(catalog): add native Meta Model API provider (@eggpeat)`.
 ## Rust Build Profiles
 
@@ -303,7 +313,7 @@ Test the contract the system exposes — not the easiest internal detail to asse
 - No placeholder tests, tautologies, or "the code ran" assertions (`expect(true).toBe(true)`, bare `not.toThrow()`, non-empty string checks, length-grew checks, "prompt exists" checks without semantic assertion).
 - Prefer contract-level tests over implementation details. Avoid asserting internal helper wiring, field assignment, singleton identity, incidental ordering, prompt boilerplate, or passthrough option forwarding unless another component depends on that exact detail.
 - Don't duplicate coverage across abstraction levels. If an integration test already proves the behavior, drop the narrower unit test that restates it through mocks.
-- Tests **must be full-suite safe**, not just file-local safe. No long-lived file-wide mutations of `Bun.*`, `process.platform`, `process.env`, or `Bun.env` when a narrower seam exists. Prefer per-test `vi.spyOn(...)` with `vi.restoreAllMocks()` in `afterEach`. A test that passes alone but poisons later files is broken.
+- Tests **must be full-suite safe**, not just file-local safe. No long-lived file-wide mutations of `bun.*`, `process.platform`, or `process.env` when a narrower seam exists. Prefer per-test `vi.spyOn(...)` with `vi.restoreAllMocks()` in `afterEach`. A test that passes alone but poisons later files is broken.
 - **Never use `mock.module()`**. Bun's `mock.module()` mutates the global module registry and leaks across files ([oven-sh/bun#12823](https://github.com/oven-sh/bun/issues/12823)). Use `spyOn` on the imported module object instead. For pass deps, import the pass and spy on `.run`. For package deps, namespace-import and spy on the exported function.
 - For lifecycle/stateful code, prefer one test per invariant or transition over several tiny tests asserting one field each from the same transition.
 - For error handling, trigger the real failure path and assert the surfaced contract — don't instantiate error classes directly or inspect internal metadata.

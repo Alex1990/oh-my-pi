@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getToolDashboardStats, syncAllSessions } from "@oh-my-pi/omp-stats/aggregator";
@@ -8,6 +8,7 @@ import { parseSessionFile } from "@oh-my-pi/omp-stats/parser";
 import type { ToolUsageStats } from "@oh-my-pi/omp-stats/types";
 import { getSessionsDir } from "@oh-my-pi/pi-utils";
 import { installStatsTestIsolation } from "./helpers/temp-agent";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 installStatsTestIsolation("@pi-stats-tool-stats-");
 
@@ -131,7 +132,7 @@ async function writeSessionFile(
 		...(header.parentSession ? { parentSession: header.parentSession } : {}),
 	};
 	const lines = [headerEntry, ...entries].map(entry => JSON.stringify(entry)).join("\n");
-	await Bun.write(sessionFile, `${lines}\n`);
+	await bun.write(sessionFile, `${lines}\n`);
 	return sessionFile;
 }
 
@@ -371,7 +372,7 @@ describe("tool usage stats pipeline", () => {
 			.filter(row => row.entryId !== "asst-1")
 			.map(row => ({ entryId: row.entryId, id: row.id }));
 		// Model an interrupted older replay that advanced its cursor but left removed records behind.
-		const content = await Bun.file(file).text();
+		const content = await bun.file(file).text();
 		await fs.appendFile(
 			file,
 			[

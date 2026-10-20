@@ -20,6 +20,7 @@ import {
 import { isValidThemeBg, isValidThemeColor, type ThemeColor, type ThemeJson } from "./schema";
 import type { SymbolPreset } from "./symbols";
 import type { Theme } from "./theme-class";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export { getAvailableThemes, getAvailableThemesWithPaths, getThemeByName, type ThemeInfo } from "./loader";
 export { isValidThemeColor, type ThemeBg, type ThemeColor } from "./schema";
@@ -76,7 +77,7 @@ export function detectTerminalBackground(): "dark" | "light" {
 	}
 
 	// Tier 2: COLORFGBG env var (static at process start, but still terminal-derived).
-	const colorfgbg = Bun.env.COLORFGBG || "";
+	const colorfgbg = bun.env.COLORFGBG || "";
 	if (colorfgbg) {
 		const parts = colorfgbg.split(";");
 		if (parts.length >= 2) {

@@ -69,6 +69,7 @@ import {
 	renderReportIssueDeviceCall,
 } from "./report-tool-issue";
 import { pendingFileLinkPath } from "./read";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Details returned by the write tool for transcript rendering. */
 export interface WriteToolDetails {
@@ -397,7 +398,7 @@ function wrapWritePreviewRows(lines: string[], width: number): string[] {
 		const gutter = /^(\x1b\[[0-9;]*m)( *\d+ )(\x1b\[[0-9;]*m)(.*)$/.exec(line);
 		if (!gutter) return line;
 		const prefix = `${gutter[1]}${gutter[2]}${gutter[3]}`;
-		return wrapPrefixedLine(prefix, " ".repeat(Bun.stringWidth(gutter[2]!)), gutter[4] ?? "", width);
+		return wrapPrefixedLine(prefix, " ".repeat(bun.stringWidth(gutter[2]!)), gutter[4] ?? "", width);
 	});
 }
 

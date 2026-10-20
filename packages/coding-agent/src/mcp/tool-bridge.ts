@@ -1,4 +1,5 @@
 import { MCP_TOOL_NAME_PREFIX, type MCPToolDetails } from "@oh-my-pi/pi-tui/tools/mcp";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * MCP to CustomTool bridge.
  *
@@ -263,7 +264,7 @@ function structuredContentAlreadyInText(structured: Record<string, unknown>, con
 		} catch {
 			continue;
 		}
-		if (Bun.deepEquals(parsed, structured)) return true;
+		if (bun.deepEquals(parsed, structured)) return true;
 	}
 	return false;
 }
@@ -461,7 +462,7 @@ const MCP_TOOL_NAME_HASH_LENGTH = 8;
  */
 function capMCPToolNameLength(name: string): string {
 	if (name.length <= MAX_MCP_TOOL_NAME_LENGTH) return name;
-	const hash = Bun.hash(name).toString(36).slice(0, MCP_TOOL_NAME_HASH_LENGTH);
+	const hash = bun.hash(name).toString(36).slice(0, MCP_TOOL_NAME_HASH_LENGTH);
 	const keep = MAX_MCP_TOOL_NAME_LENGTH - hash.length - 1;
 	return `${name.slice(0, keep)}_${hash}`;
 }

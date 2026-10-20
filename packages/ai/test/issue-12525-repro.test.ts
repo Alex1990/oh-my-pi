@@ -14,11 +14,12 @@
 // have put two patches on one line of `thinking-loop.ts`.
 //
 // Synthetic data only: no network, no credentials, no local server.
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { streamOpenAICompletions } from "@oh-my-pi/pi-ai/providers/openai-completions";
 import type { Context, FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
+import { preconnectOf } from "../src/utils/fetch-preconnect";
 
 const model = buildModel({
 	id: "issue-12525-model",
@@ -60,7 +61,7 @@ function repetitionStream(choice: Record<string, unknown>): { fetchMock: FetchIm
 			requests += 1;
 			return new Response(body, { headers: { "content-type": "text/event-stream" } });
 		},
-		{ preconnect: fetch.preconnect },
+		{ preconnect: preconnectOf(fetch) },
 	);
 	return { fetchMock, requests: () => requests };
 }

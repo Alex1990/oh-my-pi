@@ -6,7 +6,7 @@
 // same-model replay and the turn surfaced as a hard error. The shape name now
 // maps to its service-model status, so a transient frame classifies retriable
 // and a genuine validation rejection stays terminal.
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { retriable } from "@oh-my-pi/pi-ai/error";
 import { bedrockStreamExceptionStatus, streamBedrock } from "@oh-my-pi/pi-ai/providers/amazon-bedrock";
 import { crc32 } from "@oh-my-pi/pi-ai/providers/aws-eventstream";

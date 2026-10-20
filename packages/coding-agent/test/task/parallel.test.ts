@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { mapWithConcurrencyLimit, mapWithConcurrencyLimitAllSettled } from "@oh-my-pi/pi-coding-agent/task/parallel";
 
 describe("mapWithConcurrencyLimitAllSettled", () => {

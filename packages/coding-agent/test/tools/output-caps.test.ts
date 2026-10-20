@@ -5,7 +5,7 @@
  * elision marker between; sub-cap text passes through untouched so existing
  * bounded-output paths (bash sink/minimizer) see zero behavior change.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { DEFAULT_MAX_BYTES, enforceInlineByteCap } from "@oh-my-pi/pi-tui/tools/streaming-output";
 
 const MARKER_PATTERN = /\[…\d+B elided…\]/;

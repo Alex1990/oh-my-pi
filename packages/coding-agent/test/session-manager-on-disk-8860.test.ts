@@ -6,7 +6,7 @@
  * `ensureOnDisk()`). Consumers advertising a resume command must gate on
  * `isSessionOnDisk()` instead of just the allocated path.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { join } from "node:path";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { MemorySessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";

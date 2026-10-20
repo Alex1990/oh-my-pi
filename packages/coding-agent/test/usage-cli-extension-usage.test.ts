@@ -5,15 +5,16 @@
  * `pi.registerProvider(name, { usage })` was never consulted and the account
  * landed in `accountsWithoutUsage` instead of producing a report.
  */
-import { Database } from "bun:sqlite";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import * as path from "node:path";
-import { afterEach, beforeEach, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { AuthStorage, SqliteAuthCredentialStore, type UsageReport } from "@oh-my-pi/pi-ai";
 import { runUsageCommand } from "@oh-my-pi/pi-coding-agent/cli/usage-cli";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import * as sdkModule from "@oh-my-pi/pi-coding-agent/sdk";
 import * as utils from "@oh-my-pi/pi-utils";
 import { getProjectAgentDir, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXTENSION_SOURCE = `export default function (pi) {
 	pi.registerProvider("ext-usage", {
@@ -49,7 +50,7 @@ let authStorage: AuthStorage;
 beforeEach(async () => {
 	tmp = await TempDir.create("@issue-13579-");
 	extPath = tmp.join("ext.ts");
-	await Bun.write(extPath, EXTENSION_SOURCE);
+	await bun.write(extPath, EXTENSION_SOURCE);
 	authStorage = new AuthStorage(new SqliteAuthCredentialStore(new Database(":memory:")));
 	await authStorage.credentials.reload();
 	await authStorage.credentials.set("ext-usage", { type: "api_key", key: "sk-test" });
@@ -86,7 +87,7 @@ test("omp usage reports accounts through an extension-registered usage provider 
 test("omp usage fetches extension usage without discovering the extension's model catalog", async () => {
 	const marker = tmp.join("catalog-fetched");
 	const catalogExtPath = tmp.join("catalog-ext.ts");
-	await Bun.write(
+	await bun.write(
 		catalogExtPath,
 		`export default function (pi) {
 	pi.registerProvider("ext-catalog", {
@@ -94,7 +95,7 @@ test("omp usage fetches extension usage without discovering the extension's mode
 		api: "openai-completions",
 		apiKey: "literal-key",
 		fetchDynamicModels: async () => {
-			await Bun.write(${JSON.stringify(marker)}, "fetched");
+			await bun.write(${JSON.stringify(marker)}, "fetched");
 			return [];
 		},
 		usage: {
@@ -110,19 +111,19 @@ test("omp usage fetches extension usage without discovering the extension's mode
 
 	const output = await usageJson({ extensions: [catalogExtPath], noExtensions: true, provider: "ext-catalog" });
 	expect(output.reports.map(report => report.provider)).toEqual(["ext-catalog"]);
-	expect(await Bun.file(marker).exists()).toBe(false);
+	expect(await bun.file(marker).exists()).toBe(false);
 });
 
 test("omp usage skips ambient hook factories but retains configured usage providers", async () => {
 	const marker = tmp.join("hook-loaded");
 	const hookPath = path.join(getProjectAgentDir(tmp.path()), "hooks", "pre", "usage-hook.ts");
-	await Bun.write(hookPath, `await Bun.write(${JSON.stringify(marker)}, "loaded"); export default function () {}`);
+	await bun.write(hookPath, `await bun.write(${JSON.stringify(marker)}, "loaded"); export default function () {}`);
 	vi.spyOn(utils, "getProjectDir").mockReturnValue(tmp.path());
 	vi.spyOn(Settings, "loadReadOnly").mockResolvedValue(Settings.isolated({ extensions: [extPath] }));
 
 	const output = await usageJson({});
 	expect(output.reports.map(report => report.provider)).toEqual(["ext-usage"]);
-	expect(await Bun.file(marker).exists()).toBe(false);
+	expect(await bun.file(marker).exists()).toBe(false);
 });
 
 test("omp usage combines broker reports with locally registered extension usage", async () => {

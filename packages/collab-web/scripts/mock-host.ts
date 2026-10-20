@@ -24,6 +24,7 @@ import {
 	subagentTranscriptJsonl,
 } from "./fixture";
 import { startLocalRelay } from "./local-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_PORT = 7466;
 const STEP_INTERVAL_MS = 40;
@@ -46,8 +47,8 @@ function parsePort(argv: string[]): number {
 	return port;
 }
 
-const port = parsePort(Bun.argv.slice(2));
-const relay = startLocalRelay(port);
+const port = parsePort(bun.argv.slice(2));
+const relay = await startLocalRelay(port);
 const roomId = generateRoomId();
 const rawKey = generateRoomKey();
 const key = await importRoomKey(rawKey);
@@ -67,7 +68,7 @@ let queuedPrompts = 0;
 let turnSeq = 0;
 let liveEntrySeq = 0;
 let replayQueue: ScriptedStep[] = [];
-let replayTimer: Timer | null = null;
+let replayTimer: NodeJS.Timeout | null = null;
 let tick = 0;
 let shuttingDown = false;
 
@@ -323,7 +324,7 @@ ws.onclose = event => {
 
 // ── progress ticker ──────────────────────────────────────────────────────────
 
-const tickInterval: Timer = setInterval(() => {
+const tickInterval: NodeJS.Timeout = setInterval(() => {
 	tick++;
 	sendFrame({ t: "bus", channel: "task:subagent:progress", data: makeProbeProgress(tick) });
 	const now = Date.now();
@@ -350,8 +351,7 @@ function shutdown(code: number): void {
 		} catch {
 			// already closing
 		}
-		relay.stop();
-		process.exit(code);
+		void relay.stop().finally(() => process.exit(code));
 	});
 }
 

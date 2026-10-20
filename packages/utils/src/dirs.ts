@@ -15,8 +15,11 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { expandWindowsLongPath } from "@oh-my-pi/pi-natives/path";
-import { engines, version } from "../package.json" with { type: "json" };
+import packageManifest from "../package.json" with { type: "json" };
+
+const { engines, version } = packageManifest;
 import { isEnoent, isEnotdir } from "./fs-error";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** App name (e.g. "omp") */
 export const APP_NAME: string = "omp";
@@ -36,8 +39,8 @@ export const VERSION: string = version;
 /** Default User-Agent header string (e.g. "omp/17.2.12") */
 export const USER_AGENT = `omp/${VERSION}`;
 
-/** Minimum Bun version */
-export const MIN_BUN_VERSION: string = engines.bun.replace(/[^0-9.]/g, "");
+/** Minimum Node.js version required to run the CLI. */
+export const MIN_NODE_VERSION: string = engines.node.replace(/[^0-9.]/g, "");
 
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const PROFILE_ENV_KEYS = ["OMP_PROFILE", "PI_PROFILE"] as const;
@@ -157,7 +160,14 @@ function standardizeMacOSPath(p: string): string {
 
 /** Keep the current directory's spelling while expanding Windows 8.3 aliases. */
 function standardizeProjectPath(p: string): string {
-	return process.platform === "win32" ? expandWindowsLongPath(p) : standardizeMacOSPath(p);
+	if (process.platform !== "win32") return standardizeMacOSPath(p);
+	// Path normalization is best-effort: startup must survive a runtime that
+	// forbids native addons (--no-addons), where the expansion helper cannot load.
+	try {
+		return expandWindowsLongPath(p);
+	} catch {
+		return p;
+	}
 }
 
 export interface EquivalentPathOptions {
@@ -812,12 +822,12 @@ export function getAutoQaDbPath(): string {
  *
  * Used to pack the project identity into a single short fs-safe segment
  * (e.g. PR-checkout and task-isolation worktree dirs under `~/.omp/wt/`).
- * Bun.hash is non-cryptographic — collision space is ~2^28, which is fine
+ * bun.hash is non-cryptographic — collision space is ~2^28, which is fine
  * for naming a handful of repos on a single machine. Same input on the
  * same Bun runtime yields the same output.
  */
 export function hashPath(absPath: string): string {
-	return Bun.hash(path.resolve(absPath)).toString(16).padStart(16, "0").slice(-7);
+	return bun.hash(path.resolve(absPath)).toString(16).padStart(16, "0").slice(-7);
 }
 
 /** Get the path to a single worktree directory (~/.omp/wt/<segment>). */
@@ -1115,7 +1125,7 @@ export function getDaemonRuntimeRoot(): string {
 
 /** Get the daemon runtime directory for a project (~/.omp/run/daemons/<hash>; XDG default: $XDG_STATE_HOME/omp/run/daemons/<hash>). */
 export function getDaemonRuntimeDir(projectDir: string): string {
-	const key = Bun.hash.wyhash(path.resolve(projectDir)).toString(16).padStart(16, "0");
+	const key = bun.hash.wyhash(path.resolve(projectDir)).toString(16).padStart(16, "0");
 	return path.join(getDaemonRuntimeRoot(), key);
 }
 

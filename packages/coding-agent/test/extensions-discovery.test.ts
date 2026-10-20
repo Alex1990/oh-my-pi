@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import * as path from "node:path";
@@ -13,6 +13,12 @@ import {
 import { discoverSessionExtensionPaths } from "@oh-my-pi/pi-coding-agent/sdk";
 import { getProjectAgentDir, TempDir } from "@oh-my-pi/pi-utils";
 import { filterUserScoped } from "./utils/filter-user-extensions";
+import { canCreateSymlink } from "./helpers/symlink-support";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:fs/promises", { spy: true });
+
+const symlinkSupported = await canCreateSymlink();
 
 describe("extensions discovery", () => {
 	let tempDir: TempDir;
@@ -181,9 +187,9 @@ describe("extensions discovery", () => {
 		const inherited = tempDir.join("inherited.ts");
 		const configured = tempDir.join("configured.ts");
 		const unwanted = path.join(extensionsDir, "unwanted.ts");
-		await Bun.write(inherited, extensionCodeWithTool("inherited-tool"));
-		await Bun.write(configured, extensionCodeWithTool("configured-tool"));
-		await Bun.write(unwanted, extensionCodeWithTool("unwanted-tool"));
+		await bun.write(inherited, extensionCodeWithTool("inherited-tool"));
+		await bun.write(configured, extensionCodeWithTool("configured-tool"));
+		await bun.write(unwanted, extensionCodeWithTool("unwanted-tool"));
 		const settings = Settings.isolated({ extensions: [unwanted] });
 		const paths = await discoverSessionExtensionPaths(
 			{
@@ -205,8 +211,8 @@ describe("extensions discovery", () => {
 	it("uses the inherited configured lane when merging cold extension discovery", async () => {
 		const inherited = tempDir.join("inherited.ts");
 		const unwanted = tempDir.join("unwanted.ts");
-		await Bun.write(inherited, extensionCodeWithTool("inherited-tool"));
-		await Bun.write(unwanted, extensionCodeWithTool("unwanted-tool"));
+		await bun.write(inherited, extensionCodeWithTool("inherited-tool"));
+		await bun.write(unwanted, extensionCodeWithTool("unwanted-tool"));
 		const settings = Settings.isolated({ extensions: [unwanted] });
 		const paths = await discoverSessionExtensionPaths(
 			{
@@ -254,7 +260,7 @@ describe("extensions discovery", () => {
 		}
 	});
 
-	it("discovers a symlinked extension package directory", async () => {
+	it.skipIf(!symlinkSupported)("discovers a symlinked extension package directory", async () => {
 		const packageDir = path.join(tempDir.path(), "linked-package");
 		const sourceDir = path.join(packageDir, "src");
 		fs.mkdirSync(sourceDir, { recursive: true });
@@ -277,7 +283,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].path).toContain(path.join("linked-package", "src", "main.ts"));
 	});
 
-	it("discovers index.js in a symlinked extension directory", async () => {
+	it.skipIf(!symlinkSupported)("discovers index.js in a symlinked extension directory", async () => {
 		const packageDir = path.join(tempDir.path(), "linked-index-js");
 		fs.mkdirSync(packageDir);
 		fs.writeFileSync(path.join(packageDir, "index.js"), extensionCode);
@@ -402,7 +408,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions).toHaveLength(3);
 	});
 
-	it("discovers a symlinked extension directory with index.ts", async () => {
+	it.skipIf(!symlinkSupported)("discovers a symlinked extension directory with index.ts", async () => {
 		// A single extension dir shared across profiles via a symlink: the real
 		// directory lives outside extensions/ and is linked into it. Native glob
 		// never descends into the symlink, so this exercises the symlink fallback.
@@ -419,7 +425,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].path).toContain("index.ts");
 	});
 
-	it("discovers a symlinked extension directory with a package.json manifest", async () => {
+	it.skipIf(!symlinkSupported)("discovers a symlinked extension directory with a package.json manifest", async () => {
 		// Mirrors the real-world shape: a packaged extension (package.json + index.ts)
 		// symlinked into a profile's extensions/ dir.
 		const realDir = path.join(tempDir.path(), "external", "ctk");
@@ -441,7 +447,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].tools.has("ctk-tool")).toBe(true);
 	});
 
-	it("discovers a symlinked extension file", async () => {
+	it.skipIf(!symlinkSupported)("discovers a symlinked extension file", async () => {
 		// Symlinked *files* resolve through the native file-type filter; guards that
 		// the directory fallback does not regress the file case.
 		const realFile = path.join(tempDir.path(), "external", "shared.ts");
@@ -456,7 +462,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].path).toContain("linked.ts");
 	});
 
-	it("does not crash on a dangling symlinked extension directory", async () => {
+	it.skipIf(!symlinkSupported)("does not crash on a dangling symlinked extension directory", async () => {
 		// A profile symlink pointing at a since-deleted shared extension. The fallback
 		// reads the (missing) target, gets [], and must yield no extension and no
 		// error rather than throwing.
@@ -468,7 +474,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions).toHaveLength(0);
 	});
 
-	it("discovers a symlinked extension directory whose name ends in .ts", async () => {
+	it.skipIf(!symlinkSupported)("discovers a symlinked extension directory whose name ends in .ts", async () => {
 		// Odd but legal: a *.ts-named symlink that targets a directory. The native
 		// file-type filter rejects it as a direct file (target is a dir), so it must
 		// resolve exactly once via the synthesized subdir index — never double-counted

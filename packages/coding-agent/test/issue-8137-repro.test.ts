@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -13,6 +13,7 @@ import { SKILL_PROMPT_MESSAGE_TYPE } from "@oh-my-pi/pi-coding-agent/session/mes
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { BUILTIN_MODE_SLASH_COMMANDS } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-modes";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Issue #8137 — a `/skill:<name>` token embedded in a `/plan [prompt]` (or
@@ -59,7 +60,7 @@ describe("issue #8137 — inline /skill in mode-command prompts", () => {
 		mode = new InteractiveMode(session, "test");
 
 		const skillPath = path.join(tempDir.path(), "grilling.md");
-		await Bun.write(skillPath, "---\nname: grilling\n---\nGrill the steak thoroughly.\n");
+		await bun.write(skillPath, "---\nname: grilling\n---\nGrill the steak thoroughly.\n");
 		const skill: Skill = {
 			name: "grilling",
 			description: "Grilling skill",

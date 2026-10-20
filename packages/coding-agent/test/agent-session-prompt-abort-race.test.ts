@@ -5,7 +5,7 @@
  * setPromptDropped) instead of starting a turn or entering a queue afterward,
  * and abort() must cancel an in-flight vision description rather than wait on it.
  */
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { ImageContent, Model } from "@oh-my-pi/pi-ai";
 import { createMockModel, type MockResponse } from "@oh-my-pi/pi-ai/providers/mock";

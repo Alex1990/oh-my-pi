@@ -1,13 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { nodeSourceFlags } from "../src/subprocess/worker-client";
 
-const pkgRoot = path.resolve(import.meta.dir, "..");
+const pkgRoot = path.resolve(import.meta.dirname, "..");
 
 async function importedModules(entry: string): Promise<string[]> {
 	const probe = `await import(${JSON.stringify(path.join(pkgRoot, entry))});
 		const reg = typeof Loader !== "undefined" && Loader.registry ? [...Loader.registry.keys()] : Object.keys(require.cache);
 		console.log(JSON.stringify(reg));`;
-	const proc = Bun.spawn([process.execPath, "-e", probe], { cwd: pkgRoot, stdout: "pipe", stderr: "pipe" });
+	const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), "-e", probe], { cwd: pkgRoot, stdout: "pipe", stderr: "pipe" });
 	const [out, err, code] = await Promise.all([
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),

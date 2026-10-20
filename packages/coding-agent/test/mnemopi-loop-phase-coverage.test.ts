@@ -1,5 +1,5 @@
-import { Database, type Statement } from "bun:sqlite";
-import { afterEach, beforeEach, expect, it, spyOn } from "bun:test";
+import { Database, type Statement } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -14,6 +14,7 @@ import {
 } from "@oh-my-pi/pi-coding-agent/mnemopi/state";
 import { resetMemoryForTests } from "@oh-my-pi/pi-mnemopi";
 import { currentLoopPhase, TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // State construction uses the same preloaded, synchronous facade as memory-tools.test.ts.
 await Promise.all([loadMnemopi(), loadMnemopiCore()]);
@@ -273,7 +274,7 @@ it("labels every SQLite statement across scoped session memory flows", async () 
 		await state.consolidate({ full: true, retain: true });
 		expect(state.lastRetainedTurn).toBe(4);
 		visibleTurns = 5;
-		const sleepSpy = spyOn(Bun, "sleep").mockReturnValue(Promise.withResolvers<void>().promise);
+		const sleepSpy = spyOn(bun, "sleep").mockReturnValue(Promise.withResolvers<void>().promise);
 		try {
 			await state.dispose({ timeoutMs: 30_000 });
 		} finally {

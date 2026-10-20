@@ -4,7 +4,7 @@
  * throw discarded the whole source: a new `claude-haiku-5-5` on the shared
  * catalog took every catalog-only Anthropic id (`claude-sonnet-5-5`) offline.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

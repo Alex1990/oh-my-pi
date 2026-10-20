@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { clearCustomApis, registerCustomApi } from "@oh-my-pi/pi-ai/api-registry";
 import { stream, streamSimple } from "@oh-my-pi/pi-ai/stream";
 import type { Api, Context, Model, SimpleStreamOptions } from "@oh-my-pi/pi-ai/types";

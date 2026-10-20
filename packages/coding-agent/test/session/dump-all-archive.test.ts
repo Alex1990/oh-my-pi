@@ -3,7 +3,7 @@
  * separate `subagents/<path>.md` per persisted subagent (nested paths kept,
  * empty transcripts skipped) instead of concatenating them into one document.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
@@ -16,6 +16,7 @@ import { TempDir } from "@oh-my-pi/pi-utils";
 import { readArchiveEntries } from "@oh-my-pi/pi-utils/ar";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 import { createInMemoryAuthStorage } from "../helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function subagentJsonl(id: string, userText: string | null): string {
 	const lines = [
@@ -82,9 +83,9 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 		const sessionFile = session.sessionManager.getSessionFile();
 		if (!sessionFile) throw new Error("Expected a persistent session file");
 		const subDir = sessionFile.slice(0, -".jsonl".length);
-		await Bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
-		await Bun.write(path.join(subDir, "Scout", "Helper.jsonl"), subagentJsonl("helper", "helper task"));
-		await Bun.write(path.join(subDir, "Idle.jsonl"), subagentJsonl("idle", null));
+		await bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
+		await bun.write(path.join(subDir, "Scout", "Helper.jsonl"), subagentJsonl("helper", "helper task"));
+		await bun.write(path.join(subDir, "Idle.jsonl"), subagentJsonl("idle", null));
 
 		const archive = await session.dumpSessionArchiveToTmpDir();
 		if (!archive) throw new Error("Expected an archive");
@@ -97,7 +98,7 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 			"subagents/Scout/Helper.md",
 		]);
 		expect(archive.subagentCount).toBe(2);
-		const entries = await readArchiveEntries({ bytes: await Bun.file(archive.path).bytes(), format: "zip" });
+		const entries = await readArchiveEntries({ bytes: await bun.file(archive.path).bytes(), format: "zip" });
 		const text = (name: string) => new TextDecoder().decode(entries.get(name));
 		expect(text("session.md")).toContain("main prompt");
 		expect(text("session.md")).not.toContain("scout task");
@@ -114,8 +115,8 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 		const subDir = sessionFile.slice(0, -".jsonl".length);
 		const scoutFile = path.join(subDir, "Scout.jsonl");
 		const workerFile = path.join(subDir, "Worker.jsonl");
-		await Bun.write(scoutFile, subagentJsonl("scout", "scout task"));
-		await Bun.write(workerFile, subagentJsonl("worker", "worker task"));
+		await bun.write(scoutFile, subagentJsonl("scout", "scout task"));
+		await bun.write(workerFile, subagentJsonl("worker", "worker task"));
 
 		const scout = createSession("scout task");
 		const startedAt = Date.now() - 90_000;
@@ -165,7 +166,7 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 			const archive = await session.dumpSessionArchiveToTmpDir();
 			if (!archive) throw new Error("Expected an archive");
 			archives.push(archive.path);
-			const entries = await readArchiveEntries({ bytes: await Bun.file(archive.path).bytes(), format: "zip" });
+			const entries = await readArchiveEntries({ bytes: await bun.file(archive.path).bytes(), format: "zip" });
 			const scoutText = new TextDecoder().decode(entries.get("subagents/Scout.md"));
 			const workerText = new TextDecoder().decode(entries.get("subagents/Worker.md"));
 
@@ -193,9 +194,9 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 		const sessionFile = session.sessionManager.getSessionFile();
 		if (!sessionFile) throw new Error("Expected a persistent session file");
 		const subDir = sessionFile.slice(0, -".jsonl".length);
-		await Bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
+		await bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
 		// A truncated trailing record: the transcript still loads, and the skip must be reported.
-		await Bun.write(
+		await bun.write(
 			path.join(subDir, "Scout", "Helper.jsonl"),
 			`${subagentJsonl("helper", "helper task")}{"type":"message","id":"helper-x`,
 		);
@@ -211,7 +212,7 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 		expect(scout).toMatch(/^subagents\/seg\d+\.jsonl$/);
 		expect(helper).toMatch(new RegExp(`^${scout.slice(0, -".jsonl".length)}/seg\\d+\\.jsonl$`));
 		expect(archive.malformed).toEqual([[helper, 1]]);
-		const entries = await readArchiveEntries({ bytes: await Bun.file(archive.path).bytes(), format: "zip" });
+		const entries = await readArchiveEntries({ bytes: await bun.file(archive.path).bytes(), format: "zip" });
 		const scoutLines = new TextDecoder()
 			.decode(entries.get(scout))
 			.trim()
@@ -230,11 +231,11 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 		const sessionFile = session.sessionManager.getSessionFile();
 		if (!sessionFile) throw new Error("Expected a persistent session file");
 		const subDir = sessionFile.slice(0, -".jsonl".length);
-		await Bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
-		await Bun.write(path.join(subDir, "Broken.jsonl"), `{"type":"session","version":3,"id":"bro`);
+		await bun.write(path.join(subDir, "Scout.jsonl"), subagentJsonl("scout", "scout task"));
+		await bun.write(path.join(subDir, "Broken.jsonl"), `{"type":"session","version":3,"id":"bro`);
 		// Valid records without a leading header parse cleanly but still cannot be exported.
 		const headless = subagentJsonl("headless", "headless task").split("\n").slice(1).join("\n");
-		await Bun.write(path.join(subDir, "Headless.jsonl"), headless);
+		await bun.write(path.join(subDir, "Headless.jsonl"), headless);
 
 		const archive = await session.dumpAnonymizedArchiveToTmpDir();
 		if (!archive) throw new Error("Expected an archive");
@@ -249,7 +250,7 @@ describe("AgentSession.dumpSessionArchiveToTmpDir", () => {
 
 	it("reports malformed records skipped while loading the main session", async () => {
 		const file = path.join(tempDir.path(), "corrupt.jsonl");
-		await Bun.write(file, `${subagentJsonl("main", "hello")}{"type":"message","id":"broken`);
+		await bun.write(file, `${subagentJsonl("main", "hello")}{"type":"message","id":"broken`);
 		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
 		if (!model) throw new Error("Expected bundled anthropic model");
 		const reopened = new AgentSession({

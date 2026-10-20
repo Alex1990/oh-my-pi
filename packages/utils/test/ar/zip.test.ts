@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { ArchiveError } from "../../src/ar/error";
 import { DEFAULT_ARCHIVE_LIMITS } from "../../src/ar/limits";
 import { ArchiveReader } from "../../src/ar/reader";
@@ -77,7 +77,7 @@ describe("ZIP fixtures", () => {
 		["zip-zstd.zip", "deprecated Zstandard (20)"],
 		["zip-zstd93.zip", "Zstandard (93)"],
 		["zip-xz.zip", "XZ (95)"],
-	] as const)("extracts %s using %s", async fixtureName => {
+	] as const)("extracts %s using %s", async (fixtureName, _codec) => {
 		const entries = await readZip(memoryByteSource(await fixture(fixtureName)), { limits: DEFAULT_ARCHIVE_LIMITS });
 		expect(DECODER.decode(await readMember(findEntry(entries, "nested/repeated.txt")))).toBe(
 			"compress me compress me compress me compress me compress me compress me compress me compress me\n",

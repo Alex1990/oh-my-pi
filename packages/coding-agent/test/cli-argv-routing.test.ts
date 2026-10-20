@@ -8,7 +8,7 @@
  * and hoists the real subcommand to the front so its parser still applies the
  * flags.
  */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolveCliArgv } from "@oh-my-pi/pi-coding-agent/cli-commands";
 
 describe("resolveCliArgv routes subcommands hidden behind leading global flags", () => {

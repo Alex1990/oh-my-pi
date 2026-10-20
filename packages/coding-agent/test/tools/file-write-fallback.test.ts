@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -10,6 +10,7 @@ import {
 	withFileMutationSession,
 	writeFileWithFallback,
 } from "@oh-my-pi/pi-coding-agent/tools/file-write-fallback";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Mimics a Node/Bun filesystem error with a structured `code`, without touching a real fs. */
 function fsError(code: string, message = `${code}: simulated`): NodeJS.ErrnoException {
@@ -319,7 +320,7 @@ describe("writeFileWithFallback", () => {
 
 		it("leaves an ENOENT alone when a path component is a file rather than a directory", async () => {
 			const blocker = path.join(root, "blocker");
-			await Bun.write(blocker, "not a directory");
+			await bun.write(blocker, "not a directory");
 			let called = false;
 			disposers.push(
 				addFileWriteFallback(async () => {
@@ -335,7 +336,9 @@ describe("writeFileWithFallback", () => {
 			expect(called).toBe(false);
 		});
 
-		it("brokers the RESOLVED target for a write through a symlink", async () => {
+		// Windows needs Developer Mode/elevation to create symlinks, and its chmod has no
+		// directory mode bits, so the kernel cannot reproduce this denial shape there.
+		it.skipIf(process.platform === "win32")("brokers the RESOLVED target for a write through a symlink", async () => {
 			// The escape this closes: the agent creates a link inside a directory the
 			// sandbox permits, pointing at a target it does not. The in-process write
 			// follows the link, so the kernel denied the TARGET — but a handler given
@@ -345,7 +348,7 @@ describe("writeFileWithFallback", () => {
 			const secretDir = path.join(root, "off-limits");
 			await fs.mkdir(secretDir);
 			const secret = path.join(secretDir, "authorized_keys");
-			await Bun.write(secret, "original\n");
+			await bun.write(secret, "original\n");
 			await fs.chmod(secret, 0o400);
 			await fs.chmod(secretDir, 0o500);
 
@@ -366,14 +369,14 @@ describe("writeFileWithFallback", () => {
 					code: expect.stringMatching(/^(EACCES|EPERM)$/),
 				});
 				expect(seen).toEqual([secret]);
-				expect(await Bun.file(secret).text()).toBe("original\n");
+				expect(await bun.file(secret).text()).toBe("original\n");
 			} finally {
 				await fs.chmod(secretDir, 0o700);
 				await fs.chmod(secret, 0o600);
 			}
 		});
 
-		it("resolves a symlinked ANCESTOR, not just a link at the last component", async () => {
+		it.skipIf(process.platform === "win32")("resolves a symlinked ANCESTOR, not just a link at the last component", async () => {
 			// `lstat(dst)` alone judges only the final component, so `ws/link/file` under
 			// a `ws/link -> /outside` link is a lexically innocent path whose bytes land
 			// outside. Every component above the last is followed by the kernel, so the
@@ -381,7 +384,7 @@ describe("writeFileWithFallback", () => {
 			const outside = path.join(root, "off-limits");
 			await fs.mkdir(outside);
 			const victim = path.join(outside, "secret.txt");
-			await Bun.write(victim, "original\n");
+			await bun.write(victim, "original\n");
 			await fs.chmod(victim, 0o400);
 			await fs.chmod(outside, 0o500);
 
@@ -401,7 +404,7 @@ describe("writeFileWithFallback", () => {
 					code: expect.stringMatching(/^(EACCES|EPERM)$/),
 				});
 				expect(seen).toEqual([victim]);
-				expect(await Bun.file(victim).text()).toBe("original\n");
+				expect(await bun.file(victim).text()).toBe("original\n");
 			} finally {
 				await fs.chmod(outside, 0o700);
 				await fs.chmod(victim, 0o600);
@@ -515,7 +518,7 @@ describe("deleteFileWithFallback", () => {
 		/** A file whose containing directory denies the unlink. */
 		async function lockedFile(name = "victim.txt"): Promise<string> {
 			const target = path.join(locked, name);
-			await Bun.write(target, "payload");
+			await bun.write(target, "payload");
 			await fs.chmod(locked, 0o500);
 			return target;
 		}
@@ -581,7 +584,7 @@ describe("deleteFileWithFallback", () => {
 			const opaque = path.join(root, "opaque");
 			await fs.mkdir(opaque);
 			const victim = path.join(opaque, "buried.txt");
-			await Bun.write(victim, "payload");
+			await bun.write(victim, "payload");
 			await fs.chmod(opaque, 0o000);
 
 			const seen: Array<{ dst: string; confirmedFile: boolean }> = [];
@@ -604,7 +607,7 @@ describe("deleteFileWithFallback", () => {
 			// `ENOTDIR` from a path component that is a file is a genuinely bad path, not
 			// a boundary, so the seam must not paper over it by consulting a handler.
 			const blocker = path.join(root, "not-a-dir");
-			await Bun.write(blocker, "payload");
+			await bun.write(blocker, "payload");
 			let called = false;
 			disposers.push(
 				addFileDeleteFallback(async () => {
@@ -626,7 +629,7 @@ describe("deleteFileWithFallback", () => {
 			const outside = path.join(root, "off-limits");
 			await fs.mkdir(outside);
 			const victim = path.join(outside, "keep.txt");
-			await Bun.write(victim, "keep me");
+			await bun.write(victim, "keep me");
 			await fs.chmod(outside, 0o500);
 
 			const linkDir = path.join(root, "innocent-dir");
@@ -645,7 +648,7 @@ describe("deleteFileWithFallback", () => {
 					code: expect.stringMatching(/^(EACCES|EPERM)$/),
 				});
 				expect(seen).toEqual([{ dst: victim, confirmedFile: true }]);
-				expect(await Bun.file(victim).text()).toBe("keep me");
+				expect(await bun.file(victim).text()).toBe("keep me");
 			} finally {
 				await fs.chmod(outside, 0o700);
 			}
@@ -660,7 +663,7 @@ describe("deleteFileWithFallback", () => {
 			// though `lstat` succeeded.
 			const targetDir = path.join(root, "link-target-dir");
 			await fs.mkdir(targetDir);
-			await Bun.write(path.join(targetDir, "keep.txt"), "keep me");
+			await bun.write(path.join(targetDir, "keep.txt"), "keep me");
 			const link = path.join(locked, "dir-link");
 			await fs.symlink(targetDir, link);
 			await fs.chmod(locked, 0o500);
@@ -677,7 +680,7 @@ describe("deleteFileWithFallback", () => {
 
 			expect(seen).toEqual([{ dst: link, confirmedFile: false }]);
 			// The target must be untouched: the seam only ever asked for the link.
-			expect(await Bun.file(path.join(targetDir, "keep.txt")).text()).toBe("keep me");
+			expect(await bun.file(path.join(targetDir, "keep.txt")).text()).toBe("keep me");
 		});
 
 		it("diverts a denied unlink issued through a BunFile handle", async () => {
@@ -693,7 +696,7 @@ describe("deleteFileWithFallback", () => {
 				}),
 			);
 
-			await deleteFileWithFallback(target, Bun.file(target));
+			await deleteFileWithFallback(target, bun.file(target));
 
 			expect(seen).toEqual([target]);
 		});

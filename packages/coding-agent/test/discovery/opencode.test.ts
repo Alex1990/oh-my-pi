@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,9 @@ import { type MCPServer, mcpCapability } from "@oh-my-pi/pi-coding-agent/capabil
 import { type Settings, settingsCapability } from "@oh-my-pi/pi-coding-agent/capability/settings";
 import { loadCapability } from "@oh-my-pi/pi-coding-agent/discovery";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { vi } from "vitest";
+vi.mock("node:os", { spy: true });
 
 async function loadOpenCodeMcpConfig(cwd: string): Promise<MCPServer[]> {
 	const result = await loadCapability<MCPServer>(mcpCapability.id, {
@@ -348,9 +351,9 @@ describe("OpenCode MCP discovery", () => {
 			}),
 		);
 
-		delete Bun.env.OMP_TEST_MCP_ABSENT;
-		Bun.env.OMP_TEST_MCP_KEY = "secret-token";
-		Bun.env.OMP_TEST_MCP_PATH = "mcp/server";
+		delete bun.env.OMP_TEST_MCP_ABSENT;
+		bun.env.OMP_TEST_MCP_KEY = "secret-token";
+		bun.env.OMP_TEST_MCP_PATH = "mcp/server";
 		try {
 			const servers = await loadOpenCodeMcpConfig(tempDir);
 			const byName = Object.fromEntries(servers.map(server => [server.name, server]));
@@ -363,8 +366,8 @@ describe("OpenCode MCP discovery", () => {
 			// Unset env expands to empty string, matching OpenCode — never the literal token.
 			expect(byName["missing-server"]?.headers).toEqual({ Authorization: "Bearer " });
 		} finally {
-			delete Bun.env.OMP_TEST_MCP_KEY;
-			delete Bun.env.OMP_TEST_MCP_PATH;
+			delete bun.env.OMP_TEST_MCP_KEY;
+			delete bun.env.OMP_TEST_MCP_PATH;
 		}
 	});
 });

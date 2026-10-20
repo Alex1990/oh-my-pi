@@ -4,10 +4,11 @@
  * not stay reachable from that signal: otherwise every subagent run, its last
  * progress update and the owner's progress closures live as long as the signal.
  */
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { SpawnRun } from "@oh-my-pi/pi-coding-agent/task/spawn-run";
 import type { TaskToolDetails } from "@oh-my-pi/pi-tui/tools/task";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const permit = { acquire: async () => {}, release: () => {} };
 const done = { content: [{ type: "text", text: "done" }] } as AgentToolResult<TaskToolDetails>;
@@ -28,10 +29,10 @@ async function settledRunRef(signal: AbortSignal): Promise<WeakRef<SpawnRun>> {
 async function liveAfterGc(refs: WeakRef<object>[]): Promise<number> {
 	let live = refs.length;
 	for (let turn = 0; turn < 20; turn++) {
-		Bun.gc(true);
+		bun.gc(true);
 		live = refs.filter(ref => ref.deref() !== undefined).length;
 		if (live === 0) break;
-		await Bun.sleep(0);
+		await bun.sleep(0);
 	}
 	return live;
 }

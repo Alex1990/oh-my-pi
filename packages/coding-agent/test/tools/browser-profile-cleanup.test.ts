@@ -6,7 +6,7 @@
  * lock-tolerant, warn-and-leave cleanup.
  */
 
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,11 +25,12 @@ import {
 } from "@oh-my-pi/pi-coding-agent/tools/browser/shared-daemon";
 import type { DaemonSnapshot, DaemonState } from "@oh-my-pi/pi-tui/tools/daemon";
 import * as piUtils from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 async function makeProfileDir(): Promise<string> {
 	const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-chrome-profile-test-"));
-	await Bun.write(path.join(dir, "SingletonLock"), "lock");
-	await Bun.write(path.join(dir, "Default", "Preferences"), "{}");
+	await bun.write(path.join(dir, "SingletonLock"), "lock");
+	await bun.write(path.join(dir, "Default", "Preferences"), "{}");
 	return dir;
 }
 
@@ -180,19 +181,19 @@ describe("owned Chromium profile preferences", () => {
 		const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-chrome-profile-test-"));
 		const file = path.join(dir, "Default", "Preferences");
 		try {
-			await Bun.write(
+			await bun.write(
 				file,
 				JSON.stringify({ intl: { accept_languages: "en-US" }, profile: { exit_type: "Normal" } }),
 			);
 			await seedOwnedProfilePreferences(dir);
-			expect(JSON.parse(await Bun.file(file).text())).toEqual({
+			expect(JSON.parse(await bun.file(file).text())).toEqual({
 				intl: { accept_languages: "en-US" },
 				profile: { exit_type: "Normal", password_manager_leak_detection: false },
 			});
 
 			await fs.promises.rm(path.join(dir, "Default"), { recursive: true });
 			await seedOwnedProfilePreferences(dir);
-			expect(JSON.parse(await Bun.file(file).text())).toEqual({
+			expect(JSON.parse(await bun.file(file).text())).toEqual({
 				profile: { password_manager_leak_detection: false },
 			});
 		} finally {
@@ -238,7 +239,7 @@ describe("owned Chromium profile preferences", () => {
 			},
 			async onStart() {
 				// Chromium reads Preferences once, at startup.
-				launchPrefs = JSON.parse(await Bun.file(prefsFile).text());
+				launchPrefs = JSON.parse(await bun.file(prefsFile).text());
 				chromeRunning = true;
 				chromeLive.resolve();
 			},
@@ -293,14 +294,14 @@ describe("shared Chromium session-restore state", () => {
 			// first describe is lost in transit, which settles nothing: Chrome must
 			// not launch until a later describe confirms the profile is free and the
 			// stale session is gone.
-			await Bun.write(path.join(sessionsDir, "Session_13435785841408923"), "previous chrome");
-			await Bun.write(path.join(sessionsDir, "Tabs_13435784948833957"), "previous chrome");
+			await bun.write(path.join(sessionsDir, "Session_13435785841408923"), "previous chrome");
+			await bun.write(path.join(sessionsDir, "Tabs_13435784948833957"), "previous chrome");
 			failNextDescribe = new Error("broker socket closed");
 			expect((await ensureSharedBrowser({ projectDir, headless: true }))?.wsEndpoint).toBe(wsEndpoint);
 			expect(sessionsAtLaunch).toEqual([]);
 
 			// The running Chrome records its own session; attaching to it must leave that alone.
-			await Bun.write(path.join(sessionsDir, "Session_13436291949708538"), "live chrome");
+			await bun.write(path.join(sessionsDir, "Session_13436291949708538"), "live chrome");
 			expect((await ensureSharedBrowser({ projectDir, headless: true }))?.wsEndpoint).toBe(wsEndpoint);
 			expect(await fs.promises.readdir(sessionsDir)).toEqual(["Session_13436291949708538"]);
 
@@ -345,7 +346,7 @@ describe("shared Chromium session-restore state", () => {
 		try {
 			// Another omp process holds the claim past the wait, so this client
 			// cannot prepare the profile and must not launch Chrome on it.
-			await Bun.write(path.join(sessionsDir, "Session_13435785841408923"), "previous chrome");
+			await bun.write(path.join(sessionsDir, "Session_13435785841408923"), "previous chrome");
 			holdClaimElsewhere();
 			expect(await ensureSharedBrowser({ projectDir, headless: true })).toBeNull();
 			expect(broker.starts).toBe(0);
@@ -387,14 +388,14 @@ describe("shared Chromium session-restore state", () => {
 
 			// The running Chrome records the pages it has open. They stay until the
 			// stop is confirmed and are gone when Chrome relaunches.
-			await Bun.write(path.join(sessionsDir, "Session_13436291949708538"), "live chrome");
+			await bun.write(path.join(sessionsDir, "Session_13436291949708538"), "live chrome");
 			expect((await restartSharedBrowser(broker.client, name)).state).toBe("ready");
 			expect(sessionsAtStop).toEqual(["Session_13436291949708538"]);
 			expect(sessionsAtLaunch).toEqual([]);
 			expect(broker.starts).toBe(2);
 
 			// A stop that leaves Chrome running must neither touch its profile nor relaunch it.
-			await Bun.write(path.join(sessionsDir, "Session_13436325114290429"), "live chrome");
+			await bun.write(path.join(sessionsDir, "Session_13436325114290429"), "live chrome");
 			stopLeaves = "stopping";
 			await expect(restartSharedBrowser(broker.client, name)).rejects.toThrow("still stopping");
 			expect(await fs.promises.readdir(sessionsDir)).toEqual(["Session_13436325114290429"]);

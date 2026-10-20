@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentToolContext } from "@oh-my-pi/pi-agent-core";
 import { inspect } from "node:util";
 import { createContext, runInContext } from "node:vm";
@@ -397,7 +397,7 @@ const snapshot = (
 	displayTurn?: number,
 	backgroundFallback: ComputerSessionSnapshot["backgroundFallback"] = "takeover",
 ): ComputerSessionSnapshot => ({
-	cwd: import.meta.dir,
+	cwd: import.meta.dirname,
 	sessionId: crypto.randomUUID(),
 	captureMaxWidth: 1280,
 	captureMaxHeight: 896,
@@ -422,7 +422,7 @@ async function runWorker(
 
 function toolSession(): ToolSession {
 	return {
-		cwd: import.meta.dir,
+		cwd: import.meta.dirname,
 		hasUI: false,
 		settings: Settings.isolated({ "computer.enabled": true }),
 		getSessionFile: () => null,

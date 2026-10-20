@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ReadToolGroupComponent } from "../src/chat/read-tool-group";
 import { ToolExecutionComponent } from "../src/chat/tool-execution";
 import { renderCodeCell } from "../src/render/code-cell";
@@ -9,9 +9,10 @@ import { renderResult as renderLspResult } from "../src/tools/lsp";
 import { todoToolRenderer } from "../src/tools/todo";
 import { getThemeByName, initTheme } from "../src/theme";
 import type { TUI } from "../src/tui";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const width = 60;
-const plain = (rows: readonly string[]) => rows.map(row => Bun.stripANSI(row).trimEnd());
+const plain = (rows: readonly string[]) => rows.map(row => bun.stripANSI(row).trimEnd());
 const ui = { requestRender() {}, requestComponentRender() {} } as unknown as TUI;
 
 beforeAll(async () => {

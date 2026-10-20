@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { runEvalBudget } from "../../src/eval/budget-bridge";
 import type { GoalModeState } from "../../src/goals/state";
 import type { UsageStatistics } from "../../src/session/session-entries";

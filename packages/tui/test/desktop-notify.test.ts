@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	buildDesktopNotifyCommand,
 	type DesktopNotifier,
@@ -9,6 +9,7 @@ import {
 	shouldDeliverDesktopNotification,
 } from "@oh-my-pi/pi-tui/desktop-notify";
 import * as utils from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const LINUX_ENV: NodeJS.ProcessEnv = { DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/1000/bus" };
 
@@ -176,10 +177,10 @@ describe("sendDesktopNotification", () => {
 		resetDesktopNotifierCache();
 	});
 
-	it("fires Bun.spawn with the resolved notify-send argv and unref's the child so it never blocks process exit", () => {
+	it("fires bun.spawn with the resolved notify-send argv and unref's the child so it never blocks process exit", () => {
 		vi.spyOn(utils, "$which").mockImplementation(name => (name === "notify-send" ? "/usr/bin/notify-send" : null));
 		const unref = vi.fn();
-		const spawn = vi.spyOn(Bun, "spawn").mockImplementation((..._args: unknown[]) => ({ unref }) as never);
+		const spawn = vi.spyOn(bun, "spawn").mockImplementation((..._args: unknown[]) => ({ unref }) as never);
 
 		sendDesktopNotification({ title: "Session", body: "Complete" });
 
@@ -210,7 +211,7 @@ describe("sendDesktopNotification", () => {
 
 	it("is a silent no-op when no notifier binary is installed", () => {
 		vi.spyOn(utils, "$which").mockReturnValue(null);
-		const spawn = vi.spyOn(Bun, "spawn").mockImplementation((..._args: unknown[]) => ({ unref: vi.fn() }) as never);
+		const spawn = vi.spyOn(bun, "spawn").mockImplementation((..._args: unknown[]) => ({ unref: vi.fn() }) as never);
 
 		sendDesktopNotification("ping");
 
@@ -219,7 +220,7 @@ describe("sendDesktopNotification", () => {
 
 	it("swallows spawn failures so a missing daemon never throws into the renderer", () => {
 		vi.spyOn(utils, "$which").mockReturnValue("/usr/bin/notify-send");
-		vi.spyOn(Bun, "spawn").mockImplementation(() => {
+		vi.spyOn(bun, "spawn").mockImplementation(() => {
 			throw new Error("ENOENT");
 		});
 

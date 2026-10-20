@@ -7,8 +7,8 @@
  * the live row must still be returned; superseded rows never appear at any k.
  */
 
-import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import type { BeamMemoryState } from "@oh-my-pi/pi-mnemopi/core/beam";
 import { ftsSearch, ftsSearchWorking } from "@oh-my-pi/pi-mnemopi/core/beam/helpers";
 import { recall } from "@oh-my-pi/pi-mnemopi/core/beam/recall";

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 	streamSimple,
 } from "@oh-my-pi/pi-ai/stream";
 import type { Context, Model, RawSseEvent } from "@oh-my-pi/pi-ai/types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function context(): Context {
 	return {
@@ -157,7 +158,7 @@ describe("provider in-flight request limits", () => {
 		const secondResult = stream(model, context(), options).result();
 		// Exercise the real filesystem-backed lease scheduler while the first
 		// transport is parked waiting for its terminal SSE frame.
-		await Bun.sleep(150);
+		await bun.sleep(150);
 		releaseDone.resolve();
 		const [first, second] = await Promise.all([firstResult, secondResult]);
 		expect(first.content).toEqual([{ type: "text", text: "first" }]);
@@ -340,7 +341,7 @@ describe("provider in-flight request limits", () => {
 			const lease = entries.find(entry => entry.isDirectory());
 			if (!lease) throw new Error("Expected failed cleanup to leave a provider lease");
 			infoPath = path.join(limiterDir("tests"), lease.name, "info.json");
-			infoBeforeLateHeartbeat = await Bun.file(infoPath).text();
+			infoBeforeLateHeartbeat = await bun.file(infoPath).text();
 		} finally {
 			clearInterval(keepAlive);
 			finishRequest.resolve();
@@ -348,7 +349,7 @@ describe("provider in-flight request limits", () => {
 		}
 		await heartbeatSettled.promise;
 
-		expect(await Bun.file(infoPath).text()).toBe(infoBeforeLateHeartbeat);
+		expect(await bun.file(infoPath).text()).toBe(infoBeforeLateHeartbeat);
 	});
 
 	test("removes an aborted queued request without dispatching it", async () => {
@@ -392,7 +393,7 @@ describe("provider in-flight request limits", () => {
 		const providerDir = limiterDir("tests");
 		const externalLease = path.join(providerDir, "external");
 		await fs.mkdir(externalLease, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(externalLease, "info.json"),
 			JSON.stringify({ pid: process.pid, timestamp: Date.now(), token: "external" }),
 		);
@@ -409,7 +410,7 @@ describe("provider in-flight request limits", () => {
 		expect(mock.calls).toHaveLength(0);
 
 		await fs.rm(externalLease, { recursive: true, force: true });
-		await Bun.write(path.join(providerDir, ".wakeup"), String(Date.now()));
+		await bun.write(path.join(providerDir, ".wakeup"), String(Date.now()));
 		const result = await stream.result();
 		expect(result.content).toEqual([{ type: "text", text: "reply" }]);
 		expect(mock.calls).toHaveLength(1);
@@ -420,7 +421,7 @@ describe("provider in-flight request limits", () => {
 		const providerDir = limiterDir("tests");
 		const externalLease = path.join(providerDir, "external");
 		await fs.mkdir(externalLease, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(externalLease, "info.json"),
 			JSON.stringify({ pid: process.pid, timestamp: Date.now(), token: "external" }),
 		);
@@ -434,7 +435,7 @@ describe("provider in-flight request limits", () => {
 		});
 
 		await waiting;
-		expect(await Bun.file(path.join(providerDir, ".wakeup")).exists()).toBe(false);
+		expect(await bun.file(path.join(providerDir, ".wakeup")).exists()).toBe(false);
 		expect(mock.calls).toHaveLength(0);
 
 		controller.abort(new Error("cancel saturated waiter"));
@@ -458,7 +459,7 @@ describe("provider in-flight request limits", () => {
 		const stream = streamSimple(mock.model, context(), { maxInFlightRequests: { tests: 1 } });
 		await firstStarted.promise;
 
-		expect(await Bun.file(path.join(providerDir, ".wakeup")).exists()).toBe(false);
+		expect(await bun.file(path.join(providerDir, ".wakeup")).exists()).toBe(false);
 
 		releaseFirst.resolve();
 		const result = await stream.result();
@@ -469,7 +470,7 @@ describe("provider in-flight request limits", () => {
 		registerMockApi();
 		const lockDir = __providerInFlightForTesting.lockDir("tests");
 		await fs.mkdir(lockDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(lockDir, "info.json"),
 			JSON.stringify({ pid: process.pid, timestamp: Date.now() - 60_000, token: "live-lock" }),
 		);
@@ -497,7 +498,7 @@ describe("provider in-flight request limits", () => {
 		await fs.mkdir(externalLease, { recursive: true });
 		const old = new Date(Date.now() - 60_000);
 		await fs.utimes(externalLease, old, old);
-		await Bun.write(path.join(externalLease, "info.json"), "{");
+		await bun.write(path.join(externalLease, "info.json"), "{");
 
 		const controller = new AbortController();
 		const mock = createMockModel({ provider: "tests", responses: [{ content: ["reply"] }] });
@@ -518,7 +519,7 @@ describe("provider in-flight request limits", () => {
 	test("does not delete a fresh lock after observing a stale lock", async () => {
 		const lockDir = __providerInFlightForTesting.lockDir("tests");
 		await fs.mkdir(lockDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(lockDir, "info.json"),
 			JSON.stringify({ pid: 999999, timestamp: Date.now() - 60_000, token: "stale-lock" }),
 		);
@@ -527,14 +528,14 @@ describe("provider in-flight request limits", () => {
 
 		await fs.rm(lockDir, { recursive: true, force: true });
 		await fs.mkdir(lockDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(lockDir, "info.json"),
 			JSON.stringify({ pid: process.pid, timestamp: Date.now(), token: "fresh-lock" }),
 		);
 
 		await staleRelease?.();
 
-		const remaining = JSON.parse(await Bun.file(path.join(lockDir, "info.json")).text()) as { token: string };
+		const remaining = JSON.parse(await bun.file(path.join(lockDir, "info.json")).text()) as { token: string };
 		expect(remaining.token).toBe("fresh-lock");
 	});
 
@@ -546,14 +547,14 @@ describe("provider in-flight request limits", () => {
 
 		await fs.rm(lockDir, { recursive: true, force: true });
 		await fs.mkdir(lockDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(lockDir, "info.json"),
 			JSON.stringify({ pid: process.pid, timestamp: Date.now(), token: "fresh-lock" }),
 		);
 
 		await staleCleanup?.();
 
-		const remaining = JSON.parse(await Bun.file(path.join(lockDir, "info.json")).text()) as { token: string };
+		const remaining = JSON.parse(await bun.file(path.join(lockDir, "info.json")).text()) as { token: string };
 		expect(remaining.token).toBe("fresh-lock");
 	});
 

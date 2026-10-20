@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { getSettingsListTheme, initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 
 beforeAll(async () => {

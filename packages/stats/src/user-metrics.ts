@@ -527,7 +527,7 @@ const XML_TAG_BARE_RE = /<\/?[A-Za-z][\w-]*\b[^>]*\/?>/g;
 const INLINE_CODE_RE = /`[^`\n]*`/g;
 const URL_RE = /\bhttps?:\/\/\S+/gi;
 const FILE_MENTION_RE = /(^|\s)@[\w./-]+/g;
-// Dotted tokens: filenames (`AGENTS.md`), dotted identifiers (`Bun.file`),
+// Dotted tokens: filenames (`AGENTS.md`), dotted identifiers (`bun.file`),
 // versions (`1.2.3`). Stripped so SENTENCE_RE doesn't split them into
 // all-caps fragments ("Follow AGENTS.md and ..." -> "Follow AGENTS") that
 // register as yelling.

@@ -1,7 +1,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { TERMINAL, setTerminalHyperlinks } from "@oh-my-pi/pi-tui";
 import { applyHyperlinkSetting } from "@oh-my-pi/pi-tui/render/hyperlink";
 import * as themeModule from "@oh-my-pi/pi-tui/theme";

@@ -24,6 +24,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { $which } from "@oh-my-pi/pi-utils";
 import type { TerminalId, TerminalNotification } from "./terminal-capabilities";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Application name surfaced as the notification source. */
 const APP_NAME = "omp";
@@ -44,7 +45,7 @@ export interface DesktopNotifier {
  */
 export function hasLinuxDesktopSession(
 	platform: NodeJS.Platform = process.platform,
-	env: NodeJS.ProcessEnv = Bun.env,
+	env: NodeJS.ProcessEnv = bun.env,
 	fileExists: (path: string) => boolean = fs.existsSync,
 ): boolean {
 	if (platform !== "linux") return false;
@@ -67,7 +68,7 @@ export function shouldDeliverDesktopNotification(
 	_terminalId: TerminalId,
 	notifyProtocolIsBell: boolean,
 	platform: NodeJS.Platform = process.platform,
-	env: NodeJS.ProcessEnv = Bun.env,
+	env: NodeJS.ProcessEnv = bun.env,
 ): boolean {
 	if (!notifyProtocolIsBell) return false;
 	if (!hasLinuxDesktopSession(platform, env)) return false;
@@ -180,7 +181,7 @@ export function sendDesktopNotification(message: string | TerminalNotification):
 		// the renderer's shutdown — a completion toast must never delay process
 		// exit. Ignored stdio alone does not detach the child from the parent's
 		// reference count.
-		const child = Bun.spawn({
+		const child = bun.spawn({
 			cmd: buildDesktopNotifyCommand(notifier, message),
 			stdin: "ignore",
 			stdout: "ignore",

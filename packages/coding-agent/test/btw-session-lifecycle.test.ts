@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
@@ -18,6 +18,7 @@ import { BtwHistoryStore } from "@oh-my-pi/pi-coding-agent/session/btw-history";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function answer(text: string) {
 	const assistantMessage: AssistantMessage = {
@@ -111,13 +112,13 @@ describe("BTW session boundaries", () => {
 		const artifacts = manager.getArtifactsDir()!;
 		const record = (await BtwHistoryStore.open(artifacts)).getRecords()[0]!;
 		recordPath = path.join(artifacts, "btw-history", `entry-${record.id}.json`);
-		originalRecord = await Bun.file(recordPath).text();
+		originalRecord = await bun.file(recordPath).text();
 	});
 	afterEach(async () => {
 		for (const turn of turns) turn.resolve(answer("Cleanup"));
 		// Restore only this test's deliberately corrupted/deleted checkpoint so even
 		// a failing pre-fix run can drain the sticky write before fixture removal.
-		if (!(await Bun.file(recordPath).exists())) await Bun.write(recordPath, originalRecord);
+		if (!(await bun.file(recordPath).exists())) await bun.write(recordPath, originalRecord);
 		vi.restoreAllMocks();
 		await btw.flush();
 		await btw.dispose();
@@ -207,8 +208,8 @@ describe("BTW session boundaries", () => {
 				await entered.promise;
 				expect(turns[0]!.signal?.aborted).toBe(true);
 				expect(manager.getSessionId()).toBe(sourceId);
-				expect(await Bun.file(sourceFile).exists()).toBe(true);
-				expect(await Bun.file(recordPath).text()).toBe(originalRecord);
+				expect(await bun.file(sourceFile).exists()).toBe(true);
+				expect(await bun.file(recordPath).text()).toBe(originalRecord);
 				release.resolve();
 				await finished;
 				expect(manager.getSessionId()).not.toBe(sourceId);
@@ -216,10 +217,10 @@ describe("BTW session boundaries", () => {
 				await Promise.resolve();
 				await btw.flush();
 				if (action === "picker resume") {
-					expect((await Bun.file(recordPath).json()).status).toBe("cancelled");
+					expect((await bun.file(recordPath).json<{ status: string }>()).status).toBe("cancelled");
 				} else {
-					expect(await Bun.file(sourceFile).exists()).toBe(false);
-					expect(await Bun.file(recordPath).exists()).toBe(false);
+					expect(await bun.file(sourceFile).exists()).toBe(false);
+					expect(await bun.file(recordPath).exists()).toBe(false);
 				}
 				await mode.handleBtwCommand("New session side question");
 				expect(turns).toHaveLength(2);
@@ -238,15 +239,15 @@ describe("BTW session boundaries", () => {
 	it.each(["delete", "resume"] as const)("keeps the source intact when BTW persistence blocks %s", async action => {
 		const target = action === "resume" ? await targetSession() : undefined;
 		const corrupt = "{broken checkpoint";
-		await Bun.write(recordPath, corrupt);
+		await bun.write(recordPath, corrupt);
 		try {
 			const operation = action === "delete" ? mode.handleSessionDeleteCommand() : mode.handleResumeSession(target!);
 			await expect(operation).rejects.toThrow("BTW history could not be saved");
 			expect(manager.getSessionId()).toBe(sourceId);
-			expect(await Bun.file(sourceFile).exists()).toBe(true);
-			expect(await Bun.file(recordPath).text()).toBe(corrupt);
+			expect(await bun.file(sourceFile).exists()).toBe(true);
+			expect(await bun.file(recordPath).text()).toBe(corrupt);
 		} finally {
-			await Bun.write(recordPath, originalRecord);
+			await bun.write(recordPath, originalRecord);
 		}
 	});
 
@@ -255,7 +256,7 @@ describe("BTW session boundaries", () => {
 		await mode.handleSessionDeleteCommand();
 		expect(manager.getSessionId()).toBe(sourceId);
 		expect(turns[0]!.signal?.aborted).toBe(false);
-		expect(await Bun.file(recordPath).text()).toBe(originalRecord);
+		expect(await bun.file(recordPath).text()).toBe(originalRecord);
 	});
 
 	it("deletes an inactive picker entry without interrupting the current BTW", async () => {
@@ -272,10 +273,10 @@ describe("BTW session boundaries", () => {
 		panel.handleInput("\x1b[3~");
 		panel.handleInput("\n");
 		await removed.promise;
-		expect(await Bun.file(target).exists()).toBe(false);
+		expect(await bun.file(target).exists()).toBe(false);
 		expect(manager.getSessionId()).toBe(sourceId);
 		expect(turns[0]!.signal?.aborted).toBe(false);
-		expect(await Bun.file(recordPath).text()).toBe(originalRecord);
+		expect(await bun.file(recordPath).text()).toBe(originalRecord);
 	});
 
 	describe.each(["initial", "reinitialized"] as const)("%s extension command context", binding => {
@@ -299,12 +300,12 @@ describe("BTW session boundaries", () => {
 				expect(await run()).toEqual({ cancelled: false });
 				expect(manager.getSessionId()).not.toBe(sourceId);
 				expect(turns[0]!.signal?.aborted).toBe(true);
-				const saved = await Bun.file(recordPath).text();
+				const saved = await bun.file(recordPath).text();
 				expect(JSON.parse(saved).status).toBe("cancelled");
 				turns[0]!.resolve(answer("Late answer from the old session"));
 				await Promise.resolve();
 				await btw.flush();
-				expect(await Bun.file(recordPath).text()).toBe(saved);
+				expect(await bun.file(recordPath).text()).toBe(saved);
 				await mode.handleBtwCommand("Side question in the destination");
 				expect(turns).toHaveLength(2);
 				turns[1]!.resolve(answer("Destination answer"));
@@ -323,14 +324,14 @@ describe("BTW session boundaries", () => {
 			async action => {
 				const run = await transition(action);
 				const corrupt = "{invalid checkpoint";
-				await Bun.write(recordPath, corrupt);
+				await bun.write(recordPath, corrupt);
 				try {
 					await expect(run()).rejects.toThrow("BTW history could not be saved");
 					expect(manager.getSessionId()).toBe(sourceId);
-					expect(await Bun.file(sourceFile).exists()).toBe(true);
-					expect(await Bun.file(recordPath).text()).toBe(corrupt);
+					expect(await bun.file(sourceFile).exists()).toBe(true);
+					expect(await bun.file(recordPath).text()).toBe(corrupt);
 				} finally {
-					await Bun.write(recordPath, originalRecord);
+					await bun.write(recordPath, originalRecord);
 				}
 			},
 		);

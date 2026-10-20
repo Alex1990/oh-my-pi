@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { BunPlugin } from "bun";
+import { pathToFileURL } from "node:url";
+import type { BunPlugin as BunPluginSpec } from "@oh-my-pi/pi-utils/module-hooks";
 import { resolveBundledChangelogPath } from "../../src/utils/changelog";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { build } from "@oh-my-pi/pi-utils/node-build";
+import { nodeSourceFlags } from "../../src/subprocess/worker-client";
 
 interface HeapProbeResult {
 	retainedChangelogStrings: number;
@@ -14,13 +18,22 @@ interface BundleProbeResult {
 	entries: number;
 }
 
-const repoRoot = path.resolve(import.meta.dir, "..", "..", "..", "..");
-const heapProbePath = path.resolve(import.meta.dir, "..", "fixtures", "changelog-static-import-heap-probe.ts");
-const bundleProbePath = path.resolve(import.meta.dir, "..", "fixtures", "changelog-bundle-fallback-probe.ts");
-const utilsStubPath = path.resolve(import.meta.dir, "..", "fixtures", "changelog-utils-stub.ts");
+const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..", "..");
+const heapProbePath = path.resolve(import.meta.dirname, "..", "fixtures", "changelog-static-import-heap-probe.ts");
+const bundleProbePath = path.resolve(import.meta.dirname, "..", "fixtures", "changelog-bundle-fallback-probe.ts");
+const utilsStubPath = path.resolve(import.meta.dirname, "..", "fixtures", "changelog-utils-stub.ts");
+// The probes execute TypeScript sources directly, so Node needs stripping plus
+// the repository hooks (extensionless specifiers, `with { type: "text" }`).
+const nodeTsArgs = [
+	"--no-warnings",
+	"--expose-gc",
+	"--experimental-transform-types",
+	"--import",
+	pathToFileURL(path.resolve(import.meta.dirname, "../../../../scripts/node-runtime-loader.mjs")).href,
+];
 
 async function runProbe(command: string[], cwd?: string): Promise<BundleProbeResult> {
-	const proc = Bun.spawn(command, {
+	const proc = bun.spawn(command, {
 		cwd,
 		stderr: "pipe",
 		stdout: "pipe",
@@ -41,7 +54,7 @@ async function runProbe(command: string[], cwd?: string): Promise<BundleProbeRes
  * so any probe written outside the repo fails to start. The subject under test is
  * emitted-asset resolution, not native loading.
  */
-function changelogUtilsStubPlugin(): BunPlugin {
+function changelogUtilsStubPlugin(): BunPluginSpec {
 	return {
 		name: "changelog-utils-stub",
 		setup(build) {
@@ -73,7 +86,7 @@ describe("bundled changelog asset path resolution", () => {
 
 describe("changelog static import resources", () => {
 	test("does not retain the multi-megabyte changelog text before parsing", async () => {
-		const proc = Bun.spawn([process.execPath, heapProbePath], {
+		const proc = bun.spawn([process.execPath, ...nodeSourceFlags(), ...nodeTsArgs, heapProbePath], {
 			stderr: "pipe",
 			stdout: "pipe",
 		});
@@ -94,9 +107,9 @@ describe("changelog static import resources", () => {
 			const unrelatedCwd = path.join(tempDir, "cwd");
 			const missingPackageChangelogPath = path.join(tempDir, "missing-package", "CHANGELOG.md");
 			await fs.mkdir(unrelatedCwd);
-			const sourceResult = await runProbe([process.execPath, bundleProbePath, missingPackageChangelogPath]);
+			const sourceResult = await runProbe([process.execPath, ...nodeTsArgs, bundleProbePath, missingPackageChangelogPath]);
 
-			const buildOutput = await Bun.build({
+			const buildOutput = await build({
 				entrypoints: [bundleProbePath],
 				outdir: bundleDir,
 				target: "bun",
@@ -110,7 +123,7 @@ describe("changelog static import resources", () => {
 			const bundleFilename = outputs.find(output => output.endsWith(".js"));
 			if (!bundleFilename) throw new Error("Changelog bundle build did not emit an entrypoint");
 			const result = await runProbe(
-				[process.execPath, path.join(bundleDir, bundleFilename), missingPackageChangelogPath],
+				[process.execPath, ...nodeTsArgs, path.join(bundleDir, bundleFilename), missingPackageChangelogPath],
 				unrelatedCwd,
 			);
 
@@ -121,38 +134,6 @@ describe("changelog static import resources", () => {
 		}
 	}, 30_000);
 
-	test("reads the emitted changelog asset from a compiled binary", async () => {
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-changelog-compiled-"));
-		try {
-			const binaryPath = path.join(
-				tempDir,
-				process.platform === "win32" ? "changelog-probe.exe" : "changelog-probe",
-			);
-			const unrelatedCwd = path.join(tempDir, "cwd");
-			const missingPackageChangelogPath = path.join(tempDir, "missing-package", "CHANGELOG.md");
-			await fs.mkdir(unrelatedCwd);
-			const sourceResult = await runProbe([process.execPath, bundleProbePath, missingPackageChangelogPath]);
-
-			const buildOutput = await Bun.build({
-				entrypoints: [bundleProbePath],
-				root: repoRoot,
-				external: ["omp-legacy-pi-modules"],
-				plugins: [changelogUtilsStubPlugin()],
-				compile: {
-					outfile: binaryPath,
-					autoloadBunfig: false,
-					autoloadDotenv: false,
-					autoloadTsconfig: false,
-					autoloadPackageJson: false,
-				},
-			});
-			expect(buildOutput.success, buildOutput.logs.map(log => log.message).join("\n")).toBe(true);
-
-			const result = await runProbe([binaryPath, missingPackageChangelogPath], unrelatedCwd);
-			expect(result.entries).toBe(sourceResult.entries);
-			expect(result.version).toBe(sourceResult.version);
-		} finally {
-			await fs.rm(tempDir, { force: true, recursive: true });
-		}
-	}, 30_000);
+	// `bun build --compile` has no Node equivalent, so the emitted-binary path cannot be exercised here.
+	test.skip("reads the emitted changelog asset from a compiled binary", () => {});
 });

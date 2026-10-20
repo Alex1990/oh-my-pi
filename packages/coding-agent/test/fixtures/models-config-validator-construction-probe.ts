@@ -2,7 +2,8 @@ import * as path from "node:path";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { ModelsConfigFile } from "@oh-my-pi/pi-coding-agent/config/models-config";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
-import { YAML } from "bun";
+import { YAML } from "@oh-my-pi/pi-utils/node-runtime";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface HeapSnapshot {
 	nodes: number[];
@@ -27,8 +28,8 @@ if (!root) {
 }
 
 function retainedHeapNodes(): number {
-	Bun.gc(true);
-	const snapshot = JSON.parse(Bun.generateHeapSnapshot("v8")) as HeapSnapshot;
+	bun.gc(true);
+	const snapshot = JSON.parse(bun.generateHeapSnapshot("v8")) as HeapSnapshot;
 	return snapshot.nodes.length / snapshot.snapshot.meta.node_fields.length;
 }
 
@@ -55,7 +56,7 @@ async function measureMissing(): Promise<ProbeResult> {
 
 async function writeCustomConfig(): Promise<string> {
 	const configPath = path.join(root, "custom", "models.yml");
-	await Bun.write(
+	await bun.write(
 		configPath,
 		YAML.stringify(
 			{

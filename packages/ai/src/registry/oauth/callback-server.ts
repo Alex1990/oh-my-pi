@@ -17,6 +17,8 @@ import * as nativeSchemeCallback from "./native-scheme-callback";
 import type { NativeSchemeCallbackReceiver } from "./native-scheme-callback";
 import templateHtml from "./oauth.html" with { type: "text" };
 import type { OAuthController, OAuthCredentials } from "./types";
+import type { Server } from "@oh-my-pi/pi-utils/node-serve";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_TIMEOUT = 300_000;
 const DEFAULT_HOSTNAME = "localhost";
@@ -42,13 +44,13 @@ const LAUNCH_PATH = "/launch";
 export type CallbackResult = { code: string; state: string };
 
 /**
- * Subset of {@link Bun.Server} this flow depends on, so a `localhost` flow can
+ * Subset of {@link Server} this flow depends on, so a `localhost` flow can
  * hand back one listener per loopback address family while still looking like a
  * single server to callers.
  */
 interface CallbackServer {
-	readonly port: Bun.Server<unknown>["port"];
-	stop: Bun.Server<unknown>["stop"];
+	readonly port: Server<unknown>["port"];
+	stop: Server<unknown>["stop"];
 }
 
 /**
@@ -369,7 +371,7 @@ export abstract class OAuthCallbackFlow {
 		expectedState: string,
 	): Promise<{ server: CallbackServer; redirectUri: string; launchUrl: string | undefined }> {
 		try {
-			const server = this.#createServer(this.preferredPort, expectedState);
+			const server = await this.#createServer(this.preferredPort, expectedState);
 			// `preferredPort: 0` opts into a random port — read the actual bound
 			// port from the server so both the redirect URI and launch URL point at
 			// a reachable socket, not the sentinel.
@@ -393,7 +395,7 @@ export abstract class OAuthCallbackFlow {
 					{ cause },
 				);
 			}
-			const server = this.#createServer(0, expectedState);
+			const server = await this.#createServer(0, expectedState);
 			const actualPort = this.#resolveServerPort(server);
 			const redirectUri = `http://${this.callbackHostname}:${actualPort}${this.callbackPath}`;
 			const launchUrl = this.#launchUrlIfSafe(actualPort);
@@ -403,7 +405,7 @@ export abstract class OAuthCallbackFlow {
 	}
 
 	/**
-	 * Read the numeric port a callback server bound to. `Bun.Server.port` is
+	 * Read the numeric port a callback server bound to. `Server.port` is
 	 * declared `number | undefined` because Unix-socket servers have no port,
 	 * but every callback flow uses TCP; a missing port here indicates a
 	 * configuration error rather than a fallback case.
@@ -461,7 +463,7 @@ export abstract class OAuthCallbackFlow {
 	 * `*:3000` is the common case — which answers from its own routes while this
 	 * flow waits out the full {@link DEFAULT_TIMEOUT}. Nothing detects it either:
 	 * a specific-address bind coexists with another process's wildcard bind, so
-	 * `Bun.serve` reports the port as free and the random-port fallback in
+	 * `serve` reports the port as free and the random-port fallback in
 	 * {@link #startCallbackServer} never runs.
 	 *
 	 * Binding both loopback literals fixes the delivery rather than dodging it:
@@ -476,9 +478,9 @@ export abstract class OAuthCallbackFlow {
 	 * not a collision: the IPv4 listener is the only reachable endpoint there, so
 	 * it serves alone.
 	 */
-	#createServer(port: number, expectedState: string): CallbackServer {
+	async #createServer(port: number, expectedState: string): Promise<CallbackServer> {
 		if (this.callbackHostname !== DEFAULT_HOSTNAME) {
-			return this.#serve(this.callbackHostname, port, expectedState);
+			return await this.#serve(this.callbackHostname, port, expectedState);
 		}
 		// A host with IPv6 disabled at the kernel exposes no `::1`, so the
 		// companion bind cannot succeed there. Bun reports that failure with the
@@ -489,15 +491,15 @@ export abstract class OAuthCallbackFlow {
 		// lets the IPv4 listener serve alone (issue #8814).
 		const dualStack = ipv6LoopbackAvailable();
 		for (let attempt = 0; ; attempt++) {
-			const primary = this.#serve(IPV4_LOOPBACK, port, expectedState);
+			const primary = await this.#serve(IPV4_LOOPBACK, port, expectedState);
 			const boundPort = primary.port;
 			// A non-TCP endpoint has no port for the companion to target;
 			// #resolveServerPort reports that case precisely.
 			if (typeof boundPort !== "number") return primary;
 			if (!dualStack) return primary;
-			let companion: Bun.Server<unknown>;
+			let companion: Server<unknown>;
 			try {
-				companion = this.#serve(IPV6_LOOPBACK, boundPort, expectedState);
+				companion = await this.#serve(IPV6_LOOPBACK, boundPort, expectedState);
 			} catch (cause) {
 				if (!isAddressInUse(cause)) return primary;
 				void primary.stop(true);
@@ -513,17 +515,17 @@ export abstract class OAuthCallbackFlow {
 				get port() {
 					return primary.port;
 				},
-				stop: (closeActiveConnections?: boolean) => {
-					void companion.stop(closeActiveConnections);
-					return primary.stop(closeActiveConnections);
+				stop: async (closeActiveConnections?: boolean) => {
+					await companion.stop(closeActiveConnections);
+					return await primary.stop(closeActiveConnections);
 				},
 			};
 		}
 	}
 
 	/** Bind one loopback listener serving the callback and launch routes. */
-	#serve(hostname: string, port: number, expectedState: string): Bun.Server<unknown> {
-		return Bun.serve({
+	async #serve(hostname: string, port: number, expectedState: string): Promise<Server<unknown>> {
+		return await bun.serve({
 			hostname,
 			port,
 			reusePort: false,

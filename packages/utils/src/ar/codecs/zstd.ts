@@ -13,13 +13,14 @@ export function isZstd(bytes: Uint8Array): boolean {
 /** Decompress one zstd frame, bounded to `maxOutput` bytes. */
 export async function zstdDecompress(bytes: Uint8Array, maxOutput: number): Promise<Uint8Array> {
 	try {
-		return await zstdDecompressAsync(bytes, { maxOutputLength: Math.max(maxOutput, 1) });
+		// Node's zlib resolves a Buffer; the archive API promises a plain view.
+		return new Uint8Array(await zstdDecompressAsync(bytes, { maxOutputLength: Math.max(maxOutput, 1) }));
 	} catch (error) {
 		throw new ArchiveError(error instanceof Error ? error.message : String(error));
 	}
 }
 
 /** Compress bytes as one zstd frame (tar.zst writing). */
-export function zstdCompress(bytes: Uint8Array): Promise<Uint8Array> {
-	return zstdCompressAsync(bytes);
+export async function zstdCompress(bytes: Uint8Array): Promise<Uint8Array> {
+	return new Uint8Array(await zstdCompressAsync(bytes));
 }

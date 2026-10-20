@@ -10,7 +10,7 @@
  * path; it is not a general-purpose mock.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	IndexedSessionStorage,
 	type SessionStorageBackend,

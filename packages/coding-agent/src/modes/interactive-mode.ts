@@ -425,6 +425,7 @@ import {
 	cfgCompactionIdleTimeoutSeconds,
 	cfgCompactionMethodOrder,
 } from "../session/context-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Settings with live interactive-UI side effects, keyed by id. One coalesced listener applies
@@ -3640,7 +3641,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	 * listener, so a bulk reload rebuilds the transcript at most once.
 	 */
 	#applyUiSettingChanges(next: LiveUiSettings, previous: LiveUiSettings): void {
-		const any = (...ids: (keyof LiveUiSettings)[]) => ids.some(id => !Bun.deepEquals(next[id], previous[id]));
+		const any = (...ids: (keyof LiveUiSettings)[]) => ids.some(id => !bun.deepEquals(next[id], previous[id]));
 		let rebuildChat = false;
 		let resetDisplay = false;
 
@@ -5454,7 +5455,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	async #readPlanFile(planFilePath: string): Promise<string | null> {
 		const resolvedPath = this.#resolvePlanFilePath(planFilePath);
 		try {
-			return await Bun.file(resolvedPath).text();
+			return await bun.file(resolvedPath).text();
 		} catch (error) {
 			if (isEnoent(error)) {
 				return null;
@@ -5761,7 +5762,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			return;
 		}
 		try {
-			await Bun.write(destination, planContent);
+			await bun.write(destination, planContent);
 		} catch (error) {
 			this.showError(
 				`Failed to save plan to ${shortenPath(destination)}: ${error instanceof Error ? error.message : String(error)}`,
@@ -5802,7 +5803,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		const resolvedPath = this.#resolvePlanFilePath(planFilePath);
 		let currentText: string;
 		try {
-			currentText = await Bun.file(resolvedPath).text();
+			currentText = await bun.file(resolvedPath).text();
 		} catch (error) {
 			if (isEnoent(error)) {
 				this.showError(`Plan file not found at ${planFilePath}`);
@@ -5819,7 +5820,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				trimTrailingNewline: false,
 			});
 			if (result !== null) {
-				await Bun.write(resolvedPath, result);
+				await bun.write(resolvedPath, result);
 				this.#planReviewOverlay?.setPlanContent(result);
 				this.showStatus("Plan updated in external editor.");
 			}
@@ -6265,7 +6266,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.session.queuedMessageCount === 0 &&
 				!this.onInputCallback;
 			if (!skillBlocked && !pendingBlocked) return;
-			await Bun.sleep(10);
+			await bun.sleep(10);
 		}
 	}
 
@@ -6922,7 +6923,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				onExternalEditor: () => void this.#openPlanInExternalEditor(planFilePath),
 				onPlanEdited: content => {
 					editedContent = content;
-					void Bun.write(this.#resolvePlanFilePath(planFilePath), content);
+					void bun.write(this.#resolvePlanFilePath(planFilePath), content);
 				},
 				onFeedbackChange: value => {
 					feedback = value;
@@ -6989,7 +6990,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				// write so the durable plan file and synthetic prompt carry the same text.
 				const latestPlanContent = editedContent ?? (await this.#readPlanFile(planFilePath));
 				if (editedContent !== undefined) {
-					await Bun.write(this.#resolvePlanFilePath(planFilePath), editedContent);
+					await bun.write(this.#resolvePlanFilePath(planFilePath), editedContent);
 				}
 				if (!latestPlanContent) {
 					this.showError(`Plan file not found at ${planFilePath}`);
@@ -7362,7 +7363,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			}
 		}
 		try {
-			const child = Bun.spawn(cmd, {
+			const child = bun.spawn(cmd, {
 				stdin: "inherit",
 				stdout: "inherit",
 				stderr: "inherit",

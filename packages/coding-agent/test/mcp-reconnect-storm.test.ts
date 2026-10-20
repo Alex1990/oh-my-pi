@@ -12,15 +12,16 @@
  * The contract this test defends: per-server crash bursts are capped so that
  * even a fast-crashing stdio server stays well below the OS process budget.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import type { MCPStdioServerConfig } from "@oh-my-pi/pi-coding-agent/mcp/types";
 import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "crash-after-init-mcp.ts");
+const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "crash-after-init-mcp.ts");
 const BUN_EXEC = process.execPath;
 
 describe("MCP reconnect storm (issue #1592)", () => {
@@ -64,7 +65,7 @@ describe("MCP reconnect storm (issue #1592)", () => {
 			// fixed 3s. Generous deadline stays well under the 15s test timeout.
 			const deadline = Date.now() + 10_000;
 			while (manager.getConnectionStatus("crashy") !== "disconnected" && Date.now() < deadline) {
-				await Bun.sleep(5);
+				await bun.sleep(5);
 			}
 
 			const spawns = countSpawns();

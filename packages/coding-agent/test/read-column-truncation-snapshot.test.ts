@@ -9,7 +9,7 @@
  * `tools.outputMaxColumns` failed with a permanent hash-mismatch loop
  * (`Section is bound to #XYZ, but the current file hashes to #ABC`).
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";

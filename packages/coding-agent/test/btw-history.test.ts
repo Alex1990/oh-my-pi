@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type BtwHistoryRecord, BtwHistoryStore, getBtwCopyText } from "@oh-my-pi/pi-coding-agent/session/btw-history";
 import { acquireFileLock, withFileLock } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 describe("BtwHistoryStore", () => {
 	let directory: string;
@@ -34,7 +35,7 @@ describe("BtwHistoryStore", () => {
 	it("retains every entry after reopen without changing the main journal", async () => {
 		const journalPath = `${artifactsDir}.jsonl`;
 		const journal = '{"type":"session","id":"session"}\n';
-		await Bun.write(journalPath, journal);
+		await bun.write(journalPath, journal);
 		const store = await BtwHistoryStore.open(artifactsDir);
 		const first = record("first");
 		const newerB = record("newer-b", { createdAt: 10, updatedAt: 11 });
@@ -47,7 +48,7 @@ describe("BtwHistoryStore", () => {
 
 		const reopened = await BtwHistoryStore.open(artifactsDir);
 		expect(reopened.getRecords()).toEqual([newerA, newerB, { ...first, answer: "Revised answer", updatedAt: 20 }]);
-		expect(await Bun.file(journalPath).text()).toBe(journal);
+		expect(await bun.file(journalPath).text()).toBe(journal);
 	});
 
 	it("does not let a recovered view steal a live turn and preserves the owner's terminal answer", async () => {
@@ -143,7 +144,7 @@ describe("BtwHistoryStore", () => {
 		let recovered: BtwHistoryStore;
 		const running = record("crashed", { status: "running", answer: "Crash partial" });
 		try {
-			await Bun.write(filePath, JSON.stringify(running, null, 2));
+			await bun.write(filePath, JSON.stringify(running, null, 2));
 			recovered = await BtwHistoryStore.open(artifactsDir);
 			expect(recovered.getRecords()[0]?.status).toBe("interrupted");
 		} finally {
@@ -174,7 +175,7 @@ describe("BtwHistoryStore", () => {
 		await withFileLock(filePath, () => fs.rm(filePath));
 		await expect(store.upsert({ ...saved, answer: "Resurrected" })).rejects.toThrow("BTW history conflict");
 		expect(store.getRecords()).toBe(oldView);
-		expect(await Bun.file(filePath).exists()).toBe(false);
+		expect(await bun.file(filePath).exists()).toBe(false);
 	});
 
 	it("captures streaming snapshots before queued writes and keeps old views stable", async () => {
@@ -208,7 +209,7 @@ describe("BtwHistoryStore", () => {
 		await withFileLock(filePath, async () => {
 			writing = store.upsert({ ...saved, answer: "Committed later" });
 			expect(store.getRecords()).toBe(oldView);
-			expect(await Bun.file(filePath).json()).toEqual(saved);
+			expect(await bun.file(filePath).json()).toEqual(saved);
 		});
 		await writing;
 		expect(oldView).toEqual([saved]);
@@ -246,7 +247,9 @@ describe("BtwHistoryStore", () => {
 		expect(recovered.status).toBe("complete");
 		expect(recovered.answer).toBe("Answer topic");
 		expect(recovered.followUps).toEqual([{ ...followUp, answer: "Partial", status: "interrupted" }]);
-		const raw = await Bun.file(path.join(artifactsDir, "btw-history", "entry-topic.json")).json();
+		const raw = await bun
+			.file(path.join(artifactsDir, "btw-history", "entry-topic.json"))
+			.json<{ followUps: Array<{ status: string }> }>();
 		expect(raw.followUps[0].status).toBe("running");
 		await store.upsert({ ...topic, followUps: [{ ...followUp, status: "complete" }] });
 	});
@@ -270,13 +273,13 @@ describe("BtwHistoryStore", () => {
 		await store.upsert(record("valid", { status: "running" }));
 		const corruptPath = path.join(artifactsDir, "btw-history", "entry-corrupt.json");
 		const invalid = '{"id":"corrupt",';
-		await Bun.write(corruptPath, invalid);
+		await bun.write(corruptPath, invalid);
 		const validPath = path.join(artifactsDir, "btw-history", "entry-valid.json");
-		const validBefore = await Bun.file(validPath).text();
+		const validBefore = await bun.file(validPath).text();
 
 		await expect(BtwHistoryStore.open(artifactsDir)).rejects.toThrow("Failed to read BTW history");
-		expect(await Bun.file(corruptPath).text()).toBe(invalid);
-		expect(await Bun.file(validPath).text()).toBe(validBefore);
+		expect(await bun.file(corruptPath).text()).toBe(invalid);
+		expect(await bun.file(validPath).text()).toBe(validBefore);
 		await store.upsert(record("valid"));
 	});
 
@@ -291,9 +294,9 @@ describe("BtwHistoryStore", () => {
 			JSON.stringify(record("different-id")),
 		];
 		for (const content of malformed) {
-			await Bun.write(filePath, content);
+			await bun.write(filePath, content);
 			await expect(BtwHistoryStore.open(artifactsDir)).rejects.toThrow("Failed to read BTW history");
-			expect(await Bun.file(filePath).text()).toBe(content);
+			expect(await bun.file(filePath).text()).toBe(content);
 		}
 	});
 
@@ -316,9 +319,9 @@ describe("BtwHistoryStore", () => {
 
 		const filePath = path.join(artifactsDir, "btw-history", "entry-range.json");
 		const bytes = JSON.stringify(invalid);
-		await Bun.write(filePath, bytes);
+		await bun.write(filePath, bytes);
 		await expect(BtwHistoryStore.open(artifactsDir)).rejects.toThrow("Invalid BTW history record");
-		expect(await Bun.file(filePath).text()).toBe(bytes);
+		expect(await bun.file(filePath).text()).toBe(bytes);
 	});
 
 	it("preserves the inclusive Date range boundaries across reopen", async () => {
@@ -377,14 +380,14 @@ describe("BtwHistoryStore", () => {
 		const saved = record("saved", { status: "running" });
 		await store.upsert(saved);
 		const filePath = path.join(artifactsDir, "btw-history", "entry-saved.json");
-		const savedBytes = await Bun.file(filePath).text();
-		await Bun.write(filePath, "broken");
+		const savedBytes = await bun.file(filePath).text();
+		await bun.write(filePath, "broken");
 		await expect(store.upsert({ ...saved, answer: "Replacement" })).rejects.toThrow("Failed to read BTW history");
 		await expect(store.retry({ ...saved, answer: "Replacement" })).rejects.toThrow("Failed to read BTW history");
 		await expect(store.flush()).rejects.toThrow("Failed to read BTW history");
 		await expect(store.upsert(record("later"))).rejects.toThrow("Failed to read BTW history");
 		await expect(store.flush()).rejects.toThrow("Failed to read BTW history");
-		expect(await Bun.file(filePath).text()).toBe("broken");
+		expect(await bun.file(filePath).text()).toBe("broken");
 		expect(store.getRecords()).toEqual([saved]);
 		expect((await fs.readdir(path.dirname(filePath))).filter(name => !name.endsWith(".lock"))).toEqual([
 			"entry-saved.json",
@@ -392,7 +395,7 @@ describe("BtwHistoryStore", () => {
 		await withFileLock(
 			filePath,
 			async () => {
-				await Bun.write(filePath, savedBytes);
+				await bun.write(filePath, savedBytes);
 			},
 			{ retries: 1 },
 		);
@@ -412,7 +415,7 @@ describe("BtwHistoryStore", () => {
 		const oldView = store.getRecords();
 		const filePath = path.join(artifactsDir, "btw-history", "entry-topic.json");
 		const backupPath = path.join(directory, "checkpoint-backup");
-		const savedBytes = await Bun.file(filePath).text();
+		const savedBytes = await bun.file(filePath).text();
 		await fs.rename(filePath, backupPath);
 		await fs.mkdir(filePath);
 		const terminal = { ...running, status: "complete" as const, answer: "Retained terminal answer" };
@@ -420,7 +423,7 @@ describe("BtwHistoryStore", () => {
 		await expect(store.upsert(terminal)).rejects.toThrow("Expected a regular file");
 		await expect(store.flush()).rejects.toThrow("Expected a regular file");
 		expect(store.getRecords()).toBe(oldView);
-		expect(await Bun.file(backupPath).text()).toBe(savedBytes);
+		expect(await bun.file(backupPath).text()).toBe(savedBytes);
 
 		await fs.rm(filePath, { recursive: true });
 		await fs.rename(backupPath, filePath);
@@ -432,7 +435,7 @@ describe("BtwHistoryStore", () => {
 		try {
 			retry = store.retry(terminal);
 			expect(store.getRecords()).toBe(oldView);
-			expect(await Bun.file(filePath).text()).toBe(savedBytes);
+			expect(await bun.file(filePath).text()).toBe(savedBytes);
 			terminal.answer = "Uncheckpointed mutation";
 		} finally {
 			lease.release();
@@ -450,15 +453,15 @@ describe("BtwHistoryStore", () => {
 		const saved = record("topic");
 		await store.upsert(saved);
 		const filePath = path.join(artifactsDir, "btw-history", "entry-topic.json");
-		const savedBytes = await Bun.file(filePath).text();
-		await Bun.write(filePath, "broken");
+		const savedBytes = await bun.file(filePath).text();
+		await bun.write(filePath, "broken");
 		await expect(store.upsert({ ...saved, answer: "Failed checkpoint" })).rejects.toThrow(
 			"Failed to read BTW history",
 		);
-		await Bun.write(filePath, savedBytes);
+		await bun.write(filePath, savedBytes);
 		const collisionPath = path.join(artifactsDir, "btw-history", "entry-collision.json");
 		const collisionBytes = JSON.stringify(record("collision", { answer: "Another writer's answer" }));
-		await Bun.write(collisionPath, collisionBytes);
+		await bun.write(collisionPath, collisionBytes);
 
 		const terminal = { ...saved, answer: "Retried checkpoint" };
 		const successful = store.retry(terminal);
@@ -472,8 +475,8 @@ describe("BtwHistoryStore", () => {
 			"BTW history conflict",
 		);
 		expect(store.getRecords()).toEqual([terminal]);
-		expect(await Bun.file(filePath).json()).toEqual(terminal);
-		expect(await Bun.file(collisionPath).text()).toBe(collisionBytes);
+		expect(await bun.file(filePath).json()).toEqual(terminal);
+		expect(await bun.file(collisionPath).text()).toBe(collisionBytes);
 	});
 
 	it("publishes private records and removes staged files after queued writes drain", async () => {

@@ -1,11 +1,12 @@
 import type { TerminalMultiplexerModule } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const zellijMultiplexer = {
 	id: "zellij",
 	precedence: "session",
 	sessionEnvKeys: ["ZELLIJ"],
 	ownsScreenGrid: true,
-	isInside(env: NodeJS.ProcessEnv = Bun.env): boolean {
+	isInside(env: NodeJS.ProcessEnv = bun.env): boolean {
 		return Boolean(env.ZELLIJ);
 	},
 	notifier: {

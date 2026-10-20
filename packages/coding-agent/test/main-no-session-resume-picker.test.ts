@@ -5,13 +5,14 @@
  * (extension-flag-aware) persistence validation, so it has to be skipped under
  * `--no-session`.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { runRootCommand } from "@oh-my-pi/pi-coding-agent/main";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class ProcessExitSignal extends Error {
 	constructor(readonly code: number) {
@@ -26,7 +27,7 @@ describe("runRootCommand — --no-session --resume", () => {
 		const sessionDir = tempDir.path();
 		// A valid session exists, so a picker fall-through would open the picker
 		// (not the "No sessions found" probe) — proving the guard, not empty state.
-		await Bun.write(
+		await bun.write(
 			path.join(sessionDir, "existing.jsonl"),
 			`${JSON.stringify({ type: "session", id: "existing-session", cwd: sessionDir, timestamp: new Date().toISOString() })}\n`,
 		);

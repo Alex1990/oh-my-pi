@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
 import { COLLAB_PROTO, parseCollabLink } from "@oh-my-pi/pi-coding-agent/collab/protocol";
@@ -10,6 +10,7 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { TASK_SUBAGENT_LIFECYCLE_CHANNEL } from "@oh-my-pi/pi-coding-agent/task/types";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { installInMemoryRelay, uninstallInMemoryRelay } from "./helpers/in-memory-relay";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Embedders on the previous InteractiveMode constructor signature wire only a
 // session `eventBus`; the host must fall back to it so depth-1 subagent
@@ -97,10 +98,10 @@ describe("collab host bus fallback", () => {
 
 			const deadline = Date.now() + 5000;
 			while (Date.now() < deadline && mirrored.length === 0) {
-				await Bun.sleep(5);
+				await bun.sleep(5);
 			}
 			// Give any duplicate emit a tick to land before counting.
-			await Bun.sleep(25);
+			await bun.sleep(25);
 
 			expect(mirrored.length).toBe(1);
 			expect(mirrored[0]?.id).toBe("FallbackScout");

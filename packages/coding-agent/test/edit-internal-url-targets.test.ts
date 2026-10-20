@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import { InternalUrlRouter } from "@oh-my-pi/pi-coding-agent/internal-urls/route
 import type { ProtocolHandler } from "@oh-my-pi/pi-coding-agent/internal-urls/types";
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 let tmpDir: string;
 let artifactsDir: string;
@@ -48,7 +49,7 @@ afterEach(async () => {
 describe("EditTool internal URL targets", () => {
 	it("edits the single-slash local:/ spelling in the sandbox its read-tier approval describes", async () => {
 		const target = localFile("local://notes.md");
-		await Bun.write(target, "old\n");
+		await bun.write(target, "old\n");
 		const tool = new EditTool(createSession(), "replace");
 		const args = { path: "local:/notes.md", old_string: "old", new_string: "new" };
 
@@ -56,13 +57,13 @@ describe("EditTool internal URL targets", () => {
 		const result = await tool.execute("single-slash", args);
 
 		expect(result.isError).not.toBe(true);
-		expect(await Bun.file(target).text()).toBe("new\n");
-		expect(await fs.exists(path.join(tmpDir, "local:"))).toBe(false);
+		expect(await bun.file(target).text()).toBe("new\n");
+		expect(await bun.file(path.join(tmpDir, "local:")).exists()).toBe(false);
 	});
 
 	it("refuses local:/../ traversal instead of editing the working tree", async () => {
 		const victim = path.join(tmpDir, "victim.txt");
-		await Bun.write(victim, "old\n");
+		await bun.write(victim, "old\n");
 
 		const result = await new EditTool(createSession(), "replace").execute("traversal", {
 			path: "local:/../victim.txt",
@@ -71,12 +72,12 @@ describe("EditTool internal URL targets", () => {
 		});
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(victim).text()).toBe("old\n");
+		expect(await bun.file(victim).text()).toBe("old\n");
 	});
 
 	it("refuses a URL target carrying a line selector instead of editing the whole file", async () => {
 		const target = localFile("local://notes.md");
-		await Bun.write(target, "one\ntwo\n");
+		await bun.write(target, "one\ntwo\n");
 
 		const result = await new EditTool(createSession(), "replace").execute("selector", {
 			path: "local://notes.md:2",
@@ -85,13 +86,13 @@ describe("EditTool internal URL targets", () => {
 		});
 
 		expect(result.isError).toBe(true);
-		expect(await Bun.file(target).text()).toBe("one\ntwo\n");
+		expect(await bun.file(target).text()).toBe("one\ntwo\n");
 	});
 
 	it("refuses URI-shaped targets write refuses instead of editing a working-tree path", async () => {
 		// Same shape as vault://: a file-written scheme without the single-slash alias.
 		const backing = path.join(tmpDir, "demo-root", "n.md");
-		await Bun.write(backing, "old\n");
+		await bun.write(backing, "old\n");
 		const handler: ProtocolHandler = {
 			scheme: "demo",
 			spec: {
@@ -100,7 +101,7 @@ describe("EditTool internal URL targets", () => {
 				immutable: false,
 				write: { via: "file", payload: "text", scope: "workspace", tier: () => "write" },
 			},
-			resolve: async url => ({ url: url.href, content: await Bun.file(backing).text(), contentType: "text/plain" }),
+			resolve: async url => ({ url: url.href, content: await bun.file(backing).text(), contentType: "text/plain" }),
 			locate: async url => path.join(tmpDir, "demo-root", url.rawHost),
 		};
 		const router = InternalUrlRouter.instance();
@@ -123,14 +124,14 @@ describe("EditTool internal URL targets", () => {
 			router.unregister("demo");
 		}
 
-		expect(await Bun.file(backing).text()).toBe("old\n");
-		expect(await fs.exists(path.join(tmpDir, "demo:"))).toBe(false);
-		expect(await fs.exists(path.join(tmpDir, "bogus:"))).toBe(false);
+		expect(await bun.file(backing).text()).toBe("old\n");
+		expect(await bun.file(path.join(tmpDir, "demo:")).exists()).toBe(false);
+		expect(await bun.file(path.join(tmpDir, "bogus:")).exists()).toBe(false);
 	});
 
 	it("re-resolves streamed URL targets at execute instead of reusing the preview's answer", async () => {
 		const previewed = localFile("local://plan.md");
-		await Bun.write(previewed, "one\n");
+		await bun.write(previewed, "one\n");
 		const tool = new EditTool(createSession(), "replace");
 		const args = { path: "local://plan.md", old_string: "one", new_string: "two" };
 		const finalPreview = Promise.withResolvers<{ diff?: string; error?: string } | undefined>();
@@ -152,12 +153,12 @@ describe("EditTool internal URL targets", () => {
 		// The session's local:// root moves between the preview and execution.
 		artifactsDir = path.join(tmpDir, "moved-artifacts");
 		const current = localFile("local://plan.md");
-		await Bun.write(current, "one\n");
+		await bun.write(current, "one\n");
 		const result = await tool.execute("streamed", args);
 
 		expect(result.isError).not.toBe(true);
-		expect(await Bun.file(current).text()).toBe("two\n");
-		expect(await Bun.file(previewed).text()).toBe("one\n");
+		expect(await bun.file(current).text()).toBe("two\n");
+		expect(await bun.file(previewed).text()).toBe("one\n");
 	});
 });
 

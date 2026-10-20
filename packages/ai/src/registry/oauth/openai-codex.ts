@@ -8,6 +8,7 @@ import type { FetchImpl } from "../../types";
 import { isRecord } from "../../utils";
 import type { AfterExchangeHook } from "../hooks/types";
 import type { OAuthController, OAuthCredentials } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize";
@@ -253,7 +254,7 @@ export async function loginOpenAICodexDevice(ctrl: OAuthController): Promise<OAu
 	ctrl.onProgress?.(`Waiting for browser authorization (code: ${userCode})…`);
 
 	for (let poll = 0; poll < DEVICE_MAX_POLLS; poll++) {
-		await Bun.sleep(poll === 0 ? Math.min(pollIntervalMs, DEVICE_POLL_INTERVAL_MS) : pollIntervalMs);
+		await bun.sleep(poll === 0 ? Math.min(pollIntervalMs, DEVICE_POLL_INTERVAL_MS) : pollIntervalMs);
 
 		if (ctrl.signal?.aborted) {
 			throw new AIError.LoginCancelledError("Device authorization cancelled");

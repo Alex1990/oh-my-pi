@@ -8,7 +8,7 @@
  * - Edge cases and integration between parsing and substitution
  */
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { expandPromptTemplate, type PromptTemplate } from "@oh-my-pi/pi-coding-agent/config/prompt-templates";
@@ -290,7 +290,7 @@ describe("template expansion fallback", () => {
 describe("renderYieldSchema", () => {
 	// prompt-templates is imported for its Handlebars helper registration side-effect
 	// (jtdToTypeScript + renderYieldSchema); the render calls below rely on it.
-	const templatePath = path.resolve(import.meta.dir, "../src/prompts/system/subagent-system-prompt.md");
+	const templatePath = path.resolve(import.meta.dirname, "../src/prompts/system/subagent-system-prompt.md");
 
 	async function renderSubagentPrompt(outputSchema: unknown): Promise<string> {
 		const templateSource = await fs.readFile(templatePath, "utf-8");
@@ -332,7 +332,7 @@ describe("renderYieldSchema", () => {
 });
 
 describe("subagent peer roster prompt", () => {
-	const templatePath = path.resolve(import.meta.dir, "../src/prompts/system/subagent-system-prompt.md");
+	const templatePath = path.resolve(import.meta.dirname, "../src/prompts/system/subagent-system-prompt.md");
 
 	test("production prompt includes live peers and omits parked identity and activity", async () => {
 		const registry = new AgentRegistry();

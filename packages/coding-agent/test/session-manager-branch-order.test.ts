@@ -9,7 +9,7 @@
  * and session model restore. These tests pin both the ordering contract and
  * the newest-role selection so a re-reversed branch fails loudly.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 
 describe("SessionManager branch ordering", () => {

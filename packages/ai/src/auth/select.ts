@@ -46,6 +46,7 @@ import {
 	usageResetAtMs,
 	windowRequiredDrain,
 } from "./usage-report";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /** Temporary block after a transient OAuth refresh failure. */
 export const OAUTH_REFRESH_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
@@ -120,7 +121,7 @@ export class CredentialSelector {
 	 */
 	#getHashedIndex(sessionId: string, total: number): number {
 		if (total <= 1) return 0;
-		return Bun.hash.xxHash32(sessionId) % total;
+		return bun.hash.xxHash32(sessionId) % total;
 	}
 
 	/**
@@ -419,7 +420,7 @@ export class CredentialSelector {
 			}),
 		);
 		const timeoutSignal = Promise.withResolvers<null>();
-		// `Bun.sleep` keeps the event loop alive even after Promise.race resolves,
+		// `bun.sleep` keeps the event loop alive even after Promise.race resolves,
 		// which leaks a 7.5–15s timer per credential-selection call. Use an unref'd
 		// timer so the timeout doesn't pin the process and clear it on the happy
 		// path so memory drops immediately.

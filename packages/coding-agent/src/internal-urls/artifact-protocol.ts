@@ -23,6 +23,7 @@ import type {
 	SchemeSpec,
 	UrlCompletion,
 } from "./types";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const MAX_INLINE_ARTIFACT_BYTES = 8 * 1024 * 1024;
 
@@ -143,7 +144,7 @@ async function resolveArtifactFile(url: InternalUrl, context?: ResolveContext): 
 		throw new MissingArtifactError(`Artifact ${id} not found. Available: ${availableStr}`);
 	}
 
-	const stat = await Bun.file(foundPath).stat();
+	const stat = await bun.file(foundPath).stat();
 	if (stat.isDirectory()) {
 		throw new Error(`Artifact ${id} resolved to a directory, not a file`);
 	}
@@ -185,7 +186,7 @@ export class ArtifactProtocolHandler implements ProtocolHandler {
 			);
 		}
 
-		const content = await Bun.file(artifact.path).text();
+		const content = await bun.file(artifact.path).text();
 		return {
 			url: url.href,
 			content,

@@ -4,7 +4,7 @@
 // undiagnosable. These tests pin the observability contract: every reset path
 // emits a structured debug event, and the delivered-prefix path reports which
 // message diverged and which fields changed.
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { logger } from "@oh-my-pi/pi-utils";
 

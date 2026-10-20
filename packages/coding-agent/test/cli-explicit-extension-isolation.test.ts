@@ -1,5 +1,7 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
+import { afterAll, beforeAll, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { symlink, unlink } from "node:fs/promises";
 import type { AuthStorage } from "@oh-my-pi/pi-ai";
 import { parseArgs } from "@oh-my-pi/pi-coding-agent/cli/args";
@@ -11,6 +13,21 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+// Windows without developer mode refuses symlink creation; only that arm is skipped.
+const symlinksSupported = (() => {
+	const probeDir = mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	try {
+		const target = path.join(probeDir, "target");
+		writeFileSync(target, "");
+		symlinkSync(target, path.join(probeDir, "link"));
+		return true;
+	} catch {
+		return false;
+	} finally {
+		rmSync(probeDir, { recursive: true, force: true });
+	}
+})();
 
 let tempDir: TempDir;
 let authStorage: AuthStorage;
@@ -38,29 +55,32 @@ test("buildSessionOptions retains explicit extensions and hooks under --no-exten
 	expect(options.additionalExtensionPaths).toEqual([extensionPath, hookPath]);
 });
 
-test("trusted extension allowlists are canonical and cannot be expanded by retargeting a symlink", async () => {
-	const trustedTarget = tempDir.join("trusted-target.ts");
-	const replacementDir = tempDir.join("replacement");
-	const trustedLink = tempDir.join("trusted.ts");
-	await Bun.write(trustedTarget, "export default function () {}");
-	await Bun.write(`${replacementDir}/ambient.ts`, "export default function () {}");
-	await symlink(trustedTarget, trustedLink);
+test.skipIf(!symlinksSupported)(
+	"trusted extension allowlists are canonical and cannot be expanded by retargeting a symlink",
+	async () => {
+		const trustedTarget = tempDir.join("trusted-target.ts");
+		const replacementDir = tempDir.join("replacement");
+		const trustedLink = tempDir.join("trusted.ts");
+		await bun.write(trustedTarget, "export default function () {}");
+		await bun.write(`${replacementDir}/ambient.ts`, "export default function () {}");
+		await symlink(trustedTarget, trustedLink);
 
-	const parsed = parseArgs(["--trusted-extension", trustedLink]);
-	const settings = Settings.isolated();
-	const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
-	const options = await buildSessionOptions(parsed, [], SessionManager.inMemory(), modelRegistry, settings);
+		const parsed = parseArgs(["--trusted-extension", trustedLink]);
+		const settings = Settings.isolated();
+		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
+		const options = await buildSessionOptions(parsed, [], SessionManager.inMemory(), modelRegistry, settings);
 
-	expect(options.disableExtensionDiscovery).toBe(true);
-	expect(options.additionalExtensionPaths).toEqual([realpathSync.native(trustedTarget)]);
+		expect(options.disableExtensionDiscovery).toBe(true);
+		expect(options.additionalExtensionPaths).toEqual([realpathSync.native(trustedTarget)]);
 
-	await unlink(trustedLink);
-	await symlink(replacementDir, trustedLink);
-	const result = await loadSessionExtensions(options, tempDir.path(), settings, new EventBus());
+		await unlink(trustedLink);
+		await symlink(replacementDir, trustedLink);
+		const result = await loadSessionExtensions(options, tempDir.path(), settings, new EventBus());
 
-	expect(result.errors).toEqual([]);
-	expect(result.extensions.map(extension => extension.resolvedPath)).toEqual([realpathSync.native(trustedTarget)]);
-});
+		expect(result.errors).toEqual([]);
+		expect(result.extensions.map(extension => extension.resolvedPath)).toEqual([realpathSync.native(trustedTarget)]);
+	},
+);
 
 test("buildSessionOptions rejects trusted extension directories", async () => {
 	const parsed = parseArgs(["--trusted-extension", tempDir.path()]);

@@ -1,5 +1,6 @@
 import type { Component } from "../src/tui";
 import { TranscriptContainer, type TranscriptStableRow } from "../src/chrome/transcript-container";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const BLOCKS = 20_000;
 const ROWS = 8;
@@ -43,7 +44,7 @@ function buildCommittedTranscript(): TranscriptContainer {
 
 async function pssBytes(): Promise<number | undefined> {
 	try {
-		const rollup = await Bun.file("/proc/self/smaps_rollup").text();
+		const rollup = await bun.file("/proc/self/smaps_rollup").text();
 		const kib = Number(rollup.match(/^Pss:\s+(\d+) kB$/m)?.[1]);
 		return Number.isFinite(kib) ? kib * 1024 : undefined;
 	} catch {
@@ -51,12 +52,12 @@ async function pssBytes(): Promise<number | undefined> {
 	}
 }
 
-Bun.gc(true);
+bun.gc(true);
 const before = process.memoryUsage();
 const beforePss = await pssBytes();
 const transcript = buildCommittedTranscript();
-Bun.gc(true);
-Bun.gc(true);
+bun.gc(true);
+bun.gc(true);
 const after = process.memoryUsage();
 const afterPss = await pssBytes();
 console.log(

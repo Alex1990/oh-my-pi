@@ -1,3 +1,6 @@
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
+import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * Lightweight protobuf (.proto) parser and TypeScript code generator for @oh-my-pi/pi-catalog.
  *
@@ -1653,7 +1656,7 @@ function cleanTypeName(name: string): string {
 	return parts[parts.length - 1] || clean;
 }
 
-if (import.meta.main) {
+if (isMainModule(import.meta.url)) {
 	const args = process.argv.slice(2);
 	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 		console.log(`Usage: bun proto-parser.ts <proto-files...> [options]
@@ -1699,12 +1702,12 @@ Options:
 	const ctx = new ProtoContext();
 	for (const inputPath of inputPaths) {
 		if (inputPath.includes("*")) {
-			for await (const file of new Bun.Glob(inputPath).scan({ cwd: process.cwd() })) {
-				const text = await Bun.file(file).text();
+			for await (const file of new Glob(inputPath).scan({ cwd: process.cwd() })) {
+				const text = await bun.file(file).text();
 				ctx.addFile(parseProto(text, file));
 			}
 		} else {
-			const text = await Bun.file(inputPath).text();
+			const text = await bun.file(inputPath).text();
 			ctx.addFile(parseProto(text, inputPath));
 		}
 	}
@@ -1718,7 +1721,7 @@ Options:
 	});
 
 	if (outPath) {
-		await Bun.write(outPath, code);
+		await bun.write(outPath, code);
 		console.log(`Generated ${outPath} (${code.split("\n").length} lines)`);
 	} else {
 		process.stdout.write(code);

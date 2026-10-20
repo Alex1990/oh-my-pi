@@ -31,6 +31,7 @@ import { parseArgs } from "node:util";
 import { type Api, AuthStorage, completeSimple, type Model, SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { type GeneratedProvider, getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { getAgentDbPath } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DEFAULT_TINY = "openrouter/inclusionai/ling-2.6-flash";
 const DEFAULT_SYNTH = "openrouter/openai/gpt-oss-120b";
@@ -147,7 +148,7 @@ async function ask(opened: OpenedModel, system: string, user: string, maxTokens:
 		opened.usage.output += response.usage.output;
 		if (response.stopReason === "error" || response.stopReason === "aborted") {
 			lastError = response.errorMessage ?? response.stopReason;
-			await Bun.sleep(1000 * (attempt + 1));
+			await bun.sleep(1000 * (attempt + 1));
 			continue;
 		}
 		const text = response.content
@@ -295,7 +296,7 @@ function usageLine(opened: OpenedModel): string {
 
 async function main(): Promise<void> {
 	const { values, positionals } = parseArgs({
-		args: Bun.argv.slice(2),
+		args: bun.argv.slice(2),
 		allowPositionals: true,
 		options: {
 			base: { type: "string", default: DEFAULT_BASE },
@@ -388,7 +389,7 @@ async function main(): Promise<void> {
 		.join("\n\n");
 
 	if (values.out) {
-		await Bun.write(values.out, `${report}\n`);
+		await bun.write(values.out, `${report}\n`);
 		console.error(`[trace-report] wrote ${values.out}`);
 	} else {
 		console.log(report);

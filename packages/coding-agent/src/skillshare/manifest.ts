@@ -11,6 +11,7 @@ import { OmpErrors, type } from "@oh-my-pi/omptype";
 import { getAgentDir, hasFsCode, isEnoent } from "@oh-my-pi/pi-utils";
 import { resolveOrDefaultProjectRegistryPath } from "../discovery/helpers";
 import { replaceFileAtomically } from "../utils/atomic-file";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export const SKILLS_MANIFEST_FILE = "skills.json";
 export const SKILLS_LOCK_FILE = "skills.lock.json";
@@ -185,7 +186,7 @@ async function writeJsonAtomic(file: string, value: unknown): Promise<void> {
 	await fs.mkdir(path.dirname(file), { recursive: true });
 	const tempPath = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
 	try {
-		await Bun.write(tempPath, `${JSON.stringify(value, null, 2)}\n`);
+		await bun.write(tempPath, `${JSON.stringify(value, null, 2)}\n`);
 		await replaceFileAtomically(tempPath, file);
 	} catch (error) {
 		await fs.rm(tempPath, { force: true });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { deferredDiagnosticsWaitMs } from "@oh-my-pi/pi-coding-agent/lsp/diagnostics";
 import { clampTimeout, resolveLspTimeouts, TOOL_TIMEOUTS } from "@oh-my-pi/pi-coding-agent/tools/tool-timeouts";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,6 +7,7 @@ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { ToolChoiceQueue } from "@oh-my-pi/pi-coding-agent/session/tool-choice-queue";
 import { createTools, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 type InvokedToolResult = {
 	content: Array<{ type: string; text?: string }>;
@@ -67,7 +68,7 @@ describe("ast_edit tool schema", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-edit-render-"));
 		try {
 			const filePath = path.join(tempDir, "legacy.ts");
-			await Bun.write(filePath, "legacyWrap(x, value)\n");
+			await bun.write(filePath, "legacyWrap(x, value)\n");
 
 			const tools = await createTools(createTestSession(tempDir), ["ast_edit"]);
 			const tool = tools.find(entry => entry.name === "ast_edit");
@@ -96,7 +97,7 @@ describe("ast_edit tool schema", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-edit-pending-"));
 		try {
 			const filePath = path.join(tempDir, "legacy.ts");
-			await Bun.write(filePath, "legacyWrap(x, value)\n");
+			await bun.write(filePath, "legacyWrap(x, value)\n");
 			const queue = new ToolChoiceQueue();
 
 			const tools = await createTools(
@@ -130,7 +131,7 @@ describe("ast_edit tool schema", () => {
 				(applyResult.details as { sourceResultDetails?: { totalReplacements?: number } } | undefined)
 					?.sourceResultDetails?.totalReplacements,
 			).toBe(1);
-			const updated = await Bun.file(filePath).text();
+			const updated = await bun.file(filePath).text();
 			expect(updated).toContain("modernWrap(x, value)");
 		} finally {
 			await removeWithRetries(tempDir);
@@ -141,7 +142,7 @@ describe("ast_edit tool schema", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-edit-stale-"));
 		try {
 			const filePath = path.join(tempDir, "legacy.ts");
-			await Bun.write(filePath, "legacyWrap(x, value)\n");
+			await bun.write(filePath, "legacyWrap(x, value)\n");
 			const queue = new ToolChoiceQueue();
 
 			const tools = await createTools(
@@ -162,7 +163,7 @@ describe("ast_edit tool schema", () => {
 			expect((previewResult.details as { totalReplacements?: number } | undefined)?.totalReplacements).toBe(1);
 
 			const mutatedContent = "otherWrap(x, value)\n";
-			await Bun.write(filePath, mutatedContent);
+			await bun.write(filePath, mutatedContent);
 
 			const invoker = queue.peekPendingInvoker()!;
 			const applyResult = (await invoker({ action: "apply", reason: "apply stale preview" })) as InvokedToolResult;
@@ -175,7 +176,7 @@ describe("ast_edit tool schema", () => {
 				(applyResult.details as { sourceResultDetails?: { totalReplacements?: number } } | undefined)
 					?.sourceResultDetails?.totalReplacements,
 			).toBe(0);
-			expect(await Bun.file(filePath).text()).toBe(mutatedContent);
+			expect(await bun.file(filePath).text()).toBe(mutatedContent);
 		} finally {
 			await removeWithRetries(tempDir);
 		}
@@ -188,10 +189,10 @@ describe("ast_edit tool schema", () => {
 			const sourceDir = path.join(packagesDir, "pkg-123", "src");
 			const nestedDir = path.join(sourceDir, "nested");
 			await fs.mkdir(nestedDir, { recursive: true });
-			await Bun.write(path.join(sourceDir, "root.ts"), "legacyWrap(rootValue, rootArg)\n");
-			await Bun.write(path.join(nestedDir, "child.ts"), "legacyWrap(childValue, childArg)\n");
-			await Bun.write(path.join(sourceDir, "ignore.js"), "legacyWrap(ignoreValue, ignoreArg)\n");
-			await Bun.write(path.join(tempDir, "outside.ts"), "legacyWrap(outsideValue, outsideArg)\n");
+			await bun.write(path.join(sourceDir, "root.ts"), "legacyWrap(rootValue, rootArg)\n");
+			await bun.write(path.join(nestedDir, "child.ts"), "legacyWrap(childValue, childArg)\n");
+			await bun.write(path.join(sourceDir, "ignore.js"), "legacyWrap(ignoreValue, ignoreArg)\n");
+			await bun.write(path.join(tempDir, "outside.ts"), "legacyWrap(outsideValue, outsideArg)\n");
 			const queue = new ToolChoiceQueue();
 
 			const tools = await createTools(
@@ -232,12 +233,12 @@ describe("ast_edit tool schema", () => {
 			const invoker = queue.peekPendingInvoker()!;
 			await invoker({ action: "apply", reason: "apply previewed AST edit with combined globs" });
 
-			expect(await Bun.file(path.join(sourceDir, "root.ts")).text()).toContain("modernWrap(rootValue, rootArg)");
-			expect(await Bun.file(path.join(nestedDir, "child.ts")).text()).toContain("modernWrap(childValue, childArg)");
-			expect(await Bun.file(path.join(sourceDir, "ignore.js")).text()).toContain(
+			expect(await bun.file(path.join(sourceDir, "root.ts")).text()).toContain("modernWrap(rootValue, rootArg)");
+			expect(await bun.file(path.join(nestedDir, "child.ts")).text()).toContain("modernWrap(childValue, childArg)");
+			expect(await bun.file(path.join(sourceDir, "ignore.js")).text()).toContain(
 				"legacyWrap(ignoreValue, ignoreArg)",
 			);
-			expect(await Bun.file(path.join(tempDir, "outside.ts")).text()).toContain(
+			expect(await bun.file(path.join(tempDir, "outside.ts")).text()).toContain(
 				"legacyWrap(outsideValue, outsideArg)",
 			);
 		} finally {
@@ -249,7 +250,7 @@ describe("ast_edit tool schema", () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ast-edit-tlaplus-"));
 		try {
 			const filePath = path.join(tempDir, "Spec.tla");
-			await Bun.write(filePath, `---- MODULE Spec ----\nVARIABLE x\n\nInit == x = 0\n\nNext == x' = x + 1\n====\n`);
+			await bun.write(filePath, `---- MODULE Spec ----\nVARIABLE x\n\nInit == x = 0\n\nNext == x' = x + 1\n====\n`);
 			const queue = new ToolChoiceQueue();
 
 			const tools = await createTools(
@@ -276,7 +277,7 @@ describe("ast_edit tool schema", () => {
 
 			const invoker = queue.peekPendingInvoker()!;
 			await invoker({ action: "apply", reason: "apply tlaplus AST edit" });
-			expect(await Bun.file(filePath).text()).toContain("Start == x = 0");
+			expect(await bun.file(filePath).text()).toContain("Start == x = 0");
 		} finally {
 			await removeWithRetries(tempDir);
 		}

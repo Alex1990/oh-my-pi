@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspHello } from "@oh-my-pi/pi-tui/native/encode";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { TERMINAL_MULTIPLEXER_ENV_KEYS } from "@oh-my-pi/pi-tui/terminal-multiplexer";
 import * as utils from "@oh-my-pi/pi-utils";
 import { setTerminalHeadless } from "@oh-my-pi/pi-utils";
 import * as logger from "@oh-my-pi/pi-utils/logger";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DA1_REPLY = "\x1b[?1;2c";
 const HELLO_REPLY = '\x1b_tsp;r;{"r":"hello","v":1,"term":"tern","kinds":["col","text"],"credits":3,"future":1}\x1b\\';
@@ -13,22 +14,22 @@ const EVENT = '\x1b_tsp;e;{"ev":"ack","sf":"s:1","s":1}\x1b\\';
 const stdinIsTty = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 const stdoutIsTty = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 const stdinSetRawMode = Object.getOwnPropertyDescriptor(process.stdin, "setRawMode");
-const originalNative = Bun.env.PI_TUI_NATIVE;
-const originalTmux = Bun.env.TMUX;
-const originalTmuxPane = Bun.env.TMUX_PANE;
+const originalNative = bun.env.PI_TUI_NATIVE;
+const originalTmux = bun.env.TMUX;
+const originalTmuxPane = bun.env.TMUX_PANE;
 
 function restoreEnv(key: string, value: string | undefined): void {
-	if (value === undefined) delete Bun.env[key];
-	else Bun.env[key] = value;
+	if (value === undefined) delete bun.env[key];
+	else bun.env[key] = value;
 }
 
 /** Run inside tmux pane %3 whose session option `@tern-tsp` reads `ternTsp`; returns the tmux argvs run. */
 function mockTmux(ternTsp: string): string[][] {
-	Bun.env.TMUX = "/tmp/tmux-501/default,1,0";
-	Bun.env.TMUX_PANE = "%3";
+	bun.env.TMUX = "/tmp/tmux-501/default,1,0";
+	bun.env.TMUX_PANE = "%3";
 	const commands: string[][] = [];
 	vi.spyOn(utils, "$which").mockImplementation(name => (name === "tmux" ? "/usr/bin/tmux" : null));
-	vi.spyOn(Bun, "spawnSync").mockImplementation(((cmd: string[]) => {
+	vi.spyOn(bun, "spawnSync").mockImplementation(((cmd: string[]) => {
 		const args = cmd.slice(1);
 		if (cmd[0] === "/usr/bin/tmux") commands.push(args);
 		const stdout = args[0] === "show-options" ? `${ternTsp}\n` : "";
@@ -42,17 +43,17 @@ function mockTmux(ternTsp: string): string[][] {
  * probe enabled as outside `bun test` (no `PI_TUI_NATIVE`); restores the environment.
  */
 function inPane(env: Record<string, string>, body: () => void): void {
-	const saved = { ...Bun.env };
+	const saved = { ...bun.env };
 	try {
 		for (const key of [...TERMINAL_MULTIPLEXER_ENV_KEYS, "TERM_PROGRAM", "DEVENV_RELOAD_FILE", "PI_TUI_NATIVE"]) {
-			delete Bun.env[key];
+			delete bun.env[key];
 		}
-		Bun.env.PI_TUI_TSP_PROBE = "1";
-		Object.assign(Bun.env, env);
+		bun.env.PI_TUI_TSP_PROBE = "1";
+		Object.assign(bun.env, env);
 		body();
 	} finally {
-		for (const key of Object.keys(Bun.env)) if (!(key in saved)) delete Bun.env[key];
-		Object.assign(Bun.env, saved);
+		for (const key of Object.keys(bun.env)) if (!(key in saved)) delete bun.env[key];
+		Object.assign(bun.env, saved);
 	}
 }
 
@@ -95,10 +96,10 @@ describe("TSP hello probe", () => {
 
 	beforeEach(() => {
 		previousHeadless = setTerminalHeadless(false);
-		Bun.env.PI_TUI_NATIVE = "1";
+		bun.env.PI_TUI_NATIVE = "1";
 		// Whatever tmux runs the test suite must not count.
-		delete Bun.env.TMUX;
-		delete Bun.env.TMUX_PANE;
+		delete bun.env.TMUX;
+		delete bun.env.TMUX_PANE;
 	});
 
 	afterEach(() => {
@@ -107,8 +108,8 @@ describe("TSP hello probe", () => {
 		restoreEnv("TMUX", originalTmux);
 		restoreEnv("TMUX_PANE", originalTmuxPane);
 		setTerminalHeadless(previousHeadless);
-		if (originalNative === undefined) delete Bun.env.PI_TUI_NATIVE;
-		else Bun.env.PI_TUI_NATIVE = originalNative;
+		if (originalNative === undefined) delete bun.env.PI_TUI_NATIVE;
+		else bun.env.PI_TUI_NATIVE = originalNative;
 		restoreProperty(process.stdin, "isTTY", stdinIsTty);
 		restoreProperty(process.stdout, "isTTY", stdoutIsTty);
 		restoreProperty(process.stdin, "setRawMode", stdinSetRawMode);
@@ -164,27 +165,27 @@ describe("TSP hello probe", () => {
 	});
 
 	it("expects TSP from TERM_PROGRAM=tern, except inside a multiplexer or with PI_TUI_NATIVE=0", () => {
-		const saved = { ...Bun.env };
+		const saved = { ...bun.env };
 		try {
 			// Whatever multiplexer runs the test suite must not count.
-			for (const key of Object.keys(Bun.env)) {
-				if (/^(TMUX|STY|ZELLIJ|HERDR_|CMUX_|WMUX)/.test(key)) delete Bun.env[key];
+			for (const key of Object.keys(bun.env)) {
+				if (/^(TMUX|STY|ZELLIJ|HERDR_|CMUX_|WMUX)/.test(key)) delete bun.env[key];
 			}
-			Bun.env.TERM = "xterm-256color";
+			bun.env.TERM = "xterm-256color";
 			const terminal = new ProcessTerminal();
-			Bun.env.TERM_PROGRAM = "tern";
+			bun.env.TERM_PROGRAM = "tern";
 			expect(terminal.tspExpected).toBe(true);
-			Bun.env.TERM_PROGRAM = "iTerm.app";
+			bun.env.TERM_PROGRAM = "iTerm.app";
 			expect(terminal.tspExpected).toBe(false);
-			Bun.env.TERM_PROGRAM = "tern";
-			Bun.env.TMUX = "/tmp/tmux-501/default,1,0";
+			bun.env.TERM_PROGRAM = "tern";
+			bun.env.TMUX = "/tmp/tmux-501/default,1,0";
 			expect(terminal.tspExpected).toBe(false);
-			delete Bun.env.TMUX;
-			Bun.env.PI_TUI_NATIVE = "0";
+			delete bun.env.TMUX;
+			bun.env.PI_TUI_NATIVE = "0";
 			expect(terminal.tspExpected).toBe(false);
 		} finally {
-			for (const key of Object.keys(Bun.env)) if (!(key in saved)) delete Bun.env[key];
-			Object.assign(Bun.env, saved);
+			for (const key of Object.keys(bun.env)) if (!(key in saved)) delete bun.env[key];
+			Object.assign(bun.env, saved);
 		}
 	});
 
@@ -264,7 +265,7 @@ describe("TSP hello probe", () => {
 	});
 
 	it("never probes with PI_TUI_NATIVE=0", () => {
-		Bun.env.PI_TUI_NATIVE = "0";
+		bun.env.PI_TUI_NATIVE = "0";
 		const { terminal, writes, hellos } = setup();
 		try {
 			expect(writes.join("")).not.toContain("\x1b_tsp;");
@@ -290,7 +291,7 @@ describe("TSP hello probe", () => {
 	});
 
 	it("probes inside tmux with @tern-tsp: gates APC titles, sends hello without DA1, resolves on the reply", () => {
-		delete Bun.env.PI_TUI_NATIVE;
+		delete bun.env.PI_TUI_NATIVE;
 		const commands = mockTmux("1");
 		const { terminal, writes, hellos } = setup();
 		try {

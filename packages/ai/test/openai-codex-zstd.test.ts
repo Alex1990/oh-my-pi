@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import { streamOpenAICodexResponses } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
 import type { Context, FetchImpl, Model } from "@oh-my-pi/pi-ai/types";
 import { __resetProxyCache } from "@oh-my-pi/pi-ai/utils/proxy";
@@ -6,6 +6,7 @@ import { resetRequestCompressionForTesting } from "@oh-my-pi/pi-ai/utils/request
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { withEnv } from "./helpers";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_INSTALLATION_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -123,7 +124,7 @@ describe("codex SSE request body zstd compression", () => {
 			expect(body[2]).toBe(0x2f);
 			expect(body[3]).toBe(0xfd);
 
-			const decompressed = new TextDecoder().decode(Bun.zstdDecompressSync(body));
+			const decompressed = new TextDecoder().decode(bun.zstdDecompressSync(body));
 			expect(decompressed).toBe(JSON.stringify(PINNED_PAYLOAD));
 		});
 	});
@@ -166,7 +167,7 @@ describe("codex SSE request body zstd compression", () => {
 
 	it("falls back to plain JSON when local compression fails", async () => {
 		await withEnv({ PI_REQUEST_COMPRESSION: undefined }, async () => {
-			vi.spyOn(Bun, "zstdCompress").mockImplementation(async () => {
+			vi.spyOn(bun, "zstdCompress").mockImplementation(async () => {
 				throw new Error("zstd unavailable");
 			});
 			const { body, headers } = await runAndCaptureRequest();
@@ -184,7 +185,7 @@ describe("codex SSE request body zstd compression", () => {
 			for (const request of captured) {
 				expect(request.headers.get("content-encoding")).toBe("zstd");
 				if (!(request.body instanceof Uint8Array)) throw new Error("expected a compressed binary body");
-				expect(new TextDecoder().decode(Bun.zstdDecompressSync(request.body))).toBe(JSON.stringify(PINNED_PAYLOAD));
+				expect(new TextDecoder().decode(bun.zstdDecompressSync(request.body))).toBe(JSON.stringify(PINNED_PAYLOAD));
 			}
 		});
 	});

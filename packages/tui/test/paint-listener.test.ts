@@ -1,4 +1,4 @@
-import { expect, it } from "bun:test";
+import { expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import {
 	type TerminalFramePlan,
 	type TerminalFrameProvider,
@@ -7,6 +7,7 @@ import {
 	type ViewportSize,
 } from "@oh-my-pi/pi-tui";
 import { VirtualTerminal } from "./virtual-terminal";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 class Provider implements TerminalFrameProvider {
 	plan: TerminalFramePlan;
@@ -37,7 +38,7 @@ const scheduler = {
 };
 
 function plain(rows: readonly string[]): string[] {
-	return rows.map(row => Bun.stripANSI(row));
+	return rows.map(row => bun.stripANSI(row));
 }
 
 it("reports complete diff, history-append, and destructive-reset paints", () => {

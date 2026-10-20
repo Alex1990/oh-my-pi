@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Usage } from "@oh-my-pi/pi-ai/types";
 import {
 	CacheInvalidationMarkerComponent,
 	detectCacheInvalidation,
 } from "@oh-my-pi/pi-tui/chat/cache-invalidation-marker";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function usage(parts: { input?: number; cacheRead?: number; cacheWrite?: number; output?: number }): Usage {
 	const input = parts.input ?? 0;
@@ -87,7 +88,7 @@ describe("CacheInvalidationMarkerComponent", () => {
 		expect(lines[0]).toBe("");
 		expect(lines[2]).toBe("");
 		// The divider spans only a short rule + label — well under the full width.
-		const dividerWidth = Bun.stringWidth(lines[1]);
+		const dividerWidth = bun.stringWidth(lines[1]);
 		expect(dividerWidth).toBeGreaterThan(0);
 		expect(dividerWidth).toBeLessThan(80);
 	});

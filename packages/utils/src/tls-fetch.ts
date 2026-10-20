@@ -25,7 +25,7 @@ import { isEnoent } from "./fs-error";
  * (browsers, test mocks) won't expose it.
  */
 export type FetchImpl = ((input: string | URL | Request, init?: RequestInit) => Promise<Response>) & {
-	preconnect?: typeof globalThis.fetch.preconnect;
+	preconnect?: (url: string | URL, options?: { dns?: boolean; http?: boolean; tcp?: boolean; tls?: boolean }) => void;
 };
 
 /**

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "@oh-my-pi/pi-utils/test-runtime";
 import type { FetchImpl } from "@oh-my-pi/pi-catalog/types";
 import { ensureAntigravityVersion } from "@oh-my-pi/pi-catalog/wire/gemini-headers";
 
@@ -15,7 +15,6 @@ function countingFetch(respond: () => Promise<Response>): { fetcher: FetchImpl; 
 			calls++;
 			return respond();
 		},
-		{ preconnect: fetch.preconnect },
 	);
 	return { fetcher, calls: () => calls };
 }

@@ -10,7 +10,7 @@
  *
  * The fixed host runs every replicated entry through `serializeReplicatedEntry`
  * so a head-truncated mirror ships instead. The test stands up a real
- * Bun.serve relay with `maxPayloadLength` set tight, hosts a snapshot
+ * serve relay with `maxPayloadLength` set tight, hosts a snapshot
  * containing one ~5 MB entry, and asserts:
  *
  *   1. The host's connection survives — no `Connection ended` close, no
@@ -28,7 +28,7 @@
  * {@link MAX_REPLICATED_PAYLOAD_BYTES}, and preserves the entry's
  * `id`/`parentId` so the guest's branch chain stays connected.
  */
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import { importRoomKey } from "@oh-my-pi/pi-coding-agent/collab/crypto";
 import { CollabHost } from "@oh-my-pi/pi-coding-agent/collab/host";
@@ -54,13 +54,14 @@ import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/typ
 import type { AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import type { SessionEntry } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { serve, type ServerWebSocket } from "@oh-my-pi/pi-utils/node-serve";
 
 interface RelayData {
 	role: "host" | "guest";
 	peerId: number;
 }
 
-type RelaySocket = Bun.ServerWebSocket<RelayData>;
+type RelaySocket = ServerWebSocket<RelayData>;
 
 interface TestRelay {
 	url: string;
@@ -70,13 +71,13 @@ interface TestRelay {
 /**
  * Single-room relay mirroring the omp-collab-relay forwarding contract, with
  * a configurable `maxPayloadLength` so the test asserts the same close path
- * the public relay (Bun.serve default = 16 MB, proxies often lower) exposes.
+ * the public relay (serve default = 16 MB, proxies often lower) exposes.
  */
-function startTestRelay(maxPayloadLength: number): TestRelay {
+async function startTestRelay(maxPayloadLength: number): Promise<TestRelay> {
 	let host: RelaySocket | null = null;
 	const guests = new Map<number, RelaySocket>();
 	let nextPeerId = 1;
-	const server = Bun.serve({
+	const server = await serve({
 		port: 0,
 		fetch(req, srv): Response | undefined {
 			const role = new URL(req.url).searchParams.get("role") === "host" ? "host" : "guest";
@@ -119,7 +120,12 @@ function startTestRelay(maxPayloadLength: number): TestRelay {
 			},
 		},
 	});
-	return { url: `ws://localhost:${server.port}`, stop: () => server.stop(true) };
+	return {
+		url: `ws://localhost:${server.port}`,
+		stop: () => {
+			void server.stop(true);
+		},
+	};
 }
 
 interface HostSnapshot {
@@ -323,7 +329,7 @@ afterEach(async () => {
 
 describe("collab replication shrinking (#3739)", () => {
 	it("ships an oversized entry without disconnecting the host", async () => {
-		const relay = startTestRelay(RELAY_MAX_PAYLOAD);
+		const relay = await startTestRelay(RELAY_MAX_PAYLOAD);
 		cleanups.push(() => relay.stop());
 
 		const snapshot = makeOversizedSnapshot(BIG_PAYLOAD_BYTES);
@@ -591,7 +597,7 @@ function nest(depth: number): unknown {
 
 describe("collab snapshot train over a real SessionManager (#11433)", () => {
 	it("degrades a too-deep entry instead of aborting the train before the shrinker", async () => {
-		const relay = startTestRelay(RELAY_MAX_PAYLOAD);
+		const relay = await startTestRelay(RELAY_MAX_PAYLOAD);
 		cleanups.push(() => relay.stop());
 
 		// Every other host case injects a snapshot object literal, which skips
@@ -640,7 +646,7 @@ describe("collab snapshot train over a real SessionManager (#11433)", () => {
 
 describe("collab welcome image strip over a real SessionManager", () => {
 	it("strips images from the guest's snapshot without touching the host's live entry", async () => {
-		const relay = startTestRelay(RELAY_MAX_PAYLOAD);
+		const relay = await startTestRelay(RELAY_MAX_PAYLOAD);
 		cleanups.push(() => relay.stop());
 
 		// The host reads the manager's live entries without a copy, so stripping
@@ -689,7 +695,7 @@ describe("collab welcome image strip over a real SessionManager", () => {
 
 describe("collab snapshot train under an unshrinkable entry (#11433)", () => {
 	it("terminates the train with final:true and substitutes a typed placeholder", async () => {
-		const relay = startTestRelay(RELAY_MAX_PAYLOAD);
+		const relay = await startTestRelay(RELAY_MAX_PAYLOAD);
 		cleanups.push(() => relay.stop());
 
 		const snapshot = makeUnshrinkableSnapshot();

@@ -28,11 +28,12 @@ import {
 	verifyExpectedFileSubset,
 	verifyExpectedFiles,
 } from "@oh-my-pi/typescript-edit-benchmark/verify";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..", "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..", "..");
 const RUNS_DIR = path.join(REPO_ROOT, "runs");
 const TMP = path.join(RUNS_DIR, `rb-${Math.random().toString(36).slice(2, 10)}`);
-const CLI_PATH = Bun.fileURLToPath(import.meta.resolve("@oh-my-pi/pi-coding-agent/cli"));
+const CLI_PATH = bun.fileURLToPath(import.meta.resolve("@oh-my-pi/pi-coding-agent/cli"));
 
 function formatLogPath(logFile: string): string {
 	const relativePath = path.relative(REPO_ROOT, logFile);
@@ -161,7 +162,7 @@ export async function writeConversationDump(params: {
 		thinkingLevel: params.snapshot.thinkingLevel,
 		tools: params.snapshot.dumpTools,
 	});
-	await Bun.write(dumpPath, `${body}\n`);
+	await bun.write(dumpPath, `${body}\n`);
 	if (params.snapshot.sourceSessionFile) {
 		await copyConversationArtifacts(params.snapshot.sourceSessionFile, dumpPath);
 	}
@@ -290,7 +291,7 @@ async function collectOriginalFileContents(cwd: string, files: string[]): Promis
 	for (const file of files) {
 		const fullPath = path.join(cwd, file);
 		try {
-			originals.set(fullPath, await Bun.file(fullPath).text());
+			originals.set(fullPath, await bun.file(fullPath).text());
 		} catch {
 			// Ignore missing files; not all tasks include all paths in every run.
 		}
@@ -349,7 +350,7 @@ async function appendNoChangeMutationHint(
 
 	let current: string;
 	try {
-		current = await Bun.file(fullPath).text();
+		current = await bun.file(fullPath).text();
 	} catch {
 		return error;
 	}
@@ -485,8 +486,8 @@ async function evaluateMutationIntent(
 	let currentText: string;
 	let expectedText: string;
 	try {
-		currentText = await Bun.file(currentPath).text();
-		expectedText = await Bun.file(expectedPath).text();
+		currentText = await bun.file(currentPath).text();
+		expectedText = await bun.file(expectedPath).text();
 	} catch {
 		return {
 			matched: false,
@@ -632,10 +633,10 @@ async function buildGuidedContext(
 
 	const actualPath = path.join(cwd, file);
 	const expectedPath = path.join(expectedDir, file);
-	const actual = await Bun.file(actualPath)
+	const actual = await bun.file(actualPath)
 		.text()
 		.catch(() => null);
-	const expected = await Bun.file(expectedPath)
+	const expected = await bun.file(expectedPath)
 		.text()
 		.catch(() => null);
 	if (actual === null || expected === null) return null;
@@ -732,7 +733,7 @@ function buildBenchmarkProviderSessionId(params: {
 		`system:${buildBenchmarkSystemPrompt({ multiFile: params.multiFile, config: params.config })}`,
 		`initial:${buildInitialBenchmarkPrompt({ taskPrompt: params.task.prompt, guidedContext: params.initialGuidedContext })}`,
 	].join("\n");
-	return `reb_${Bun.hash(keyMaterial).toString(36)}`;
+	return `reb_${bun.hash(keyMaterial).toString(36)}`;
 }
 
 async function prepareBenchmarkSessionSetup(params: {
@@ -1218,7 +1219,7 @@ async function runSingleTask(
 							maxProviderFailureRetries,
 							delayMs,
 						);
-						await Bun.sleep(delayMs);
+						await bun.sleep(delayMs);
 						attempt--; // Don't consume a regular attempt slot for provider/auth retries
 						continue;
 					}

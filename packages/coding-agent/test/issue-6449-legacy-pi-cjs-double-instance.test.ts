@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { ensureGraphCommonJsRequireRegistered } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/legacy-pi-compat";
 
 // The global key the host bundle and every re-instantiated shim copy share to

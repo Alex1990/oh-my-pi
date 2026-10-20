@@ -1,24 +1,41 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
+import { vi } from "vitest";
 import * as fs from "node:fs";
+import type * as NodeFs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resolveEquivalentPath } from "@oh-my-pi/pi-utils/dirs";
 
+const fsMock = vi.hoisted(() => ({ failRealpath: false, calls: [] as unknown[][] }));
+
+// Node ESM namespace objects are frozen; replace the binding from a module mock
+// instead of `spyOn(fs, "realpathSync")`.
+vi.mock("node:fs", async importOriginal => {
+	const actual = await importOriginal<typeof NodeFs>();
+	const realpathSync = ((...args: Parameters<typeof actual.realpathSync>) => {
+		fsMock.calls.push(args);
+		if (fsMock.failRealpath) {
+			const error = new Error("ENOENT: no such file or directory, realpath");
+			(error as NodeJS.ErrnoException).code = "ENOENT";
+			throw error;
+		}
+		return actual.realpathSync(...args);
+	}) as typeof actual.realpathSync;
+	return { ...actual, realpathSync };
+});
+
 describe("issue #935 path equivalence", () => {
 	afterEach(() => {
-		vi.restoreAllMocks();
+		fsMock.failRealpath = false;
+		fsMock.calls = [];
 	});
 
 	it("falls back to the lexical project path when realpath fails", () => {
 		const inputPath = path.resolve("/sessions/link-project");
-		const realpathSpy = vi.spyOn(fs, "realpathSync").mockImplementation((() => {
-			const error = new Error("ENOENT: no such file or directory, realpath");
-			(error as NodeJS.ErrnoException).code = "ENOENT";
-			throw error;
-		}) as unknown as typeof fs.realpathSync);
+		fsMock.failRealpath = true;
 
 		expect(resolveEquivalentPath(inputPath)).toBe(inputPath);
-		expect(realpathSpy).toHaveBeenCalledWith(inputPath);
+		expect(fsMock.calls).toEqual([[inputPath]]);
 	});
 
 	it("resolves a missing path through its deepest existing ancestor only when asked", () => {

@@ -19,13 +19,14 @@ import type {
 	StoredAuthCredential,
 } from "./types";
 import type { UsageCredential } from "../usage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const OAUTH_BEARER_FINGERPRINT_HISTORY_LIMIT = 8;
 const MAX_PENDING_DISABLED_EVENTS = 32;
 
 /** SHA-256 bearer fingerprint, so superseded OAuth token bytes never enter the identity cache. */
 function fingerprintOAuthBearer(bearer: string): string {
-	return Bun.SHA256.hash(bearer, "base64url");
+	return bun.SHA256.hash(bearer, "base64url");
 }
 
 /** One stored credential row as cached in memory. */

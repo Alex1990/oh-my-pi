@@ -1,13 +1,14 @@
-import { Database } from "bun:sqlite";
-import { expect, test } from "bun:test";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { SqliteAuthCredentialStore } from "@oh-my-pi/pi-ai";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import { HistoryStorage } from "@oh-my-pi/pi-coding-agent/session/history-storage";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-async function corruptDatabase(dbPath: string): Promise<Uint8Array<ArrayBuffer>> {
+async function corruptDatabase(dbPath: string): Promise<Uint8Array> {
 	const db = new Database(dbPath);
 	db.run("CREATE TABLE IF NOT EXISTS preserved (value TEXT)");
 	// An unfinalized prepared statement would leave the closed connection a zombie
@@ -16,21 +17,21 @@ async function corruptDatabase(dbPath: string): Promise<Uint8Array<ArrayBuffer>>
 	db.run("PRAGMA wal_checkpoint(TRUNCATE)");
 	db.close();
 
-	const damaged = await Bun.file(dbPath).bytes();
+	const damaged = await bun.file(dbPath).bytes();
 	// Keep the SQLite header valid while corrupting the first b-tree page type.
 	// Opening the file succeeds, but reading its schema raises SQLITE_CORRUPT.
 	damaged[100] = 0xff;
-	await Bun.write(dbPath, damaged);
+	await bun.write(dbPath, damaged);
 	return damaged;
 }
 
-async function expectQuarantinedDamage(dbPath: string, damaged: Uint8Array<ArrayBuffer>): Promise<void> {
+async function expectQuarantinedDamage(dbPath: string, damaged: Uint8Array): Promise<void> {
 	const prefix = `${path.basename(dbPath)}.corrupt-`;
 	const backupNames = (await fs.readdir(path.dirname(dbPath))).filter(
 		name => name.startsWith(prefix) && !name.endsWith("-wal") && !name.endsWith("-shm") && !name.endsWith("-journal"),
 	);
 	expect(backupNames).toHaveLength(1);
-	expect(await Bun.file(path.join(path.dirname(dbPath), backupNames[0]!)).bytes()).toEqual(damaged);
+	expect(await bun.file(path.join(path.dirname(dbPath), backupNames[0]!)).bytes()).toEqual(damaged);
 }
 
 test("agent startup quarantines corruption and persists new usage", async () => {

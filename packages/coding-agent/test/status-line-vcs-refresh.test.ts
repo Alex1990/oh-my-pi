@@ -11,7 +11,7 @@
  * requests a repaint via #onBranchChange. (Post-dispose suppression of the
  * same callback is covered by status-line-dispose-async-leak.test.ts.)
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as nodeFs from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -24,6 +24,8 @@ import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { VcsGitRepo, VcsGitRepoInfo, VcsHeadState, VcsRepo } from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { getProjectDir, setProjectDir } from "@oh-my-pi/pi-utils";
+import { vi } from "vitest";
+vi.mock("node:fs", { spy: true });
 
 type GitStatus = { staged: number; unstaged: number; untracked: number };
 

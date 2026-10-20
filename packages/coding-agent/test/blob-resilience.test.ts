@@ -1,22 +1,24 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Context, ImageContent, Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import * as snapcompact from "@oh-my-pi/snapcompact";
+import { preconnectOf } from "@oh-my-pi/pi-ai/utils/fetch-preconnect";
 import { type BlobBackend, LocalBlobBackend } from "../src/blob-broker/broker";
 import { probeExposureHealth } from "../src/blob-broker/exposure";
 import type { BlobBrokerWorkerConfig } from "../src/blob-broker/protocol";
 import type { BlobPublication } from "../src/blob-broker/publication";
 import { FallbackBlobBackend, ImageUrlService } from "../src/blob-broker/service";
 import type { LazyBlobFetcher } from "../src/blob-broker/store";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 const IMAGE_BYTES = new Uint8Array(Buffer.from("resilient-image"));
 const IMAGE_B64 = Buffer.from(IMAGE_BYTES).toString("base64");
 const cleanups: Array<() => void> = [];
 
-type ProbeFetch = (input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => Promise<Response>;
+type ProbeFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 function injectedFetch(implementation: ProbeFetch): typeof globalThis.fetch {
-	return Object.assign(implementation, { preconnect: globalThis.fetch.preconnect });
+	return Object.assign(implementation, { preconnect: preconnectOf(globalThis.fetch) });
 }
 
 function publication(destination: "direct" | "chevereto", url: string): BlobPublication {
@@ -61,10 +63,10 @@ interface UploadEdge {
 	readonly uploadSizes: number[];
 }
 
-function startUploadEdge(): UploadEdge {
+async function startUploadEdge(): Promise<UploadEdge> {
 	const uploadSizes: number[] = [];
 	let origin = "";
-	const server = Bun.serve({
+	const server = await serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		fetch: async request => {
@@ -277,7 +279,7 @@ describe("FallbackBlobBackend", () => {
 
 describe("ImageUrlService ordered failover", () => {
 	it("keeps a healthy publication stable and advances past its destination when rejected", async () => {
-		const edge = startUploadEdge();
+		const edge = await startUploadEdge();
 		const broker = service([cheveretoConfig(edge.origin), directConfig(edge.origin)]);
 		const pristine = imageContext();
 
@@ -302,7 +304,7 @@ describe("ImageUrlService ordered failover", () => {
 	});
 
 	it("materializes a lazy frame before retrying through the following uploader", async () => {
-		const edge = startUploadEdge();
+		const edge = await startUploadEdge();
 		const broker = service([directConfig(edge.origin), cheveretoConfig(edge.origin)]);
 		const frames = await broker.frameSink.framesFor(
 			"lazy resilience frame\n".repeat(20),

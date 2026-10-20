@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { agentPauseGate } from "@oh-my-pi/pi-agent-core";
 import type { Component } from "@oh-my-pi/pi-tui";
 import type { NativeChild, NativeNode } from "@oh-my-pi/pi-tui/native/node";
@@ -10,6 +10,7 @@ import {
 	runPauseScreen,
 } from "@oh-my-pi/pi-tui/overlays/pause-screen";
 import { getThemeByName, setThemeInstance } from "@oh-my-pi/pi-tui/theme";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 // Strip SGR colors so assertions see visible text only.
 const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -162,7 +163,7 @@ describe("pause screen", () => {
 			expect(agentPauseGate.paused).toBe(false);
 
 			const run = runPauseScreen(host);
-			await Bun.sleep(1);
+			await bun.sleep(1);
 			expect(agentPauseGate.paused).toBe(true);
 			expect(shown.length).toBe(1);
 
@@ -181,7 +182,7 @@ describe("pause screen", () => {
 		it("treats ctrl+c as resume, never as abort-and-stay-paused", async () => {
 			const { host, shown } = makeHost();
 			const run = runPauseScreen(host);
-			await Bun.sleep(1);
+			await bun.sleep(1);
 
 			const component = shown[0];
 			if (component instanceof PauseScreenComponent) {

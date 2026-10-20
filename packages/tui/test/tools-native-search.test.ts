@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { TspText } from "@oh-my-pi/pi-wire";
 import { ReadToolGroupComponent } from "../src/chat/read-tool-group";
 import type { DescribeContext, NativeChild, NativeNode } from "../src/native/node";

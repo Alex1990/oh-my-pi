@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn, vi } from "bun:test";
+import { afterEach, describe, expect, it, spyOn, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import type {
 import type { ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { DebugTool } from "@oh-my-pi/pi-coding-agent/tools/debug";
 import { removeWithRetries, withTimeout } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const TEST_ADAPTER: DapResolvedAdapter = {
 	name: "lldb-dap",
@@ -36,7 +37,7 @@ it("rejects pending DAP work and terminates an adapter with invalid framing", as
 			...TEST_ADAPTER,
 			command: process.execPath,
 			resolvedCommand: process.execPath,
-			args: ["run", path.join(import.meta.dir, "../fixtures/malformed-jsonrpc-peer.ts")],
+			args: ["run", path.join(import.meta.dirname, "../fixtures/malformed-jsonrpc-peer.ts")],
 		},
 		cwd: process.cwd(),
 	});
@@ -67,6 +68,7 @@ it("rejects pending DAP work and terminates an adapter with invalid framing", as
 }, 10_000);
 
 const DELAYED_UNIX_SOCKET_ADAPTER = `
+import net from "node:net";
 const listenPrefix = "--listen=unix:";
 const listenArg = process.argv.find(arg => arg.startsWith(listenPrefix));
 if (!listenArg) {
@@ -75,21 +77,14 @@ if (!listenArg) {
 const socketPath = listenArg.slice(listenPrefix.length);
 let server;
 process.on("SIGTERM", () => {
-	server?.stop();
+	server?.close();
 	process.exit(0);
 });
-await Bun.sleep(100);
-server = Bun.listen({
-	unix: socketPath,
-	socket: {
-		open() {},
-		data() {},
-		close() {},
-		error() {},
-	},
-});
-await Bun.sleep(2_000);
-server.stop();
+await new Promise(resolve => setTimeout(resolve, 100));
+server = net.createServer(() => {});
+server.listen({ path: socketPath });
+await new Promise(resolve => setTimeout(resolve, 2_000));
+server.close();
 `;
 
 type DapEventHandler = (body: unknown, event: DapEventMessage) => void | Promise<void>;
@@ -145,11 +140,11 @@ class FakeDapClient {
 	async sendRequest(command: string, args?: unknown): Promise<unknown> {
 		this.requests.push({ command, args });
 		if (command === "launch" && this.options.launchError) {
-			if (this.options.launchErrorDelayMs) await Bun.sleep(this.options.launchErrorDelayMs);
+			if (this.options.launchErrorDelayMs) await bun.sleep(this.options.launchErrorDelayMs);
 			throw new Error(this.options.launchError);
 		}
 		if (command === "attach" && this.options.attachError) {
-			if (this.options.attachErrorDelayMs) await Bun.sleep(this.options.attachErrorDelayMs);
+			if (this.options.attachErrorDelayMs) await bun.sleep(this.options.attachErrorDelayMs);
 			throw new Error(this.options.attachError);
 		}
 		if (command === "configurationDone" && this.options.configurationDoneError) {
@@ -280,7 +275,7 @@ describe("DAP launch failure handling", () => {
 			await expect(
 				manager.launch({ adapter: TEST_ADAPTER, program: "/bin/echo", cwd: process.cwd() }),
 			).rejects.toThrow("launch: failed before stop outcome");
-			await Bun.sleep(10);
+			await bun.sleep(10);
 			expect(unhandled).toEqual([]);
 		} finally {
 			process.off("unhandledRejection", onUnhandled);
@@ -443,13 +438,13 @@ describe("DAP launch failure handling", () => {
 			// Must respect the caller's timeoutMs, not the internal 30 s write cap.
 			expect(Date.now() - start).toBeLessThan(500);
 			// Let any queued unhandled-rejection microtask fire.
-			await Bun.sleep(50);
+			await bun.sleep(50);
 			expect(unhandled).toEqual([]);
 		} finally {
 			process.off("unhandledRejection", onUnhandled);
 			// Let writeMessage's exit-guard resolve so no promise leaks past the test.
 			await client.dispose();
-			await Bun.sleep(20);
+			await bun.sleep(20);
 		}
 	});
 
@@ -533,7 +528,7 @@ describe("DAP launch failure handling", () => {
 			// socket, forcing #spawnSocketUnix's readiness wait to time out.
 			await fs.writeFile(
 				adapterPath,
-				`await Bun.write(${JSON.stringify(pidFilePath)}, String(process.pid));\nawait Bun.sleep(60_000);\n`,
+				`await bun.write(${JSON.stringify(pidFilePath)}, String(process.pid));\nawait bun.sleep(60_000);\n`,
 			);
 			const adapter: DapResolvedAdapter = {
 				...TEST_ADAPTER,
@@ -545,8 +540,8 @@ describe("DAP launch failure handling", () => {
 			};
 			await expect(DapClient.spawn({ adapter, cwd, socketReadyTimeoutMs: 300 })).rejects.toThrow(/Socket not ready/);
 			// Wait for the kill signal to propagate to the detached adapter.
-			await Bun.sleep(500);
-			const adapterPid = Number(await Bun.file(pidFilePath).text());
+			await bun.sleep(500);
+			const adapterPid = Number(await bun.file(pidFilePath).text());
 			expect(Number.isFinite(adapterPid)).toBe(true);
 			let alive = true;
 			try {
@@ -570,7 +565,7 @@ describe("DAP launch failure handling", () => {
 				const pidFilePath = path.join(cwd, "adapter.pid");
 				await fs.writeFile(
 					adapterPath,
-					`await Bun.write(${JSON.stringify(pidFilePath)}, String(process.pid));\nawait Bun.sleep(60_000);\n`,
+					`await bun.write(${JSON.stringify(pidFilePath)}, String(process.pid));\nawait bun.sleep(60_000);\n`,
 				);
 				const adapter: DapResolvedAdapter = {
 					...TEST_ADAPTER,
@@ -583,8 +578,8 @@ describe("DAP launch failure handling", () => {
 				await expect(DapClient.spawn({ adapter, cwd, socketReadyTimeoutMs: 300 })).rejects.toThrow(
 					/did not connect within/,
 				);
-				await Bun.sleep(500);
-				const adapterPid = Number(await Bun.file(pidFilePath).text());
+				await bun.sleep(500);
+				const adapterPid = Number(await bun.file(pidFilePath).text());
 				expect(Number.isFinite(adapterPid)).toBe(true);
 				let alive = true;
 				try {
@@ -631,13 +626,14 @@ describe("DAP TCP transport resilience", () => {
 	// Adapter that binds the reserved port, accepts the first connection, then
 	// drops it after 30ms without answering — the WSL2-mirrored ghost socket.
 	const GHOST_ADAPTER = `
+import net from "node:net";
 const port = Number(process.argv[2]);
-const server = Bun.listen({ hostname: "127.0.0.1", port, socket: {
-	open(s){ setTimeout(() => { try { s.end(); } catch {} }, 30); },
-	data(){}, close(){}, error(){},
-}});
+const server = net.createServer(socket => {
+	setTimeout(() => { try { socket.destroy(); } catch {} }, 30);
+});
+server.listen({ host: "127.0.0.1", port });
 console.log("Debug server listening at 127.0.0.1:" + port);
-await Bun.sleep(60_000);
+await new Promise(resolve => setTimeout(resolve, 60_000));
 `;
 
 	async function withTcpAdapter(
@@ -719,7 +715,7 @@ await Bun.sleep(60_000);
 			push("Debug server listening at 127.0.0.1:43");
 			// Single event-loop turn so the gate's reader consumes the queued
 			// chunks — a scheduling flush, not a tuned wall-clock delay.
-			await Bun.sleep(0);
+			await bun.sleep(0);
 			expect(open).toBe(false);
 			push("210\n");
 			await gate;

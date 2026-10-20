@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import type { Api, Model, ModelSpec } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import type { Rule } from "@oh-my-pi/pi-coding-agent/capability/rule";
@@ -11,12 +11,13 @@ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manage
 import { TempDir } from "@oh-my-pi/pi-utils";
 
 import { cfgTtsrDisabledRules, cfgTtsrEnabled } from "@oh-my-pi/pi-coding-agent/export/ttsr-settings";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function buildLocalModel(): Model<Api> {
 	return buildModel({
 		id: "ttsr-live-model",
 		name: "TTSR Live Model",
-		api: `ttsr-live-${Bun.nanoseconds().toString(36)}`,
+		api: `ttsr-live-${bun.nanoseconds().toString(36)}`,
 		provider: "managed-primary",
 		baseUrl: "http://127.0.0.1:8080/v1",
 		reasoning: false,

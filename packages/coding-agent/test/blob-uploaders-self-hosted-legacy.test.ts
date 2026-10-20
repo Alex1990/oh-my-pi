@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -12,6 +12,7 @@ import {
 import { createLegacyUploader } from "../src/blob-broker/uploaders-legacy";
 import { createSelfHostedUploader } from "../src/blob-broker/uploaders-self-hosted";
 import { compileFakeExecutable } from "./helpers/fake-executable";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const request: BlobUploadRequest = {
@@ -87,7 +88,7 @@ describe("self-hosted uploader wire contracts", () => {
 				"fake-curl",
 				`import * as fs from "node:fs";
 fs.writeFileSync(${JSON.stringify(argsFile)}, process.argv.slice(2).map(arg => \`\${arg}\\n\`).join(""));
-fs.writeFileSync(${JSON.stringify(bodyFile)}, new Uint8Array(await Bun.stdin.arrayBuffer()));
+fs.writeFileSync(${JSON.stringify(bodyFile)}, new Uint8Array(await bun.stdin.arrayBuffer()));
 `,
 			);
 			const uploader = requiredUploader(
@@ -140,7 +141,7 @@ fs.writeFileSync(${JSON.stringify(bodyFile)}, new Uint8Array(await Bun.stdin.arr
 				),
 			);
 			const publication = await uploader.upload(request);
-			expect(await Bun.file(path.join(root, "captures", "today", "a b.png")).text()).toBe("image-payload");
+			expect(await bun.file(path.join(root, "captures", "today", "a b.png")).text()).toBe("image-payload");
 			expect(publication).toEqual({
 				url: "https://static.test/pub/captures/today/a%20b.png",
 				destination: "shared-folder",

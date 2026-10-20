@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "@oh-my-pi/pi-utils/test-runtime";
 import { Effort, type Context } from "@oh-my-pi/pi-ai";
 import {
 	clearGitLabDuoDirectAccessCache,

@@ -68,6 +68,7 @@ import type {
 } from "./types";
 import { isSoftToolRequirement } from "./types";
 import { EventLoopKeepalive } from "./utils/yield";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
  * Default convertToLlm: Keep only LLM-compatible replay messages.
@@ -922,7 +923,7 @@ export class Agent {
 		if (!model) throw new Error("No active model on agent");
 		const ownedDialect =
 			(this.#dialectResolver ? this.#dialectResolver(model) : this.#dialect) ??
-			resolveOwnedDialectFromEnv(Bun.env.PI_DIALECT);
+			resolveOwnedDialectFromEnv(bun.env.PI_DIALECT);
 		const messages = normalizeMessagesForProvider(llmMessages, model);
 		const tools = ownedDialect
 			? []
@@ -1911,7 +1912,7 @@ export class Agent {
 			syncContextBeforeModelCall: async (context, signal) => {
 				await this.#runBeforeModelCallHooks(signal, context);
 				if (this.#listeners.size > 0) {
-					await Bun.sleep(0);
+					await bun.sleep(0);
 				}
 				context.systemPrompt = this.#state.systemPrompt;
 				this.#onModelCallSystemPrompt?.(context.systemPrompt);

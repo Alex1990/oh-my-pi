@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as path from "node:path";
 import { isRecord, readJsonl, TempDir } from "@oh-my-pi/pi-utils";
 import { selectRpcEntries } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-compat";
@@ -7,6 +7,7 @@ import type { TextPrediction } from "@oh-my-pi/pi-coding-agent/predict/client";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
 import type { SessionEntry, SessionTreeNode } from "@oh-my-pi/pi-coding-agent/session/session-entries";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function customEntry(id: string, parentId: string | null): SessionEntry {
 	return { type: "custom", id, parentId, timestamp: new Date().toISOString(), customType: "probe" };
@@ -122,10 +123,10 @@ type RpcFrame = Record<string, unknown>;
 async function withRpcServer<T>(
 	run: (send: (frame: object) => void, next: () => Promise<RpcFrame>, sendRaw: (line: string) => void) => Promise<T>,
 ): Promise<T> {
-	const child = Bun.spawn(
+	const child = bun.spawn(
 		[
 			"bun",
-			path.join(import.meta.dir, "..", "src", "cli.ts"),
+			path.join(import.meta.dirname, "..", "src", "cli.ts"),
 			"--mode",
 			"rpc",
 			"--no-extensions",
@@ -138,8 +139,8 @@ async function withRpcServer<T>(
 			"claude-sonnet-4-5",
 		],
 		{
-			cwd: path.join(import.meta.dir, ".."),
-			env: { ...Bun.env, PI_NO_TITLE: "1" } as unknown as Record<string, string | undefined>,
+			cwd: path.join(import.meta.dirname, ".."),
+			env: { ...bun.env, PI_NO_TITLE: "1" } as unknown as Record<string, string | undefined>,
 			stdin: "pipe",
 			stdout: "pipe",
 			stderr: "pipe",
@@ -177,7 +178,7 @@ async function withRpcServer<T>(
 			if (responseIndex !== -1) return queue.splice(responseIndex, 1)[0]!;
 			queue.length = 0;
 			if (readerDone) throw new Error(`RPC stream ended early: ${await stderrPromise} ${String(readerError ?? "")}`);
-			await Bun.sleep(100);
+			await bun.sleep(100);
 		}
 		throw new Error("Timed out waiting for RPC frame");
 	};

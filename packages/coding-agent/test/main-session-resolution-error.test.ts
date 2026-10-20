@@ -5,7 +5,7 @@
  * clean stderr message + non-zero exit instead of letting it surface as
  * `[Uncaught Exception]`.
  */
-import { describe, expect, it, vi } from "bun:test";
+import { describe, expect, it, vi } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,7 @@ import * as sessionListingModule from "@oh-my-pi/pi-coding-agent/session/session
 import { loadEntriesFromFile, loadSessionFile } from "@oh-my-pi/pi-coding-agent/session/session-loader";
 import { ForkSourceNotFoundError, SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function buildResumeArgs(resume: string, sessionDir?: string): Args {
 	return {
@@ -248,7 +249,7 @@ describe("createSessionManager — missing session (#2084)", () => {
 				},
 			];
 			const sourceText = `${sourceEntries.map(entry => JSON.stringify(entry)).join("\n")}\n`;
-			await Bun.write(source, sourceText);
+			await bun.write(source, sourceText);
 			if (route === "selector") {
 				vi.spyOn(sessionListingModule, "resolveResumableSession").mockResolvedValue({
 					session: {
@@ -276,7 +277,7 @@ describe("createSessionManager — missing session (#2084)", () => {
 				const branch = forked.getBranch();
 				expect(branch.some(entry => entry.type === "message" && entry.message.role === "assistant")).toBe(true);
 				expect(collectPendingToolCalls(branch)).toEqual([]);
-				expect(await Bun.file(source).text()).toBe(sourceText);
+				expect(await bun.file(source).text()).toBe(sourceText);
 
 				const resultEntry = branch.find(
 					entry =>
@@ -414,7 +415,7 @@ describe("createSessionManager — missing session (#2084)", () => {
 		const cwd = await fsp.mkdtemp(path.join(os.tmpdir(), "omp-fork-enotdir-"));
 		const sessionDir = path.join(cwd, "sessions");
 		const regularFile = path.join(cwd, "file.txt");
-		await Bun.write(regularFile, "not a directory");
+		await bun.write(regularFile, "not a directory");
 		const enotdirChild = path.join(regularFile, "child.jsonl");
 		try {
 			await expect(
@@ -436,7 +437,7 @@ describe("createSessionManager — missing session (#2084)", () => {
 		async () => {
 			const cwd = await fsp.mkdtemp(path.join(os.tmpdir(), "omp-enotdir-ordinary-"));
 			const regularFile = path.join(cwd, "file.txt");
-			await Bun.write(regularFile, "not a directory");
+			await bun.write(regularFile, "not a directory");
 			const enotdirChild = path.join(regularFile, "child.jsonl");
 			try {
 				await expect(loadSessionFile(enotdirChild)).rejects.toMatchObject({

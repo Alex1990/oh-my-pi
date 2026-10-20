@@ -14,6 +14,7 @@ import type {
 	StoredCredentialBlock,
 } from "../auth-storage";
 import type { ClientUsageClientSummary, ClientUsageReport, UsageHistoryEntry, UsageReport } from "../usage";
+import { serve } from "@oh-my-pi/pi-utils/node-serve";
 
 /** GET /v1/healthz response body. */
 export interface HealthzResponse {
@@ -190,7 +191,7 @@ export const DEFAULT_SNAPSHOT_CACHE_TTL_MS = 60 * 60_000;
 export const DEFAULT_STREAM_KEEPALIVE_MS = 20_000;
 
 /**
- * Bun.serve `idleTimeout` (seconds) used by the broker. Default Bun idle
+ * serve `idleTimeout` (seconds) used by the broker. Default Bun idle
  * timeout (10s) would close long-lived SSE connections between keepalives.
  */
 export const DEFAULT_SERVER_IDLE_TIMEOUT_S = 255;

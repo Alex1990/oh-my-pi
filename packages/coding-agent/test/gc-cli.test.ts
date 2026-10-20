@@ -1,5 +1,6 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { vi } from "vitest";
+import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -25,6 +26,8 @@ import {
 } from "@oh-my-pi/pi-utils";
 import { runCli } from "../src/cli";
 import { beginSettingsTest, restoreSettingsTestState, type SettingsTestState } from "./helpers/settings-test-state";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+vi.mock("node:fs/promises", { spy: true });
 
 let root: string;
 let writes: string[] = [];
@@ -64,7 +67,7 @@ afterEach(async () => {
 });
 
 function hashFor(label: string): string {
-	return new Bun.SHA256().update(label).digest("hex");
+	return new bun.SHA256().update(label).digest("hex");
 }
 
 async function writeSession(
@@ -95,7 +98,7 @@ async function writeSession(
 			}),
 		);
 	}
-	await Bun.write(file, `${lines.join("\n")}\n`);
+	await bun.write(file, `${lines.join("\n")}\n`);
 	if (options.ageDays !== undefined) {
 		const ts = new Date(Date.now() - options.ageDays * 86_400_000);
 		await fs.utimes(file, ts, ts);
@@ -106,7 +109,7 @@ async function writeSession(
 async function writeBlob(agentDir: string, hash: string, content: string): Promise<string> {
 	const file = path.join(getBlobsDir(agentDir), hash);
 	await fs.mkdir(path.dirname(file), { recursive: true });
-	await Bun.write(file, content);
+	await bun.write(file, content);
 	return file;
 }
 
@@ -117,13 +120,13 @@ async function agePath(file: string, ageDays = 1): Promise<void> {
 
 async function writeConfig(agentDir: string, body: string): Promise<void> {
 	await fs.mkdir(agentDir, { recursive: true });
-	await Bun.write(path.join(agentDir, "config.yml"), body);
+	await bun.write(path.join(agentDir, "config.yml"), body);
 }
 
 async function writeProjectConfig(projectDir: string, body: string): Promise<void> {
 	const configDir = path.join(projectDir, ".omp");
 	await fs.mkdir(configDir, { recursive: true });
-	await Bun.write(path.join(configDir, "config.yml"), body);
+	await bun.write(path.join(configDir, "config.yml"), body);
 }
 
 describe("runGcCommand blob sweep", () => {
@@ -151,7 +154,7 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.blobs?.wouldDelete).toBe(1);
 		expect(result.blobs?.deleted).toBe(0);
-		expect(await Bun.file(blob).exists()).toBe(true);
+		expect(await bun.file(blob).exists()).toBe(true);
 	});
 
 	test("--apply deletes unreferenced blobs and keeps referenced blobs", async () => {
@@ -169,8 +172,8 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.blobs?.wouldDelete).toBe(1);
 		expect(result.blobs?.deleted).toBe(1);
-		expect(await Bun.file(orphan).exists()).toBe(false);
-		expect(await Bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(orphan).exists()).toBe(false);
+		expect(await bun.file(referenced).exists()).toBe(true);
 	});
 
 	test("--apply keeps fresh unreferenced blobs out of sweep candidates", async () => {
@@ -180,7 +183,7 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.blobs?.wouldDelete).toBe(0);
 		expect(result.blobs?.deleted).toBe(0);
-		expect(await Bun.file(blob).exists()).toBe(true);
+		expect(await bun.file(blob).exists()).toBe(true);
 	});
 
 	test("--apply keeps a blob reused after the sweep scanned it as an old orphan", async () => {
@@ -218,7 +221,7 @@ describe("runGcCommand blob sweep", () => {
 		expect(reused).toBe(true);
 		expect(result.blobs?.deleted).toBe(0);
 		expect(result.blobs?.wouldDelete).toBe(0);
-		expect(await Bun.file(blob).text()).toBe(data);
+		expect(await bun.file(blob).text()).toBe(data);
 	});
 
 	test("--apply keeps a blob reused while the sweep is deleting it", async () => {
@@ -243,7 +246,7 @@ describe("runGcCommand blob sweep", () => {
 		}
 
 		expect(reused).toBe(true);
-		expect(await Bun.file(blob).text()).toBe(data);
+		expect(await bun.file(blob).text()).toBe(data);
 	});
 
 	test("--apply removes staging files abandoned by interrupted blob writes", async () => {
@@ -251,15 +254,15 @@ describe("runGcCommand blob sweep", () => {
 		await fs.mkdir(blobDir, { recursive: true });
 		const abandoned = blobStagingPath(path.join(blobDir, `${hashFor("abandoned")}.png`));
 		const inFlight = blobStagingPath(path.join(blobDir, hashFor("in-flight")));
-		await Bun.write(abandoned, "partial");
+		await bun.write(abandoned, "partial");
 		await agePath(abandoned);
-		await Bun.write(inFlight, "partial");
+		await bun.write(inFlight, "partial");
 
 		const result = await runGcCommand({ flags: { agentDir: root, blobs: true, apply: true } });
 
 		expect(result.blobs?.deleted).toBe(1);
-		expect(await Bun.file(abandoned).exists()).toBe(false);
-		expect(await Bun.file(inFlight).exists()).toBe(true);
+		expect(await bun.file(abandoned).exists()).toBe(false);
+		expect(await bun.file(inFlight).exists()).toBe(true);
 	});
 
 	test("--apply scans recoverable session backups before deleting blobs", async () => {
@@ -268,7 +271,7 @@ describe("runGcCommand blob sweep", () => {
 		await agePath(referenced);
 		const sessionDir = path.join(getSessionsDir(root), "project");
 		await fs.mkdir(sessionDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			path.join(sessionDir, "lost.jsonl.1234567890.bak"),
 			[
 				JSON.stringify({ type: "session", version: 3, id: "lost", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -282,7 +285,7 @@ describe("runGcCommand blob sweep", () => {
 		expect(result.blobs?.referenced).toBe(1);
 		expect(result.blobs?.wouldDelete).toBe(0);
 		expect(result.blobs?.deleted).toBe(0);
-		expect(await Bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(referenced).exists()).toBe(true);
 	});
 
 	test("--apply resolves breadcrumbed relative session paths from their recorded cwd", async () => {
@@ -298,7 +301,7 @@ describe("runGcCommand blob sweep", () => {
 		const externalDir = path.join(projectDir, ".omp-sessions");
 		await fs.mkdir(externalDir, { recursive: true });
 		const externalFile = path.join(externalDir, "work.jsonl");
-		await Bun.write(
+		await bun.write(
 			externalFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "work", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -310,14 +313,14 @@ describe("runGcCommand blob sweep", () => {
 		// would miss this transcript and delete its blob.
 		const crumbDir = getTerminalSessionsDir(root);
 		await fs.mkdir(crumbDir, { recursive: true });
-		await Bun.write(path.join(crumbDir, "tty-1"), `${projectDir}\n.omp-sessions/work.jsonl\n`);
+		await bun.write(path.join(crumbDir, "tty-1"), `${projectDir}\n.omp-sessions/work.jsonl\n`);
 
 		const result = await runGcCommand({ flags: { agentDir: root, blobs: true, apply: true } });
 
 		expect(result.blobs?.referenced).toBe(1);
 		expect(result.blobs?.deleted).toBe(1);
-		expect(await Bun.file(referenced).exists()).toBe(true);
-		expect(await Bun.file(orphan).exists()).toBe(false);
+		expect(await bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(orphan).exists()).toBe(false);
 	});
 
 	test("--apply scans an exact extensionless session file after its breadcrumb is overwritten", async () => {
@@ -333,7 +336,7 @@ describe("runGcCommand blob sweep", () => {
 		const externalDir = path.join(root, "external-sessions");
 		await fs.mkdir(externalDir, { recursive: true });
 		const externalFile = path.join(externalDir, "work");
-		await Bun.write(
+		await bun.write(
 			externalFile,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "work", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -344,14 +347,14 @@ describe("runGcCommand blob sweep", () => {
 		// Only the persistent registry records the exact file — no terminal breadcrumb exists.
 		const registryDir = getCustomSessionFilesDir(root);
 		await fs.mkdir(registryDir, { recursive: true });
-		await Bun.write(path.join(registryDir, "session-1"), externalFile);
+		await bun.write(path.join(registryDir, "session-1"), externalFile);
 
 		const result = await runGcCommand({ flags: { agentDir: root, blobs: true, apply: true } });
 
 		expect(result.blobs?.referenced).toBe(1);
 		expect(result.blobs?.deleted).toBe(1);
-		expect(await Bun.file(referenced).exists()).toBe(true);
-		expect(await Bun.file(orphan).exists()).toBe(false);
+		expect(await bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(orphan).exists()).toBe(false);
 	});
 
 	test("--apply keeps a blob referenced only by a session under another agent dir's managed root", async () => {
@@ -372,7 +375,7 @@ describe("runGcCommand blob sweep", () => {
 			const sessionFile = manager.getSessionFile();
 			await manager.close();
 			if (!sessionFile) throw new Error("Expected a persisted session file");
-			await Bun.write(
+			await bun.write(
 				sessionFile,
 				[
 					JSON.stringify({ type: "session", version: 3, id: "other", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -387,7 +390,7 @@ describe("runGcCommand blob sweep", () => {
 
 			expect(result.blobs?.referenced).toBe(1);
 			expect(result.blobs?.deleted).toBe(0);
-			expect(await Bun.file(referenced).exists()).toBe(true);
+			expect(await bun.file(referenced).exists()).toBe(true);
 		} finally {
 			setAgentDir(originalAgentDir);
 		}
@@ -417,15 +420,15 @@ describe("runGcCommand blob sweep", () => {
 				encoder.encode(`broken BLOB:SHA256:${backupHash.toUpperCase()}\r\nblob:sha256:${orphanHash}x`),
 			],
 		]);
-		for (const [file, bytes] of journals) await Bun.write(file, bytes);
-		const realFile = Bun.file.bind(Bun);
-		const fileSpy = spyOn(Bun, "file").mockImplementation((source, options) => {
-			const file = realFile(source as string, options);
+		for (const [file, bytes] of journals) await bun.write(file, bytes);
+		const realFile = bun.file;
+		const fileSpy = spyOn(bun, "file").mockImplementation(source => {
+			const file = realFile(source as string);
 			const bytes = journals.get(String(source));
 			if (bytes) {
 				file.stream = () => {
 					let offset = 0;
-					return new ReadableStream<Uint8Array<ArrayBuffer>>({
+					return new ReadableStream<Uint8Array>({
 						pull(controller) {
 							if (offset >= bytes.length) {
 								controller.close();
@@ -448,8 +451,8 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.blobs?.referenced).toBe(3);
 		expect(result.blobs?.deleted).toBe(1);
-		for (const file of [active, archived, backup]) expect(await Bun.file(file).exists()).toBe(true);
-		expect(await Bun.file(orphan).exists()).toBe(false);
+		for (const file of [active, archived, backup]) expect(await bun.file(file).exists()).toBe(true);
+		expect(await bun.file(orphan).exists()).toBe(false);
 	});
 
 	test("aborts blob deletion when a gzip archive fails after yielding valid references", async () => {
@@ -460,26 +463,26 @@ describe("runGcCommand blob sweep", () => {
 		await agePath(orphan);
 		const archive = path.join(root, "archive", "sessions", "project", "broken.jsonl.gz");
 		const bytes = gzipSync(`blob:sha256:${hash}\n${"{}\n".repeat(12 * 1024)}`);
-		await Bun.write(archive, bytes.subarray(0, -4));
+		await bun.write(archive, bytes.subarray(0, -4));
 
 		await expect(runGcCommand({ flags: { agentDir: root, blobs: true, apply: true } })).rejects.toThrow();
 
-		expect(await Bun.file(referenced).exists()).toBe(true);
-		expect(await Bun.file(orphan).exists()).toBe(true);
-		expect(await Bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
+		expect(await bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(orphan).exists()).toBe(true);
+		expect(await bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
 	});
 
 	test("aborts blob deletion when a journal read fails after a complete record", async () => {
 		const orphan = await writeBlob(root, hashFor("read-error-orphan"), "orphan");
 		await agePath(orphan);
 		const session = await writeSession(root, "project", "read-error", "complete");
-		const realFile = Bun.file.bind(Bun);
-		const fileSpy = spyOn(Bun, "file").mockImplementation((source, options) => {
-			const file = realFile(source as string, options);
+		const realFile = bun.file;
+		const fileSpy = spyOn(bun, "file").mockImplementation(source => {
+			const file = realFile(source as string);
 			if (source === session) {
 				file.stream = () => {
 					let yielded = false;
-					return new ReadableStream<Uint8Array<ArrayBuffer>>({
+					return new ReadableStream<Uint8Array>({
 						pull(controller) {
 							if (yielded) controller.error(Object.assign(new Error("journal read failed"), { code: "EIO" }));
 							else {
@@ -500,8 +503,8 @@ describe("runGcCommand blob sweep", () => {
 			fileSpy.mockRestore();
 		}
 
-		expect(await Bun.file(orphan).exists()).toBe(true);
-		expect(await Bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
+		expect(await bun.file(orphan).exists()).toBe(true);
+		expect(await bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
 	});
 
 	test("uses configured gc selectors and retention defaults", async () => {
@@ -526,7 +529,7 @@ describe("runGcCommand blob sweep", () => {
 		expect(result.blobs).toBeUndefined();
 		expect(result.wal).toBeUndefined();
 		expect(result.archive?.archived).toBe(1);
-		expect(await Bun.file(path.join(root, "archive", "sessions", "project", "archive-me.jsonl.gz")).exists()).toBe(
+		expect(await bun.file(path.join(root, "archive", "sessions", "project", "archive-me.jsonl.gz")).exists()).toBe(
 			true,
 		);
 	});
@@ -560,7 +563,7 @@ describe("runGcCommand blob sweep", () => {
 		expect(result.wal).toBeUndefined();
 		expect(result.archive?.archived).toBe(1);
 		expect(
-			await Bun.file(path.join(targetAgentDir, "archive", "sessions", "project", "archive-me.jsonl.gz")).exists(),
+			await bun.file(path.join(targetAgentDir, "archive", "sessions", "project", "archive-me.jsonl.gz")).exists(),
 		).toBe(true);
 	});
 
@@ -584,7 +587,7 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.archive?.wouldArchive).toBe(0);
 		expect(result.archive?.archived).toBe(0);
-		expect(await Bun.file(session).exists()).toBe(true);
+		expect(await bun.file(session).exists()).toBe(true);
 	});
 
 	test("invalid configured retention counts fall back to schema defaults", async () => {
@@ -607,7 +610,7 @@ describe("runGcCommand blob sweep", () => {
 
 		expect(result.archive?.keptNewestGlobal).toBe(1);
 		expect(result.archive?.archived).toBe(0);
-		expect(await Bun.file(session).exists()).toBe(true);
+		expect(await bun.file(session).exists()).toBe(true);
 	});
 
 	test("explicit selectors override disabled gc config", async () => {
@@ -620,7 +623,7 @@ describe("runGcCommand blob sweep", () => {
 		expect(result.blobs?.deleted).toBe(1);
 		expect(result.archive).toBeUndefined();
 		expect(result.wal).toBeUndefined();
-		expect(await Bun.file(blob).exists()).toBe(false);
+		expect(await bun.file(blob).exists()).toBe(false);
 	});
 
 	test("dry-run reads gc config without initializing settings storage", async () => {
@@ -645,8 +648,8 @@ describe("runGcCommand blob sweep", () => {
 		expect(result.archive?.wouldArchive).toBe(1);
 		expect(result.archive?.archived).toBe(0);
 		expect(result.wal).toBeUndefined();
-		expect(await Bun.file(path.join(root, "agent.db")).exists()).toBe(false);
-		expect(await Bun.file(path.join(root, "settings.json.bak")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "agent.db")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "settings.json.bak")).exists()).toBe(false);
 	});
 
 	test("dry-run merges project gc settings like apply without initializing settings storage", async () => {
@@ -685,8 +688,8 @@ describe("runGcCommand blob sweep", () => {
 		expect(dryRun.archive?.wouldArchive).toBe(1);
 		expect(dryRun.archive?.archived).toBe(0);
 		expect(dryRun.wal).toBeUndefined();
-		expect(await Bun.file(path.join(root, "agent.db")).exists()).toBe(false);
-		expect(await Bun.file(path.join(root, "settings.json.bak")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "agent.db")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "settings.json.bak")).exists()).toBe(false);
 
 		const applied = await runGcCommand({ flags: { agentDir: root, apply: true } });
 
@@ -733,7 +736,7 @@ describe("runGcCommand history checkpoint", () => {
 		if (process.platform === "darwin") {
 			expect((await fs.stat(`${dbPath}-wal`)).size).toBe(0);
 		} else {
-			expect(await Bun.file(`${dbPath}-wal`).exists()).toBe(false);
+			expect(await bun.file(`${dbPath}-wal`).exists()).toBe(false);
 		}
 	});
 
@@ -745,7 +748,7 @@ describe("runGcCommand history checkpoint", () => {
 			"unable to open database file",
 		);
 
-		expect(await Bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
 	});
 
 	test("--apply reports busy WAL checkpoints and releases the gc lock", async () => {
@@ -766,7 +769,7 @@ describe("runGcCommand history checkpoint", () => {
 				`WAL checkpoint failed for ${dbPath}: busy=1`,
 			);
 
-			expect(await Bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
+			expect(await bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
 		} finally {
 			try {
 				reader.run("COMMIT");
@@ -787,37 +790,37 @@ describe("runGcCommand session staging sweep", () => {
 		// An extensionless `--session` transcript outside the sessions tree, known only to the registry.
 		const externalDir = path.join(root, "external-sessions");
 		const externalFile = path.join(externalDir, "work");
-		await Bun.write(externalFile, "{}\n");
-		await Bun.write(path.join(getCustomSessionFilesDir(root), "session-1"), externalFile);
+		await bun.write(externalFile, "{}\n");
+		await bun.write(path.join(getCustomSessionFilesDir(root), "session-1"), externalFile);
 		const externalAbandoned = sessionStagingPath(externalFile);
 		const unrelated = path.join(externalDir, ".notes.0123456789abcdef.tmp");
 		for (const file of [abandoned, nestedAbandoned, externalAbandoned, unrelated]) {
-			await Bun.write(file, "partial");
+			await bun.write(file, "partial");
 			await agePath(file);
 		}
-		await Bun.write(inFlight, "partial");
+		await bun.write(inFlight, "partial");
 		const flags = { agentDir: root, archive: true };
 
 		const dryRun = await runGcCommand({ flags });
 		expect(dryRun.archive).toMatchObject({ wouldDeleteTemps: 3, deletedTemps: 0, tempBytes: 21 });
-		expect(await Bun.file(abandoned).exists()).toBe(true);
+		expect(await bun.file(abandoned).exists()).toBe(true);
 
 		const applied = await runGcCommand({ flags: { ...flags, apply: true } });
 		expect(applied.archive).toMatchObject({ wouldDeleteTemps: 3, deletedTemps: 3, errors: [] });
 		for (const removed of [abandoned, nestedAbandoned, externalAbandoned]) {
-			expect(await Bun.file(removed).exists()).toBe(false);
+			expect(await bun.file(removed).exists()).toBe(false);
 		}
 		for (const kept of [live, inFlight, externalFile, unrelated]) {
-			expect(await Bun.file(kept).exists()).toBe(true);
+			expect(await bun.file(kept).exists()).toBe(true);
 		}
 	});
 	test("sweeps the first-save temp of a missing registered session before its stale marker is pruned", async () => {
 		const target = path.join(root, "external-sessions", "first-save");
 		const marker = path.join(getCustomSessionFilesDir(root), "first-save");
-		await Bun.write(marker, target);
+		await bun.write(marker, target);
 		await agePath(marker, 2);
 		const abandoned = sessionStagingPath(target);
-		await Bun.write(abandoned, "partial");
+		await bun.write(abandoned, "partial");
 		await agePath(abandoned);
 
 		const result = await runGcCommand({
@@ -826,9 +829,9 @@ describe("runGcCommand session staging sweep", () => {
 
 		expect(result.archive).toMatchObject({ wouldDeleteTemps: 1, deletedTemps: 1, errors: [] });
 		expect(result.stale?.danglingMarkers).toBe(1);
-		expect(await Bun.file(marker).exists()).toBe(false);
-		expect(await Bun.file(abandoned).exists()).toBe(false);
-		expect(await Bun.file(target).exists()).toBe(false);
+		expect(await bun.file(marker).exists()).toBe(false);
+		expect(await bun.file(abandoned).exists()).toBe(false);
+		expect(await bun.file(target).exists()).toBe(false);
 	});
 });
 
@@ -842,8 +845,8 @@ describe("runGcCommand cold-session archive", () => {
 		const pending = await writeSession(root, "project", "pending", "pending", { ageDays: 90 });
 		const interrupted = await writeSession(root, "project", "interrupted", "interrupted", { ageDays: 90 });
 		await fs.mkdir(archiveMe.slice(0, -".jsonl".length), { recursive: true });
-		await Bun.write(path.join(archiveMe.slice(0, -".jsonl".length), "0.bash.log"), "artifact");
-		const original = await Bun.file(archiveMe).bytes();
+		await bun.write(path.join(archiveMe.slice(0, -".jsonl".length), "0.bash.log"), "artifact");
+		const original = await bun.file(archiveMe).bytes();
 
 		const result = await runGcCommand({
 			flags: {
@@ -859,26 +862,26 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(1);
 		expect(result.archive?.skippedActive).toBe(2);
-		expect(await Bun.file(archiveMe).exists()).toBe(false);
-		expect(await Bun.file(archived).exists()).toBe(true);
-		expect(new Uint8Array(gunzipSync(await Bun.file(archived).bytes()))).toEqual(original);
-		expect(await Bun.file(path.join(archived.slice(0, -".jsonl.gz".length), "0.bash.log")).exists()).toBe(true);
-		expect(await Bun.file(keepRecent).exists()).toBe(true);
-		expect(await Bun.file(pending).exists()).toBe(true);
-		expect(await Bun.file(interrupted).exists()).toBe(true);
+		expect(await bun.file(archiveMe).exists()).toBe(false);
+		expect(await bun.file(archived).exists()).toBe(true);
+		expect(new Uint8Array(gunzipSync(await bun.file(archived).bytes()))).toEqual(original);
+		expect(await bun.file(path.join(archived.slice(0, -".jsonl.gz".length), "0.bash.log")).exists()).toBe(true);
+		expect(await bun.file(keepRecent).exists()).toBe(true);
+		expect(await bun.file(pending).exists()).toBe(true);
+		expect(await bun.file(interrupted).exists()).toBe(true);
 	});
 
 	test("keeps the source journal when compression encounters a read error", async () => {
 		const session = await writeSession(root, "project", "compression-error", "complete", { ageDays: 90 });
-		const original = await Bun.file(session).bytes();
+		const original = await bun.file(session).bytes();
 		const archiveDir = path.join(root, "archive", "sessions", "project");
-		const realFile = Bun.file.bind(Bun);
-		const fileSpy = spyOn(Bun, "file").mockImplementation((source, options) => {
-			const file = realFile(source as string, options);
+		const realFile = bun.file;
+		const fileSpy = spyOn(bun, "file").mockImplementation(source => {
+			const file = realFile(source as string);
 			if (source === session) {
 				file.stream = () => {
 					let yielded = false;
-					return new ReadableStream<Uint8Array<ArrayBuffer>>({
+					return new ReadableStream<Uint8Array>({
 						pull(controller) {
 							if (yielded) controller.error(new Error("compression read failed"));
 							else {
@@ -909,9 +912,9 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(0);
 		expect(result.archive?.errors).toEqual([`${session}: compression read failed`]);
-		expect(await Bun.file(session).bytes()).toEqual(original);
+		expect(await bun.file(session).bytes()).toEqual(original);
 		expect(await fs.readdir(archiveDir)).toEqual([]);
-		expect(await Bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
+		expect(await bun.file(path.join(root, "gc.lock")).exists()).toBe(false);
 	});
 
 	test("restores byte-identical journal bytes when moving artifacts fails after compression", async () => {
@@ -928,10 +931,10 @@ describe("runGcCommand cold-session archive", () => {
 			message: { role: "assistant", content: [{ type: "text", text: "界".repeat(8 * 1024) }] },
 		});
 		const original = new TextEncoder().encode(`${header}\r\n${message}`);
-		await Bun.write(session, original);
+		await bun.write(session, original);
 		await agePath(session, 90);
 		const artifacts = session.slice(0, -".jsonl".length);
-		await Bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
+		await bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
 		const archiveDir = path.join(root, "archive", "sessions", "project");
 		const rename = fs.rename.bind(fs);
 		const renameSpy = spyOn(fs, "rename").mockImplementation(async (source, destination) => {
@@ -956,8 +959,8 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(0);
 		expect(result.archive?.errors).toEqual([`${session}: artifact move failed`]);
-		expect(await Bun.file(session).bytes()).toEqual(original);
-		expect(await Bun.file(path.join(artifacts, "0.bash.log")).text()).toBe("retained artifact");
+		expect(await bun.file(session).bytes()).toEqual(original);
+		expect(await bun.file(path.join(artifacts, "0.bash.log")).text()).toBe("retained artifact");
 		expect(await fs.readdir(archiveDir)).toEqual([]);
 		expect((await fs.readdir(path.dirname(session))).sort()).toEqual(["rollback", "rollback.jsonl"]);
 	});
@@ -968,13 +971,13 @@ describe("runGcCommand cold-session archive", () => {
 			ageDays: 90,
 		});
 		const artifacts = session.slice(0, -".jsonl".length);
-		await Bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
+		await bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
 		const archive = path.join(root, "archive", "sessions", "project", "rollback-corrupt.jsonl.gz");
 		const rename = fs.rename.bind(fs);
 		const renameSpy = spyOn(fs, "rename").mockImplementation(async (source, destination) => {
 			if (String(source) === artifacts) {
-				const bytes = await Bun.file(archive).bytes();
-				await Bun.write(archive, bytes.subarray(0, -4));
+				const bytes = await bun.file(archive).bytes();
+				await bun.write(archive, bytes.subarray(0, -4));
 				throw new Error("artifact move failed");
 			}
 			await rename(source, destination);
@@ -997,17 +1000,17 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(0);
 		expect(result.archive?.errors).toEqual([`${session}: artifact move failed`]);
-		expect(await Bun.file(session).exists()).toBe(false);
-		expect(await Bun.file(archive).exists()).toBe(true);
-		expect(await Bun.file(path.join(artifacts, "0.bash.log")).text()).toBe("retained artifact");
+		expect(await bun.file(session).exists()).toBe(false);
+		expect(await bun.file(archive).exists()).toBe(true);
+		expect(await bun.file(path.join(artifacts, "0.bash.log")).text()).toBe("retained artifact");
 		expect(await fs.readdir(path.dirname(session))).toEqual(["rollback-corrupt"]);
 	});
 
 	test("does not publish a partial restored journal when the rollback destination fails", async () => {
 		const session = await writeSession(root, "project", "rollback-write", "complete", { ageDays: 90 });
-		const original = await Bun.file(session).bytes();
+		const original = await bun.file(session).bytes();
 		const artifacts = session.slice(0, -".jsonl".length);
-		await Bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
+		await bun.write(path.join(artifacts, "0.bash.log"), "retained artifact");
 		const archive = path.join(root, "archive", "sessions", "project", "rollback-write.jsonl.gz");
 		const rename = fs.rename.bind(fs);
 		const renameSpy = spyOn(fs, "rename").mockImplementation(async (source, destination) => {
@@ -1032,8 +1035,8 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(0);
 		expect(result.archive?.errors).toEqual([`${session}: rename failed`]);
-		expect(await Bun.file(session).exists()).toBe(false);
-		expect(new Uint8Array(gunzipSync(await Bun.file(archive).bytes()))).toEqual(original);
+		expect(await bun.file(session).exists()).toBe(false);
+		expect(new Uint8Array(gunzipSync(await bun.file(archive).bytes()))).toEqual(original);
 		expect(await fs.readdir(path.dirname(session))).toEqual(["rollback-write"]);
 	});
 
@@ -1042,7 +1045,7 @@ describe("runGcCommand cold-session archive", () => {
 		const artifactsDir = parent.slice(0, -".jsonl".length);
 		const nested = path.join(artifactsDir, "Tan-nested.jsonl");
 		await fs.mkdir(artifactsDir, { recursive: true });
-		await Bun.write(
+		await bun.write(
 			nested,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "Tan-nested", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -1065,9 +1068,9 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.skippedActive).toBe(1);
 		expect(result.archive?.archived).toBe(0);
-		expect(await Bun.file(parent).exists()).toBe(true);
-		expect(await Bun.file(nested).exists()).toBe(true);
-		expect(await Bun.file(path.join(root, "archive", "sessions", "project", "parent.jsonl.gz")).exists()).toBe(false);
+		expect(await bun.file(parent).exists()).toBe(true);
+		expect(await bun.file(nested).exists()).toBe(true);
+		expect(await bun.file(path.join(root, "archive", "sessions", "project", "parent.jsonl.gz")).exists()).toBe(false);
 	});
 
 	test("removes archived session rows from history and rebuilds FTS", async () => {
@@ -1302,7 +1305,7 @@ describe("runGcCommand cold-session archive", () => {
 			timestamp,
 			message: { role: "assistant", content: [] },
 		};
-		await Bun.write(
+		await bun.write(
 			parent,
 			[
 				JSON.stringify({
@@ -1325,7 +1328,7 @@ describe("runGcCommand cold-session archive", () => {
 				.join("\n"),
 		);
 		await agePath(parent, 90);
-		await Bun.write(
+		await bun.write(
 			child,
 			[
 				JSON.stringify({
@@ -1344,7 +1347,7 @@ describe("runGcCommand cold-session archive", () => {
 				"",
 			].join("\n"),
 		);
-		await Bun.write(
+		await bun.write(
 			sibling,
 			[
 				JSON.stringify({
@@ -1475,7 +1478,7 @@ describe("runGcCommand cold-session archive", () => {
 			timestamp,
 			message: { role: "assistant", content: [] },
 		};
-		await Bun.write(
+		await bun.write(
 			parent,
 			[
 				JSON.stringify({ type: "session", version: 3, id: "partial-parent", timestamp, cwd: "/tmp" }),
@@ -1484,7 +1487,7 @@ describe("runGcCommand cold-session archive", () => {
 			].join("\n"),
 		);
 		await agePath(parent, 90);
-		await Bun.write(
+		await bun.write(
 			child,
 			[
 				JSON.stringify({
@@ -1610,7 +1613,7 @@ describe("runGcCommand cold-session archive", () => {
 			timestamp,
 			message: { role: "assistant", content: [] },
 		};
-		await Bun.write(
+		await bun.write(
 			original,
 			[
 				JSON.stringify({
@@ -1680,7 +1683,7 @@ describe("runGcCommand cold-session archive", () => {
 		] as const) {
 			const current = path.join(getSessionsDir(root), project, "custom-name.jsonl");
 			await fs.mkdir(path.dirname(current), { recursive: true });
-			await Bun.write(
+			await bun.write(
 				current,
 				[
 					JSON.stringify({
@@ -1762,7 +1765,7 @@ describe("runGcCommand cold-session archive", () => {
 		const session = await writeSession(root, "project", "archive-me", "complete", { ageDays: 90 });
 		const corruptArchive = path.join(root, "archive", "sessions", "older", "corrupt.jsonl.gz");
 		await fs.mkdir(path.dirname(corruptArchive), { recursive: true });
-		await Bun.write(corruptArchive, "not gzip");
+		await bun.write(corruptArchive, "not gzip");
 		const statsDbPath = path.join(root, "stats.db");
 		const db = new Database(statsDbPath);
 		db.run("CREATE TABLE messages (session_file TEXT NOT NULL)");
@@ -1810,7 +1813,7 @@ describe("runGcCommand cold-session archive", () => {
 			timestamp,
 			message: { role: "assistant", content: [{ type: "text", text: "界".repeat(8 * 1024) }] },
 		};
-		await Bun.write(
+		await bun.write(
 			ancestorArchive,
 			gzipSync(
 				[
@@ -1832,8 +1835,8 @@ describe("runGcCommand cold-session archive", () => {
 			JSON.stringify(sharedAssistant),
 			"",
 		].join("\n");
-		await Bun.write(corruptArchive, gzipSync(intermediateJournal).subarray(0, -4));
-		await Bun.write(
+		await bun.write(corruptArchive, gzipSync(intermediateJournal).subarray(0, -4));
+		await bun.write(
 			retainedPath,
 			[
 				JSON.stringify({
@@ -1896,7 +1899,7 @@ describe("runGcCommand cold-session archive", () => {
 			{ session_file: retainedPath, offset: retainedStat.size, last_modified: retainedStat.mtimeMs },
 		]);
 
-		await Bun.write(corruptArchive, gzipSync(intermediateJournal));
+		await bun.write(corruptArchive, gzipSync(intermediateJournal));
 		const second = await runGcCommand({
 			flags: {
 				agentDir: root,
@@ -1941,7 +1944,7 @@ describe("runGcCommand cold-session archive", () => {
 				content: [{ type: "toolCall", id: "", name: "read" }],
 			},
 		};
-		await Bun.write(
+		await bun.write(
 			parentArchive,
 			gzipSync(
 				[
@@ -1951,7 +1954,7 @@ describe("runGcCommand cold-session archive", () => {
 				].join("\n"),
 			),
 		);
-		await Bun.write(
+		await bun.write(
 			childPath,
 			[
 				JSON.stringify({
@@ -2012,7 +2015,7 @@ describe("runGcCommand cold-session archive", () => {
 	test("skips decompressible historical archives without a valid session header", async () => {
 		const archive = path.join(root, "archive", "sessions", "older", "headerless-session.jsonl.gz");
 		await fs.mkdir(path.dirname(archive), { recursive: true });
-		await Bun.write(
+		await bun.write(
 			archive,
 			gzipSync(`${JSON.stringify({ type: "message", message: { role: "assistant", content: [] } })}\n`),
 		);
@@ -2062,7 +2065,7 @@ describe("runGcCommand cold-session archive", () => {
 			"{}\n".repeat(12 * 1024),
 		].join("\r\n");
 		const compressed = gzipSync(journal);
-		await Bun.write(archive, compressed.subarray(0, -4));
+		await bun.write(archive, compressed.subarray(0, -4));
 		const dbPath = getHistoryDbPath(root);
 		const db = new Database(dbPath);
 		db.run("CREATE TABLE history (id INTEGER PRIMARY KEY, prompt TEXT NOT NULL, session_id TEXT)");
@@ -2078,7 +2081,7 @@ describe("runGcCommand cold-session archive", () => {
 		expect(first.archive?.errors.some(error => error.startsWith("history cleanup scan: "))).toBe(true);
 		expect(firstRows).toEqual([{ session_id: "late-corrupt" }]);
 
-		await Bun.write(archive, compressed);
+		await bun.write(archive, compressed);
 		const second = await runGcCommand({ flags: { agentDir: root, archive: true, apply: true } });
 		const secondCheck = new Database(dbPath);
 		const secondRows = secondCheck.query("SELECT session_id FROM history").all();
@@ -2099,7 +2102,7 @@ describe("runGcCommand cold-session archive", () => {
 			id: "padded",
 			timestamp: "2026-01-01T00:00:00.000Z",
 		});
-		await Bun.write(archive, gzipSync(`${title}\u00a0\r\n${header}\ufeff\n`));
+		await bun.write(archive, gzipSync(`${title}\u00a0\r\n${header}\ufeff\n`));
 		const dbPath = getHistoryDbPath(root);
 		const db = new Database(dbPath);
 		db.run("CREATE TABLE history (id INTEGER PRIMARY KEY, prompt TEXT NOT NULL, session_id TEXT)");
@@ -2168,7 +2171,7 @@ describe("runGcCommand cold-session archive", () => {
 			filename: "20260626_archive-me",
 		});
 		const statsDbPath = path.join(root, "stats.db");
-		await Bun.write(statsDbPath, "not sqlite");
+		await bun.write(statsDbPath, "not sqlite");
 
 		const first = await runGcCommand({
 			flags: {
@@ -2217,7 +2220,7 @@ describe("runGcCommand cold-session archive", () => {
 		});
 		const dbPath = getHistoryDbPath(root);
 		await fs.mkdir(path.dirname(dbPath), { recursive: true });
-		await Bun.write(dbPath, "not sqlite");
+		await bun.write(dbPath, "not sqlite");
 
 		const first = await runGcCommand({
 			flags: {
@@ -2233,7 +2236,7 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(first.archive?.archived).toBe(1);
 		expect(first.archive?.errors.some(error => error.startsWith("history cleanup: "))).toBe(true);
-		expect(await Bun.file(archived).exists()).toBe(true);
+		expect(await bun.file(archived).exists()).toBe(true);
 
 		await fs.rm(dbPath, { force: true });
 		const db = new Database(dbPath);
@@ -2266,7 +2269,7 @@ describe("runGcCommand cold-session archive", () => {
 		await writeSession(root, "project", "archive-me", "complete", { ageDays: 90 });
 		const dbPath = getHistoryDbPath(root);
 		await fs.mkdir(path.dirname(dbPath), { recursive: true });
-		await Bun.write(dbPath, "not sqlite");
+		await bun.write(dbPath, "not sqlite");
 
 		await runCli([
 			"gc",
@@ -2311,7 +2314,7 @@ describe("runGcCommand cold-session archive", () => {
 		expect(result.archive?.archived).toBe(1);
 		expect(result.archive?.historyRowsDeleted).toBe(0);
 		expect(result.archive?.errors).toEqual([]);
-		expect(await Bun.file(session).exists()).toBe(false);
+		expect(await bun.file(session).exists()).toBe(false);
 	});
 
 	test("does not archive fresh completed sessions that may still be live", async () => {
@@ -2330,7 +2333,7 @@ describe("runGcCommand cold-session archive", () => {
 
 		expect(result.archive?.archived).toBe(0);
 		expect(result.archive?.skippedActive).toBe(1);
-		expect(await Bun.file(session).exists()).toBe(true);
+		expect(await bun.file(session).exists()).toBe(true);
 	});
 
 	test("dry-run does not recover orphaned session backups", async () => {
@@ -2338,7 +2341,7 @@ describe("runGcCommand cold-session archive", () => {
 		await fs.mkdir(sessionDir, { recursive: true });
 		const primary = path.join(sessionDir, "lost.jsonl");
 		const backup = path.join(sessionDir, "lost.jsonl.1234567890.bak");
-		await Bun.write(
+		await bun.write(
 			backup,
 			`${JSON.stringify({ type: "session", version: 3, id: "lost", timestamp: "2026-01-01T00:00:00.000Z" })}\n`,
 		);
@@ -2346,8 +2349,8 @@ describe("runGcCommand cold-session archive", () => {
 		const result = await runGcCommand({ flags: { agentDir: root, archive: true } });
 
 		expect(result.archive?.scanned).toBe(0);
-		expect(await Bun.file(backup).exists()).toBe(true);
-		expect(await Bun.file(primary).exists()).toBe(false);
+		expect(await bun.file(backup).exists()).toBe(true);
+		expect(await bun.file(primary).exists()).toBe(false);
 	});
 
 	test("sweeps blobs only after scanning references in compressed archived sessions", async () => {
@@ -2373,44 +2376,44 @@ describe("runGcCommand cold-session archive", () => {
 		const result = await runGcCommand({ flags: { agentDir: root, blobs: true, apply: true } });
 
 		expect(result.blobs?.wouldDelete).toBe(1);
-		expect(await Bun.file(referenced).exists()).toBe(true);
+		expect(await bun.file(referenced).exists()).toBe(true);
 	});
 });
 
 describe("runGcCommand lock handling", () => {
 	test("refuses an active gc lock", async () => {
 		const lockPath = path.join(root, "gc.lock");
-		await Bun.write(lockPath, `${process.pid}\n${new Date().toISOString()}\n`);
+		await bun.write(lockPath, `${process.pid}\n${new Date().toISOString()}\n`);
 
 		await expect(runGcCommand({ flags: { agentDir: root, blobs: true } })).rejects.toThrow(
 			`GC already running: ${lockPath}`,
 		);
-		expect(await Bun.file(lockPath).exists()).toBe(true);
+		expect(await bun.file(lockPath).exists()).toBe(true);
 	});
 
 	test("breaks stale gc locks before running", async () => {
 		const lockPath = path.join(root, "gc.lock");
-		await Bun.write(lockPath, "999999999\n2026-01-01T00:00:00.000Z\n");
+		await bun.write(lockPath, "999999999\n2026-01-01T00:00:00.000Z\n");
 		const blob = await writeBlob(root, hashFor("orphan"), "orphan");
 		await agePath(blob);
 
 		const result = await runGcCommand({ flags: { agentDir: root, blobs: true } });
 
 		expect(result.blobs?.wouldDelete).toBe(1);
-		expect(await Bun.file(lockPath).exists()).toBe(false);
+		expect(await bun.file(lockPath).exists()).toBe(false);
 	});
 
 	test("does not break gc locks while stale-lock takeover is already in progress", async () => {
 		const lockPath = path.join(root, "gc.lock");
 		const breakerPath = `${lockPath}.break`;
-		await Bun.write(lockPath, "999999999\n2026-01-01T00:00:00.000Z\n");
-		await Bun.write(breakerPath, `${process.pid}\n${new Date().toISOString()}\n`);
+		await bun.write(lockPath, "999999999\n2026-01-01T00:00:00.000Z\n");
+		await bun.write(breakerPath, `${process.pid}\n${new Date().toISOString()}\n`);
 
 		await expect(runGcCommand({ flags: { agentDir: root, blobs: true } })).rejects.toThrow(
 			`GC already running: ${lockPath}`,
 		);
-		expect(await Bun.file(lockPath).exists()).toBe(true);
-		expect(await Bun.file(breakerPath).exists()).toBe(true);
+		expect(await bun.file(lockPath).exists()).toBe(true);
+		expect(await bun.file(breakerPath).exists()).toBe(true);
 	});
 });
 
@@ -2419,7 +2422,7 @@ describe("runGcCommand stale state", () => {
 
 	async function writeAged(dir: string, name: string, content: string, ageDays?: number): Promise<string> {
 		const file = path.join(dir, name);
-		await Bun.write(file, content);
+		await bun.write(file, content);
 		if (ageDays !== undefined) await agePath(file, ageDays);
 		return file;
 	}
@@ -2427,7 +2430,7 @@ describe("runGcCommand stale state", () => {
 	test("prunes dangling session markers and gone-session breadcrumbs only with --apply, keeping live and fresh-lazy ones", async () => {
 		const projectDir = path.join(root, "project");
 		const liveSession = path.join(projectDir, "live.jsonl");
-		await Bun.write(liveSession, "{}\n");
+		await bun.write(liveSession, "{}\n");
 		const goneSession = path.join(projectDir, "deleted.jsonl");
 		const markers = getCustomSessionFilesDir(root);
 		const crumbs = getTerminalSessionsDir(root);
@@ -2443,15 +2446,15 @@ describe("runGcCommand stale state", () => {
 
 		const dryRun = await runGcCommand({ flags: { agentDir: root, ...staleFlags } });
 		expect(dryRun.stale).toMatchObject({ danglingMarkers: 1, staleBreadcrumbs: 1, wouldDelete: 2, deleted: 0 });
-		expect(await Bun.file(danglingMarker).exists()).toBe(true);
-		expect(await Bun.file(goneCrumb).exists()).toBe(true);
+		expect(await bun.file(danglingMarker).exists()).toBe(true);
+		expect(await bun.file(goneCrumb).exists()).toBe(true);
 
 		const applied = await runGcCommand({ flags: { agentDir: root, ...staleFlags, apply: true } });
 		expect(applied.stale).toMatchObject({ wouldDelete: 2, deleted: 2, errors: [] });
-		expect(await Bun.file(danglingMarker).exists()).toBe(false);
-		expect(await Bun.file(goneCrumb).exists()).toBe(false);
+		expect(await bun.file(danglingMarker).exists()).toBe(false);
+		expect(await bun.file(goneCrumb).exists()).toBe(false);
 		for (const kept of [liveMarker, lazyMarker, liveCrumb, freshCrumb]) {
-			expect(await Bun.file(kept).exists()).toBe(true);
+			expect(await bun.file(kept).exists()).toBe(true);
 		}
 	});
 
@@ -2478,10 +2481,10 @@ describe("runGcCommand stale state", () => {
 
 		expect(result.stale).toMatchObject({ expiredReports: 2, expiredReplicas: 1, deleted: 3, errors: [] });
 		for (const removed of [...oldReports, oldReplica, oldReplicaArtifact, oldReplicaMarker]) {
-			expect(await Bun.file(removed).exists()).toBe(false);
+			expect(await bun.file(removed).exists()).toBe(false);
 		}
 		for (const kept of [newestReport, youngReport, unrelated, liveReplica]) {
-			expect(await Bun.file(kept).exists()).toBe(true);
+			expect(await bun.file(kept).exists()).toBe(true);
 		}
 	});
 
@@ -2491,7 +2494,7 @@ describe("runGcCommand stale state", () => {
 		const resumed = await writeAged(collabDir, "room-resumed.jsonl", "{}\n", 60);
 		// Unique per run: the lease is machine-wide, so a fixed id would contend
 		// with the same test running concurrently elsewhere.
-		const heldId = Bun.randomUUIDv7();
+		const heldId = bun.randomUUIDv7();
 		const held = await writeAged(
 			collabDir,
 			"room-held.jsonl",
@@ -2514,9 +2517,9 @@ describe("runGcCommand stale state", () => {
 		}
 
 		expect(result.stale).toMatchObject({ expiredReplicas: 1, deleted: 1, errors: [] });
-		expect(await Bun.file(idle).exists()).toBe(false);
-		expect(await Bun.file(resumed).exists()).toBe(true);
-		expect(await Bun.file(held).exists()).toBe(true);
+		expect(await bun.file(idle).exists()).toBe(false);
+		expect(await bun.file(resumed).exists()).toBe(true);
+		expect(await bun.file(held).exists()).toBe(true);
 	});
 
 	test("an unqualified run leaves stale state alone unless gc.stale is enabled", async () => {
@@ -2554,12 +2557,12 @@ describe("runGcCommand session compression", () => {
 	/** An idle session with a compressible transcript and one artifact; filler precedes its final turn. */
 	async function writeIdleSession(id: string, status: "complete" | "pending" = "complete", ageDays = 30) {
 		const file = await writeSession(root, "project", id, status);
-		const lines = (await Bun.file(file).text()).split("\n");
+		const lines = (await bun.file(file).text()).split("\n");
 		lines.splice(1, 0, filler.trimEnd());
-		await Bun.write(file, lines.join("\n"));
+		await bun.write(file, lines.join("\n"));
 		const artifact = path.join(file.slice(0, -".jsonl".length), "1.bash.log");
 		await fs.mkdir(path.dirname(artifact), { recursive: true });
-		await Bun.write(artifact, filler);
+		await bun.write(artifact, filler);
 		await agePathSubMs(artifact, ageDays);
 		await agePathSubMs(file, ageDays);
 		return { file, artifact };
@@ -2568,7 +2571,7 @@ describe("runGcCommand session compression", () => {
 	async function snapshot(file: string) {
 		const stat = await fs.stat(file);
 		return {
-			bytes: await Bun.file(file).text(),
+			bytes: await bun.file(file).text(),
 			mtimeNs: (await fs.stat(file, { bigint: true })).mtimeNs,
 			allocated: stat.blocks * 512,
 			size: stat.size,
@@ -2576,7 +2579,7 @@ describe("runGcCommand session compression", () => {
 	}
 
 	test.skipIf(supported)("reports the phase unsupported without touching sessions", async () => {
-		const { file } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file } = await writeIdleSession(bun.randomUUIDv7());
 		const before = await snapshot(file);
 
 		const result = await runGcCommand({ flags: { agentDir: root, compress: true, apply: true } });
@@ -2586,7 +2589,7 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("--apply stores an idle session compressed with identical bytes and mtimes", async () => {
-		const { file, artifact } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file, artifact } = await writeIdleSession(bun.randomUUIDv7());
 		const before = await Promise.all([snapshot(file), snapshot(artifact)]);
 
 		const result = await runGcCommand({ flags: { agentDir: root, compress: true, apply: true } });
@@ -2613,7 +2616,7 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("a dry run reports candidates without rewriting them", async () => {
-		const { file } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file } = await writeIdleSession(bun.randomUUIDv7());
 		const before = await snapshot(file);
 
 		const result = await runGcCommand({ flags: { agentDir: root, compress: true } });
@@ -2623,11 +2626,11 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("a session whose artifact tree cannot be read does not stop the run", async () => {
-		const broken = await writeIdleSession(Bun.randomUUIDv7());
+		const broken = await writeIdleSession(bun.randomUUIDv7());
 		// A file where the artifact directory belongs makes the tree scan fail with ENOTDIR.
 		await fs.rm(path.dirname(broken.artifact), { recursive: true });
-		await Bun.write(path.dirname(broken.artifact), "not a directory");
-		await writeIdleSession(Bun.randomUUIDv7());
+		await bun.write(path.dirname(broken.artifact), "not a directory");
+		await writeIdleSession(bun.randomUUIDv7());
 
 		const result = await runGcCommand({ flags: { agentDir: root, compress: true, wal: true, apply: true } });
 
@@ -2637,31 +2640,31 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!onApfs)("--apply removes only the scratch dirs a killed run left behind", async () => {
-		const { file, artifact } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file, artifact } = await writeIdleSession(bun.randomUUIDv7());
 		const inSessions = path.join(path.dirname(file), ".omp-gc-compress-a1b2c3");
 		const inArchive = path.join(root, "archive", "sessions", "project", "x", ".omp-gc-compress-d4e5f6");
 		for (const dir of [inSessions, inArchive]) {
 			await fs.mkdir(dir, { recursive: true });
-			await Bun.write(path.join(dir, ".omp-gc-compress-owner"), "");
-			await Bun.write(path.join(dir, "copy.jsonl"), filler);
+			await bun.write(path.join(dir, ".omp-gc-compress-owner"), "");
+			await bun.write(path.join(dir, "copy.jsonl"), filler);
 		}
 		// An artifact that merely shares the name carries no owner marker.
 		const userArtifact = path.join(path.dirname(artifact), ".omp-gc-compress-notes", "keep.txt");
 		await fs.mkdir(path.dirname(userArtifact), { recursive: true });
-		await Bun.write(userArtifact, "keep");
+		await bun.write(userArtifact, "keep");
 
 		const dryRun = await runGcCommand({ flags: { agentDir: root, compress: true } });
 		expect(dryRun.compress?.leftoverScratchDirs).toBe(2);
-		expect(await Bun.file(path.join(inSessions, "copy.jsonl")).exists()).toBe(true);
+		expect(await bun.file(path.join(inSessions, "copy.jsonl")).exists()).toBe(true);
 
 		const applied = await runGcCommand({ flags: { agentDir: root, compress: true, apply: true } });
 		expect(applied.compress).toMatchObject({ leftoverScratchDirs: 2, compressed: 2, errors: [] });
-		for (const dir of [inSessions, inArchive]) expect(await fs.exists(dir)).toBe(false);
-		expect(await Bun.file(userArtifact).text()).toBe("keep");
+		for (const dir of [inSessions, inArchive]) expect(await bun.file(dir).exists()).toBe(false);
+		expect(await bun.file(userArtifact).text()).toBe("keep");
 	});
 
 	test.skipIf(!onApfs)("a failed batch still counts its files as allocated afterwards", async () => {
-		const { file, artifact } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file, artifact } = await writeIdleSession(bun.randomUUIDv7());
 		const artifactBefore = await snapshot(artifact);
 		// A read-only artifact dir cannot hold the scratch copy, so only the transcript compresses.
 		await fs.chmod(path.dirname(artifact), 0o555);
@@ -2680,9 +2683,9 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("leaves recent and leased sessions uncompressed", async () => {
-		const recent = await writeIdleSession(Bun.randomUUIDv7(), "complete", 1);
+		const recent = await writeIdleSession(bun.randomUUIDv7(), "complete", 1);
 		// Unique per run: the lease is machine-wide.
-		const heldId = Bun.randomUUIDv7();
+		const heldId = bun.randomUUIDv7();
 		const held = await writeIdleSession(heldId);
 		const release = new FileSessionStorage().claimSession(heldId, held.file);
 		if (!release) throw new Error("Expected to claim the session lease");
@@ -2700,8 +2703,8 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("leaves a session uncompressed while a nested transcript is live", async () => {
-		const parent = await writeIdleSession(Bun.randomUUIDv7());
-		const nestedId = Bun.randomUUIDv7();
+		const parent = await writeIdleSession(bun.randomUUIDv7());
+		const nestedId = bun.randomUUIDv7();
 		// `--session` opens any path, so the transcript is found by its header, not its name.
 		const nested = path.join(path.dirname(parent.artifact), "0-subagent.log");
 		const header = JSON.stringify({
@@ -2711,7 +2714,7 @@ describe("runGcCommand session compression", () => {
 			timestamp: "2026-01-01T00:00:00.000Z",
 		});
 		// Leading JSON whitespace still parses as a header, so it must not hide the transcript.
-		await Bun.write(nested, `\n  ${header}\n${filler}`);
+		await bun.write(nested, `\n  ${header}\n${filler}`);
 		await agePathSubMs(nested, 30);
 		const release = new FileSessionStorage().claimSession(nestedId, nested);
 		if (!release) throw new Error("Expected to claim the nested session lease");
@@ -2729,7 +2732,7 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("compresses an idle session whose last turn was interrupted", async () => {
-		const interrupted = await writeIdleSession(Bun.randomUUIDv7(), "pending");
+		const interrupted = await writeIdleSession(bun.randomUUIDv7(), "pending");
 		const bytes = await fs.readFile(interrupted.file);
 
 		const result = await runGcCommand({ flags: { agentDir: root, compress: true, apply: true } });
@@ -2739,7 +2742,7 @@ describe("runGcCommand session compression", () => {
 	});
 
 	test.skipIf(!supported)("compresses a session whose artifact tree holds a copy of its transcript", async () => {
-		const { file, artifact } = await writeIdleSession(Bun.randomUUIDv7());
+		const { file, artifact } = await writeIdleSession(bun.randomUUIDv7());
 		// A plain copy keeps the parent's session id; leasing that id twice must not read as live.
 		const copy = path.join(path.dirname(artifact), "backup.jsonl");
 		await fs.copyFile(file, copy);
@@ -2752,7 +2755,7 @@ describe("runGcCommand session compression", () => {
 
 	test.skipIf(!supported)("--compress-after-days overrides gc.compressAfterDays", async () => {
 		await writeConfig(root, ["gc:", "  compressAfterDays: 60", ""].join("\n"));
-		await writeIdleSession(Bun.randomUUIDv7(), "complete", 30);
+		await writeIdleSession(bun.randomUUIDv7(), "complete", 30);
 
 		const configured = await runGcCommand({ flags: { agentDir: root, compress: true } });
 		const overridden = await runGcCommand({ flags: { agentDir: root, compress: true, compressAfterDays: 7 } });

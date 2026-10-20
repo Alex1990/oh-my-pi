@@ -1,9 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@oh-my-pi/pi-utils/test-runtime";
 import { resolveOpenAIRequestSetup } from "@oh-my-pi/pi-ai/providers/openai-shared";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/registry/oauth";
 import type { OAuthController } from "@oh-my-pi/pi-ai/oauth/types";
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 function registeredLogin(options: OAuthController) {
 	const login = getProviderDefinition("alibaba-token-plan")?.login;
@@ -158,15 +159,15 @@ describe("QwenCloud Token Plan login", () => {
 		const model = getBundledModel<"openai-completions">("alibaba-token-plan", "qwen3.7-plus");
 		if (!model) throw new Error("expected bundled QwenCloud Token Plan model");
 
-		const previous = Bun.env.OPENAI_API_KEY;
-		Bun.env.OPENAI_API_KEY = "sk-generic-openai-secret";
+		const previous = bun.env.OPENAI_API_KEY;
+		bun.env.OPENAI_API_KEY = "sk-generic-openai-secret";
 		try {
 			expect(() => resolveOpenAIRequestSetup(model, { messages: [] })).toThrow(
 				"No API key for provider: alibaba-token-plan",
 			);
 		} finally {
-			if (previous === undefined) delete Bun.env.OPENAI_API_KEY;
-			else Bun.env.OPENAI_API_KEY = previous;
+			if (previous === undefined) delete bun.env.OPENAI_API_KEY;
+			else bun.env.OPENAI_API_KEY = previous;
 		}
 	});
 
