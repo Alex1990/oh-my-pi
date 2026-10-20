@@ -463,13 +463,13 @@ export function logoNode(lines: readonly string[], shimmer: boolean): NativeNode
 
 /** Multi-stop palette for the diagonal gradient. */
 const GRADIENT_STOPS: ReadonlyArray<readonly [number, number, number]> = [
-	[248, 79, 204], // oklch(0.7 0.24 340)
-	[147, 98, 244], // oklch(0.62 0.21 295)
-	[0, 219, 228], // oklch(0.81 0.14 200)
+	[0, 163, 255], // #00A3FF sky blue
+	[0, 224, 164], // #00E0A4 mint green
+	[168, 255, 120], // #A8FF78 lime
 ];
 
 /** 256-color ramp fallback when truecolor isn't available. */
-const GRADIENT_RAMP_256 = [206, 170, 134, 99, 69, 74, 44];
+const GRADIENT_RAMP_256 = [39, 43, 49, 85, 120, 156, 192];
 
 /** Half-width of the shine highlight band, expressed in gradient-t units. */
 const SHINE_HALF_WIDTH = 0.18;
