@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * metaharness server: REST + SSE API over the run store, static web
  * dashboard, and a launcher that spawns the CLI runner as a managed child.

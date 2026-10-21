@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // Strip macOS malloc-stack-logging vars in the parent entrypoint, before any
 // subprocess/worker spawn. libmalloc reads MallocStackLogging /
 // MallocStackLoggingNoCompact during malloc bootstrap (pre-main) in every child

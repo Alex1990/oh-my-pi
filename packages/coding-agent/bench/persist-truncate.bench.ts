@@ -6,7 +6,7 @@
  * nothing changed. The predicate pass returns clean nodes with zero
  * allocation; only dirty nodes pay for the rebuild.
  *
- * Run: bun packages/coding-agent/bench/persist-truncate.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/persist-truncate.bench.ts
  */
 import { BlobStore } from "../src/session/blob-store";
 import { prepareEntryForPersistence } from "../src/session/session-persistence";

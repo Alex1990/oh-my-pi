@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /** Minimal stdio MCP server with independently delayed startup and tools/call. */
 import * as readline from "node:readline";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

@@ -12,7 +12,7 @@ import type { Api, ModelSpec } from "@oh-my-pi/pi-catalog/types";
 // only after `refresh()`, but interactive boot resolves the persisted default
 // synchronously from `#loadModels()`, which reads only `models.json`.
 //
-// Failure here means: run `bun run gen:models` and commit the diff.
+// Failure here means: run `pnpm run gen:models` and commit the diff.
 describe("xai-oauth bundled catalog (regression)", () => {
 	const bundled = (MODELS_JSON as unknown as Record<string, Record<string, ModelSpec<Api>>>)["xai-oauth"] ?? {};
 	const seed = buildXaiOAuthStaticSeed();

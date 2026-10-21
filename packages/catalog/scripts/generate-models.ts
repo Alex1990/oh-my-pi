@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 // Copilot model premium request multipliers by model identifier.
 const COPILOT_PREMIUM_MULTIPLIERS: Record<string, number> = {

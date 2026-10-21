@@ -27,7 +27,7 @@ listener live in `omp_rpc/_wire.py`, generated from the RPC wire schema in
 `rpc-wire.schema.json`). After changing the schema, regenerate from the repo root:
 
 ```bash
-bun run gen:rpc
+pnpm run gen:rpc
 ```
 
 `packages/coding-agent/test/rpc-wire` fails when the committed outputs are stale or

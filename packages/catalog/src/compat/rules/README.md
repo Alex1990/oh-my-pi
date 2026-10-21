@@ -18,8 +18,8 @@ Both grammars are KDL v2. Unknown nodes/directives and malformed value shapes ar
 
 ```sh
 cd packages/catalog
-bun run gen:compat        # compiles rules/ → src/compat/rules.json (committed)
-bun test test/compat-compile.test.ts test/compat-conformance.test.ts \
+pnpm run gen:compat        # compiles rules/ → src/compat/rules.json (committed)
+pnpm exec vitest run test/compat-compile.test.ts test/compat-conformance.test.ts \
          test/compat-taxonomy.test.ts test/compat-cascade.test.ts test/compat-parity.test.ts
 ```
 

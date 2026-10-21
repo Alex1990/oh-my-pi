@@ -16,7 +16,6 @@ import { JSONC } from "@oh-my-pi/pi-utils/node-runtime";
 import { resolveActiveProjectRegistryPath } from "../../discovery/helpers";
 import { loadExtensions } from "../extensions/loader";
 import { runPackageManagerCli } from "./package-manager-cli";
-import { refreshBunGitCache } from "./bun-git-cache";
 import { type GitSource, parseGitUrl } from "./git-url";
 import { resolvePluginManifestEntries } from "./loader";
 import { getInstalledPluginsRegistryPath, readInstalledPluginsRegistry } from "./marketplace/registry";
@@ -245,8 +244,9 @@ export class PluginManager {
 	}
 
 	async #removeDependencyEntries(pkgJsonPath: string, names: readonly string[]): Promise<void> {
-		const pkgJson: { dependencies?: Record<string, string>; [key: string]: unknown } =
-			await bun.file(pkgJsonPath).json();
+		const pkgJson: { dependencies?: Record<string, string>; [key: string]: unknown } = await bun
+			.file(pkgJsonPath)
+			.json();
 		if (!pkgJson.dependencies) {
 			return;
 		}
@@ -560,8 +560,7 @@ export class PluginManager {
 			// after a new one is published — an uninstall/reinstall or an explicit
 			// `pkg@newVersion` then resolves the old version or fails outright (#11634).
 			// `--no-cache` re-fetches the manifest while leaving the tarball cache
-			// intact. Git specs don't use the manifest cache; their cache staleness is
-			// handled by refreshBunGitCache + `bun update` below.
+			// intact. Git specs re-resolve on the `update` below.
 			const install = await runPackageManagerCli(
 				[
 					"install",
@@ -603,17 +602,15 @@ export class PluginManager {
 			}
 
 			// Step 2: refresh the git lockfile pin when re-installing an existing
-			// git plugin. `bun install <spec>` is a no-op when the spec matches the
-			// lockfile entry, while `bun update <name>` resolves through Bun's bare
-			// clone cache. Fetch the matching cache clone first so a stale cached
-			// ref cannot silently preserve the old pin (#3063, #5401). First-time
-			// installs skip this because the initial `bun install` populated the
-			// cache from the remote. Rollback is handled by the outer catch.
+			// git plugin. `install <spec>` is a no-op when the spec matches the
+			// lockfile entry, so follow it with `update <name>`; pnpm/npm re-resolve
+			// git refs from the remote instead of a shared clone cache (#3063,
+			// #5401). First-time installs skip this because the initial install
+			// already resolved the ref. Rollback is handled by the outer catch.
 			if (gitSource && existingActualName) {
-				await refreshBunGitCache(gitSource, getPluginsDir());
 				const update = await runPackageManagerCli(["update", actualName], getPluginsDir());
 				if (update.exitCode !== 0) {
-					throw new Error(`bun update ${actualName} failed: ${update.stderr}`);
+					throw new Error(`update ${actualName} failed: ${update.stderr}`);
 				}
 			}
 
@@ -732,9 +729,9 @@ export class PluginManager {
 		const previous = config.plugins[name];
 		let from = previous?.version;
 		try {
-			const pkg: { version?: unknown } = await bun.file(
-				path.join(getPluginsNodeModules(), name, "package.json"),
-			).json();
+			const pkg: { version?: unknown } = await bun
+				.file(path.join(getPluginsNodeModules(), name, "package.json"))
+				.json();
 			if (typeof pkg.version === "string") from = pkg.version;
 		} catch (err) {
 			if (!isEnoent(err)) throw err;
@@ -1234,9 +1231,9 @@ export class PluginManager {
 			await fs.promises.rm(path.join(getPluginsNodeModules(), name), { recursive: true, force: true });
 			if (!(await this.#installPluginDependencies())) return false;
 			try {
-				const pkg: { version?: string } = await bun.file(
-					path.join(getPluginsNodeModules(), name, "package.json"),
-				).json();
+				const pkg: { version?: string } = await bun
+					.file(path.join(getPluginsNodeModules(), name, "package.json"))
+					.json();
 				fixed = pkg.version === expected;
 				return fixed;
 			} catch {

@@ -1,9 +1,10 @@
 // End-to-end N-API token-count throughput probe.
 //
 // Build the host addon first, then run from crates/pi-natives:
-//   bun --cwd ../../packages/natives run build
-//   bun tools/bench-natives.ts
+//   pnpm --dir packages/natives run build
+//   node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/bench-natives.ts
 
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { countTokens, Encoding } from "../../../packages/natives/native/index.js";
 
 const WINDOW_MS = 300;
@@ -33,13 +34,13 @@ for (const encoding of ENCODINGS) {
 		const text = CASES[name];
 		const tokens = countTokens(text, encoding);
 		countTokens(text, encoding); // Warm the lazy table.
-		const start = Bun.nanoseconds();
+		const start = bun.nanoseconds();
 		let runs = 0;
-		while ((Bun.nanoseconds() - start) / 1e6 < WINDOW_MS) {
+		while ((bun.nanoseconds() - start) / 1e6 < WINDOW_MS) {
 			countTokens(text, encoding);
 			runs++;
 		}
-		const seconds = (Bun.nanoseconds() - start) / 1e9;
+		const seconds = (bun.nanoseconds() - start) / 1e9;
 		const megabytesPerSecond = (new TextEncoder().encode(text).byteLength * runs) / seconds / 1e6;
 		console.log(
 			encoding.padEnd(20) + name.padStart(10) + megabytesPerSecond.toFixed(1).padStart(12) + `   ${tokens}`,

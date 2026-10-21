@@ -1,8 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Capture the native Droid CLI's inference requests for every parity case.
  *
- *   bun packages/ai/scripts/capture-factory-droid-native.ts --droid <path-to-droid-binary> [--only <model>]
+ *   node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/ai/scripts/capture-factory-droid-native.ts --droid <path-to-droid-binary> [--only <model>]
  *
  * Runs the CLI for real, using its own login (`droid` → `/login`), through an
  * in-process pass-through proxy set as `FACTORY_API_BASE_URL`. Every call is

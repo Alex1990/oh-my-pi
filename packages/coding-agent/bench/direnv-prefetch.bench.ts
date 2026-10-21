@@ -6,12 +6,13 @@
  * result is now cached per directory (±) and the env baseline memoized, so a
  * repo without `.envrc` pays syscalls exactly once per directory.
  *
- * Run: bun packages/coding-agent/bench/direnv-prefetch.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/direnv-prefetch.bench.ts
  */
 import { findEnvrc, loadDirenvEnv } from "../src/exec/direnv";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const dir = await bun.file(".")
+const dir = await bun
+	.file(".")
 	.stat()
 	.then(() => process.cwd());
 

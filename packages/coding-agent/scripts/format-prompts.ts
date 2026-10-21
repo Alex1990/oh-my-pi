@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { prompt } from "@oh-my-pi/pi-utils";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
@@ -57,7 +57,7 @@ async function main() {
 	}
 
 	if (check && changed > 0) {
-		console.log(`\n${changed} file(s) need formatting. Run 'bun run format-prompts' to fix.`);
+		console.log(`\n${changed} file(s) need formatting. Run 'pnpm run format-prompts' to fix.`);
 		process.exit(1);
 	} else if (changed === 0) {
 		console.log("All prompt files are formatted.");

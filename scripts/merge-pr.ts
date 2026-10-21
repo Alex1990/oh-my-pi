@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Merge a local PR branch with the repo's merge-commit schema:
  *

@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { parseArgs } from "node:util";
 import { formatDuration, formatNumber, formatPercent, normalizePremiumRequests } from "@oh-my-pi/pi-utils";

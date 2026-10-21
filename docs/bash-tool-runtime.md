@@ -47,7 +47,7 @@ Literal quoted arguments are accepted, but expansions, assignments, other contro
 
 Pattern approval is not containment. Once approved, a process keeps the shell's ambient filesystem, network, and subprocess access. Interception and approval are also separate mechanisms: interception routes misuse toward dedicated tools; approval governs whether execution may proceed.
 
-These rules govern the **`bash` tool only**. They do not constrain shells started through other tools — notably `eval`, which can spawn a shell via subprocess (`subprocess.run(["bash", "-c", ...])`, `Bun.$`, etc.). A `bash.patterns` `deny` rule therefore does nothing when the same command is issued through `eval`. To harden against destructive commands across both surfaces, pair `bash.patterns` with a `tools.approval.eval` policy (`prompt` or `deny`); see [Tool approval mode](./approval-mode.md).
+These rules govern the **`bash` tool only**. They do not constrain shells started through other tools — notably `eval`, which can spawn a shell via subprocess (`subprocess.run(["bash", "-c", ...])`, `$`, etc.). A `bash.patterns` `deny` rule therefore does nothing when the same command is issued through `eval`. To harden against destructive commands across both surfaces, pair `bash.patterns` with a `tools.approval.eval` policy (`prompt` or `deny`); see [Tool approval mode](./approval-mode.md).
 
 ## 2) Optional interception (blocked-command path)
 
@@ -201,7 +201,7 @@ Behavior highlights:
 - `esc` while running kills the PTY session,
 - terminal resize propagates to PTY (`session.resize(cols, rows)`).
 
-Unlike the non-PTY engine, the interactive PTY path does **not** apply the non-interactive hardening. The Rust side starts from the process's native environment and applies the env it is handed as overrides; Bun's `process.env` writes never reach that base, so the PTY is handed the shell spawn environment (`getShellConfig().env`) minus its non-interactive guards (`GIT_EDITOR`, `GPG_TTY`, `CI`) and `NO_COLOR`, then a real `TERM=xterm-256color` so editors, pagers, and TUIs behave like a normal terminal, then the direnv values, which win over both. A key left out keeps the inherited value.
+Unlike the non-PTY engine, the interactive PTY path does **not** apply the non-interactive hardening. The Rust side starts from the process's native environment and applies the env it is handed as overrides; `process.env` writes never reach that base, so the PTY is handed the shell spawn environment (`getShellConfig().env`) minus its non-interactive guards (`GIT_EDITOR`, `GPG_TTY`, `CI`) and `NO_COLOR`, then a real `TERM=xterm-256color` so editors, pagers, and TUIs behave like a normal terminal, then the direnv values, which win over both. A key left out keeps the inherited value.
 
 PTY output is normalized (`CRLF`/`CR` to `LF`, `sanitizeText`) and written into `OutputSink`, including artifact spill support.
 

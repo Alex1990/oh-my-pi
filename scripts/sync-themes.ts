@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Syncs the theme index file with the JSON files in the defaults directory.
  * Usage: bun scripts/sync-themes.ts

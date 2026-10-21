@@ -19,6 +19,7 @@
 ### Changed
 
 - Standalone installs and `oyp update` now download release binaries from this repository's GitHub Releases and verify them against `SHA256SUMS.txt`; npm publishing, the Homebrew tap, and the external build service are gone
+- `collab-web` builds with Vite and plugin git installs resolve refs through pnpm/npm; the CI runner image no longer installs Bun, and `.oyp` tests run under Vitest
 
 ### Fixed
 

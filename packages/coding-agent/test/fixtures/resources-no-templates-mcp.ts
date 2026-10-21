@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a stdio MCP server that advertises the `resources` capability
  * and serves `resources/list` plus `resources/read`, but does NOT implement the optional

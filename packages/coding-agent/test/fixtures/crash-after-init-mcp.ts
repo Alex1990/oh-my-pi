@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a minimal stdio MCP server that completes the initialize +
  * tools/list handshake and then exits cleanly. Models a misconfigured PHP

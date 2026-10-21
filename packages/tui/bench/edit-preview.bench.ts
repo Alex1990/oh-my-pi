@@ -11,7 +11,7 @@
  * reveal does: a FRESH args object per frame (`{ input, __partialJson }`), so
  * the gate must hold across frames, not just dedupe the intra-frame pair.
  *
- * Run: bun packages/tui/bench/edit-preview.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/edit-preview.bench.ts
  */
 import { editInspect } from "@oh-my-pi/pi-natives";
 import { getThemeByName } from "../src/theme";

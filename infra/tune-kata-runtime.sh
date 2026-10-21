@@ -154,7 +154,7 @@ kubectl run "$pod" -n "$ARC_NAMESPACE" --restart=Never --image="$image" \
   --overrides='{"spec":{"runtimeClassName":"kata-qemu"}}' \
   --command -- bash -lc 'sleep 120' >/dev/null
 kubectl wait --for=condition=Ready "pod/$pod" -n "$ARC_NAMESPACE" --timeout=120s >/dev/null
-kubectl exec -n "$ARC_NAMESPACE" "$pod" -- bash -lc 'bun --version; rustc --version | head -1'
+kubectl exec -n "$ARC_NAMESPACE" "$pod" -- bash -lc 'node --version; rustc --version | head -1'
 fd_probe="$(kubectl exec -n "$ARC_NAMESPACE" "$pod" -- bash -lc \
   'printf "%s %s %s" "$(cat /proc/sys/fs/nr_open)" "$(ulimit -Sn)" "$(ulimit -Hn)"')"
 read -r guest_nr_open soft_limit hard_limit <<<"$fd_probe"

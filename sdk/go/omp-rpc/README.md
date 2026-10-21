@@ -16,7 +16,7 @@ Regenerate `wire.go` from the repository root after changing the wire schema
 (`packages/coding-agent/src/modes/rpc/wire`):
 
 ```sh
-bun run gen:rpc
+pnpm run gen:rpc
 ```
 
 ## Binding

@@ -8,7 +8,9 @@
 // skips zero-length entries). The 1,283 added_tokens are excluded per
 // encode_ordinary semantics.
 //
-// Usage: bun tools/pack-deepseek.ts
+// Usage: node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/pack-deepseek.ts
+
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const SRC = `${ROOT}tools/cache/deepseek-v4.tokenizer.json`;
@@ -47,7 +49,7 @@ function decodeToken(tok: string): Uint8Array | null {
 	return Uint8Array.from(out);
 }
 
-const json = await Bun.file(SRC).json();
+const json = await bun.file(SRC).json();
 const vocab: Record<string, number> = json.model.vocab;
 const added: { id: number; content: string }[] = json.added_tokens;
 
@@ -125,6 +127,6 @@ for (const bytes of byRank as Uint8Array[]) {
 	parts.push(Uint8Array.from(varint), bytes);
 }
 const blob = Buffer.concat(parts);
-const zst = Bun.zstdCompressSync(blob, { level: 19 });
-await Bun.write(OUT, zst);
+const zst = zstdCompressSync(blob, { level: 19 });
+await bun.write(OUT, zst);
 console.log(`packed ${VOCAB_SIZE} entries: ${blob.length} raw -> ${zst.length} zst -> ${OUT}`);

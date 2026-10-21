@@ -175,7 +175,7 @@ cooperate via a `static_fingerprint` column on the `model_cache` SQLite
 table (current cache schema version 13).
 
 - `fingerprintStaticModels(staticModels, dynamicModelsAuthoritative)` hashes
-  the current static catalog slice (`Bun.hash(JSON.stringify(models))` in
+  the current static catalog slice (`bun.hash(JSON.stringify(models))` in
   base36) on every call. It prefixes the merge format, package version, and
   authoritative mode; it does not tag or memoize caller-owned arrays.
   Endpoint-migration drop IDs are also folded into cache identity.

@@ -15,16 +15,16 @@ Release all packages at specified version.
 ## Run
 
 ```bash
-bun scripts/release.ts $ARGUMENTS
+pnpm run release -- $ARGUMENTS
 ```
 
 Script automatically:
-1. Pre-flight: clean working dir; main branch.
-2. Update all `package.json` versions.
-3. Regenerate `bun.lock`.
+1. Pre-flight: clean working dir; HEAD contains `origin/main`; `bazelisk` on PATH.
+2. Update all `package.json`/`Cargo.toml` versions.
+3. Regenerate `pnpm-lock.yaml`, `Cargo.lock`, `bazel/clippy.bazelrc`, and `MODULE.bazel.lock`.
 4. Update CHANGELOGs: `[Unreleased] → [version] - date`.
-5. Commit and tag.
-6. Push to origin.
+5. Run `pnpm run check`; commit and tag.
+6. Push branch and tag atomically.
 7. Watch CI until all workflows pass.
 
 ## CI failures
@@ -35,7 +35,7 @@ CI failure → script exits with error. Fix, then repeat until CI passes:
 git commit -m "fix: <brief description>"
 git push origin main
 git tag -f v$ARGUMENTS && git push origin v$ARGUMENTS --force
-bun scripts/release.ts watch
+pnpm run release -- watch
 ```
 
 `watch`: re-watches CI for current commit until all checks pass.

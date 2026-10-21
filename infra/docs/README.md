@@ -26,7 +26,7 @@ flowchart LR
         end
         subgraph CACHE["shared caches"]
           BRC["ns: bazel-cache<br/>bazel-remote svc :9092 grpcs (cluster-internal) · PVC bazel-remote-data 100Gi"]
-          PVC["ns: arc-runners<br/>PVC runner-cache 100Gi<br/>Bun store + Cargo registry"]
+          PVC["ns: arc-runners<br/>PVC runner-cache 100Gi<br/>pnpm store + Cargo registry"]
         end
         SEC["Secret bazel-remote-ci<br/>cache write credentials"]
       end
@@ -39,7 +39,7 @@ flowchart LR
     SEC -.->|"envFrom"| POD
     NP -.->|"filters egress"| POD
     JOB -->|"Bazel remote cache (grpcs)"| BRC
-    JOB -->|"Bun/Cargo stores"| PVC
+    JOB -->|"pnpm/Cargo stores"| PVC
     POD -->|"allowed egress"| NAT
     NAT -->|"checkout / API / internet"| GH
 ```
@@ -50,7 +50,7 @@ Key properties baked into this design:
 - **Scale-to-zero.** `minRunners: 0` / `maxRunners: 8` — when no jobs are queued, zero runner pods (and zero microVMs) exist. Runners are burstable (3-vCPU/10-GiB requests, 8-vCPU/14-GiB limits) so a full workflow fan-out runs 8-wide while a lone heavy job still bursts to 8 vCPUs.
 - **Host-kernel isolation.** Jobs see the microVM's guest kernel, not the host kernel, so a kernel exploit in a job does not reach the host.
 - **No external registry.** The runner image is built on the host and imported straight into k3s' containerd.
-- **Shared, in-cluster cache.** bazel-remote stores Bazel action results and CAS blobs (Rust compilation, tests, native `.node` addons) behind TLS + htpasswd auth, with a public read-mostly NodePort for GitHub-hosted runners; the runner-cache PVC stores Bun/Cargo downloads. Cache traffic stays on the host.
+- **Shared, in-cluster cache.** bazel-remote stores Bazel action results and CAS blobs (Rust compilation, tests, native `.node` addons) behind TLS + htpasswd auth, with a public read-mostly NodePort for GitHub-hosted runners; the runner-cache PVC stores pnpm/Cargo downloads. Cache traffic stays on the host.
 
 ## End-to-end job lifecycle
 
@@ -69,9 +69,9 @@ Key properties baked into this design:
 | --- | --- | --- | --- |
 | Host + k3s cluster | Bare-metal CentOS Stream 10 node running single-node k3s (own containerd v2, Flannel CNI; Traefik + servicelb disabled so host nginx keeps :80/:443); firewalld provides NAT egress | k3s `v1.35.5+k3s1` | [01-host-and-cluster.md](01-host-and-cluster.md) |
 | Kata Containers runtime | QEMU/KVM microVM runtime: containerd drop-in registering `kata-qemu` + the `kata-qemu` RuntimeClass | Kata `3.31.0` | [02-kata-runtime.md](02-kata-runtime.md) |
-| Preloaded runner image | Custom `actions/runner` image (build toolchain, Bun, Rust nightly + cross targets, native-build deps) built on the host and imported into k3s containerd — no registry | local dated tag | [03-runner-image.md](03-runner-image.md) |
+| Preloaded runner image | Custom `actions/runner` image (build toolchain, Rust nightly + cross targets, native-build deps) built on the host and imported into k3s containerd — no registry | local dated tag | [03-runner-image.md](03-runner-image.md) |
 | ARC (runner scale set) | actions-runner-controller, `gha-runner-scale-set` flavor: controller in `arc-systems`, one scale set + listener, GitHub App auth | ARC `0.14.2` | [04-arc-and-caching.md](04-arc-and-caching.md) |
-| Shared caches | bazel-remote `v2.6.2` (`svc bazel-remote:9092` grpcs, cluster-internal only, 100Gi PVC) is the Bazel action/CAS cache; `arc-runners/runner-cache` (100Gi PVC) holds Bun/Cargo downloads; the `bazel-remote-ci` secret and egress NetworkPolicy wire access | in-cluster services/storage | [04-arc-and-caching.md](04-arc-and-caching.md) |
+| Shared caches | bazel-remote `v2.6.2` (`svc bazel-remote:9092` grpcs, cluster-internal only, 100Gi PVC) is the Bazel action/CAS cache; `arc-runners/runner-cache` (100Gi PVC) holds pnpm/Cargo downloads; the `bazel-remote-ci` secret and egress NetworkPolicy wire access | in-cluster services/storage | [04-arc-and-caching.md](04-arc-and-caching.md) |
 
 ## Prerequisites
 
@@ -108,4 +108,4 @@ Work through the numbered guides in order — each builds on the previous:
 1. **[01-host-and-cluster.md](01-host-and-cluster.md)** — Host prep (KVM, firewall/NAT) and the single-node k3s install, networking, and CNI.
 2. **[02-kata-runtime.md](02-kata-runtime.md)** — Install Kata Containers, wire it into k3s' containerd, and register the `kata-qemu` RuntimeClass.
 3. **[03-runner-image.md](03-runner-image.md)** — Build the preloaded runner image and import it into k3s containerd.
-4. **[04-arc-and-caching.md](04-arc-and-caching.md)** — Install ARC and the runner scale set, deploy the bazel-remote cache (`infra/bazel-remote/setup.sh`), add the runner cache PVC for Bun/Cargo, wire up the `bazel-remote-ci` secret, and apply the egress NetworkPolicy.
+4. **[04-arc-and-caching.md](04-arc-and-caching.md)** — Install ARC and the runner scale set, deploy the bazel-remote cache (`infra/bazel-remote/setup.sh`), add the runner cache PVC for pnpm/Cargo, wire up the `bazel-remote-ci` secret, and apply the egress NetworkPolicy.

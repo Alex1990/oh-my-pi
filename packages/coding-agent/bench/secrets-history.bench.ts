@@ -4,7 +4,7 @@
  * Each "request" runs both SDK boundaries (transcript conversion, then provider
  * context) over the whole history, as every turn does. Inputs are synthetic.
  *
- * Run: bun packages/coding-agent/bench/secrets-history.bench.ts [messages...]
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/secrets-history.bench.ts [messages...]
  */
 import type { Message } from "@oh-my-pi/pi-ai";
 import { builtinCredentialSecretEntries } from "../src/secrets";

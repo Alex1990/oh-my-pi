@@ -5,7 +5,7 @@
  * per item per frame (column widths, row counts, item render). The per-item
  * WeakMap memo sanitizes once per item object; repeated frames reuse it.
  *
- * Run: bun packages/tui/bench/select-list.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/select-list.bench.ts
  */
 import type { SymbolTheme } from "../src/symbols";
 import { SelectList } from "../src/components/select-list";

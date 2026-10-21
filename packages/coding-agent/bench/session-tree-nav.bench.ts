@@ -4,7 +4,7 @@
  * Measures the O(N) walk performed by buildSessionContext during navigateTree.
  * Demonstrates the dedupe win: one walk vs two walks per navigation.
  *
- * Run: bun packages/coding-agent/bench/session-tree-nav.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/session-tree-nav.bench.ts
  */
 
 import type { SessionEntry } from "../src/session/session-manager";

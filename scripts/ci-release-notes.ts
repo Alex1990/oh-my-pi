@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 /**
  * Generate aggregated release notes from per-package CHANGELOG.md files.

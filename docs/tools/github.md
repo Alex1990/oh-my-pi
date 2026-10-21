@@ -74,7 +74,7 @@ Most operations return a text result built by `buildTextResult()` in `packages/c
 2. `GithubTool.execute()` wraps dispatch in `untilAborted()` and switches on `params.op`.
 3. The selected implementation in `gh.ts`, `gh-view.ts`, `gh-search.ts`, `gh-pr-checkout.ts`, or `gh-run-watch.ts` normalizes its optional strings, arrays, booleans, and numeric caps.
 4. CLI execution goes through `github.run/json/text()` in `packages/coding-agent/src/utils/github.ts`:
-   - spawns `gh ...` with `Bun.spawn()` under a non-interactive env, with a 5-minute deadline (`GH_COMMAND_TIMEOUT_MS`) and an 8 MiB captured-output cap;
+   - spawns `gh ...` with `bun.spawn()` under a non-interactive env, with a 5-minute deadline (`GH_COMMAND_TIMEOUT_MS`) and an 8 MiB captured-output cap;
    - trims stdout/stderr unless `trimOutput: false`;
    - maps common auth/repo-context failures into tool-facing `ToolError` messages;
    - `json()` rejects empty or invalid JSON.
@@ -86,7 +86,7 @@ Most operations return a text result built by `buildTextResult()` in `packages/c
 8. `pr_push` reads PR head metadata back from git branch config, derives a refspec, pushes with `repository.push()` (`@oh-my-pi/pi-natives/vcs`), then invalidates the cached `pr://` rows for the pushed PR via `invalidateAllForNumber()` so the next `pr://` read reflects the push.
 9. `pr_create` shells out once, then best-effort re-reads the created PR for a richer summary.
 10. `run_watch` chooses either run mode (`run` supplied) or commit mode (`run` omitted), polls GitHub Actions APIs every 3 seconds for the first minute and every 15 seconds after that, emits streaming updates, and may save a full failed-log artifact before returning.
-11. Final text goes through `toolResult().text(...)`; if `session.allocateOutputArtifact()` returns a slot, failed-log text is persisted with `Bun.write()`.
+11. Final text goes through `toolResult().text(...)`; if `session.allocateOutputArtifact()` returns a slot, failed-log text is persisted with `bun.write()`.
 
 ## Modes / Variants
 
@@ -260,7 +260,7 @@ Watch flow:
   - Every op shells out to `gh`, which then talks to GitHub APIs except `pr_push`.
   - `pr_push` uses git network transport to the configured remote.
 - Subprocesses / native bindings
-  - All `gh` calls use `Bun.spawn(["gh", ...args])`.
+  - All `gh` calls use `bun.spawn(["gh", ...args])`.
   - `pr_checkout` and `pr_push` invoke git operations via `@oh-my-pi/pi-natives/vcs` (`vcs.requireGit()`). Checkout mutations use in-process `withRepoLock()`; `pr_push` does not acquire that lock.
 - Session state (transcript, memory, jobs, checkpoints, registries)
   - `run_watch` consumes `session.allocateOutputArtifact()` when failed-job logs are persisted.
@@ -270,7 +270,7 @@ Watch flow:
   - `githubToolRenderer` in `packages/tui/src/tools/github.ts` provides compact headers and a custom live watch view.
 - Background work / cancellation
   - `run_watch` loops until success/failure and uses `scheduler.wait()` between polls.
-  - `GithubTool.execute()` is wrapped in `untilAborted()`; `github.run()` forwards the abort signal into `Bun.spawn()`.
+  - `GithubTool.execute()` is wrapped in `untilAborted()`; `github.run()` forwards the abort signal into `bun.spawn()`.
 
 ## Limits & Caps
 - Search result default: `10` (`SEARCH_LIMIT_DEFAULT` in `packages/coding-agent/src/tools/gh-search.ts`).

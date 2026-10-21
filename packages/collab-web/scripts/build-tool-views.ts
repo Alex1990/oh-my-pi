@@ -1,11 +1,11 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Bundle the shared React tool renderers + the `<omp-tool-view>` web component
  * into a single self-contained script (React included, CSS inlined) for
  * embedding in coding-agent HTML session exports.
  *
  * Output: packages/coding-agent/src/export/html/tool-views.generated.js
- * Run via `bun run gen:tool-views` after changing src/tool-render/.
+ * Run via `pnpm --dir packages/collab-web run gen:tool-views` after changing src/tool-render/.
  */
 import * as path from "node:path";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

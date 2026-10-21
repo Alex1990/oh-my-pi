@@ -7,7 +7,7 @@
  * a full-size string copy it never read. The tab scan/normalization now runs
  * after the fast-path branch; streamed frames only tab-expand the delta.
  *
- * Run: bun packages/tui/bench/markdown-tabs-stream.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/markdown-tabs-stream.bench.ts
  */
 import { Markdown } from "../src/components/markdown";
 import { defaultMarkdownTheme } from "../test/test-themes";

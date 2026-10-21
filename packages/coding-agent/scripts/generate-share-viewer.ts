@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Build the standalone share-viewer page the omp relay serves at `GET /s/<id>`.
  *

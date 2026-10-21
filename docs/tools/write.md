@@ -72,7 +72,7 @@ Single-shot result.
    - The database must already exist.
    - It opens `node:sqlite` with `{ create: false, strict: true }` and `PRAGMA busy_timeout = 3000`.
    - Whitespace-only `content` with a row key deletes a row.
-   - Non-empty `content` is parsed with `Bun.JSON5.parse()`, must be an object, and is routed to insert/update helpers.
+   - Non-empty `content` is parsed with `bun.JSON5.parse()`, must be an object, and is routed to insert/update helpers.
    - The scan cache is invalidated and the connection closes in `finally`.
 10. Otherwise it treats `path` as a plain filesystem file.
    - It rejects high-confidence mis-dispatched read targets: a missing selector-shaped filename with empty content, or a missing semicolon-joined list of selector paths. Existing literal paths win; non-empty content is the escape hatch for a single deliberate selector-shaped filename.
@@ -86,7 +86,7 @@ Single-shot result.
 ### Plain file path
 - Target is any path that does not resolve as an archive selector and does not resolve as an existing-or-new SQLite selector.
 - Existing files are overwritten.
-- `write.ts` does not call `fs.mkdir()` on this path; explicit parent-directory creation only exists in the archive branch, but `Bun.write()` itself creates missing parent directories for plain file writes.
+- `write.ts` does not call `fs.mkdir()` on this path; explicit parent-directory creation only exists in the archive branch, but `bun.write()` itself creates missing parent directories for plain file writes.
 
 Example:
 

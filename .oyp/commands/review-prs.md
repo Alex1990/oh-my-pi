@@ -48,7 +48,7 @@ MUST use `github pr_checkout`, not raw `gh pr checkout`: it creates a dedicated 
 
 #### Symlink build artifacts
 
-Before any worktree build/test, from the worktree symlink main-checkout outputs to avoid `bun check` / `cargo build` / native-loader recompilation:
+Before any worktree build/test, from the worktree symlink main-checkout outputs to avoid `pnpm check` / `cargo build` / native-loader recompilation:
 
 ```bash
 MAIN="<absolute path to main worktree, e.g. ~/Projects/pi>"
@@ -81,7 +81,7 @@ Mechanical conflicts (formatting, import order, adjacent edits): resolve, contin
 
 Review for correctness, security, regressions, breaking-change impact, and new-path test coverage. Fix merge blockers only: build/test failure, obvious PR-introduced bugs, or edge cases required by the PR's goal. Do NOT taste-rewrite, unrelated-refactor, or expand scope.
 
-Each fix: read existing patterns; follow `AGENTS.md` conventions; add/update behavior-change tests; run targeted area test files only—no project-wide subagent tests. End with `bun fmt` over union of edited files.
+Each fix: read existing patterns; follow `AGENTS.md` conventions; add/update behavior-change tests; run targeted area test files only—no project-wide subagent tests. End with `pnpm fmt` over union of edited files.
 
 #### Commit
 

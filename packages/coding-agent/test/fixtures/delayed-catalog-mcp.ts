@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Stdio MCP server whose tools/list is immediate, but resources/list and
  * prompts/list wait until `DELAY_CATALOG_UNTIL` exists on disk.

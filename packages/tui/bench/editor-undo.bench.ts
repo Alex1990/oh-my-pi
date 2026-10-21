@@ -5,7 +5,7 @@
  * primitives plus immutable strings, so a shallow array copy is a complete
  * snapshot. Measures both approaches over a 20k-line buffer.
  *
- * Run: bun packages/tui/bench/editor-undo.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/editor-undo.bench.ts
  */
 import { makeBench } from "./_harness";
 

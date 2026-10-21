@@ -5,7 +5,7 @@
  * calls over the same tool array should reuse wire schemas by reference
  * (contract pinned in test/normalize-tools-prune.test.ts).
  *
- * Run: bun packages/agent/bench/normalize-tools.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/agent/bench/normalize-tools.bench.ts
  */
 import { type } from "@oh-my-pi/omptype";
 import { normalizeTools } from "../src/agent-loop";

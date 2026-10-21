@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import * as path from "node:path";
 import { $ } from "@oh-my-pi/pi-utils/shell";

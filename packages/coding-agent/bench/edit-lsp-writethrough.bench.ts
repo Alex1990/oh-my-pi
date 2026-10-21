@@ -23,7 +23,7 @@
  * root. Mutates a temp .ts file inside the repo so tsserver resolves it under
  * the project, then deletes it.
  *
- * Run: `bun run packages/coding-agent/bench/edit-lsp-writethrough.bench.ts`
+ * Run: `node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/edit-lsp-writethrough.bench.ts`
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";

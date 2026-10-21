@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Generate edit benchmark cases from TypeScript sources in a pi-mono-style repo.
  *

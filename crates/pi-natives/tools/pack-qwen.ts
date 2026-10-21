@@ -12,7 +12,9 @@
 // pieces, so they become unmatchable — verified to reproduce reference ids
 // exactly (fixtures/qwen3.json).
 //
-// Run: bun tools/pack-qwen.ts
+// Run: node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/pack-qwen.ts
+
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 
 const SRC = new URL("cache/qwen3.8.tokenizer.json", import.meta.url).pathname;
 const OUT = new URL("../data/qwen3.bin.zst", import.meta.url).pathname;
@@ -20,7 +22,7 @@ const OUT = new URL("../data/qwen3.bin.zst", import.meta.url).pathname;
 const VOCAB_SIZE = 248_044; // base vocab; 33 added tokens (248044-248076) excluded
 const ALPHABET_SIZE = 256;
 
-const tj = await Bun.file(SRC).json();
+const tj = await bun.file(SRC).json();
 const model = tj.model;
 if (model.type !== "BPE") throw new Error(`unexpected model.type ${model.type}`);
 if (model.byte_fallback || model.ignore_merges) throw new Error("unexpected model flags");
@@ -105,6 +107,8 @@ const raw = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
 	}
 }
 
-const packed = Bun.zstdCompressSync(raw, { level: 19 });
-await Bun.write(OUT, packed);
-console.log(`qwen3: ${entries.length} entries (${dead} dead slots emptied), raw ${raw.length} B -> ${packed.length} B zstd`);
+const packed = zstdCompressSync(raw, { level: 19 });
+await bun.write(OUT, packed);
+console.log(
+	`qwen3: ${entries.length} entries (${dead} dead slots emptied), raw ${raw.length} B -> ${packed.length} B zstd`,
+);

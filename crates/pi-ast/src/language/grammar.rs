@@ -4,7 +4,7 @@
 //! rest are compiled to `.wasm` by
 //! [stencil-hq/wasm-grammars](https://github.com/stencil-hq/wasm-grammars) and
 //! published as `<file>.zst` assets of its
-//! [`RELEASE`](super::wasm_grammars::RELEASE), which `bun run gen:grammars`
+//! [`RELEASE`](super::wasm_grammars::RELEASE), which `pnpm run gen:grammars`
 //! pins in [`super::wasm_grammars`]. The host
 //! downloads a module into the directory set with [`set_grammar_dir`] the first
 //! time it needs the language; [`WasmGrammar::load`] then reads it and keeps

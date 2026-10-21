@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * inline-functions — inline tiny, void, single-purpose helper functions into
  * their call sites, *prettily*.

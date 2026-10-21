@@ -23,7 +23,7 @@ export function isOfficialCodexApiUrl(baseUrl: string | undefined): boolean {
 
 /**
  * Pinned OpenAI Codex client version (corresponds to @openai/codex package version).
- * Updated from npm by `bun run check-spoofed-versions --update`.
+ * Updated from npm by `pnpm run check-spoofed-versions --update`.
  *
  * The backend version-gates model availability against this value on both
  * `/models?client_version=` and `/responses`, independently of a model's

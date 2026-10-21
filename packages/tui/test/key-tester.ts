@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { matchesKey } from "@oh-my-pi/pi-tui/keys";
 import { ProcessTerminal } from "@oh-my-pi/pi-tui/terminal";
 import { type Component, TUI } from "@oh-my-pi/pi-tui/tui";

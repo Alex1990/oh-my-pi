@@ -155,7 +155,7 @@ Color mode detection (`detectColorMode` in `theme/color.ts`):
 
 Conversion behavior:
 
-- hex -> `Bun.color(..., "ansi-16m" | "ansi-256")`
+- hex -> `bun.color(..., "ansi-16m" | "ansi-256")`
 - numeric -> `38;5` / `48;5` ANSI
 - `""` -> default fg/bg reset
 

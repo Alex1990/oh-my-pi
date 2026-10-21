@@ -6,7 +6,7 @@
  * padding now uses the shared SPACE_BUFFER slice via `padding()` instead of
  * allocating `" ".repeat(n)` per row per frame.
  *
- * Run: bun packages/tui/bench/scroll-view.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/scroll-view.bench.ts
  */
 import { ScrollView } from "../src/components/scroll-view";
 import { makeBench } from "./_harness";

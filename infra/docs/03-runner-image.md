@@ -26,15 +26,15 @@ All host commands below run on `<CI_HOST>` (the single k3s node) as root.
 The base `ghcr.io/actions/actions-runner:latest` is a clean Ubuntu 24.04 runner.
 On a normal (GitHub-hosted-style) runner, the CI workflow installs its system
 dependencies at the start of every job: the cairo/pango native stack for canvas
-builds, `fd`/`ripgrep`/`imagemagick`, `bun`, `sccache`, Zig, the cargo-native
+builds, `fd`/`ripgrep`/`imagemagick`, `sccache`, Zig, the cargo-native
 helper CLIs (`cargo-nextest`, `cargo-zigbuild`, `cargo-xwin`), `bazelisk` with a
 pre-warmed pinned Bazel for the Bazel native pipeline, and a pinned Rust
 nightly with the cross targets/components. Inside a Kata microVM that is
-destroyed after a single job, paying that apt/bun/rustup/tool-download cost on
+destroyed after a single job, paying that apt/rustup/tool-download cost on
 **every** job is pure latency - the microVM starts cold each time.
 
 The preloaded image moves that work to build time. Every ephemeral runner then
-starts with the toolchain already present: apt deps are not re-fetched, `bun`,
+starts with the toolchain already present: apt deps are not re-fetched,
 `cargo`/`rustc`, `sccache`, `zig`, `bazel`(isk), and the cargo helper CLIs are
 on `PATH`, and
 the pinned Rust toolchain is already the default so target/component installs in
@@ -73,7 +73,6 @@ reproduced verbatim (it contains no secrets or redactable host identifiers; the
 #   - GitHub CLI (gh) — present on GitHub-hosted runners; the coding-agent github
 #     tool and release workflows expect it
 #   - C/build toolchain the native + canvas builds need
-#   - bun (system-wide, on PATH)
 #   - sccache + Zig + cargo-nextest/cargo-zigbuild/cargo-xwin for native builds
 #   - rust nightly (pinned) + clippy/rustfmt/rust-analyzer + the rust-toolchain.toml
 #     targets (linux-x64, windows-msvc x64/arm64) and linux-arm64 for zigbuild
@@ -84,7 +83,6 @@ reproduced verbatim (it contains no secrets or redactable host identifiers; the
 FROM ghcr.io/actions/actions-runner:latest
 
 ARG RUST_NIGHTLY=nightly-2026-10-06
-ARG BUN_VERSION=1.4.3
 ARG SCCACHE_VERSION=0.18.0
 ARG ZIG_VERSION=0.16.0
 
@@ -107,11 +105,6 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
  && ln -sf "$(command -v fdfind)" /usr/local/bin/fd \
  && ln -sf /usr/bin/convert /usr/local/bin/magick \
  && rm -rf /var/lib/apt/lists/*
-
-# bun, system-wide (BUN_INSTALL/bin == /usr/local/bin, already on PATH).
-ENV BUN_INSTALL=/usr/local
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" \
- && bun --version
 
 # Pinned native-build helpers, system-wide.
 RUN curl -fsSL "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
@@ -151,16 +144,16 @@ base already ships the runner agent and its `/home/runner/run.sh` entrypoint, th
 non-root `runner` user, and `sudo`. Everything below layers onto that base; the
 runner agent itself is never modified.
 
-**`ARG RUST_NIGHTLY` / `ARG BUN_VERSION`.** The two version knobs you bump. They
-are build args so you can also override them ad hoc with
-`docker build --build-arg RUST_NIGHTLY=... --build-arg BUN_VERSION=...` without
+**`ARG RUST_NIGHTLY`.** The toolchain version knob. It is a build arg so you
+can also override it ad hoc with
+`docker build --build-arg RUST_NIGHTLY=...` without
 editing the file. `RUST_NIGHTLY` must match the `channel` in the repo's
 `rust-toolchain.toml` - CI has no explicit toolchain step; rustup reads that
 file on the first `cargo` call and installs whatever is missing - so the
-toolchain install in CI is a no-op (see step 4 below). Bump both together.
+toolchain install in CI is a no-op (see step 3 below).
 
 **`USER root` + `ENV DEBIAN_FRONTEND=noninteractive`.** Switch to root for the
-apt and bun system installs; `noninteractive` suppresses debconf/tzdata prompts
+apt installs; `noninteractive` suppresses debconf/tzdata prompts
 during `apt-get install`.
 
 **The apt `RUN` block.** In order:
@@ -186,13 +179,6 @@ during `apt-get install`.
   `ln -sf /usr/bin/convert /usr/local/bin/magick` exposes the v7-style `magick`
   name.
 - `rm -rf /var/lib/apt/lists/*` drops the apt index to keep the layer smaller.
-
-**bun (`ENV BUN_INSTALL=/usr/local` + install `RUN`).** Setting
-`BUN_INSTALL=/usr/local` makes the official installer drop the binary at
-`/usr/local/bin/bun`, which is already on `PATH` for every user - so bun is
-**system-wide** with no per-user shell init. The version is pinned via
-`bun-v${BUN_VERSION}`, and `bun --version` fails the build if the install is
-broken.
 
 **Pinned native-build helpers (two root `RUN`s).** `sccache` is downloaded as a
 version-pinned GitHub release tarball and installed to `/usr/local/bin`; Zig is
@@ -248,10 +234,10 @@ DOCKER_BUILDKIT=1 docker build -t "$IMAGE" -t omp-kata-runner:preloaded .
 echo "==> [2/5] verifying baked tools"
 docker run --rm --entrypoint bash "$IMAGE" -lc '
   set -e
-  for b in gh fd rg magick bun cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin; do
+  for b in gh fd rg magick cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin; do
     command -v "$b" >/dev/null || { echo "MISSING: $b"; exit 1; }
   done
-  echo "tools OK | bun $(bun --version) | rust $(rustc --version) | sccache $(sccache --version | awk '\''{print $2}'\'') | zig $(zig version) | gh $(gh --version | head -1 | cut -d\" \" -f3)"
+  echo "tools OK | rust $(rustc --version) | sccache $(sccache --version | awk '\''{print $2}'\'') | zig $(zig version) | gh $(gh --version | head -1 | cut -d\" \" -f3)"
 '
 
 echo "==> [3/5] importing into k3s containerd (k8s.io namespace)"
@@ -290,9 +276,9 @@ BuildKit + the docker layer cache make an unchanged rebuild near-instant.
 
 **[2/5] verify baked tools.** Runs the freshly built image with a bash entrypoint
 and asserts every expected binary is on `PATH`
-(`gh fd rg magick bun cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin`),
+(`gh fd rg magick cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin`),
 failing the whole script if any is missing, then prints the key version tuple
-(bun / rust / sccache / zig / gh). This catches a broken apt set, missing shim,
+(rust / sccache / zig / gh). This catches a broken apt set, missing shim,
 or bad toolchain pin **before** anything touches the cluster.
 
 **[3/5] import into k3s containerd.**
@@ -378,16 +364,14 @@ next job's microVM starts cold but with warm dependencies from the local store.
 
 ---
 
-## 6. Bumping bun / Rust / the apt set and re-rolling
+## 6. Bumping Rust / the apt set and re-rolling
 
-1. **bun:** edit `ARG BUN_VERSION=` in the Dockerfile (or pass
-   `--build-arg BUN_VERSION=...`).
-2. **Rust:** edit `ARG RUST_NIGHTLY=` to the `channel` in `rust-toolchain.toml`,
+1. **Rust:** edit `ARG RUST_NIGHTLY=` to the `channel` in `rust-toolchain.toml`,
    and keep the `rustup target add` list a superset of the toml's `targets`, so
    rustup's per-job install stays a no-op.
-3. **apt set:** edit the `apt-get install` line. No workflow mirrors it any
+2. **apt set:** edit the `apt-get install` line. No workflow mirrors it any
    more, so nothing else needs changing.
-4. Re-roll:
+3. Re-roll:
 
    ```bash
    cd /root/omp-kata-runner-image
@@ -410,10 +394,10 @@ standalone:
 ```bash
 docker run --rm --entrypoint bash omp-kata-runner:preloaded -lc '
   set -e
-  for b in gh fd rg magick bun cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin; do
+  for b in gh fd rg magick cargo rustc pkg-config clang lld sccache zig cargo-nextest cargo-zigbuild cargo-xwin; do
     command -v "$b" >/dev/null || { echo "MISSING: $b"; exit 1; }
   done
-  echo "tools OK | bun $(bun --version) | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zig $(zig version) | gh $(set -- $(gh --version | head -1); echo "$3")"
+  echo "tools OK | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zig $(zig version) | gh $(set -- $(gh --version | head -1); echo "$3")"
 '
 ```
 
@@ -440,7 +424,7 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 kubectl run preload-verify -n arc-runners --restart=Never \
   --image=omp-kata-runner:2026-06-15-002621 \
   --overrides='{"spec":{"runtimeClassName":"kata-qemu"}}' \
-  --command -- bash -lc 'uname -r; bun --version; rustc --version; magick -version | head -1'
+  --command -- bash -lc 'uname -r; node --version; rustc --version; magick -version | head -1'
 
 kubectl logs preload-verify -n arc-runners
 kubectl delete pod preload-verify -n arc-runners
@@ -448,7 +432,7 @@ kubectl delete pod preload-verify -n arc-runners
 
 Use the tag that is currently live (or any imported tag). `uname -r` should show
 the Kata **guest** kernel (a 6.x `vmlinux.container` build), not the host kernel -
-confirming the image really booted in its own microVM - and the `bun`/`rustc`/
+confirming the image really booted in its own microVM - and the `node`/`rustc`/
 `magick` lines confirm the baked toolchain is present inside the VM. This `kubectl
 run` is the only step here that creates a cluster object; delete the pod
 afterward as shown.
@@ -456,5 +440,5 @@ afterward as shown.
 ---
 
 Continue to [04-arc-and-caching.md](./04-arc-and-caching.md) for how ARC
-wires in the shared bazel-remote/Bun/Cargo cache storage, and locks down
+wires in the shared bazel-remote/pnpm/Cargo cache storage, and locks down
 runner egress.

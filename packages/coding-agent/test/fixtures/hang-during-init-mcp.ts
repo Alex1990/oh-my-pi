@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a stdio MCP server that accepts the connection but never
  * answers `initialize`. Models a remote endpoint that's reachable at the

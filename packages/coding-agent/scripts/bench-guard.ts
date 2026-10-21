@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Boot-time regression guard (Phase A1 of the boot/TUI perf work).
  *

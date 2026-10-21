@@ -2,7 +2,7 @@
 
 Rust client for the omp RPC protocol: JSON lines over the stdio of `omp --mode rpc`.
 
-- `src/wire.rs` is **generated** from the wire schema (`packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json`). It contains serde types for every frame and the `RpcNotification`, `RpcServerFrame`, and `RpcInbound` unions; a frame of an unrecognized type decodes to `Unknown(Value)`. Each command gets a `<Name>Command` struct that implements `Command`. Do not edit the file by hand; regenerate it from the repository root with `bun run gen:rpc`.
+- `src/wire.rs` is **generated** from the wire schema (`packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json`). It contains serde types for every frame and the `RpcNotification`, `RpcServerFrame`, and `RpcInbound` unions; a frame of an unrecognized type decodes to `Unknown(Value)`. Each command gets a `<Name>Command` struct that implements `Command`. Do not edit the file by hand; regenerate it from the repository root with `pnpm run gen:rpc`.
 - `src/client.rs` is a blocking transport over any reader/writer pair (`Client::spawn` for a process, `Client::from_io` for pipes). It can:
   - run commands with `call`
   - wait for a prompt with `prompt_and_wait`

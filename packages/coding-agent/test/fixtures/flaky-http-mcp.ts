@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { serve } from "@oh-my-pi/pi-utils/node-serve";
 import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
@@ -11,7 +11,7 @@ import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
  *
  * Doubles as the manual reproduction for the reconnect schedule. Standalone:
  *
- *   bun packages/coding-agent/test/fixtures/flaky-http-mcp.ts   # port 8766
+ *   node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/test/fixtures/flaky-http-mcp.ts   # port 8766
  *   curl -XPOST 127.0.0.1:8766/down   # restarting
  *   curl -XPOST 127.0.0.1:8766/up     # back
  *

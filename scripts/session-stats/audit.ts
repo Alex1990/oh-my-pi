@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Token-usage audit over the local omp session corpus (~/.omp/agent/sessions/).
  *

@@ -1,5 +1,5 @@
 {
-	// Fallow configuration — see `bunx fallow config-schema` for the full schema.
+	// Fallow configuration — see `pnpm dlx fallow config-schema` for the full schema.
 	//
 	// `entry` is critical: fallow's dead-code analyzer treats unlisted test files
 	// as unreachable, which means any helper imported only from other tests looks

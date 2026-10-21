@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Summarize benchmark runs across (separator × model) by parsing the markdown
  * reports produced by `bun run bench:edit`.

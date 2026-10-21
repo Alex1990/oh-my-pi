@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a well-behaved stdio MCP server that answers `initialize`
  * only after a deliberate delay exceeding `MCPManager`'s

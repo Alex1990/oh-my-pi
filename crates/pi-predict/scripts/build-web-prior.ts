@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // Build the n-gram engine's web prior: data/web-prior.bin.zst, embedded by
 // `include_bytes!` in src/ngram/web.rs (decoded once per process).
 //
@@ -8,7 +8,7 @@
 //   --dict      /usr/share/dict/words (membership only; "trusted" spelling)
 //   --vocab     how many of the most frequent words to keep (default 150000)
 //
-//   bun crates/pi-predict/scripts/build-web-prior.ts
+//   node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs crates/pi-predict/scripts/build-web-prior.ts
 //
 // Unigrams are lowercased, restricted to `[\p{L}\p{M}']+`, and merged per
 // lowercase form; the top `--vocab` by count are kept and stored in UTF-8
@@ -29,9 +29,10 @@
 //   words blob                            '\n'-terminated, byte order
 //   dictionary-only blob                  '\n'-terminated, byte order: lowercase dictionary words outside the vocabulary
 
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 import * as path from "node:path";
 
-const root = path.resolve(import.meta.dir, "..");
+const root = path.resolve(import.meta.dirname, "..");
 const NORVIG = "https://norvig.com/ngrams";
 
 function arg(name: string, fallback: string): string {
@@ -41,7 +42,7 @@ function arg(name: string, fallback: string): string {
 
 /** Text of a local file, or of `url` when `file` is empty. */
 async function source(file: string, url: string): Promise<string> {
-	if (file) return Bun.file(file).text();
+	if (file) return bun.file(file).text();
 	const response = await fetch(url);
 	if (!response.ok) throw new Error(`GET ${url}: ${response.status}`);
 	return response.text();
@@ -115,7 +116,7 @@ for (let i = 0; i < keys.length; i++) {
 
 // Dictionary membership: flags for vocabulary words, a sorted list for the rest.
 const dict = new Set<string>();
-for (const line of (await Bun.file(dictPath).text()).split("\n")) {
+for (const line of (await bun.file(dictPath).text()).split("\n")) {
 	const word = line.trim().toLowerCase();
 	if (word && WORD.test(word)) dict.add(word);
 }
@@ -146,8 +147,8 @@ const raw = Buffer.concat([
 	wordsBlob,
 	dictBlob,
 ]);
-const packed = Bun.zstdCompressSync(raw, { level: 19 });
-await Bun.write(outPath, packed);
+const packed = zstdCompressSync(raw, { level: 19 });
+await bun.write(outPath, packed);
 console.log(
 	`${outPath}: ${words.length} words, ${dictOnly.length} dictionary-only, ${contexts.length} contexts, ${keys.length} bigrams; ${raw.length} -> ${packed.length} bytes`,
 );

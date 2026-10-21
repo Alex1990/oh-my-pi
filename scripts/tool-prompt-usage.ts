@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Estimate token usage for rendered coding-agent tool prompt templates.
  *

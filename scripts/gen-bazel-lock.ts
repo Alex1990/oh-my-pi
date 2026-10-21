@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Refreshes the rules_rust crate_universe entry in `MODULE.bazel.lock`.
  *
@@ -42,7 +42,7 @@ if (code === 0) {
 } else if (check) {
 	console.error(
 		"gen-bazel-lock: check failed. If bazel reported `MODULE.bazel.lock is no longer up-to-date`, " +
-			"run `bun run gen:bazel-lock` and commit the result.",
+			"run `pnpm run gen:bazel-lock` and commit the result.",
 	);
 } else {
 	console.error(`gen-bazel-lock: \`${path.basename(bazel)} ${args.join(" ")}\` exited ${code}`);

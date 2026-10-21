@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Builtin shortcut for the prompt-inference probe.
  *
@@ -9,7 +9,7 @@
  * derives an outline by blanking section bodies, then runs the same `probe()` panel.
  *
  * Usage:
- *   bun probe-builtin.ts --tool <name> [--no-summary] [--show]
+ *   node --experimental-transform-types --import ../../../../scripts/node-runtime-loader.mjs probe-builtin.ts --tool <name> [--no-summary] [--show]
  *     --tool <name>      builtin tool name (e.g. github, read, wait). Required.
  *     --no-summary       ablation: blank the one-line summary too (isolate schema-alone).
  *     --show             print resolved schema + outline + real prompt and exit (no API calls).
@@ -20,7 +20,14 @@
 import { parseArgs } from "node:util";
 import { toolWireSchema } from "@oh-my-pi/pi-ai";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import { BUILTIN_TOOLS, GithubTool, HIDDEN_TOOLS, type Tool, type ToolFactory, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
+import {
+	BUILTIN_TOOLS,
+	GithubTool,
+	HIDDEN_TOOLS,
+	type Tool,
+	type ToolFactory,
+	type ToolSession,
+} from "@oh-my-pi/pi-coding-agent/tools";
 import { probe } from "./probe.ts";
 
 const OPEN_TAG = /^<[a-z_][\w-]*>$/i;
@@ -91,14 +98,16 @@ async function resolveTool(name: string): Promise<Tool> {
 	}
 	const tool = await factory(session);
 	if (!tool) {
-		throw new Error(`tool "${name}" did not construct here — blocked by an availability gate (e.g. a memory backend that isn't configured). Fall back to the manual --schema/--template path.`);
+		throw new Error(
+			`tool "${name}" did not construct here — blocked by an availability gate (e.g. a memory backend that isn't configured). Fall back to the manual --schema/--template path.`,
+		);
 	}
 	return tool;
 }
 
 async function main(): Promise<void> {
 	const { values } = parseArgs({
-		args: Bun.argv.slice(2),
+		args: process.argv.slice(2),
 		options: {
 			tool: { type: "string" },
 			"no-summary": { type: "boolean" },
@@ -112,7 +121,9 @@ async function main(): Promise<void> {
 	});
 
 	if (!values.tool) {
-		console.error("usage: bun probe-builtin.ts --tool <name> [--no-summary] [--show] [--samples N] [--model p/id,...] [--max-tokens N] [--json]");
+		console.error(
+			"usage: node --experimental-transform-types --import ../../../../scripts/node-runtime-loader.mjs probe-builtin.ts --tool <name> [--no-summary] [--show] [--samples N] [--model p/id,...] [--max-tokens N] [--json]",
+		);
 		process.exit(2);
 	}
 
@@ -133,7 +144,12 @@ async function main(): Promise<void> {
 		template: outline,
 		name: tool.name,
 		samples: values.samples ? Number(values.samples) : undefined,
-		models: values.model ? values.model.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+		models: values.model
+			? values.model
+					.split(",")
+					.map(s => s.trim())
+					.filter(Boolean)
+			: undefined,
 		maxTokens: values["max-tokens"] ? Number(values["max-tokens"]) : undefined,
 	});
 

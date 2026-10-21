@@ -341,7 +341,7 @@ Location: `packages/*/CHANGELOG.md` (per package).
 - New entries always go under `## [Unreleased]`.
 - Entries are one line, brief, and user-facing: lead with what the user will see or can now do. Root-cause narration and implementation detail belong in the commit/PR, not the changelog.
 - Never modify already-released sections (e.g., `## [0.12.2]`) — they are immutable.
-- Don't flag changelog section order or formatting in reviews or PRs — `bun run release` runs `fix-changelogs` which normalizes everything automatically.
+- Don't flag changelog section order or formatting in reviews or PRs — `pnpm run release` runs `fix-changelogs` which normalizes everything automatically.
 
 **Attribution:**
 
@@ -351,6 +351,6 @@ Location: `packages/*/CHANGELOG.md` (per package).
 ## Releasing
 
 1. Ensure all changes since last release are in each affected package's `[Unreleased]` section.
-2. Run `bun run release`.
+2. Run `pnpm run release`.
 
 The script handles version bump, CHANGELOG finalization, commit, tag, publish, and adding new `[Unreleased]` sections.

@@ -6,7 +6,7 @@
  * store per character (~1M ops). After: straight-text runs append in one
  * slice into a chunk list joined once per update.
  *
- * Run: bun packages/coding-agent/bench/tool-args-reveal.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/tool-args-reveal.bench.ts
  */
 import { decodeStreamedToolArgs } from "../src/modes/controllers/tool-args-reveal";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

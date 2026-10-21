@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Schema -> prompt inference probe.
  *
@@ -15,7 +15,7 @@
  * With no `--model`, probes a 3-model panel (Fireworks Kimi, Claude Opus, GPT) x 3 samples.
  *
  * CLI:
- *   bun probe.ts --schema <file|json> --template <file|text> [options]
+ *   node --experimental-transform-types --import ../../../../scripts/node-runtime-loader.mjs probe.ts --schema <file|json> --template <file|text> [options]
  *     --name <toolName>           tool name shown to the model (default "the tool")
  *     --samples <n>               independent samples per model (default 3)
  *     --model <p/id[,p/id...]>    override panel; comma-separated for several
@@ -24,6 +24,7 @@
  *
  * Programmatic: import { probe } from "./probe.ts"
  */
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { parseArgs } from "node:util";
 import { completeSimple } from "@oh-my-pi/pi-ai";
 import type { Api, AssistantMessage, Model } from "@oh-my-pi/pi-ai";
@@ -143,7 +144,10 @@ export async function probe(opts: ProbeOptions): Promise<ProbeRun> {
 			try {
 				model = resolveModel(ref);
 			} catch (err) {
-				return { model: ref, samples: [{ text: "", stopReason: "error", error: err instanceof Error ? err.message : String(err) }] };
+				return {
+					model: ref,
+					samples: [{ text: "", stopReason: "error", error: err instanceof Error ? err.message : String(err) }],
+				};
 			}
 			const samples = await Promise.all(Array.from({ length: sampleCount }, () => drawOne(model)));
 			return { model: `${model.provider}/${model.id}`, samples };
@@ -154,7 +158,7 @@ export async function probe(opts: ProbeOptions): Promise<ProbeRun> {
 }
 
 async function resolveInput(value: string): Promise<string> {
-	const file = Bun.file(value);
+	const file = bun.file(value);
 	if (await file.exists()) return (await file.text()).trim();
 	return value;
 }
@@ -167,7 +171,7 @@ function formatUsage(usage: AssistantMessage["usage"] | undefined): string {
 
 async function main(): Promise<void> {
 	const { values } = parseArgs({
-		args: Bun.argv.slice(2),
+		args: process.argv.slice(2),
 		options: {
 			schema: { type: "string" },
 			template: { type: "string" },
@@ -182,7 +186,7 @@ async function main(): Promise<void> {
 
 	if (!values.schema || !values.template) {
 		console.error(
-			"usage: bun probe.ts --schema <file|json> --template <file|text> [--name N] [--samples 3] [--model p/id,p/id] [--max-tokens 1200] [--json]",
+			"usage: node --experimental-transform-types --import ../../../../scripts/node-runtime-loader.mjs probe.ts --schema <file|json> --template <file|text> [--name N] [--samples 3] [--model p/id,p/id] [--max-tokens 1200] [--json]",
 		);
 		process.exit(2);
 	}
@@ -201,7 +205,12 @@ async function main(): Promise<void> {
 		template,
 		name: values.name,
 		samples: values.samples ? Number(values.samples) : undefined,
-		models: values.model ? values.model.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+		models: values.model
+			? values.model
+					.split(",")
+					.map(s => s.trim())
+					.filter(Boolean)
+			: undefined,
 		maxTokens: values["max-tokens"] ? Number(values["max-tokens"]) : undefined,
 	});
 

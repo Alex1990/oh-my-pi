@@ -734,7 +734,7 @@ Additional `ToolDefinition` fields include:
 
 `write`, `edit` and `apply_patch` perform the real byte-write to an ordinary file
 path through one shared primitive
-(`file ? file.write(content) : Bun.write(dst, content)`). When that primitive fails
+(`file ? file.write(content) : bun.write(dst, content)`). When that primitive fails
 with a permission error (`EPERM`/`EACCES`/`EROFS` — every other error, such as
 `EISDIR`, is unaffected), the coding agent consults handlers registered
 via `pi.registerFileWriteFallback` before giving up:
@@ -777,7 +777,7 @@ destination to hand a privileged writer.
 
 Two details matter when the destination is outside what the host allows:
 
-- **A missing parent directory.** `Bun.write` creates missing parents itself, and
+- **A missing parent directory.** `bun.write` creates missing parents itself, and
   when that `mkdir` is the operation being denied it reports the subsequent
   `open()`'s `ENOENT` rather than the denial. The agent redoes the `mkdir`
   explicitly to recover the real errno, so this still reaches a handler — with

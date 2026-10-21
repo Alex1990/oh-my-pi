@@ -20,7 +20,7 @@
  * estimate speedups are >=10x, and the absolute noise gate uses robust MAD
  * noise <=20% of the median (not raw stddev/median).
  *
- * Run: `bun run packages/coding-agent/bench/llm-assembly.bench.ts`
+ * Run: `node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/llm-assembly.bench.ts`
  * Env: `LLM_ASSEMBLY_N` overrides the history length (default 5000);
  *      `PI_TOKENIZER_ACCURATE=1` uses the native cl100k tokenizer.
  */

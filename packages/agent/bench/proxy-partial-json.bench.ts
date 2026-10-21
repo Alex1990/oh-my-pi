@@ -7,7 +7,7 @@
  * last-parsed length plus one final full parse (O(N log N), what proxy.ts
  * and every native provider now do).
  *
- * Run: bun packages/agent/bench/proxy-partial-json.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/agent/bench/proxy-partial-json.bench.ts
  */
 import { parseStreamingJson, parseStreamingJsonThrottled } from "@oh-my-pi/pi-utils";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

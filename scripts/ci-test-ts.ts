@@ -25,7 +25,7 @@ interface TestCommand {
 	cwd: string;
 	/** argv without `--parallel`; the runner appends it from `parallel` and the pool's CPU budget. */
 	command: string[];
-	/** `bun test --parallel` width this chunk wants when it has the machine to itself. */
+	/** `vitest` worker width this chunk wants when it has the machine to itself. */
 	parallel?: number;
 }
 
@@ -371,7 +371,7 @@ async function commandsForMode(mode: Mode): Promise<TestCommand[]> {
 				...localOnlyWorkspacePackages.map(pkg => workspaceTestCommand(pkg, 4, { extraArgs: onlyFailuresArgs })),
 				...(await commandsForMode("coding-agent-heavy")),
 			];
-		// `local` is what root `bun run test` drives: the full TS suite plus the
+		// `local` is what root `pnpm run test` drives: the full TS suite plus the
 		// Rust task, so a single invocation reports TS and Rust together. The Rust
 		// command self-skips when no Rust-affecting files changed (see run-rs-task).
 		case "local":
@@ -502,7 +502,7 @@ function chunkTimeoutMs(): number {
 }
 
 // What a watchdog-killed chunk was still doing, captured just before the
-// SIGKILL: every process left in the chunk's tree (the `bun test` coordinator,
+// SIGKILL: every process left in the chunk's tree (the `vitest` coordinator,
 // its `--test-worker`s, anything they spawned) with state, CPU, RSS and kernel
 // wait channel, plus the sockets those processes hold (via `ss`, or the raw
 // `/proc/<pid>/fd` targets when `ss` is absent, as on the CI runner image). A
@@ -616,7 +616,7 @@ function isCI(): boolean {
 // Fan-out width for the local parallel path, clamped to the command count and
 // to `cores`. Defaults to `cores`; `OMP_TEST_CONCURRENCY` (`spec`) dials it down
 // on a memory-constrained machine, and `all`/`max` name the cap explicitly.
-// Never wider than `cores`: every chunk is a full `bun test` process (~1 GB
+// Never wider than `cores`: every chunk is a full `vitest` process (~1 GB
 // resident on coding-agent), so launching all ~190 at once only trades a
 // CPU-bound run for an OOM kill.
 function testConcurrency(total: number, spec: string | undefined, cores: number): number {
@@ -636,7 +636,7 @@ function testConcurrency(total: number, spec: string | undefined, cores: number)
 const FILE_OVERSUBSCRIBE = 2;
 
 // Two independent parallelism knobs stack multiplicatively: the chunk pool runs
-// `poolWidth` `bun test` processes at once, and each of those runs its own
+// `poolWidth` vitest processes at once, and each of those runs its own
 // `--parallel=N` test files concurrently, so up to `poolWidth * N` files are in
 // flight. Left unbudgeted that oversubscribes the runner by design — the
 // workspace bucket asked for 4 x 8 = 32 files on a 4-core box — and because
@@ -706,12 +706,12 @@ interface ChunkOutcome {
 }
 
 // Human duration in bun's bracket style: `[264ms]` under a second, `[3.3s]`
-// above. Used by the progress line and footer so timings read like `bun test`.
+// above. Used by the progress line and footer so timings read like vitest.
 function formatDuration(seconds: number): string {
 	return seconds < 1 ? `${Math.round(seconds * 1000)}ms` : `${seconds.toFixed(1)}s`;
 }
 
-// One-line live progress entry in `bun test` style: `✓ <label> [time]` for a
+// One-line live progress entry in vitest style: `✓ <label> [time]` for a
 // pass, `✗ <label> [time]` for a failure (bold red so the eye lands on it in a
 // long scroll). A failure also names the first failing test parsed from the
 // captured output — `— file > test (+N more)` — so the exact break is visible
@@ -719,7 +719,7 @@ function formatDuration(seconds: number): string {
 // order as each chunk finishes.
 function formatProgressLine(outcome: ChunkOutcome): string {
 	const time = style.dim(`[${formatDuration(outcome.seconds)}]`);
-	const retryNote = outcome.retries > 0 ? ` ${style.dim(`(retried ×${outcome.retries} after bun crash)`)}` : "";
+	const retryNote = outcome.retries > 0 ? ` ${style.dim(`(retried ×${outcome.retries} after crash)`)}` : "";
 	if (outcome.exitCode === 0) {
 		return `${style.green("✓")} ${outcome.label} ${time}${retryNote}`;
 	}
@@ -730,7 +730,7 @@ function formatProgressLine(outcome: ChunkOutcome): string {
 	return `${style.bold(style.red(`✗ ${outcome.label}`))} ${time}${detail}${retryNote}`;
 }
 
-// Closing tally in `bun test` style, but counting test *chunks* (child commands),
+// Closing tally in vitest style, but counting test *chunks* (child commands),
 // not individual tests — the runner never parses child summaries. A green
 // `N chunks passed` line, a `N failed` line (red when non-zero, dim when clean),
 // then the total wall time. Printed after the failure report so a run always
@@ -795,7 +795,7 @@ function extractFailingTests(output: string): FailingTest[] {
 // Final report for the chunks that failed. Each chunk lists its failing tests,
 // and under each test name bun's own failure block (source frame + `error:` +
 // received/expected) is reproduced verbatim — caret alignment and diffs intact —
-// so it reads like a direct `bun test` failure. In quiet mode (`replayOutput`)
+// so it reads like a direct vitest failure. In quiet mode (`replayOutput`)
 // the blocks are shown because the run withheld them; in verbose mode they
 // already streamed inline, so only the names are listed. When a chunk crashed
 // without per-test markers (no parseable failures) the raw log is replayed as a

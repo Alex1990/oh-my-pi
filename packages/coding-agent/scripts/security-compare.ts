@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
 import { compareSecurityProducers, importCodexSecurityBundle, parseSecurityScanBundle } from "../src/security";
@@ -14,10 +14,12 @@ async function readBundle(directory: string) {
 		return importCodexSecurityBundle(root, { repositoryRoot: root });
 	}
 	const findings = JSON.parse(await bun.file(path.join(root, "findings.json")).text()) as unknown;
-	const report = await bun.file(path.join(root, "report.md"))
+	const report = await bun
+		.file(path.join(root, "report.md"))
 		.text()
 		.catch(() => undefined);
-	const sarifText = await bun.file(path.join(root, "results.sarif"))
+	const sarifText = await bun
+		.file(path.join(root, "results.sarif"))
 		.text()
 		.catch(() => undefined);
 	return parseSecurityScanBundle({

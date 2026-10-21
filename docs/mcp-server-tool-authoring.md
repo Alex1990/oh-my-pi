@@ -176,7 +176,7 @@ Rules:
 - parts that sanitize to nothing become `server` or `tool`
 - redundant `<server>_` prefix in tool name is stripped once
 - names longer than 64 characters keep a readable prefix and append `_` plus the first eight base-36
-  characters of `Bun.hash()` over the full uncapped generated name
+  characters of `bun.hash()` over the full uncapped generated name
 
 Different raw names can still sanitize to the same identifier (for example
 `my-server` and `my.server` both sanitize similarly). Before registry

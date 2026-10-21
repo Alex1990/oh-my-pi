@@ -1,5 +1,5 @@
 /**
- * `bun run gen:rpc`: regenerates every artifact derived from the RPC wire schema.
+ * `pnpm run gen:rpc`: regenerates every artifact derived from the RPC wire schema.
  *
  * Outputs (all committed; `test/rpc-wire/generated.test.ts` fails when stale):
  * - `src/modes/rpc/wire/rpc-wire.schema.json`: the language-neutral bundle

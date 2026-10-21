@@ -1,7 +1,7 @@
 /**
  * Benchmark: countTextLines — per-code-unit loop vs native indexOf scan.
  *
- * Run: bun packages/coding-agent/bench/count-lines.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/count-lines.bench.ts
  */
 import { countTextLines } from "../src/tools/read-format";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

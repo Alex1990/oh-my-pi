@@ -1,6 +1,6 @@
 // Pack the measured TypeSafe Jev (jev-1.13) vocabulary into two UTOK1 + zstd -19 blobs.
 //
-//   bun tools/pack-jev.ts
+//   node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/pack-jev.ts
 //
 // Inputs (tools/cache/, gitignored):
 //   - o200k_base.tiktoken       — rank source; every Jev piece is an o200k token.
@@ -12,6 +12,8 @@
 // UTOK1 parser skips them and the merge loop can never produce them):
 //   - data/jev_base.bin.zst     — base merge table (B at o200k ranks)
 //   - data/jev_whole.bin.zst    — whole-word membership table (W at o200k ranks)
+
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 
 const root = new URL("..", import.meta.url).pathname;
 const O200K = 199_998;
@@ -30,7 +32,7 @@ function varint(n: number): number[] {
 const ranks: Uint8Array[] = [];
 const byHex = new Map<string, number>();
 {
-	const lines = (await Bun.file(`${root}tools/cache/o200k_base.tiktoken`).text())
+	const lines = (await bun.file(`${root}tools/cache/o200k_base.tiktoken`).text())
 		.split("\n")
 		.filter(l => l.length > 0);
 	if (lines.length !== O200K) throw new Error(`o200k: expected ${O200K} entries, got ${lines.length}`);
@@ -43,7 +45,7 @@ const byHex = new Map<string, number>();
 	}
 }
 
-const vocab: { W: string[]; B: string[] } = await Bun.file(`${root}tools/cache/jev-1.13.vocab.json`).json();
+const vocab: { W: string[]; B: string[] } = await bun.file(`${root}tools/cache/jev-1.13.vocab.json`).json();
 
 async function pack(name: string, members: string[], expected: number) {
 	if (members.length !== expected) throw new Error(`${name}: expected ${expected} entries, got ${members.length}`);
@@ -74,8 +76,8 @@ async function pack(name: string, members: string[], expected: number) {
 		raw.set(c, off);
 		off += c.length;
 	}
-	const zst = Bun.zstdCompressSync(raw, { level: 19 });
-	await Bun.write(`${root}data/${name}.bin.zst`, zst);
+	const zst = zstdCompressSync(raw, { level: 19 });
+	await bun.write(`${root}data/${name}.bin.zst`, zst);
 	console.log(`${name}: ${keep.size} of ${O200K} slots, ${raw.length} raw -> ${zst.length} zst`);
 }
 

@@ -1,6 +1,6 @@
 /**
- * Live Wafer Serverless smoke. NOT part of the bun test suite — run manually:
- *   WAFER_SERVERLESS_API_KEY=wfr_... bun packages/ai/test/wafer.live.ts
+ * Live Wafer Serverless smoke. NOT part of the vitest suite — run manually:
+ *   WAFER_SERVERLESS_API_KEY=wfr_... node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/ai/test/wafer.live.ts
  *
  * Validates that the bundled `wafer-serverless/GLM-5.1` entry round-trips a
  * real streaming chat completion against `https://pass.wafer.ai/v1`, with the

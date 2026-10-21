@@ -24,7 +24,7 @@ const replacement = "export const value600 = 600_000; // deterministic hashline 
 
 // Resolve the real bundled muse-code catalog row, then re-resolve it through
 // the live compat rules so KDL policy edits are measured without waiting for
-// `bun run gen:models` to re-bake models.json.
+// `pnpm run gen:models` to re-bake models.json.
 const bundled = getBundledModel("muse-code", "muse-spark-1.3-contributor");
 if (!bundled) throw new Error("muse-code/muse-spark-1.3-contributor missing from bundled catalog");
 const model = buildModel(bundled as unknown as ModelSpec<"openai-responses">) as Model<"openai-responses">;

@@ -9,7 +9,7 @@
  * tokenizer (73.3% self), inline extension `start()` scans, emStrong, and the
  * streaming stable-prefix freeze (`#freezeStablePrefix`).
  *
- * Run: bun packages/tui/bench/markdown-stream.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/tui/bench/markdown-stream.ts
  */
 import { clearRenderCache, Markdown } from "../src/components/markdown";
 import { getMarkdownTheme, getMarkdownThemeWithLinkTargets, initTheme } from "../src/theme/theme";

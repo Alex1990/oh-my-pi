@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Executable adapter for the TypeScript edit benchmark.
  *

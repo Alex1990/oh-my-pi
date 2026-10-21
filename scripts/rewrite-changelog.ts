@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Rewrite each package's `[Unreleased]` changelog section for release notes.
  *

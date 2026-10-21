@@ -1,5 +1,5 @@
 /**
- * `bun run gen:compat` — compiles `src/compat/rules/` into
+ * `pnpm run gen:compat` — compiles `src/compat/rules/` into
  * `src/compat/rules.json`, the committed compiled form the runtime engine
  * imports. Mirrors the models.json discipline: deterministic output,
  * regenerate + commit together with rule changes.

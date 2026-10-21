@@ -19,7 +19,7 @@
  * averaged over episodes. `reveal_ms_per_step` is the same work divided by the
  * number of reveal ticks.
  *
- * Run: bun run packages/coding-agent/bench/streaming-throughput.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/streaming-throughput.bench.ts
  */
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { BlockUnitCounter, buildDisplayMessage, nextStep } from "../src/modes/controllers/streaming-reveal";

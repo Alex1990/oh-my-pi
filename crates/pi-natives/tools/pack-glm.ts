@@ -4,9 +4,9 @@
 // Vocab keys use the GPT-2 byte-level alphabet; decode back to raw bytes
 // and assert every char maps (alphabet-decode cleanliness).
 //
-// Usage: bun tools/pack-glm.ts
+// Usage: node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/pack-glm.ts
 
-import { zstdCompressSync } from "bun";
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 
 const EXPECTED = 154_820;
 
@@ -31,7 +31,7 @@ function unicodeToBytes(): Map<number, number> {
 }
 
 const inv = unicodeToBytes();
-const tj = await Bun.file(new URL("cache/glm-5.tokenizer.json", import.meta.url)).json();
+const tj = await bun.file(new URL("cache/glm-5.tokenizer.json", import.meta.url)).json();
 const vocab: Record<string, number> = tj.model.vocab;
 
 // added_tokens must all be out-of-vocab (above base range).
@@ -46,13 +46,17 @@ let seen = 0;
 for (const key in vocab) {
 	const rank = vocab[key];
 	seen++;
-	if (!Number.isInteger(rank) || rank < 0 || rank >= EXPECTED) throw new Error(`rank ${rank} out of range for '${key}'`);
+	if (!Number.isInteger(rank) || rank < 0 || rank >= EXPECTED)
+		throw new Error(`rank ${rank} out of range for '${key}'`);
 	if (byRank[rank] !== undefined) throw new Error(`duplicate rank ${rank}`);
 	const bytes = new Uint8Array(key.length);
 	let n = 0;
 	for (const ch of key) {
 		const b = inv.get(ch.codePointAt(0)!);
-		if (b === undefined) throw new Error(`rank ${rank}: char U+${ch.codePointAt(0)!.toString(16)} not in GPT-2 byte alphabet ('${key}')`);
+		if (b === undefined)
+			throw new Error(
+				`rank ${rank}: char U+${ch.codePointAt(0)!.toString(16)} not in GPT-2 byte alphabet ('${key}')`,
+			);
 		bytes[n++] = b;
 	}
 	byRank[rank] = bytes.subarray(0, n);
@@ -82,5 +86,5 @@ for (const p of parts) {
 }
 
 const zst = zstdCompressSync(raw, { level: 19 });
-await Bun.write(new URL("../data/glm5.bin.zst", import.meta.url), zst);
+await bun.write(new URL("../data/glm5.bin.zst", import.meta.url), zst);
 console.log(`glm5: ${EXPECTED} tokens, raw ${raw.length} B, zst ${zst.length} B`);

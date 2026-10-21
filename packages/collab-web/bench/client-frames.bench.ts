@@ -5,7 +5,7 @@
  * every frame copied the whole array (O(n) pointers per frame → quadratic).
  * After: frames push amortized; the snapshot array is copied once per commit.
  *
- * Run: bun packages/collab-web/bench/client-frames.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/collab-web/bench/client-frames.bench.ts
  */
 import type { HostFrame, SessionEntry } from "@oh-my-pi/pi-wire";
 import { GuestClient } from "../src/lib/client";

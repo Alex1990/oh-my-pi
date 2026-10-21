@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { type ClaudeTraceCommandArgs, runClaudeTraceCommand } from "../packages/coding-agent/src/cli/claude-trace-cli";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";

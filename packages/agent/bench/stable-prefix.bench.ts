@@ -7,7 +7,7 @@
  * fast path returns false without any of that work when live references are
  * unchanged.
  *
- * Run: bun packages/agent/bench/stable-prefix.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/agent/bench/stable-prefix.bench.ts
  */
 import { type } from "@oh-my-pi/omptype";
 import { StablePrefix } from "../src/append-only-context";

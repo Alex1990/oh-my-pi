@@ -6,7 +6,7 @@
  * After: one held fd per active file (reopened on rotation), writeSync with
  * a completion loop, byte count from the encoded buffer.
  *
- * Run: bun packages/utils/bench/logger-sink.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/utils/bench/logger-sink.bench.ts
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -14,7 +14,8 @@ import * as path from "node:path";
 import { RotatingFileSink } from "../src/logger/rotating-file";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-const dir = await bun.file(".")
+const dir = await bun
+	.file(".")
 	.stat()
 	.then(() => fs.mkdtempSync(path.join(os.tmpdir(), "omp-logger-bench-")));
 const N = 20_000;
@@ -32,6 +33,7 @@ for (let i = 0; i < N; i++) sink.write(`${line} ${i}`);
 const ms = (bun.nanoseconds() - start) / 1e6;
 sink.close();
 console.log(`RotatingFileSink.write x${N}: ${ms.toFixed(1)}ms total (${((ms / N) * 1000).toFixed(1)}us/op)`);
-await bun.file(dir)
+await bun
+	.file(dir)
 	.stat()
 	.then(() => fs.rmSync(dir, { recursive: true, force: true }));

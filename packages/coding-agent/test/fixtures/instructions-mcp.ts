@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a minimal, well-behaved stdio MCP server that exposes
  * deterministic tools. By default it reports server-provided `instructions`

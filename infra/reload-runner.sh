@@ -173,10 +173,10 @@ verify_baked_tools() {
   "$NERDCTL_BIN" --address "$CONTAINERD_SOCKET" --namespace k8s.io \
     run --rm --net host --entrypoint bash "$IMAGE" -lc '
     set -e
-    for b in gh fd rg magick bun cargo rustc pkg-config clang lld sccache zstd zig cmake ninja cargo-nextest cargo-zigbuild cargo-xwin bazelisk bazel; do
+    for b in gh fd rg magick cargo rustc pkg-config clang lld sccache zstd zig cmake ninja cargo-nextest cargo-zigbuild cargo-xwin bazelisk bazel; do
       command -v "$b" >/dev/null || { echo "MISSING: $b"; exit 1; }
     done
-    echo "tools OK | bun $(bun --version) | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zstd $(zstd --version) | zig $(zig version) | cmake $(set -- $(cmake --version | head -1); echo "$3") | ninja $(ninja --version) | gh $(set -- $(gh --version | head -1); echo "$3")"
+    echo "tools OK | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zstd $(zstd --version) | zig $(zig version) | cmake $(set -- $(cmake --version | head -1); echo "$3") | ninja $(ninja --version) | gh $(set -- $(gh --version | head -1); echo "$3")"
   '
 }
 
@@ -217,10 +217,10 @@ build_with_docker() {
   echo "==> [2/5] verifying baked tools"
   docker run --rm --entrypoint bash "$IMAGE" -lc '
     set -e
-    for b in gh fd rg magick bun cargo rustc pkg-config clang lld sccache zstd zig cmake ninja cargo-nextest cargo-zigbuild cargo-xwin bazelisk bazel; do
+    for b in gh fd rg magick cargo rustc pkg-config clang lld sccache zstd zig cmake ninja cargo-nextest cargo-zigbuild cargo-xwin bazelisk bazel; do
       command -v "$b" >/dev/null || { echo "MISSING: $b"; exit 1; }
     done
-    echo "tools OK | bun $(bun --version) | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zstd $(zstd --version) | zig $(zig version) | cmake $(set -- $(cmake --version | head -1); echo "$3") | ninja $(ninja --version) | gh $(set -- $(gh --version | head -1); echo "$3")"
+    echo "tools OK | rust $(rustc --version) | sccache $(set -- $(sccache --version); echo "$2") | zstd $(zstd --version) | zig $(zig version) | cmake $(set -- $(cmake --version | head -1); echo "$3") | ninja $(ninja --version) | gh $(set -- $(gh --version | head -1); echo "$3")"
   '
 
   echo "==> [3/5] importing into k3s containerd (k8s.io namespace)"

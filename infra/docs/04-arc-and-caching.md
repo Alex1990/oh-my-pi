@@ -131,7 +131,7 @@ kubectl -n arc-systems get pods
 
 Create the namespace-local PVC before installing or upgrading the scale set. This
 is the shared mutable filesystem cache for data whose tools already validate
-against the lockfile: Bun's global package store and Cargo's registry cache.
+against the lockfile: pnpm's global package store and Cargo's registry cache.
 
 ```yaml
 apiVersion: v1
@@ -183,8 +183,8 @@ template:
               name: sccache-s3   # legacy - removed together with the cargo CI pipeline
         volumeMounts:
           - name: runner-cache
-            mountPath: /home/runner/.bun/install/cache
-            subPath: bun-store
+            mountPath: /home/runner/.local/share/pnpm/store
+            subPath: pnpm-store
           - name: runner-cache
             mountPath: /home/runner/.cargo/registry/cache
             subPath: cargo-registry/cache
@@ -255,7 +255,7 @@ Field by field:
   to create the PVC subdirectories as root before the runner starts. This avoids
   relying on kubelet's subPath auto-create permissions and does not pull another
   image.
-- **`volumeMounts`** - mounts the shared PVC only at `~/.bun/install/cache`,
+- **`volumeMounts`** - mounts the shared PVC only at `~/.local/share/pnpm/store`,
   `~/.cargo/registry`, and `/opt/bazel-repo-cache` (Bazel's repository cache,
   plus the `xwin/` sysroot cache and CI's `ci-natives/` linux-x64 addon stash,
   which `native_addons` writes content-addressed and prunes after two days).
@@ -331,7 +331,7 @@ the hot paths inside the cluster:
   `.node` addons are all Bazel actions, so this one content-addressed store
   replaces the previous sccache/RustFS backend, the rolling Cargo `target/`
   snapshots, and the native-artifact PVC directory ([5e](#5e-legacy-sccacherustfs-removed)).
-- **`runner-cache` PVC** is mounted into every runner for Bun's global package
+- **`runner-cache` PVC** is mounted into every runner for pnpm's global package
   store and Cargo's crates.io registry cache.
 
 ### 5a. Deploy bazel-remote
@@ -467,7 +467,7 @@ credentials. The primary defense is to keep untrusted code away from them:
   forks). GitHub's public-repo default only gates first-time contributors.
 
 The mounted-cache design still narrows the blast radius of trusted runs: no
-shared `node_modules`, no shared Cargo `target/`, Bun installs from `bun.lock`,
+shared `node_modules`, no shared Cargo `target/`, pnpm installs from `pnpm-lock.yaml`,
 and Cargo registry entries are checked against lockfile/source checksums.
 
 Pressure is mostly self-managing:
@@ -476,7 +476,7 @@ Pressure is mostly self-managing:
   GiB on its own; watch `CurrSize` on `/status` and grow the PVC/flag together
   if hit rates drop.
 - `arc-runners/runner-cache` - coarse manual cleanup: scale `omp-kata` to zero,
-  delete `bun-store/` or `cargo-registry/` from the bound local-path volume,
+  delete `pnpm-store/` or `cargo-registry/` from the bound local-path volume,
   let the next jobs repopulate it.
 
 ### 5e. Legacy: sccache/RustFS (removed)
@@ -649,7 +649,7 @@ kubectl -n arc-runners logs <runner-pod>
 **Verify the caches are being used.** A warm Bazel build on omp-kata logs
 `remote cache hit` counts in its build summary; `curl -sk https://<pod-ip>:8080/status`
 shows `CurrSize`/`NumFiles` growing ([5a](#5a-deploy-bazel-remote)). A warm job
-also logs `bun cache backend: mounted PVC (...)`. To inspect the mounted
+also logs `pnpm store backend: mounted PVC (...)`. To inspect the mounted
 runner cache, scale to zero and check the `runner-cache` local-path volume on
 the host.
 

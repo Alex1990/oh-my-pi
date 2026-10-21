@@ -4,7 +4,7 @@
  * Measures cold vs memoized classifyModel over representative ids, plus
  * globMatch repeat-pattern throughput with the segment cache.
  *
- * Run: bun packages/catalog/bench/classify.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/catalog/bench/classify.bench.ts
  */
 import { globMatch } from "../src/compat/cascade";
 import { classifyModel } from "../src/compat/taxonomy";

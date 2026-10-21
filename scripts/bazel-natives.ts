@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Canonical Bazel driver for the shipping pi_natives addons.
  *

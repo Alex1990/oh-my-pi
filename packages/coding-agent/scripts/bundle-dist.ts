@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -14,7 +14,13 @@ import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 const packageDir = path.join(import.meta.dirname, "..");
 
 /** `with { type: "text" }` imports are inlined by esbuild's text loader. */
-const TEXT_LOADERS = { ".md": "text" as const, ".txt": "text" as const, ".py": "text" as const, ".lark": "text" as const, ".plist": "text" as const };
+const TEXT_LOADERS = {
+	".md": "text" as const,
+	".txt": "text" as const,
+	".py": "text" as const,
+	".lark": "text" as const,
+	".plist": "text" as const,
+};
 const defaultOutDir = path.join(packageDir, "dist");
 const shebang = "#!/usr/bin/env node\n";
 const htmlExportAssetPattern =
@@ -111,7 +117,11 @@ export async function bundleDist(outDir: string = defaultOutDir): Promise<void> 
 				].join("\n"),
 			},
 			loader: TEXT_LOADERS,
-			plugins: [createJsonParsePlugin(), await createLegacyPiVirtualModulePlugin(), createBunImportAttributesPlugin()],
+			plugins: [
+				createJsonParsePlugin(),
+				await createLegacyPiVirtualModulePlugin(),
+				createBunImportAttributesPlugin(),
+			],
 			external: [...ALWAYS_EXTERNAL, ...RUNTIME_EXTERNAL],
 			define: {
 				"process.env.PI_BUNDLED": JSON.stringify("true"),

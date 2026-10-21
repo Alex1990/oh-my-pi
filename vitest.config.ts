@@ -49,8 +49,7 @@ function textImports(): Plugin {
 			// changelog that compiled binaries embed. Only the browser payload
 			// extensions qualify — `.ts` siblings in that directory (`args.ts`,
 			// `web-palette.ts`, `index.ts`) are real modules.
-			const exportAsset =
-				packagePath.includes("/export/html/") && /\.(?:js|html|css)$/i.test(packagePath);
+			const exportAsset = packagePath.includes("/export/html/") && /\.(?:js|html|css)$/i.test(packagePath);
 			if (exportAsset || packagePath.endsWith("/coding-agent/CHANGELOG.md")) {
 				return `\0omp-asset:${absolute}|omp-asset`;
 			}
@@ -78,8 +77,26 @@ function textImports(): Plugin {
 	};
 }
 
+/**
+ * Resolve `@oh-my-pi/pi-natives[/sub]` for repository-root tests: the root has
+ * no workspace link to the package, and its subpaths (`/path`, `/vcs`, …) map
+ * to `native/<sub>.js` rather than a directory index.
+ */
+function workspaceNatives(): Plugin {
+	return {
+		name: "omp-workspace-natives",
+		enforce: "pre",
+		resolveId(source) {
+			const match = /^@oh-my-pi\/pi-natives(?:\/(.+))?$/.exec(source);
+			if (!match) return null;
+			const entry = match[1] ? `${match[1]}.js` : "index.js";
+			return path.resolve(import.meta.dirname, "packages/natives/native", entry);
+		},
+	};
+}
+
 export default defineConfig({
-	plugins: [textImports()],
+	plugins: [textImports(), workspaceNatives()],
 	// React 17+ automatic runtime: package sources import components without a
 	// default `React` binding, and Vite's default `jsx` transform is classic.
 	esbuild: { jsx: "automatic" },
@@ -90,6 +107,7 @@ export default defineConfig({
 			"bench/**/*.test.{ts,tsx}",
 			"scripts/**/*.test.{ts,tsx}",
 			"packages/*/test/**/*.test.{ts,tsx}",
+			".oyp/tests/**/*.test.{ts,tsx}",
 		],
 		exclude: ["**/node_modules/**", "**/dist/**", "**/target/**", "**/.omp/**", "**/bazel-*/**"],
 		// `axe-core/axe.min.js` is imported `with { type: "text" }`; Vite would

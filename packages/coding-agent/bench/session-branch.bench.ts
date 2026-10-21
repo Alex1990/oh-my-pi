@@ -7,7 +7,7 @@
  * cached array (callers may mutate the result), so per-call cost is one
  * array copy instead of a full walk + Set + reverse.
  *
- * Run: bun packages/coding-agent/bench/session-branch.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/session-branch.bench.ts
  */
 import { SessionManager } from "../src/session/session-manager";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

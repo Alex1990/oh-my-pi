@@ -26,13 +26,13 @@
 		"agent"
 	],
 	"scripts": {
-		"dev": "bun ./index.html",
+		"dev": "vite",
 		"mock-host": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/mock-host.ts",
 		"relay": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/local-relay.ts",
-		"build": "rm -rf dist && bun build ./index.html --outdir=dist --minify --define process.env.NODE_ENV='\"production\"' --entry-naming=[hash].[ext] --chunk-naming=[hash].[ext] --asset-naming=[hash].[ext] && mv dist/*.html dist/index.html && cp -R public/. dist/",
+		"build": "vite build",
 		"gen:tool-views": "node --experimental-transform-types --import ../../scripts/node-runtime-loader.mjs scripts/build-tool-views.ts",
 		"prepack": "pnpm run build",
-		"test": "vitest run --parallel",
+		"test": "vitest run",
 		"check": "oxlint . && oxfmt --check --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && pnpm run check:types",
 		"check:types": "tsgo -p tsconfig.json --noEmit",
 		"lint": "oxlint .",
@@ -50,7 +50,8 @@
 	"devDependencies": {
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
-		"@types/node": "catalog:"
+		"@types/node": "catalog:",
+		"vite": "catalog:"
 	},
 	"engines": {
 		"node": ">=22.12.0"

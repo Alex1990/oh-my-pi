@@ -17,25 +17,6 @@ function emptyStream(): ReadableStream<Uint8Array> {
 	return body;
 }
 
-/**
- * Mock response for the `bun pm cache` probe the manager runs before a git
- * re-install (refreshBunGitCache). Points at a nonexistent directory so the
- * cache refresh is a no-op.
- */
-function pmCacheSubprocess(tmpRoot: string, cmd: string[]): Subprocess {
-	expect(cmd).toEqual([process.execPath, "pm", "cache"]);
-	const body = new Response(path.join(tmpRoot, "no-such-bun-cache")).body;
-	if (!body) {
-		throw new Error("Failed to create response stream");
-	}
-	return {
-		pid: 3,
-		stdout: body,
-		stderr: emptyStream(),
-		exited: Promise.resolve(0),
-	} as Subprocess;
-}
-
 interface PluginFixture {
 	readonly version: string;
 	readonly source: string;
@@ -206,7 +187,9 @@ describe("PluginManager.install load validation", () => {
 		expect(recordedCwd).toBe(pluginsDir);
 
 		expect(result.version).toBe("1.0.3");
-		expect((await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()).dependencies).toEqual({ [name]: "^1.0.3" });
+		expect((await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>()).dependencies).toEqual({
+			[name]: "^1.0.3",
+		});
 	});
 
 	test("rejects and rolls back an install when the extension factory throws", async () => {
@@ -338,11 +321,13 @@ describe("PluginManager.install load validation", () => {
 
 		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "broken-plugin": "1.0.0" });
-		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "broken-plugin", "package.json")).json<{ version?: string }>();
+		const restoredPackage = await bun
+			.file(path.join(pluginsNodeModules, "broken-plugin", "package.json"))
+			.json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
-		const restoredExtension = await bun.file(
-			path.join(pluginsNodeModules, "broken-plugin", "dist", "extension.ts"),
-		).text();
+		const restoredExtension = await bun
+			.file(path.join(pluginsNodeModules, "broken-plugin", "dist", "extension.ts"))
+			.text();
 		expect(restoredExtension).toContain("old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
 		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
@@ -399,7 +384,6 @@ describe("PluginManager.install load validation", () => {
 					exited: prepare.then(() => 0),
 				} as Subprocess;
 			}
-			if (cmd[1] === "pm") return pmCacheSubprocess(tmpRoot, cmd);
 			// The manager follows a git re-install with `bun update <name>` to refresh
 			// the lockfile pin (#3063). The mock treats it as a no-op exit-0 — the
 			// on-disk state already reflects the v2 install above.
@@ -416,11 +400,13 @@ describe("PluginManager.install load validation", () => {
 
 		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "git-plugin": "github:org/plugin#v1" });
-		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json<{ version?: string }>();
+		const restoredPackage = await bun
+			.file(path.join(pluginsNodeModules, "git-plugin", "package.json"))
+			.json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
-		const restoredExtension = await bun.file(
-			path.join(pluginsNodeModules, "git-plugin", "dist", "extension.ts"),
-		).text();
+		const restoredExtension = await bun
+			.file(path.join(pluginsNodeModules, "git-plugin", "dist", "extension.ts"))
+			.text();
 		expect(restoredExtension).toContain("git-old-ok");
 		expect(restoredExtension).not.toContain("missing-peer");
 		const lock = await bun.file(path.join(tmpRoot, "oyp-plugins.lock.json")).json<PluginRuntimeConfig>();
@@ -535,7 +521,6 @@ describe("PluginManager.install load validation", () => {
 					exited: prepare.then(() => 0),
 				} as Subprocess;
 			}
-			if (cmd[1] === "pm") return pmCacheSubprocess(tmpRoot, cmd);
 			expect(cmd).toEqual([process.execPath, "update", "git-plugin"]);
 			const prepare = (async () => {
 				// bun update re-resolves the ref and rewrites the lockfile pin
@@ -556,7 +541,9 @@ describe("PluginManager.install load validation", () => {
 		expect(await bun.file(bunLockPath).text()).toBe(ORIGINAL_LOCK);
 		const pluginsPackage = await bun.file(pluginsPkgJson).json<{ dependencies?: Record<string, string> }>();
 		expect(pluginsPackage.dependencies).toEqual({ "git-plugin": "github:org/plugin#v1" });
-		const restoredPackage = await bun.file(path.join(pluginsNodeModules, "git-plugin", "package.json")).json<{ version?: string }>();
+		const restoredPackage = await bun
+			.file(path.join(pluginsNodeModules, "git-plugin", "package.json"))
+			.json<{ version?: string }>();
 		expect(restoredPackage.version).toBe("1.0.0");
 	});
 
@@ -649,7 +636,6 @@ describe("PluginManager.install load validation", () => {
 					exited: prepare.then(() => 0),
 				} as Subprocess;
 			}
-			if (cmd[1] === "pm") return pmCacheSubprocess(tmpRoot, cmd);
 			expect(cmd).toEqual([process.execPath, "update", "git-plugin"]);
 			const prepare = (async () => {
 				await bun.write(bunLockPath, '# bun.lock\n"git-plugin": "github:org/plugin#sha-update"\n');

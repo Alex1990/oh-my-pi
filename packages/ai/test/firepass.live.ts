@@ -1,7 +1,7 @@
 /**
- * Live Fire Pass smoke. NOT part of the bun test suite — run manually:
+ * Live Fire Pass smoke. NOT part of the vitest suite — run manually:
  *
- *   FIREPASS_API_KEY=fpk_... bun packages/ai/test/firepass.live.ts
+ *   FIREPASS_API_KEY=fpk_... node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/ai/test/firepass.live.ts
  *
  * Asserts that:
  *   1. The provider resolves the active Fire Pass models (`glm-5.2-fast`, `kimi-k3-fast`).

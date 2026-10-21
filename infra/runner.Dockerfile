@@ -8,7 +8,6 @@
 #   - GitHub CLI (gh) — present on GitHub-hosted runners; the coding-agent github
 #     tool and release workflows expect it
 #   - C/build toolchain the native + canvas builds need
-#   - bun (system-wide, on PATH)
 #   - sccache + Zig + cmake/ninja + cargo-nextest/cargo-zigbuild/cargo-xwin for native builds
 #   - bazelisk (+ pre-warmed bazel 9.2.0) for the Bazel native pipeline
 #   - rust nightly (pinned) + clippy/rustfmt/rust-analyzer + the rust-toolchain.toml
@@ -20,7 +19,6 @@
 FROM ghcr.io/actions/actions-runner:latest
 
 ARG RUST_NIGHTLY=nightly-2026-10-06
-ARG BUN_VERSION=1.4.3
 ARG SCCACHE_VERSION=0.18.0
 ARG ZIG_VERSION=0.16.0
 ARG CMAKE_VERSION=4.4.3
@@ -47,11 +45,6 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
  && ln -sf "$(command -v fdfind)" /usr/local/bin/fd \
  && ln -sf /usr/bin/convert /usr/local/bin/magick \
  && rm -rf /var/lib/apt/lists/*
-
-# bun, system-wide (BUN_INSTALL/bin == /usr/local/bin, already on PATH).
-ENV BUN_INSTALL=/usr/local
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" \
- && bun --version
 
 # Pinned native-build helpers, system-wide.
 RUN curl -fsSL "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \

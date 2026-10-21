@@ -244,7 +244,7 @@ TypeSafe clients using the default base-URL resolver can set `TYPESAFE_BASE_URL=
 
 There is no raw provider passthrough path. All supported routes go through `pi-ai` provider logic so credential-specific request shaping, OAuth refresh-on-auth-error, and provider quirks stay centralized.
 
-`idleTimeout` on the underlying `Bun.serve` is set to `255 s` so long thinking-budget calls do not get killed by Bun’s default idle timeout.
+`idleTimeout` on the underlying `serve()` is set to `255 s` so long thinking-budget calls do not get killed by Bun’s default idle timeout.
 
 ## Usage cache: server-side 5-min jitter + client-side 15 s single-flight
 

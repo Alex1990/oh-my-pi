@@ -5,7 +5,7 @@
  * default) vs forced on. Each captured frame pays an array allocation plus
  * one string slice per line; the diagnostic observer is the only reader.
  *
- * Run: bun packages/utils/bench/sse-raw.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/utils/bench/sse-raw.bench.ts
  */
 import { readSseEvents } from "../src/stream";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

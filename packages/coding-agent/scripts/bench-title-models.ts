@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { Database } from "@oh-my-pi/pi-utils/sqlite-compat";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**

@@ -18,7 +18,7 @@ NEVER touch: `**/*-gen/**`, `**/vendor/**`, generated JSON catalogs, `.d.ts`, te
 
 ## 1. Discover
 
-First run `bun scripts/cleanup-scan.ts`; `--json`: machine output; `--pkg=<a,b>|all`: widen scope. It reports god-object candidates, clone clusters/line ranges, junk drawers, tiered dead-export candidates, deep relative imports, defensive-check hotspots. Output is EVIDENCE, not verdict: read every entry before action. Where scanner misses semantic duplication or wrong-home modules with shallow imports, use `lsp references` and targeted grep.
+First run `node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs scripts/cleanup-scan.ts`; `--json`: machine output; `--pkg=<a,b>|all`: widen scope. It reports god-object candidates, clone clusters/line ranges, junk drawers, tiered dead-export candidates, deep relative imports, defensive-check hotspots. Output is EVIDENCE, not verdict: read every entry before action. Where scanner misses semantic duplication or wrong-home modules with shallow imports, use `lsp references` and targeted grep.
 
 Candidate classes:
 
@@ -87,7 +87,7 @@ Worth-doing bar: name win in one sentence, e.g. entire duplicate implementation 
 
 ## 5. Verify
 
-1. `bun check`: clean.
+1. `pnpm check`: clean.
 2. Run touched package tests scoped to affected areas.
 3. Renderer/TUI touched → confirm sanitization helpers wrap every render path.
 
@@ -99,5 +99,5 @@ Worth-doing bar: name win in one sentence, e.g. entire duplicate implementation 
 - Risk: reviewer checks.
 
 <critical>
-One target/run; complete migration; originals deleted; `bun check` clean. Named quality win; identical behavior; no new abstractions or shims. Deletion-leaning: justify net-positive delta. Nothing above bar → `CLEAN: no target above threshold`.
+One target/run; complete migration; originals deleted; `pnpm check` clean. Named quality win; identical behavior; no new abstractions or shims. Deletion-leaning: justify net-positive delta. Nothing above bar → `CLEAN: no target above threshold`.
 </critical>

@@ -5,7 +5,7 @@
  * current complete prefix and extracting only static literal tool calls. It does not
  * start tools or a JavaScript worker.
  *
- * Run: bun run packages/coding-agent/bench/speculative-shadow-planning.bench.ts
+ * Run: node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs packages/coding-agent/bench/speculative-shadow-planning.bench.ts
  */
 import { projectJavaScriptShadowPlan } from "../src/eval/js/speculation";
 

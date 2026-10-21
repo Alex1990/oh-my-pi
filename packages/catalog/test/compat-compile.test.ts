@@ -625,7 +625,7 @@ describe("provider catalog grammar", () => {
 });
 
 describe("committed rules.json", () => {
-	test("matches a fresh compile of rules/ (run `bun run gen:compat` after editing KDL)", async () => {
+	test("matches a fresh compile of rules/ (run `pnpm run gen:compat` after editing KDL)", async () => {
 		const fresh = await compileCompatRules(RULES_DIR);
 		expect(fresh).toEqual(committed);
 		expect(await bun.file(AUTH_IDS_PATH).text()).toBe(renderAuthIds(fresh.auth));

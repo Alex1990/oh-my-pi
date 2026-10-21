@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Measure the empirical shape of real agent edits from session logs.
  *

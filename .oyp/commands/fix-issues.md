@@ -87,7 +87,7 @@ MUST NOT symlink whole `packages/natives/native/`: shadows tracked source.
 3. Fix source, following `AGENTS.md` patterns: root cause, not symptom; no product-code stubs/mocks.
 4. Re-run repro until passing.
 5. If real contract changed, add/adjust adjacent unit/contract tests; run only affected files, never full suite.
-6. `bun fmt` union of edited files.
+6. `pnpm fmt` union of edited files.
 
 ### f. Commit
 

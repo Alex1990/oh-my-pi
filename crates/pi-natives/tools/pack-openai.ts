@@ -1,9 +1,11 @@
 // Pack OpenAI tiktoken rank files into UTOK1 + zstd -19 blobs.
 //
-//   bun tools/pack-openai.ts
+//   node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs tools/pack-openai.ts
 //
 // Reads tools/cache/{o200k_base,cl100k_base}.tiktoken (base64-token + rank
 // per line), asserts rank contiguity, writes data/<name>.bin.zst.
+
+import { bun, zstdCompressSync } from "@oh-my-pi/pi-utils/node-runtime";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -18,8 +20,8 @@ function varint(n: number): number[] {
 }
 
 async function pack(name: string, expected: number) {
-	const text = await Bun.file(`${root}tools/cache/${name}.tiktoken`).text();
-	const lines = text.split("\n").filter((l) => l.length > 0);
+	const text = await bun.file(`${root}tools/cache/${name}.tiktoken`).text();
+	const lines = text.split("\n").filter(l => l.length > 0);
 	if (lines.length !== expected) {
 		throw new Error(`${name}: expected ${expected} entries, got ${lines.length}`);
 	}
@@ -48,8 +50,8 @@ async function pack(name: string, expected: number) {
 		raw.set(c, off);
 		off += c.length;
 	}
-	const zst = Bun.zstdCompressSync(raw, { level: 19 });
-	await Bun.write(`${root}data/${name}.bin.zst`, zst);
+	const zst = zstdCompressSync(raw, { level: 19 });
+	await bun.write(`${root}data/${name}.bin.zst`, zst);
 	console.log(`${name}: ${lines.length} entries, ${raw.length} raw -> ${zst.length} zst`);
 }
 

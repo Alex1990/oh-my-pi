@@ -6,7 +6,7 @@
  *
  * Note: helpers.ts imports @oh-my-pi/pi-natives (Rust addon via glob).
  * This file imports from helpers.ts directly — the native addon IS present in the
- * test environment (verified: `bun run import-helpers.ts` succeeds).
+ * test environment (verified: `node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs import-helpers.ts` succeeds).
  */
 import { afterEach, beforeEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs";

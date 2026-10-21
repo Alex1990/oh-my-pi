@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: minimal stdio MCP server used by
  * `mcp-manager-notification-listeners.test.ts` to exercise the notification

@@ -1,22 +1,21 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Release script for pi-mono
  *
  * Usage:
- *   bun scripts/release.ts <version|major|minor|patch|canary>
+ *   pnpm run release -- <version|major|minor|patch|canary>
  *                                                        Full release (preflight, version, changelog, commit,
  *                                                        push, watch)
- *   bun scripts/release.ts watch                         Watch CI for current commit
- *   bun scripts/release.ts deps                          Full third-party dependency refresh (bun.lock + Cargo.lock);
+ *   pnpm run release -- watch                            Watch CI for current commit
+ *   pnpm run release -- deps                             Full third-party dependency refresh (pnpm-lock.yaml + Cargo.lock);
  *                                                        land it via PR/main CI before the next release
  *
- * Example: bun scripts/release.ts minor
+ * Example: pnpm run release -- minor
  */
 import { $ } from "@oh-my-pi/pi-utils/shell";
 import { Glob } from "@oh-my-pi/pi-utils/node-runtime";
 import { compareVersions } from "../packages/utils/src/version.ts";
 import { runChangelogFixer } from "./fix-changelogs";
-import { generateNixBunDeps, resolveNixBunDepsGenerator } from "./gen-nix-bun";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
@@ -248,14 +247,12 @@ export function bumpCanaryVersion(current: string): string {
 
 async function cmdDeps(): Promise<void> {
 	console.log("\n=== Full dependency refresh ===\n");
-	await $`rm -f bun.lock`;
-	await $`bun install`;
+	await $`pnpm install`;
 	await $`cargo generate-lockfile`;
-	await generateNixBunDeps(resolveNixBunDepsGenerator());
-	await $`bun scripts/gen-clippy-bazelrc.ts`;
+	await $`node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs scripts/gen-clippy-bazelrc.ts`;
 	// Cargo.lock changed, so the crate_universe entry in MODULE.bazel.lock is
 	// stale; without a refresh every fresh CI bazel server re-splices (~4 min).
-	await $`bun scripts/gen-bazel-lock.ts`;
+	await $`node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs scripts/gen-bazel-lock.ts`;
 	console.log("\nDependencies refreshed. Land these lockfile changes through a PR (or push to main) and");
 	console.log("let CI go green BEFORE the next release; `release` no longer refreshes third-party deps.");
 }
@@ -302,9 +299,6 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 	console.log("  Working directory clean");
 
 	await checkUpToDate();
-
-	const nixBunDepsGenerator = resolveNixBunDepsGenerator();
-	console.log(`  Nix dependency generator: ${nixBunDepsGenerator.kind}`);
 
 	// Step 4 refreshes MODULE.bazel.lock through bazel; fail before touching
 	// any file rather than half-way through the version rewrite.
@@ -393,20 +387,19 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 
 	// 4. Regenerate lockfiles and generated configs
 	// Only workspace member versions change here; third-party deps are refreshed
-	// separately via `bun scripts/release.ts deps` so they get CI before release.
-	await $`bun install`;
+	// separately via `node scripts/release.ts deps` so they get CI before release.
+	await $`pnpm install`;
 	await $`cargo update --workspace`;
-	await generateNixBunDeps(nixBunDepsGenerator);
 	// bazel/clippy.bazelrc mirrors [workspace.lints] in Cargo.toml; regenerate
 	// it here (like the lockfiles) so the bazel clippy policy can never drift.
 	// The release_gate CI job runs the matching `--check`.
-	await $`bun scripts/gen-clippy-bazelrc.ts`;
+	await $`node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs scripts/gen-clippy-bazelrc.ts`;
 	// MODULE.bazel.lock caches the crate_universe extension result keyed by
 	// Cargo.toml/Cargo.lock hashes, which the bump just rewrote. Unrefreshed,
 	// every bazel job of the release run re-splices the cargo workspace
 	// (~4 min each). One local evaluation (~1-4 min) fixes all of them. The
 	// bazel_lock CI job runs the matching `--check`.
-	await $`bun scripts/gen-bazel-lock.ts`;
+	await $`node --experimental-transform-types --import ./scripts/node-runtime-loader.mjs scripts/gen-bazel-lock.ts`;
 	console.log();
 
 	// 5. Update changelogs
@@ -431,7 +424,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 
 	// 6. Run checks
 	console.log("Running checks...");
-	await $`bun run check`;
+	await $`pnpm run check`;
 	console.log();
 
 	// 7. Commit
@@ -484,7 +477,7 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 		console.log(
 			`  git push --atomic origin refs/heads/main:refs/heads/main "+$(git rev-parse HEAD):refs/tags/v${version}"`,
 		);
-		console.log("  bun scripts/release.ts watch");
+		console.log("  pnpm run release -- watch");
 		process.exit(1);
 	}
 }
@@ -497,9 +490,9 @@ if (isMainModule(import.meta.url)) {
 	const arg = process.argv[2];
 	const usage = () => {
 		console.error("Usage:");
-		console.error("  bun scripts/release.ts <version|major|minor|patch|canary>   Full release");
-		console.error("  bun scripts/release.ts watch                         Watch CI for current commit");
-		console.error("  bun scripts/release.ts deps                          Full third-party dependency refresh");
+		console.error("  pnpm run release -- <version|major|minor|patch|canary>   Full release");
+		console.error("  pnpm run release -- watch                         Watch CI for current commit");
+		console.error("  pnpm run release -- deps                          Full third-party dependency refresh");
 	};
 
 	if (!arg) {

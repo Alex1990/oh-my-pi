@@ -30,13 +30,14 @@
  * coding). Varints are LEB128.
  */
 
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import * as path from "node:path";
 
 /** Pinned upstream: sanderland/ctok v1.0.0. */
 const CTOK_REV = "df3b59b5e645289a5eadc8e24036b99d39c333c4";
 const UPSTREAM = `https://raw.githubusercontent.com/sanderland/ctok/${CTOK_REV}/ctok/data`;
 
-const DATA_DIR = path.join(import.meta.dir, "cache");
+const DATA_DIR = path.join(import.meta.dirname, "cache");
 
 /** Marker glyphs of ctok's internal marked form, keyed by public atom. */
 const ATOMS: Record<string, string> = {
@@ -182,7 +183,7 @@ async function generate(src: string, dst: string): Promise<void> {
 	}
 
 	const dstPath = path.join(DATA_DIR, dst);
-	await Bun.write(dstPath, new Uint8Array(out));
+	await bun.write(dstPath, new Uint8Array(out));
 	console.log(`${dst}: ${n} pieces, ${byteTokens.length} byte tokens, ${out.length} bytes`);
 }
 

@@ -1,13 +1,34 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import * as zod from "@oh-my-pi/omptype/zod";
 import { TempDir } from "@oh-my-pi/pi-utils";
+import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import createTool, { type TuiParams } from "../tools/tui";
 
-const tool = createTool({ cwd: path.resolve(import.meta.dir, "../.."), zod });
+/** Minimal schema builder matching the host's `omp.zod` surface; the tool only registers shapes. */
+interface TestSchema {
+	describe(text: string): TestSchema;
+	optional(): TestSchema;
+	object(shape: Record<string, TestSchema>): TestSchema;
+	string(): TestSchema;
+	boolean(): TestSchema;
+	number(): TestSchema;
+	array(item: TestSchema): TestSchema;
+}
+
+const zod: TestSchema = {
+	describe: () => zod,
+	optional: () => zod,
+	object: () => zod,
+	string: () => zod,
+	boolean: () => zod,
+	number: () => zod,
+	array: () => zod,
+};
+
+const tool = createTool({ cwd: path.resolve(import.meta.dirname, "../.."), zod });
 
 async function execute(params: TuiParams): Promise<string> {
 	const result = await tool.execute("regression", params);
@@ -22,7 +43,7 @@ async function waitForScreen(name: string, expected: string): Promise<string> {
 	do {
 		screen = await execute({ op: "screen", name });
 		if (screen.includes(expected)) return screen;
-		await Bun.sleep(50);
+		await bun.sleep(50);
 	} while (Date.now() < deadline);
 	throw new Error(`Missing ${expected} in screen:\n${screen}`);
 }
@@ -39,7 +60,7 @@ describe("TUI debug tool PTY launcher", () => {
 	it("gives file targets a real terminal, preserves argv, and resizes before delivering input", async () => {
 		using dir = TempDir.createSync("@omp-tui-tool-fixture-");
 		const file = dir.join("terminal.ts");
-		await Bun.write(
+		await bun.write(
 			file,
 			`
 process.stdin.setRawMode(true);
@@ -72,7 +93,7 @@ process.stdin.on("data", chunk => {
 	it("rejects non-UTF-8 input on Windows without writing a prefix and preserves valid input bytes", async () => {
 		using dir = TempDir.createSync("@omp-tui-input-fixture-");
 		const file = dir.join("input.ts");
-		await Bun.write(
+		await bun.write(
 			file,
 			`
 process.stdin.setRawMode(true);
@@ -91,7 +112,7 @@ process.stdout.write("READY\\r\\n");
 		for (const text of ["prefix\\x9b", "\\xc3"]) {
 			const sent = execute({ op: "send", name, text, quiet: true });
 			if (process.platform === "win32") {
-				await expect(sent).rejects.toThrow(/Windows.*UTF-8/);
+				await expect(sent).rejects.toThrow(/PTY input must be valid UTF-8/);
 			} else {
 				await sent;
 			}
@@ -112,20 +133,28 @@ process.stdout.write("READY\\r\\n");
 		async () => {
 			using dir = TempDir.createSync("@omp-tui-dimensions-fixture-");
 			const preload = dir.join("interactive.ts");
-			const envModuleUrl = pathToFileURL(path.resolve(import.meta.dir, "../../packages/utils/src/env.ts")).href;
+			const envModuleUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../packages/utils/src/env.ts")).href;
 			// CI marks test children headless; opt only this real-PTY child back into terminal I/O.
-			await Bun.write(
+			await bun.write(
 				preload,
 				`import { setTerminalHeadless } from ${JSON.stringify(envModuleUrl)};
 setTerminalHeadless(false);
 `,
 			);
 			const name = `dimensions-${crypto.randomUUID()}`;
+			const loader = path.resolve(import.meta.dirname, "../../scripts/node-runtime-loader.mjs");
 			const started = await execute({
 				op: "start",
 				name,
 				bin: process.execPath,
-				args: ["--preload", preload, path.resolve(import.meta.dir, "../../packages/tui/examples/debug-demo.ts")],
+				args: [
+					"--experimental-transform-types",
+					"--import",
+					pathToFileURL(loader).href,
+					"--import",
+					pathToFileURL(preload).href,
+					path.resolve(import.meta.dirname, "../../packages/tui/examples/debug-demo.ts"),
+				],
 				cols: 10,
 				rows: 3,
 			});
@@ -149,7 +178,7 @@ setTerminalHeadless(false);
 				do {
 					info = JSON.parse(await execute({ op: "info", name }));
 					if (info.columns === columns && info.rows === rows) break;
-					await Bun.sleep(50);
+					await bun.sleep(50);
 				} while (Date.now() < deadline);
 				expect(info).toMatchObject({ columns, rows });
 				expect(await execute({ op: "screen", name })).toContain(`screen ${columns}x${rows}`);

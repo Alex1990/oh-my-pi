@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Regenerate `src/utils/nerd-font-glyphs.txt`, the Nerd Fonts name → codepoint
  * catalog that validates the icon names session titles ask for.

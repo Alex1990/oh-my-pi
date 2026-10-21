@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Test fixture: a minimal stdio MCP server that advertises MANY tools, used by
  * `sdk-mcp-auto-discovery.test.ts` to prove two deferred-discovery contracts:
