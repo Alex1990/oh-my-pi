@@ -129,7 +129,7 @@ export function isPuppeteerTimeout(error: unknown): boolean {
 }
 
 /**
- * Build Puppeteer's `TimeoutError` for a deadline omp enforces in place of one of Puppeteer's waits.
+ * Build Puppeteer's `TimeoutError` for a deadline oyp enforces in place of one of Puppeteer's waits.
  * Its `name` stays "TimeoutError" in release builds: back/forward/reload pass this error to the agent's cell as is.
  */
 export function puppeteerTimeoutError(message: string): Error {
@@ -238,7 +238,7 @@ export async function connectPuppeteer(puppeteer: typeof Puppeteer, options: Con
 }
 
 /**
- * The connection's root session, which answers browser-level `Target.*` commands. The omp relay serves
+ * The connection's root session, which answers browser-level `Target.*` commands. The oyp relay serves
  * those but exposes no attachable browser target, so `browser.target().createCDPSession()` fails there.
  */
 export function browserConnection(browser: Browser): Connection {
@@ -632,7 +632,7 @@ export async function launchHeadlessBrowser(opts: LaunchHeadlessOptions): Promis
 	// (issue #7058). `removeUserDataDir` cleans it up on our terms instead.
 	let userDataDir: string | undefined;
 	if (!launchArgs.some(arg => arg.startsWith("--user-data-dir"))) {
-		userDataDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-chrome-profile-"));
+		userDataDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "oyp-chrome-profile-"));
 		launchArgs.push(`--user-data-dir=${userDataDir}`);
 	}
 	try {
@@ -688,7 +688,7 @@ async function writeOwnedProfilePreferences(file: string): Promise<void> {
 	if (profile.password_manager_leak_detection === false) return;
 	profile.password_manager_leak_detection = false;
 	prefs.profile = profile;
-	const staged = `${file}.omp-${process.pid}`;
+	const staged = `${file}.oyp-${process.pid}`;
 	try {
 		await bun.write(staged, JSON.stringify(prefs));
 		await fs.promises.rename(staged, file);
@@ -703,7 +703,7 @@ async function writeOwnedProfilePreferences(file: string): Promise<void> {
  * When the first window of a new Chromium process opens, it reopens every page
  * recorded in `Default/Sessions`, however the previous process exited. On the
  * project-shared browser that resurrects whatever was open when its
- * predecessor stopped or was killed, and no omp process owns those pages:
+ * predecessor stopped or was killed, and no oyp process owns those pages:
  * target ownership dies with the browser instance, so neither idle-close nor
  * the orphan reaper ever closes them. Call this before a Chromium process
  * starts on the profile. Best-effort: a failure is logged and never blocks the

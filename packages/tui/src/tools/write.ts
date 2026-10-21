@@ -162,7 +162,7 @@ function writeFigure(
 function describeFigure(figure: ToolFigure | undefined): NativeNode | undefined {
 	if (!figure || (figure.lang === "mermaid" && !figure.closed)) return undefined;
 	const text = fencedCode(figure.lang, figure.source, { open: !figure.closed });
-	return { ...md(text, { role: "omp.tool.write.figure", stream: !figure.closed }), key: "figure" };
+	return { ...md(text, { role: "oyp.tool.write.figure", stream: !figure.closed }), key: "figure" };
 }
 
 /**

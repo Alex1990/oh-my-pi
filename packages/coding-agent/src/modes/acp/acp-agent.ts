@@ -646,16 +646,16 @@ export class AcpAgent implements Agent {
 			authMethods.push({
 				type: "terminal",
 				id: "terminal",
-				name: "Set up omp in terminal",
-				description: "Launch the omp TUI to add provider keys and select models.",
+				name: "Set up oyp in terminal",
+				description: "Launch the oyp TUI to add provider keys and select models.",
 				args: [ACP_TERMINAL_AUTH_FLAG],
 			});
 		}
 		return {
 			protocolVersion: PROTOCOL_VERSION,
 			agentInfo: {
-				name: "omp",
-				title: "omp",
+				name: "oyp",
+				title: "oyp",
 				version: VERSION,
 			},
 			authMethods,

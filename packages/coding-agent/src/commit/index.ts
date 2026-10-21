@@ -1,5 +1,5 @@
 /**
- * Entry points for the omp commit command.
+ * Entry points for the oyp commit command.
  */
 
 export * from "./conventional";

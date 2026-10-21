@@ -76,14 +76,14 @@ describe("JobsSheet", () => {
 		const root = sheet.describe(CX);
 		expect(list(root)?.c?.map(row => ("key" in row ? row.key : undefined))).toEqual(["task-1", "bash-1", "bash-2"]);
 		expect(prop(list(root), "selected")).toBe("task-1");
-		const detail = byRole(root, "omp.jobs.detail")[0]!;
+		const detail = byRole(root, "oyp.jobs.detail")[0]!;
 		expect(texts(detail)).toContain("Audit credits");
-		expect(prop(byRole(root, "omp.jobs.facts")[0], "items")).toContainEqual({
+		expect(prop(byRole(root, "oyp.jobs.facts")[0], "items")).toContainEqual({
 			k: "Agent",
 			v: [{ t: "CreditAudit", s: "mono" }],
 		});
 		expect(texts(detail)).toContain("No output yet");
-		expect(prop(byRole(root, "omp.jobs.summary")[0], "text")).toBe("2 running · 1 recent");
+		expect(prop(byRole(root, "oyp.jobs.summary")[0], "text")).toBe("2 running · 1 recent");
 	});
 
 	it("moves the selection with ↑/↓ and shows the selected job's command and output", () => {
@@ -91,8 +91,8 @@ describe("JobsSheet", () => {
 		sheet.handleInput(DOWN);
 		const root = sheet.describe(CX);
 		expect(prop(list(root), "selected")).toBe("bash-1");
-		expect(prop(byRole(root, "omp.jobs.command")[0], "text")).toBe("cargo test --workspace");
-		const output = byRole(root, "omp.jobs.output")[0];
+		expect(prop(byRole(root, "oyp.jobs.command")[0], "text")).toBe("cargo test --workspace");
+		const output = byRole(root, "oyp.jobs.output")[0];
 		expect(prop(output, "text")).toBe("running 12 tests\n");
 		expect(prop(output, "follow")).toBe(true);
 		sheet.handleInput(UP);
@@ -103,14 +103,14 @@ describe("JobsSheet", () => {
 	it("offers Cancel job and X only for a running job", () => {
 		const { sheet, source } = setup();
 		sheet.handleInput(DOWN);
-		expect(byRole(sheet.describe(CX), "omp.btn").map(btn => btn.key)).toEqual(["cancel", "close"]);
+		expect(byRole(sheet.describe(CX), "oyp.btn").map(btn => btn.key)).toEqual(["cancel", "close"]);
 		sheet.handleInput("x");
 		expect(source.cancel).toHaveBeenCalledWith("bash-1");
 
 		sheet.handleInput(DOWN);
 		const root = sheet.describe(CX);
-		expect(byRole(root, "omp.btn").map(btn => btn.key)).toEqual(["close"]);
-		expect(prop(byRole(root, "omp.jobs.facts")[0], "items")).toContainEqual({
+		expect(byRole(root, "oyp.btn").map(btn => btn.key)).toEqual(["close"]);
+		expect(prop(byRole(root, "oyp.jobs.facts")[0], "items")).toContainEqual({
 			k: "Exit code",
 			v: [{ t: "1", s: "error" }],
 		});
@@ -137,9 +137,9 @@ describe("JobsSheet", () => {
 	it("shows the empty state with Close alone when there are no jobs", () => {
 		const { sheet } = setup({ running: [], recent: [] });
 		const root = sheet.describe(CX);
-		expect(byRole(root, "omp.jobs.split")).toHaveLength(0);
-		expect(texts(byRole(root, "omp.jobs.empty")[0]!)).toContain("No background jobs");
-		expect(byRole(root, "omp.btn").map(btn => btn.key)).toEqual(["close"]);
+		expect(byRole(root, "oyp.jobs.split")).toHaveLength(0);
+		expect(texts(byRole(root, "oyp.jobs.empty")[0]!)).toContain("No background jobs");
+		expect(byRole(root, "oyp.btn").map(btn => btn.key)).toEqual(["close"]);
 		expect(sheet.render(60).join("\n")).toContain("No background jobs");
 	});
 
@@ -157,7 +157,7 @@ describe("JobsSheet", () => {
 		// A focused subagent view only watches that agent's jobs (#14814).
 		const source: JobsSheetSource = { load: () => JOBS, inspect: (id: string) => DETAILS[id], close: vi.fn() };
 		const sheet = new JobsSheet(source);
-		expect(byRole(sheet.describe(CX), "omp.btn").map(btn => btn.key)).toEqual(["close"]);
+		expect(byRole(sheet.describe(CX), "oyp.btn").map(btn => btn.key)).toEqual(["close"]);
 
 		sheet.handleInput(DOWN);
 		const lines = sheet.render(100).join("\n");
@@ -176,10 +176,10 @@ describe("JobsSheet", () => {
 		const sheet = new JobsSheet(source);
 		sheet.handleInput(DOWN);
 		const root = sheet.describe(CX);
-		const detailNode = byRole(root, "omp.jobs.detail")[0]!;
+		const detailNode = byRole(root, "oyp.jobs.detail")[0]!;
 		const roles = (detailNode.c ?? []).map(child => ("k" in child ? prop(child, "role") : undefined));
-		expect(roles.indexOf("omp.jobs.widget")).toBeLessThan(roles.indexOf("omp.jobs.out"));
-		expect(byRole(root, "omp.job.widget.bar")).toHaveLength(3);
+		expect(roles.indexOf("oyp.jobs.widget")).toBeLessThan(roles.indexOf("oyp.jobs.out"));
+		expect(byRole(root, "oyp.job.widget.bar")).toHaveLength(3);
 
 		const lines = sheet.render(100).map(line => bun.stripANSI(line));
 		const head = lines.findIndex(line => line.includes("eval · tests passed per model"));
@@ -255,7 +255,7 @@ describe("JobsSheet", () => {
 		it("cancels only jobs the root owns", () => {
 			const { sheet, source } = treeSheet();
 			sheet.handleInput(DOWN); // task-sub, owned by Audit
-			expect(byRole(sheet.describe(CX), "omp.btn").map(btn => btn.key)).toEqual(["close"]);
+			expect(byRole(sheet.describe(CX), "oyp.btn").map(btn => btn.key)).toEqual(["close"]);
 			sheet.handleInput("x");
 			sheet.handleNativeEvent({ type: "action", key: "cancel", act: "cancel", mods: [] });
 			expect(source.cancel).not.toHaveBeenCalled();

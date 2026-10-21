@@ -182,7 +182,7 @@ export function routeViewportClick(spans: readonly ViewportClickSpan[], index: n
  * any registry lookup: its `@…:…` charset cannot collide with generated agent
  * ids (word names, numeric and `-N` suffixes, dotted nesting).
  */
-export const PINNED_HUD_TOGGLE_ID = "@omp:toggle-pinned-hud";
+export const PINNED_HUD_TOGGLE_ID = "@oyp:toggle-pinned-hud";
 
 /**
  * Nested background opens inside a hovered row. The band wraps the line, so a

@@ -436,9 +436,9 @@ async function runIpcSubprocessWorker<In, Out>(
 /**
  * Hidden subcommand that boots the ONNX tiny-model worker for one model: a
  * detached process owning that model's socket (`OMP_TINY_WORKER_SOCKET`),
- * shared by every omp process on the machine and exiting on its own when
+ * shared by every oyp process on the machine and exiting on its own when
  * idle. It exists so `onnxruntime-node` (loaded transitively by
- * `@huggingface/transformers`) never runs in an omp address space — its NAPI
+ * `@huggingface/transformers`) never runs in an oyp address space — its NAPI
  * finalizer segfaults Bun on Windows (issue #1606).
  */
 async function runTinyWorker(): Promise<void> {
@@ -463,7 +463,7 @@ export async function runCli(argv: string[]): Promise<void> {
 			// invalid value to avoid an uncaught throw before this try/catch is in
 			// scope (see `readProfileFromEnvSafe` in dirs.ts), and callers may set
 			// OMP_PROFILE after importing this module (profile aliases/tests). Surfacing
-			// validation here turns `OMP_PROFILE=.. omp --version` into a clean error;
+			// validation here turns `OMP_PROFILE=.. oyp --version` into a clean error;
 			// calling setProfile keeps every later path helper on the env-selected
 			// profile instead of the default agent directory.
 			setProfile(resolveProfileEnv(process.env.OMP_PROFILE, process.env.PI_PROFILE));

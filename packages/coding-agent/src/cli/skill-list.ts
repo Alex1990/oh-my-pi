@@ -98,7 +98,7 @@ function toTerminalSafe(value: string): string {
  * including discovery warnings.
  */
 export async function handleSkillList(args: string[], cwd: string, json: boolean): Promise<number> {
-	if (args.length > 1) throw new CliUsageError("usage: omp skill list [dir] [--json]");
+	if (args.length > 1) throw new CliUsageError("usage: oyp skill list [dir] [--json]");
 	const target = args[0] ? path.resolve(cwd, args[0]) : cwd;
 	let isDirectory = false;
 	try {

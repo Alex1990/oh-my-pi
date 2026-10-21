@@ -237,13 +237,13 @@ const CHROMIUM_FLATPAK_IDS: Record<string, true> = {
  * Launch argv for a spawned executable. Chrome 136+ silently ignores
  * `--remote-debugging-port` when the default user-data-dir is in use: the
  * browser opens as usual, nothing listens, and attach waits out its timeout.
- * Chromium-family browsers therefore get a stable omp-owned profile under
+ * Chromium-family browsers therefore get a stable oyp-owned profile under
  * `~/.oyp/browser-profiles/<exe slug>` unless the caller already picked one.
  * That profile is also what lets a second instance start beside the user's
  * running default-profile browser instead of handing off to it. Electron apps
  * are left untouched: `--user-data-dir` would relocate their app data.
  *
- * An omp-owned profile also bypasses the OS keystore (`--use-mock-keychain`,
+ * An oyp-owned profile also bypasses the OS keystore (`--use-mock-keychain`,
  * `--password-store=basic`, the same pair puppeteer's launcher sets): Chromium
  * otherwise derives its cookie-encryption key from the login keychain and
  * macOS blocks on a "wants to use your confidential information" dialog for
@@ -447,7 +447,7 @@ const FRAME_READY_TIMEOUT_MS = 8_000;
 const FRAME_READY_POLL_MS = 120;
 const RELAY_JSON_TIMEOUT_MS = 3_000;
 const RELAY_VISIBILITY_TIMEOUT_MS = 1_000;
-// A tab opened outside omp reaches the relay's /json, and gets its URL, a few ms after Chrome reports it created.
+// A tab opened outside oyp reaches the relay's /json, and gets its URL, a few ms after Chrome reports it created.
 const RELAY_MATCH_SETTLE_MS = 2_000;
 const RELAY_MATCH_POLL_MS = 100;
 
@@ -690,7 +690,7 @@ export async function pickElectronTarget(browser: Browser, options: PickTargetOp
 						throwIfAborted(options.signal);
 						if (isPuppeteerTimeout(error)) {
 							throw new ToolError(
-								"Selected tab did not become available before omp could attach; retry, or reopen it if it closed",
+								"Selected tab did not become available before oyp could attach; retry, or reopen it if it closed",
 							);
 						}
 						throw error;

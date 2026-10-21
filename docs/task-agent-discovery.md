@@ -50,11 +50,11 @@ Parsing comes from frontmatter via `parseAgentFields()` (`src/discovery/helpers.
 
 ## Role-backed custom agents
 
-OMP discovers user agents from `~/.omp/agent/agents/*.md` and project agents from `.omp/agents/*.md`.
+OMP discovers user agents from `~/.oyp/agent/agents/*.md` and project agents from `.oyp/agents/*.md`.
 
 Give the agent a role alias in frontmatter, then dispatch it by name. For model routing, task dispatch sets only `agent`; it does not set a worker model:
 
-`~/.omp/agent/agents/reviewer.md`:
+`~/.oyp/agent/agents/reviewer.md`:
 
 ```md
 ---
@@ -66,7 +66,7 @@ model: "@review"
 Review the assigned change and report concrete findings.
 ```
 
-Set the role mapping in `~/.omp/agent/config.yml`:
+Set the role mapping in `~/.oyp/agent/config.yml`:
 
 ```yaml
 modelRoles:
@@ -145,18 +145,18 @@ Because bundled parsing uses `level: "fatal"`, unrecoverable YAML errors or inva
 
 ## Filesystem and plugin discovery
 
-`discoverAgents(cwd, home, extensionRoots?)` (`src/task/discovery.ts`) merges agents from OMP-native roots, OMP extension packages, and Claude marketplace plugin roots before appending bundled definitions. Direct cross-harness roots such as `.claude/agents`, `.codex/agents`, and `.gemini/agents` are intentionally skipped — their frontmatter schema is not the OMP task-agent contract (`TASK_AGENT_CONFIG_SOURCE = ".omp"` filters the native config-dir lists).
+`discoverAgents(cwd, home, extensionRoots?)` (`src/task/discovery.ts`) merges agents from OMP-native roots, OMP extension packages, and Claude marketplace plugin roots before appending bundled definitions. Direct cross-harness roots such as `.claude/agents`, `.codex/agents`, and `.gemini/agents` are intentionally skipped — their frontmatter schema is not the OMP task-agent contract (`TASK_AGENT_CONFIG_SOURCE = ".oyp"` filters the native config-dir lists).
 
 ### Discovery inputs and precedence
 
-1. Nearest project `.omp/agents` dir from `findAllNearestProjectConfigDirs("agents", cwd)` (first `.omp` hit only)
-2. User `.omp/agents` dir from `getConfigDirs("agents", { project: false })` (first `.omp` hit only)
+1. Nearest project `.oyp/agents` dir from `findAllNearestProjectConfigDirs("agents", cwd)` (first `.oyp` hit only)
+2. User `.oyp/agents` dir from `getConfigDirs("agents", { project: false })` (first `.oyp` hit only)
 3. `<extension-root>/agents` for every enabled OMP extension package returned by `listOmpExtensionRoots(...)`, in this order:
    - explicit CLI `--extension` / SDK `additionalExtensionPaths` directory roots
    - the session's effective `extensions:` array, in its configured order
    - installed npm/link plugins
    Project and user `extensions:` arrays are not concatenated: settings use array-replacement precedence. Session overlays/runtime overrides and the configured array's project/user provenance are preserved. In `explicit-only` mode (`--no-extensions` or SDK `disableExtensionDiscovery`), only explicit roots contribute this package surface; file entrypoints have no `agents/` subdirectory to scan.
-4. Claude marketplace plugin roots (`listClaudePluginRoots(home, cwd)`) with `agents/` subdirs — only when `isProviderEnabled("claude-plugins")`; project-scope plugins sort before user-scope. User-scope roots additionally require the `claude-plugins` or `claude` user source to be enabled (`isUserSourceEnabled`: normally via `enabledProviders`, e.g. `["claude-plugins"]`; `claude` is also enabled implicitly when `CLAUDE_CONFIG_DIR` is set), except roots whose origin is not the foreign `~/.claude/plugins` tree (omp's own installs with `origin: "omp"` and `--plugin-dir` roots) — mirroring the skills path's exemption.
+4. Claude marketplace plugin roots (`listClaudePluginRoots(home, cwd)`) with `agents/` subdirs — only when `isProviderEnabled("claude-plugins")`; project-scope plugins sort before user-scope. User-scope roots additionally require the `claude-plugins` or `claude` user source to be enabled (`isUserSourceEnabled`: normally via `enabledProviders`, e.g. `["claude-plugins"]`; `claude` is also enabled implicitly when `CLAUDE_CONFIG_DIR` is set), except roots whose origin is not the foreign `~/.claude/plugins` tree (oyp's own installs with `origin: "oyp"` and `--plugin-dir` roots) — mirroring the skills path's exemption.
 5. Bundled agents (`loadBundledAgents()`)
 
 The OMP extension-package surface is disabled when the `omp-plugins` capability provider is disabled. Marketplace roots are excluded from `listOmpExtensionRoots` and enter only through the separately gated Claude-plugin path.
@@ -173,7 +173,7 @@ Discovery uses first-wins dedup by exact `agent.name`:
 
 Implications:
 
-- Project `.omp` overrides user `.omp`.
+- Project `.oyp` overrides user `.oyp`.
 - Earlier extension roots override later extension roots, Claude marketplace plugins, and bundled agents.
 - Non-bundled agents override bundled agents with the same name.
 - Name matching is case-sensitive (`Task` and `task` are distinct).
@@ -260,7 +260,7 @@ the task/eval wire formats do not expose a tier field or automatic Fast policy.
 Account selection is independent of model and service-tier selection: an exact, case-sensitive
 `task.agentAccountPools[agentName]` entry maps provider ids to OAuth identity keys (the `identityKey`
 values broker [client account pools](./auth-broker-gateway.md#client-account-pools-routing-not-authorization)
-use, such as `email:<address>|org:<id>` for Anthropic; [`omp usage accounts`](./cli-reference.md)
+use, such as `email:<address>|org:<id>` for Anthropic; [`oyp usage accounts`](./cli-reference.md)
 lists them). For each listed provider the child authenticates
 only with those accounts: ranking, the parent's copied account affinity, restored pins, fallback
 passes, credential rotation, and saved-reset restores stay inside the pool, and runtime,

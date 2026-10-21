@@ -49,7 +49,7 @@ export class TranscriptStatusBlock extends TranscriptBlock {
 	override describe(): NativeNode {
 		this.#native ??= col(
 			this.#rows.map(spans => text(spans, { wrap: "word" })),
-			{ role: "omp.status-block" },
+			{ role: "oyp.status-block" },
 		);
 		return this.#native;
 	}

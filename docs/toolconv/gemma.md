@@ -103,7 +103,7 @@ The current weather in Tokyo is 15 degrees Celsius and sunny.<turn|>
 - **Not the Gemini dialect.** Gemma 3's Pythonic prompting uses the convention in [gemini.md](gemini.md); hosted Gemini native tool calls use structured API parts. Neither is this token syntax.
 - **Gemma 3 automatic-selection caveat.** OMP's current family affinity maps Gemma 3 and Gemma 4 model IDs to `gemma`. If a Gemma 3 model is marked `supportsTools: false`, `tools.format=auto` therefore chooses this Gemma 4 grammar even though Gemma 3 requires the Pythonic convention in `gemini.md`; set `tools.format=gemini` explicitly.
 
-## omp / pi converter behavior
+## oyp / pi converter behavior
 
 Set `tools.format` to `gemma` to force this dialect. The default `auto` keeps native tools unless `supportsTools === false`, then uses the model-class affinity. `PI_DIALECT=gemma` is consulted only when the configured dialect resolver returns no owned dialect.
 

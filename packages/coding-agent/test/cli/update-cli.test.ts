@@ -83,15 +83,15 @@ describe("runUpdateCommand version source", () => {
 		"updates a standalone binary from GitHub Releases without asking npm",
 		async () => {
 			const dir = await isolatePath();
-			const ompPath = path.join(dir, "omp");
-			await bun.write(ompPath, "#!/bin/sh\necho omp/1.0.0\n");
-			await fs.chmod(ompPath, 0o755);
-			const next = "#!/bin/sh\necho omp/999.0.0\n";
+			const oypPath = path.join(dir, "oyp");
+			await bun.write(oypPath, "#!/bin/sh\necho oyp/1.0.0\n");
+			await fs.chmod(oypPath, 0o755);
+			const next = "#!/bin/sh\necho oyp/999.0.0\n";
 			const { fileName } = await currentBuildHost();
 			process.env.OMP_RELEASE_API = "https://api.test/repos/o/r";
 			const api = "https://api.test/repos/o/r/releases/latest";
 			const sumsUrl = "https://r2.test/SHA256SUMS.txt";
-			const download = "https://r2.test/omp";
+			const download = "https://r2.test/oyp";
 			const { logs } = quiet();
 			const requests = stubFetch(url => {
 				if (url === api) {
@@ -112,7 +112,7 @@ describe("runUpdateCommand version source", () => {
 			await runUpdateCommand({ force: false, check: false });
 
 			expect(requests.map(request => request.url)).toEqual([api, sumsUrl, download]);
-			expect(await bun.file(ompPath).text()).toBe(next);
+			expect(await bun.file(oypPath).text()).toBe(next);
 			expect(logs.some(line => line.includes("Updated to 999.0.0"))).toBe(true);
 		},
 	);

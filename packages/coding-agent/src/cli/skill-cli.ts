@@ -76,7 +76,7 @@ export interface SkillCommandArgs {
 	};
 }
 
-export const SKILL_USAGE = `Usage: omp skill <action> [...]
+export const SKILL_USAGE = `Usage: oyp skill <action> [...]
 
 Install and discover:
   install [@scope/name[@range]...] [-g] [--yes]   Install skills (no specs: install from skills.json)
@@ -293,7 +293,7 @@ async function handlePublish(cmd: SkillCommandArgs): Promise<number> {
 
 async function handleVersion(cmd: SkillCommandArgs): Promise<number> {
 	const kind = cmd.args[0];
-	if (!kind) throw new CliUsageError("usage: omp skill version <patch|minor|major|x.y.z> [dir]");
+	if (!kind) throw new CliUsageError("usage: oyp skill version <patch|minor|major|x.y.z> [dir]");
 	const version = await bumpVersion(path.resolve(cmd.cwd, cmd.args[1] ?? "."), kind);
 	process.stdout.write(`v${version}\n`);
 	return 0;
@@ -301,7 +301,7 @@ async function handleVersion(cmd: SkillCommandArgs): Promise<number> {
 
 async function handleTag(cmd: SkillCommandArgs): Promise<number> {
 	if (cmd.args[0] === "rm" || cmd.args[0] === "remove") {
-		const usage = "usage: omp skill tag rm <@scope/name> <tag>";
+		const usage = "usage: oyp skill tag rm <@scope/name> <tag>";
 		const spec = specOrThrow(cmd.args[1], usage);
 		const tag = cmd.args[2];
 		if (!tag) throw new CliUsageError(usage);
@@ -310,7 +310,7 @@ async function handleTag(cmd: SkillCommandArgs): Promise<number> {
 		process.stdout.write(`- ${tag}: @${spec.scope}/${spec.name}\n`);
 		return 0;
 	}
-	const usage = "usage: omp skill tag <@scope/name@version> <tag>";
+	const usage = "usage: oyp skill tag <@scope/name@version> <tag>";
 	const spec = specOrThrow(cmd.args[0], usage);
 	const version = exactVersionOrThrow(spec, usage);
 	const tag = cmd.args[1];
@@ -324,7 +324,7 @@ async function handleTag(cmd: SkillCommandArgs): Promise<number> {
 }
 
 async function handleYank(cmd: SkillCommandArgs): Promise<number> {
-	const usage = "usage: omp skill yank <@scope/name@version> [--undo]";
+	const usage = "usage: oyp skill yank <@scope/name@version> [--undo]";
 	const spec = specOrThrow(cmd.args[0], usage);
 	const version = exactVersionOrThrow(spec, usage);
 	const yanked = !cmd.flags.undo;
@@ -334,7 +334,7 @@ async function handleYank(cmd: SkillCommandArgs): Promise<number> {
 }
 
 async function handleDeprecate(cmd: SkillCommandArgs): Promise<number> {
-	const usage = "usage: omp skill deprecate <@scope/name[@range]> <message|--undo>";
+	const usage = "usage: oyp skill deprecate <@scope/name[@range]> <message|--undo>";
 	const spec = specOrThrow(cmd.args[0], usage);
 	const text = cmd.args.slice(1).join(" ").trim();
 	if (cmd.flags.undo && text) throw new CliUsageError(`pass a message or --undo, not both; ${usage}`);
@@ -370,7 +370,7 @@ async function handleDeprecate(cmd: SkillCommandArgs): Promise<number> {
 }
 
 async function handleOwner(cmd: SkillCommandArgs): Promise<number> {
-	const usage = "usage: omp skill owner add|rm <@scope/name> <username>";
+	const usage = "usage: oyp skill owner add|rm <@scope/name> <username>";
 	const op = cmd.args[0];
 	if (op !== "add" && op !== "rm" && op !== "remove") throw new CliUsageError(usage);
 	const spec = specOrThrow(cmd.args[1], usage);
@@ -391,7 +391,7 @@ async function handleOwner(cmd: SkillCommandArgs): Promise<number> {
 async function handleToken(cmd: SkillCommandArgs): Promise<number> {
 	const op = cmd.args[0];
 	if (op === "create") {
-		const usage = "usage: omp skill token create <name> [--package @scope/name]... [--expires days]";
+		const usage = "usage: oyp skill token create <name> [--package @scope/name]... [--expires days]";
 		const name = cmd.args.slice(1).join(" ").trim();
 		if (!name) throw new CliUsageError(usage);
 		const packages = (cmd.flags.package ?? []).map(raw => {
@@ -439,17 +439,17 @@ async function handleToken(cmd: SkillCommandArgs): Promise<number> {
 	}
 	if (op === "revoke" || op === "rm") {
 		const id = cmd.args[1];
-		if (!id) throw new CliUsageError("usage: omp skill token revoke <id>");
+		if (!id) throw new CliUsageError("usage: oyp skill token revoke <id>");
 		await withClient(cmd.flags, false, client => client.revokeToken(id));
 		process.stdout.write(`revoked ${id}\n`);
 		return 0;
 	}
-	throw new CliUsageError("usage: omp skill token create|ls|revoke");
+	throw new CliUsageError("usage: oyp skill token create|ls|revoke");
 }
 
 async function handleImport(cmd: SkillCommandArgs): Promise<number> {
 	const file = cmd.args[0];
-	if (!file) throw new CliUsageError("usage: omp skill import <file.skill>");
+	if (!file) throw new CliUsageError("usage: oyp skill import <file.skill>");
 	const resolved = path.resolve(cmd.cwd, file);
 	let zip: Uint8Array;
 	try {
@@ -493,18 +493,18 @@ async function dispatch(cmd: SkillCommandArgs): Promise<number> {
 		case "update":
 			return updateSkills({ names: args, global: flags.global === true, yes: flags.yes === true, cwd });
 		case "uninstall":
-			if (args.length === 0) throw new CliUsageError("usage: omp skill uninstall <name...> [-g]");
+			if (args.length === 0) throw new CliUsageError("usage: oyp skill uninstall <name...> [-g]");
 			return uninstallSkills({ names: args, global: flags.global === true, cwd });
 		case "search": {
 			const query = args.join(" ").trim();
-			if (!query) throw new CliUsageError("usage: omp skill search <query>");
+			if (!query) throw new CliUsageError("usage: oyp skill search <query>");
 			return searchSkills({ query, sort: flags.sort ?? "relevance", json: flags.json === true });
 		}
 		case "list":
 			return handleSkillList(args, cwd, flags.json === true);
 		case "info": {
 			const spec = args[0];
-			if (!spec) throw new CliUsageError("usage: omp skill info <@scope/name[@version]>");
+			if (!spec) throw new CliUsageError("usage: oyp skill info <@scope/name[@version]>");
 			return showSkillInfo({ spec, json: flags.json === true });
 		}
 	}

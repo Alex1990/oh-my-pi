@@ -87,7 +87,7 @@ export function formatSystemInfo(info: SystemInfo): string {
 		`CPU:     ${info.cpu}`,
 		`Memory:  ${formatBytes(info.memory.total)} (${formatBytes(info.memory.free)} free)`,
 		`Runtime: Node ${info.versions.node}`,
-		`App:     omp ${info.versions.app}`,
+		`App:     oyp ${info.versions.app}`,
 		`CWD:     ${info.cwd}`,
 		`Shell:   ${info.shell}`,
 	];

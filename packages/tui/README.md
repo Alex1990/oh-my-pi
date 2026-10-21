@@ -40,7 +40,7 @@ tui.start();
 
 ## SIXEL transparency and terminal backgrounds
 
-SIXEL has binary transparency, not fractional alpha. omp blends partially
+SIXEL has binary transparency, not fractional alpha. oyp blends partially
 transparent image pixels against the terminal's reported OSC 11 background
 before quantization, preserving antialiased text and translucent details.
 Images with alpha are resized in premultiplied form before background compositing
@@ -59,7 +59,7 @@ scrollback.
 Cached RGB is cleared when terminal ownership starts or ends, so a restarted
 session without an OSC 11 response cannot inherit the previous terminal's RGB.
 If the terminal cannot report its RGB, or an active multiplexer marks background
-queries as unreliable on the current platform, omp approximates the background
+queries as unreliable on the current platform, oyp approximates the background
 with black for detected dark appearance or white for light. Untrusted reports
 do not override the existing appearance fallback. Exact edge-color matching is
 not guaranteed with that fallback, transparent terminal windows, or graphics

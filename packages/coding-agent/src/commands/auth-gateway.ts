@@ -51,7 +51,7 @@ export default class AuthGateway extends Command {
 		"# Print the gateway bearer token (creates one on first run)\n  oyp auth-gateway token",
 		"# Rotate the gateway bearer token\n  oyp auth-gateway token --regenerate",
 		"# Run on loopback without any bearer (anyone on this host can call)\n  oyp auth-gateway serve --no-auth",
-		"# Also admit scoped client tokens listed in a file\n  oyp auth-gateway serve --clients=/etc/omp/gateway-clients.json",
+		"# Also admit scoped client tokens listed in a file\n  oyp auth-gateway serve --clients=/etc/oyp/gateway-clients.json",
 		"# Show local gateway + broker config status\n  oyp auth-gateway status",
 		"# Probe each broker credential to see which one is producing 401s\n  oyp auth-gateway check",
 		"# Same, machine-readable for scripts\n  oyp auth-gateway check --json",
@@ -61,7 +61,7 @@ export default class AuthGateway extends Command {
 	async run(): Promise<void> {
 		const { args, flags } = await this.parse(AuthGateway);
 		if (!args.action) {
-			renderCommandHelp("omp", "auth-gateway", AuthGateway);
+			renderCommandHelp("oyp", "auth-gateway", AuthGateway);
 			return;
 		}
 		const cmd: AuthGatewayCommandArgs = {

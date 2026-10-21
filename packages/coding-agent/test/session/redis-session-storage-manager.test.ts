@@ -191,7 +191,7 @@ describe("SessionManager + RedisSessionStorage", () => {
 		await manager.close();
 
 		// Redis now contains the JSONL — title slot + header + one message entry.
-		const stored = redis.strings.get(`omp:sessions:file:${sessionFilePath}`);
+		const stored = redis.strings.get(`oyp:sessions:file:${sessionFilePath}`);
 		expect(stored).toBeDefined();
 		const lines = (stored as string).trim().split("\n");
 		expect(lines.length).toBeGreaterThanOrEqual(3);
@@ -273,6 +273,6 @@ describe("SessionManager + RedisSessionStorage", () => {
 		await second.close();
 
 		await expect(first.rewriteEntries()).rejects.toBeInstanceOf(SessionWriteConflictError);
-		expect(redis.strings.get(`omp:sessions:file:${sessionFile}`)).toContain("durable Redis peer turn");
+		expect(redis.strings.get(`oyp:sessions:file:${sessionFile}`)).toContain("durable Redis peer turn");
 	});
 });

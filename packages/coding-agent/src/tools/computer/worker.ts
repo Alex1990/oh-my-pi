@@ -591,7 +591,7 @@ async function emitScreenshot(
 	frame: DesktopCapture,
 	options?: ScreenshotOptions,
 ): Promise<ScreenshotResult> {
-	const destination = path.join(os.tmpdir(), `omp-computer-${Snowflake.next()}.png`);
+	const destination = path.join(os.tmpdir(), `oyp-computer-${Snowflake.next()}.png`);
 	await bun.write(destination, frame.data);
 	throwIfAborted(context.signal);
 	const result: ScreenshotResult = {

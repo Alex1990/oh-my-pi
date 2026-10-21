@@ -502,7 +502,7 @@ export class ModelPickerComponent implements Component {
 		// `card` directly: the task-mode tone is a common prop `overlayCard` doesn't take.
 		const node = card(
 			{
-				role: "omp.overlay.model-picker",
+				role: "oyp.overlay.model-picker",
 				head: mode === "task" ? "Switch Task Model" : mode === "selection" ? "Select Model" : "Switch Model",
 				tone: this.#taskMode ? "error" : undefined,
 			},

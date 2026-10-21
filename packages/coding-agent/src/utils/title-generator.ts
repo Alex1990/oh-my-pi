@@ -37,11 +37,11 @@ import { cfgRetryModelFallback } from "../session/settings";
 const TITLE_SYSTEM_PROMPT = prompt.render(titleSystemPrompt);
 const TITLE_MARKER_INSTRUCTION = prompt.render(titleMarkerInstruction);
 
-// Plain π, not the nerd-font `icon.omp` glyph: window/tab titles render in the
+// Plain π, not the nerd-font `icon.oyp` glyph: window/tab titles render in the
 // OS UI font, which has no nerd-font PUA coverage.
 const DEFAULT_TERMINAL_TITLE = "π";
 /** The native tab title without a session name. */
-const NATIVE_TERMINAL_TITLE = "omp";
+const NATIVE_TERMINAL_TITLE = "oyp";
 const TERMINAL_TITLE_CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
 
 interface WindowsConsoleTitleApi {
@@ -669,7 +669,7 @@ export function nerdGlyphsActive(): boolean {
 /** The OSC 1337 user variable Tern reads the session file from. */
 const TERN_SESSION_FILE_VAR = "omp_session_file";
 /**
- * The OSC 1337 user variable telling Tern this omp understands `--restore`, set to
+ * The OSC 1337 user variable telling Tern this oyp understands `--restore`, set to
  * `1` before each session file report: Tern's daemon then relaunches it after a
  * crash with `--restore <file>` instead of `--resume <file>`.
  */
@@ -695,7 +695,7 @@ let reportedCwd: string | undefined;
  * session, resume, cwd switch) and {@link reportTernSession} re-read it and, in
  * Tern, report what changed: the file, so Tern's daemon can relaunch
  * `oyp --resume <file>` after it restarts, and the directory, which Tern names
- * in omp's composer bar.
+ * in oyp's composer bar.
  */
 export function setTerminalSessionSource(source: TerminalSessionSource | undefined): void {
 	sessionSource = source;
@@ -866,7 +866,7 @@ export function buildTerminalTitleWithState(
 }
 
 /**
- * The tab title while a TSP terminal renders: the session name (`omp` before
+ * The tab title while a TSP terminal renders: the session name (`oyp` before
  * there is one) and the branch's pull request. The terminal shows run state
  * itself, so there is no brand or state separator.
  */

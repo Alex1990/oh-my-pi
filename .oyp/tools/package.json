@@ -1,5 +1,5 @@
 {
-	"name": "omp-project-tools",
+	"name": "oyp-project-tools",
 	"private": true,
 	"dependencies": {
 		"@napi-rs/canvas": "^1.0.8",

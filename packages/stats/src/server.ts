@@ -77,7 +77,7 @@ async function getEmbeddedClientFiles(): Promise<Map<string, Blob>> {
 	const archive = decodeEmbeddedClientArchive(embeddedClientArchiveTxt);
 	if (!archive) {
 		throw new Error(
-			"Embedded stats client bundle missing. Rebuild the omp binary or npm bundle with embedded stats assets.",
+			"Embedded stats client bundle missing. Rebuild the oyp binary or npm bundle with embedded stats assets.",
 		);
 	}
 
@@ -480,7 +480,7 @@ function liveEventStream(headers: Record<string, string>, signal: AbortSignal): 
 }
 
 /**
- * Start the HTTP server, reusing a live dashboard or reclaiming a stale omp listener.
+ * Start the HTTP server, reusing a live dashboard or reclaiming a stale oyp listener.
  */
 export interface StatsServerHandle {
 	hostname: string;

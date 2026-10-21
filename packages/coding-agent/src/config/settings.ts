@@ -345,7 +345,7 @@ function settingsGroupOnlyPrefixes(): Readonly<Record<string, true>> {
  * Drop entries from capability-provided project settings whose non-object
  * value would shadow an entire settings group. `.claude/settings.json` is
  * shared with other tools, and a foreign leaf like `"tui": "fullscreen"`
- * deep-merges over omp's `tui` group, silently replacing every `tui.*`
+ * deep-merges over oyp's `tui` group, silently replacing every `tui.*`
  * setting for sessions rooted in that project. Values at schema leaves,
  * unknown keys, and well-formed nested objects pass through unchanged.
  */
@@ -2996,7 +2996,7 @@ export class Settings {
 					!("bankId" in hindsightObj) &&
 					typeof agentName === "string" &&
 					agentName.trim().length > 0 &&
-					agentName !== "omp"
+					agentName !== "oyp"
 				) {
 					hindsightObj.bankId = agentName;
 				}

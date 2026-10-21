@@ -1,5 +1,5 @@
 /**
- * Resolve omp's standalone binaries from GitHub Releases.
+ * Resolve oyp's standalone binaries from GitHub Releases.
  *
  * `oyp update` on a standalone binary install, the binary takeover of a
  * package-manager install, and the startup update check of a compiled binary
@@ -9,14 +9,14 @@
  * - the newest prerelease (`/releases`, canary channel);
  * - one exact tag (`/releases/tags/v<version>`).
  *
- * Every release publishes the platform launchers (`omp-<os>-<arch>`), the
+ * Every release publishes the platform launchers (`oyp-<os>-<arch>`), the
  * shared `cli.js` bundle, and `SHA256SUMS.txt`. The checksum file is the trust
  * anchor: the binary's SHA-256 is read from it rather than from the asset
  * metadata.
  *
  * The repository is `OMP_RELEASE_REPO` ({@link DEFAULT_RELEASE_REPO} when
  * unset). `OMP_RELEASE_API` overrides the API base for tests and mirrors.
- * Requests carry `User-Agent: omp/<version>`.
+ * Requests carry `User-Agent: oyp/<version>`.
  */
 import * as fs from "node:fs";
 import { $env, APP_NAME, isRecord, VERSION } from "@oh-my-pi/pi-utils";
@@ -32,7 +32,7 @@ export type UpdateChannel = "stable" | "canary";
 
 export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
-/** Repository that hosts omp's releases. */
+/** Repository that hosts oyp's releases. */
 export const DEFAULT_RELEASE_REPO = "Alex1990/oh-my-pi";
 
 /** The product name upstream builds are published under. */
@@ -55,7 +55,7 @@ const CHECKSUM_FILE = "SHA256SUMS.txt";
 
 /** Where this host's builds live in a release. */
 export interface BuildHost {
-	/** Release asset name for this host, e.g. `omp-darwin-arm64` or `omp-windows-x64.cmd`. */
+	/** Release asset name for this host, e.g. `oyp-darwin-arm64` or `oyp-windows-x64.cmd`. */
 	fileName: string;
 }
 

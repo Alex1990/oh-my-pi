@@ -39,7 +39,7 @@ import {
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
- * Transport a {@link MnemopiEmbedClient} drives: in an omp process, the
+ * Transport a {@link MnemopiEmbedClient} drives: in an oyp process, the
  * connection to the machine-shared embedding server for one (model, cache
  * dir); inside that server, the IPC channel to its private onnxruntime child.
  */
@@ -181,7 +181,7 @@ export interface MnemopiSubprocessEmbeddingModel {
  * means a hung native runtime (issue #4792) that would otherwise pin whatever
  * awaits the embed — a turn's memory recall or the headless shutdown
  * consolidation — indefinitely (issue #7352). On expiry the embed fails and
- * the (model, cache dir) transport is terminated: an omp process drops its
+ * the (model, cache dir) transport is terminated: an oyp process drops its
  * server connection, and the server SIGKILLs its wedged onnxruntime child, so
  * the next request gets a fresh one.
  */
@@ -192,7 +192,7 @@ const REQUEST_TIMED_OUT = Symbol("mnemopi.embed.timedOut");
 
 /**
  * Correlates `init`/`embed` calls over one transport per (model, cache dir).
- * Transport-agnostic: omp processes run it over shared-server connections
+ * Transport-agnostic: oyp processes run it over shared-server connections
  * ({@link mnemopiEmbedClient}); the shared server runs it over its private
  * onnxruntime child.
  */
@@ -451,7 +451,7 @@ function settle(pending: PendingRequest, reason: string): void {
 /** This process's embedding client; every (model, cache dir) goes through its machine-shared server. */
 export const mnemopiEmbedClient = new MnemopiEmbedClient();
 
-/** Drop this process's server connections; the servers keep serving other omp processes until idle. */
+/** Drop this process's server connections; the servers keep serving other oyp processes until idle. */
 export async function shutdownMnemopiEmbedClient(): Promise<void> {
 	await mnemopiEmbedClient.terminate();
 }

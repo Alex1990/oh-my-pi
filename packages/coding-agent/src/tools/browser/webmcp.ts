@@ -4,7 +4,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 declare module "puppeteer-core" {
 	interface Frame {
-		/** Puppeteer's page-main JavaScript realm, retained by omp's pinned runtime patch. */
+		/** Puppeteer's page-main JavaScript realm, retained by oyp's pinned runtime patch. */
 		mainRealm(): Realm;
 	}
 }

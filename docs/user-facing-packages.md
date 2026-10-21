@@ -4,7 +4,7 @@ This page indexes README-only user-facing package CLIs and features that need ro
 
 ## Root-docs policy
 
-- **Include** root docs coverage for package-local CLIs, extension features, dashboards, and benchmark runners that users can run directly or through `omp`.
+- **Include** root docs coverage for package-local CLIs, extension features, dashboards, and benchmark runners that users can run directly or through `oyp`.
 - **Exclude explicitly** when a package/crate is internal implementation only; point to the architecture doc that owns it.
 - Package READMEs and manifests remain the source of truth for package-local setup and flags; root docs make the feature discoverable and link to exact source paths.
 - Internal Rust crates remain covered by native architecture docs unless promoted as standalone user-facing commands or APIs. The contributor-facing map lives at [`native-crates.md`](./native-crates.md); today every `crates/*` entry is internal to `@oh-my-pi/pi-natives` and the embedded shell, so [`natives-architecture.md`](./natives-architecture.md) and the surrounding native docs own them.
@@ -16,9 +16,9 @@ This page indexes README-only user-facing package CLIs and features that need ro
 Sources: [`python/robomp/README.md`](../python/robomp/README.md), [`python/robomp/pyproject.toml`](../python/robomp/pyproject.toml), [`python/robomp/.env.example`](../python/robomp/.env.example), [`python/robomp/docker-compose.yml`](../python/robomp/docker-compose.yml).
 
 - Python package: `robomp` (Python 3.11 or newer); bin: `robomp`, with `serve`, `triage`, `replay`, `status`, and `cleanup` commands.
-- Feature: self-hosted service that receives GitHub webhooks for allowlisted repositories, classifies issues, resumes an `omp --mode rpc` session per issue, comments or opens a fix PR, and handles follow-up issue and PR conversations. Incoming PR review is enabled by default; the opt-in release sentinel handles failed release CI (`ROBOMP_RELEASE_SENTINEL_ENABLED`, default false).
+- Feature: self-hosted service that receives GitHub webhooks for allowlisted repositories, classifies issues, resumes an `oyp --mode rpc` session per issue, comments or opens a fix PR, and handles follow-up issue and PR conversations. Incoming PR review is enabled by default; the opt-in release sentinel handles failed release CI (`ROBOMP_RELEASE_SENTINEL_ENABLED`, default false).
 - Dashboard/API: FastAPI serves the operator dashboard at `/` alongside health, event, issue, and replay endpoints. The bundled Compose deployment publishes it at `http://localhost:6543/`; `pnpm run robomp:web:dev` runs the dashboard frontend in development, and `pnpm run robomp:web:build` rebuilds its static bundle.
-- Inputs/storage: Compose interpolates `python/robomp/.env` through explicit per-service environment allowlists and mounts `~/.omp/agent/models.container.yml` as agent `models.yml`. Host CLI configuration uses process environment and `.env` relative to cwd. GitHub webhook events feed a SQLite-backed queue; Compose persists the database, workspaces, session transcripts, and logs in the `robomp_data` volume under `/data`.
+- Inputs/storage: Compose interpolates `python/robomp/.env` through explicit per-service environment allowlists and mounts `~/.oyp/agent/models.container.yml` as agent `models.yml`. Host CLI configuration uses process environment and `.env` relative to cwd. GitHub webhook events feed a SQLite-backed queue; Compose persists the database, workspaces, session transcripts, and logs in the `robomp_data` volume under `/data`.
 - Root commands: `pnpm run robomp:install` installs the Python package for host development; `pnpm run robomp:serve` runs it on the host; `pnpm run robomp:build`/`pnpm run robomp:rebuild`, `pnpm run robomp:up`, `pnpm run robomp:down`, `pnpm run robomp:restart`, `pnpm run robomp:logs`, `pnpm run robomp:dev`, and `pnpm run robomp:reset` manage the container deployment.
 - Prerequisites: Docker Compose v2 for the bundled deployment, a host-reachable model gateway matching the container model configuration, a GitHub webhook endpoint, and a bot PAT with write access to every allowlisted repository. The orchestrator requires an HMAC-authenticated `gh-proxy` and refuses to hold `GITHUB_TOKEN`; the bundled two-container deployment passes the PAT only to the sidecar. Host development must likewise keep the PAT out of the orchestrator environment and `.env`.
 
@@ -26,13 +26,13 @@ Sources: [`python/robomp/README.md`](../python/robomp/README.md), [`python/robom
 
 Sources: [`packages/stats/README.md`](../packages/stats/README.md), [`packages/stats/package.json`](../packages/stats/package.json), [`packages/coding-agent/src/cli/stats-cli.ts`](../packages/coding-agent/src/cli/stats-cli.ts).
 
-- Package: `@oh-my-pi/omp-stats`; bin: `omp-stats`; main user path: `omp stats`.
+- Package: `@oh-my-pi/omp-stats`; bin: `omp-stats`; main user path: `oyp stats`.
 - Feature: local observability dashboard for AI usage statistics from session JSONL logs.
-- CLI modes: `omp stats` starts or reuses the dashboard at `http://127.0.0.1:3847`, opens it in the browser, and keeps running. `--port <port>` changes the port; `--host <host>` changes the bind address (loopback by default). `--summary` prints a console summary; `--json` prints JSON and exits. The standalone `omp-stats` uses `--sync` for its summary mode and does not automatically open a browser.
+- CLI modes: `oyp stats` starts or reuses the dashboard at `http://127.0.0.1:3847`, opens it in the browser, and keeps running. `--port <port>` changes the port; `--host <host>` changes the bind address (loopback by default). `--summary` prints a console summary; `--json` prints JSON and exits. The standalone `omp-stats` uses `--sync` for its summary mode and does not automatically open a browser.
 - Programmatic API: exports helpers such as `syncAllSessions()` and `getDashboardStats()` for embedding.
-- Inputs/storage: scans the active profile's session directory recursively, including nested subagent transcripts; stores aggregates in that profile's stats database. Default paths are `~/.omp/agent/sessions/` and `~/.omp/stats.db`; initialized XDG data roots and named profiles change them through the shared directory resolver.
+- Inputs/storage: scans the active profile's session directory recursively, including nested subagent transcripts; stores aggregates in that profile's stats database. Default paths are `~/.oyp/agent/sessions/` and `~/.oyp/stats.db`; initialized XDG data roots and named profiles change them through the shared directory resolver.
 - Outputs: request/token/cost, provider, model, folder, tool, gain, and frustration dashboards. API endpoints include `/api/stats`, `/api/stats/models`, `/api/stats/folders`, `/api/stats/timeseries`, `/api/stats/tools`, `/api/stats/gain`, `/api/status`, `/api/events` (SSE), and `/api/sync` (POST).
-- Side effects/limits: one-shot reports finish ingestion and rollups before printing. The dashboard binds immediately and starts background ingestion when a page connects to its event stream; `Ctrl+C` closes the CLI's stats database and exits. Frustration judging in `omp stats` lazily uses the configured `judge` role (telemetry purpose `stats_frustration`) and can make model calls; standalone `omp-stats` does not supply a judge.
+- Side effects/limits: one-shot reports finish ingestion and rollups before printing. The dashboard binds immediately and starts background ingestion when a page connects to its event stream; `Ctrl+C` closes the CLI's stats database and exits. Frustration judging in `oyp stats` lazily uses the configured `judge` role (telemetry purpose `stats_frustration`) and can make model calls; standalone `omp-stats` does not supply a judge.
 
 ### `packages/omptype` — schema validation library
 
@@ -73,15 +73,15 @@ Sources: [`packages/metaharness/README.md`](../packages/metaharness/README.md), 
 
 Sources: [`packages/browser-relay/README.md`](../packages/browser-relay/README.md), [`packages/browser-relay/package.json`](../packages/browser-relay/package.json), [`packages/coding-agent/src/tools/browser/relay/`](../packages/coding-agent/src/tools/browser/relay/).
 
-- Package: private `@oh-my-pi/browser-relay`; user command: `omp browser-relay`.
-- Setup: run `omp browser-relay install`, load the unpacked extension from
-  `~/.omp/browser-relay/extension`, then opt in per call with `app.relay: true` — or set
+- Package: private `@oh-my-pi/browser-relay`; user command: `oyp browser-relay`.
+- Setup: run `oyp browser-relay install`, load the unpacked extension from
+  `~/.oyp/browser-relay/extension`, then opt in per call with `app.relay: true` — or set
   `browser.relay`, which makes the relay the profile-wide default across projects (scope
   details in the package README).
 - Behavior: the relay auto-starts through the profile-independent global daemon broker; consumers
   across projects hold leases, and the relay stops after the last lease is released. `app.target`
-  borrows a tab by URL/title substring; otherwise omp opens its own background tab, which a URL
-  navigates and close removes. `omp browser-relay --no-group` disables automatic tab grouping.
+  borrows a tab by URL/title substring; otherwise oyp opens its own background tab, which a URL
+  navigates and close removes. `oyp browser-relay --no-group` disables automatic tab grouping.
 - Security/limits: it binds loopback; use `--token` when local processes are untrusted. Chrome
   internal pages, DevTools, Web Store, extension pages, and tabs with DevTools open cannot attach.
 

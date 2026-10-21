@@ -108,7 +108,7 @@ export function parseAuthExport(text: string, source = "credential file"): AuthE
 	if (!isRecord(value)) throw new AuthTransferError(`${source} is not an \`oyp auth export\` document.`);
 	if (value.version !== AUTH_EXPORT_VERSION) {
 		throw new AuthTransferError(
-			`${source} has export version ${JSON.stringify(value.version)}; this omp reads version ${AUTH_EXPORT_VERSION}.`,
+			`${source} has export version ${JSON.stringify(value.version)}; this oyp reads version ${AUTH_EXPORT_VERSION}.`,
 		);
 	}
 	if (!Array.isArray(value.credentials)) throw new AuthTransferError(`${source} has no credentials array.`);
@@ -202,7 +202,7 @@ export default class Auth extends Command {
 		const broker = await resolveAuthBrokerConfig();
 		if (broker) {
 			process.stderr.write(
-				`${chalk.red(`error: omp uses the auth broker at ${broker.url}; credentials live there, not in this machine's agent.db.`)}\n` +
+				`${chalk.red(`error: oyp uses the auth broker at ${broker.url}; credentials live there, not in this machine's agent.db.`)}\n` +
 					"Run this on the broker host, or disable the broker (`oyp config reset auth.broker.url`) first.\n",
 			);
 			process.exitCode = 1;

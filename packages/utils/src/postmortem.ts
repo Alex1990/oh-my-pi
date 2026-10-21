@@ -55,7 +55,7 @@ const CLEANUP_DEADLINE_MS = 10_000;
  * terminates cleanly (#7393). `Symbol.for` so it survives duplicate module
  * instances across bundles/realms.
  */
-export const NATIVE_PROCESS_EXIT = Symbol.for("omp.postmortem.nativeProcessExit");
+export const NATIVE_PROCESS_EXIT = Symbol.for("oyp.postmortem.nativeProcessExit");
 
 type HardExitFn = (code?: number) => never;
 
@@ -438,7 +438,7 @@ export function reportUnsettledEntry(work: Promise<unknown>, describe?: () => st
 // Well-known key marking an error as an *expected* teardown artifact (e.g. a
 // browser run-scope abort at normal run end). `Symbol.for` so the marker
 // survives duplicate module instances across bundles/realms.
-const EXPECTED_CLEANUP = Symbol.for("omp.expectedCleanupError");
+const EXPECTED_CLEANUP = Symbol.for("oyp.expectedCleanupError");
 
 /**
  * Mark an error as expected cleanup fallout so the global fatal handlers

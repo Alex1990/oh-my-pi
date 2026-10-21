@@ -54,11 +54,11 @@ const FILE_IMPORT_ATTRIBUTE = /(\bfrom\s*)(["'])([^"']+)\2(\s+with\s*\{\s*type:\
 /** Bun's `with { type: "text" }` import attribute; esbuild rejects it too. */
 const TEXT_IMPORT_ATTRIBUTE = /(\bfrom\s*)(["'])([^"']+)\2(\s+with\s*\{\s*type:\s*["']text["']\s*\})/g;
 /** Marks an asset specifier for the plugin namespace that emits it as a file. */
-const FILE_ASSET_QUERY = "?omp-file-asset";
-const FILE_ASSET_NAMESPACE = "omp-file-asset";
+const FILE_ASSET_QUERY = "?oyp-file-asset";
+const FILE_ASSET_NAMESPACE = "oyp-file-asset";
 /** Marks a text specifier for the plugin namespace that emits its contents as a string. */
-const TEXT_ASSET_QUERY = "?omp-text-asset";
-const TEXT_ASSET_NAMESPACE = "omp-text-asset";
+const TEXT_ASSET_QUERY = "?oyp-text-asset";
+const TEXT_ASSET_NAMESPACE = "oyp-text-asset";
 
 const SOURCE_LOADER_BY_EXTENSION: Record<string, esbuild.Loader> = {
 	".ts": "ts",
@@ -80,13 +80,13 @@ const SOURCE_LOADER_BY_EXTENSION: Record<string, esbuild.Loader> = {
  */
 function importAttributePlugin(): esbuild.Plugin {
 	return {
-		name: "omp-import-attribute",
+		name: "oyp-import-attribute",
 		setup(build) {
-			build.onResolve({ filter: /\?omp-file-asset$/ }, args => ({
+			build.onResolve({ filter: /\?oyp-file-asset$/ }, args => ({
 				path: path.resolve(args.resolveDir, args.path.slice(0, -FILE_ASSET_QUERY.length)),
 				namespace: FILE_ASSET_NAMESPACE,
 			}));
-			build.onResolve({ filter: /\?omp-text-asset$/ }, args => ({
+			build.onResolve({ filter: /\?oyp-text-asset$/ }, args => ({
 				path: path.resolve(args.resolveDir, args.path.slice(0, -TEXT_ASSET_QUERY.length)),
 				namespace: TEXT_ASSET_NAMESPACE,
 			}));
@@ -171,7 +171,7 @@ export async function build(options: BuildOptions): Promise<BuildOutput> {
 			? { ...options.banner, js: [NODE_ESM_REQUIRE_BANNER, options.banner?.js].filter(Boolean).join("\n") }
 			: options.banner;
 	const scratchOutdir = inMemory
-		? path.join(os.tmpdir(), `omp-build-${process.pid}-${Date.now().toString(36)}`)
+		? path.join(os.tmpdir(), `oyp-build-${process.pid}-${Date.now().toString(36)}`)
 		: options.outdir;
 	try {
 		const result = await esbuild.build({

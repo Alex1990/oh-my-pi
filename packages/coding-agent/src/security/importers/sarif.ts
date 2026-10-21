@@ -316,7 +316,7 @@ export async function importSarif(input: unknown, options: SarifImportOptions): 
 	if (options.sourcePath) scanProvenance.metadata = { sourcePath: options.sourcePath };
 	return parseSecurityScanBundle({
 		scan: {
-			documentType: "omp-security.scan",
+			documentType: "oyp-security.scan",
 			schemaVersion: "1.0",
 			id: scanId,
 			projectKey: encodeSecurityProjectKey(canonicalRoot),

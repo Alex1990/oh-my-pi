@@ -68,7 +68,7 @@ export class DownloadManager {
 	constructor(browser: Browser, page: Page, tabId: string, options: { perTab: boolean }) {
 		this.#browser = browser;
 		this.#page = page;
-		this.#defaultDirectory = path.join(os.tmpdir(), `omp-downloads-${tabId}`);
+		this.#defaultDirectory = path.join(os.tmpdir(), `oyp-downloads-${tabId}`);
 		this.#perTab = options.perTab;
 	}
 

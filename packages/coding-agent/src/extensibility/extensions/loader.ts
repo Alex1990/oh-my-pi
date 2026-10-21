@@ -555,7 +555,7 @@ async function discoverHooksInPackageRoot(root: string): Promise<string[]> {
 /**
  * Discover absolute paths of extensions to load, without importing or
  * binding factories. Hot path on session startup — the scan walks native
- * `.omp`/`.pi` extension capabilities, JS/TS hook factories, the
+ * `.oyp`/`.pi` extension capabilities, JS/TS hook factories, the
  * installed-plugin tree, and any configured paths.
  *
  * The root session imports these paths once and forwards prepared factories to

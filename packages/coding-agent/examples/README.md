@@ -1,6 +1,6 @@
 # Examples
 
-Example code for omp-coding-agent SDK, extensions, hooks, and custom tools.
+Example code for oyp-coding-agent SDK, extensions, hooks, and custom tools.
 
 ## Directories
 

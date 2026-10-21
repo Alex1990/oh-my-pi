@@ -4,7 +4,7 @@ import { hasFsCode, isEacces, isEnoent, isRecord } from "@oh-my-pi/pi-utils";
 
 /** Selected extension files and whether a manifest suppresses convention fallback. */
 export interface ExtensionDirectoryResolution {
-	/** Whether package.json declares a non-empty omp/pi extensions array. */
+	/** Whether package.json declares a non-empty oyp/pi extensions array. */
 	declared: boolean;
 	/** Existing files selected by the authoritative manifest or directory conventions. */
 	files: string[];

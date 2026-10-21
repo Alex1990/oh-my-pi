@@ -132,11 +132,11 @@ interface TabSessionBase<TBrowser extends BrowserHandle = BrowserHandle> {
 export interface WorkerTabSession extends TabSessionBase<PuppeteerBrowserHandle> {
 	backend: "worker";
 	worker: WorkerHandle;
-	/** omp created this page (headless, or a relay open without a target): closing the tab closes it. */
+	/** oyp created this page (headless, or a relay open without a target): closing the tab closes it. */
 	ownsPage: boolean;
 	/**
 	 * The tab's upload staging folder. It outlives the tab's workers, since Chrome reads a picked file only when the page
-	 * does, and goes with the page when omp closes it; a page left open in the user's browser keeps it until the sweep.
+	 * does, and goes with the page when oyp closes it; a page left open in the user's browser keeps it until the sweep.
 	 */
 	uploadDir: string;
 	/** In flight while a worker that exited on its own is replaced; runs wait for it before driving the tab. */
@@ -154,7 +154,7 @@ export interface CmuxTabSession extends TabSessionBase<CmuxBrowserHandle> {
 	cmuxAttachedSurface?: string;
 }
 
-/** A tab shown as a Tern browser picture-in-picture over omp's pane, or the user's browser block it adopted. */
+/** A tab shown as a Tern browser picture-in-picture over oyp's pane, or the user's browser block it adopted. */
 export interface TernTabSession extends TabSessionBase<TernBrowserHandle> {
 	backend: "tern";
 	/** The PiP's driver. */
@@ -628,7 +628,7 @@ async function acquireTabImpl(
 	attachTabWorker(tab, worker);
 	tabs.set(name, tab);
 	sweepClosedTabUploads();
-	// Durably record ownership so another live omp process can reap this page if
+	// Durably record ownership so another live oyp process can reap this page if
 	// this process dies abnormally before its own teardown closes the tab.
 	const scope = sharedScopeOf(browser);
 	if (scope) void recordSharedTarget(scope, info.targetId);
@@ -802,7 +802,7 @@ async function adoptsSameBlock(existing: TernTabSession, opts: AcquireTabOptions
 }
 
 /**
- * Open a Tern browser PiP over omp's pane and configure it before its first
+ * Open a Tern browser PiP over oyp's pane and configure it before its first
  * real navigation (the PiP closes again when anything after `open` fails), or
  * with `opts.target` adopt the user's browser block it names (released again,
  * never closed, on failure and on close).
@@ -1053,7 +1053,7 @@ async function runInTabWithSnapshot(
 			// Bun throws `InvalidStateError` once the worker is gone, which can precede its exit event.
 			if (!(error instanceof DOMException && error.name === "InvalidStateError")) throw error;
 			throw new ToolError(
-				`Tab ${JSON.stringify(name)}'s worker exited before this call reached it; omp reattaches the tab to a new worker, so retry the call.`,
+				`Tab ${JSON.stringify(name)}'s worker exited before this call reached it; oyp reattaches the tab to a new worker, so retry the call.`,
 			);
 		}
 		try {
@@ -1106,7 +1106,7 @@ async function runInTabWithSnapshot(
 				}
 				if (error.reason === USER_CANCELLED_DEBUGGER) {
 					// The relay hides a tab whose debugging bar the user cancelled, so a re-adoption cannot succeed.
-					const cancelled = `${error.message}. The user cancelled Chrome's debugging bar${landed}. omp released the tab; the relay hides it until its URL changes, so navigate it in Chrome, then open it again`;
+					const cancelled = `${error.message}. The user cancelled Chrome's debugging bar${landed}. oyp released the tab; the relay hides it until its URL changes, so navigate it in Chrome, then open it again`;
 					if (tabs.get(name) === tab && tab.state === "alive") await forceKillTab(name, cancelled);
 					if (opts.signal?.aborted) throw new ToolAbortError();
 					throw new ToolError(cancelled);
@@ -1115,7 +1115,7 @@ async function runInTabWithSnapshot(
 				// its loading would cancel a navigation the call itself started. Chrome reports the same reason when the
 				// tab itself closes, so only a re-adoption that worked names another extension's frame as the cause.
 				const detached = `${error.message}. ${DEBUGGER_DETACH_CAUSE}${landed}`;
-				const lost = `${error.message}${landed}. omp could not reattach to the tab, so it was released: either the tab was closed, or ${DEBUGGER_DETACH_REFUSAL}. If the tab is still open, open it again once that frame is gone; if Chrome refused the attach, the relay hides the tab until its URL changes, so navigate it in Chrome first`;
+				const lost = `${error.message}${landed}. oyp could not reattach to the tab, so it was released: either the tab was closed, or ${DEBUGGER_DETACH_REFUSAL}. If the tab is still open, open it again once that frame is gone; if Chrome refused the attach, the relay hides the tab until its URL changes, so navigate it in Chrome first`;
 				const reattached = await recoverWorkerTab(tab, name, opts.timeoutMs, lost, {
 					recover: false,
 					failedReason: lost,
@@ -1125,14 +1125,14 @@ async function runInTabWithSnapshot(
 				if (!reattached) throw new ToolError(lost);
 				if (error.when === "during" || opts.readopted) {
 					throw new ToolError(
-						`${detached}. omp reattached to the same tab on a new worker without reloading it, so the next call works; check the page before repeating this one. ${WORKER_RESETS}.`,
+						`${detached}. oyp reattached to the same tab on a new worker without reloading it, so the next call works; check the page before repeating this one. ${WORKER_RESETS}.`,
 					);
 				}
 				// Nothing ran: run the call on the new worker, within what the re-adoption left of its budget.
 				const remainingMs = Math.floor(opts.timeoutMs - (performance.now() - startedAt));
 				if (remainingMs <= 0) {
 					throw new ToolError(
-						`${detached}. omp reattached to the same tab on a new worker without reloading it, but that used up this call's ${opts.timeoutMs}ms budget, so the call was not run again; repeat it. ${WORKER_RESETS}.`,
+						`${detached}. oyp reattached to the same tab on a new worker without reloading it, but that used up this call's ${opts.timeoutMs}ms budget, so the call was not run again; repeat it. ${WORKER_RESETS}.`,
 					);
 				}
 				// Its pending entry must go first, or the tab reads as busy.
@@ -1144,7 +1144,7 @@ async function runInTabWithSnapshot(
 				);
 				result.displays.unshift({
 					type: "text",
-					text: `Chrome had detached omp from this tab since the last call (${DEBUGGER_DETACH_CAUSE}); omp reattached to the same tab on a new worker, without reloading it, and then ran this call. ${WORKER_RESETS}.`,
+					text: `Chrome had detached oyp from this tab since the last call (${DEBUGGER_DETACH_CAUSE}); oyp reattached to the same tab on a new worker, without reloading it, and then ran this call. ${WORKER_RESETS}.`,
 				});
 				return result;
 			}
@@ -1354,7 +1354,7 @@ async function releaseTabInner(tab: TabSession, name: string, opts: ReleaseTabOp
 		}
 	}
 	await tab.worker.terminate().catch(() => undefined);
-	// omp closes the pages it owns, and with them goes the last reader of their staged uploads.
+	// oyp closes the pages it owns, and with them goes the last reader of their staged uploads.
 	if (tab.ownsPage) await removeUploadStaging(tab.uploadDir);
 	// Close a live tab's owned page by id as well, which confirms it is gone: a worker's own
 	// close can fail and still report `closed` (its CDP socket broke), and the relay retracts a
@@ -1395,14 +1395,14 @@ async function releaseTabInner(tab: TabSession, name: string, opts: ReleaseTabOp
 				// that was never closed, and re-check the browser itself: a
 				// Chromium that stopped answering its CDP endpoint holds every
 				// unclosable target and must be replaced, not left to grow until
-				// the last omp client in the project exits.
+				// the last oyp client in the project exits.
 				recheckSharedBrowser(scope);
 			} else {
 				void forgetSharedTarget(scope, tab.targetId);
 			}
 		} else if (targetCloseFailed) {
 			// Nothing here can retry it; a relay closes a tab of an offline browser once that browser reconnects.
-			logger.warn("Could not confirm a browser tab omp opened was closed; it may still be open", {
+			logger.warn("Could not confirm a browser tab oyp opened was closed; it may still be open", {
 				name,
 				targetId: tab.targetId,
 			});
@@ -1824,7 +1824,7 @@ async function buildInitPayload(browser: PuppeteerBrowserHandle, opts: AcquireTa
 	let page: AttachPage;
 	if (browser.kind.kind === "relay" && !opts.target) {
 		// A relay open without a target gets its own background tab, leaving the user's
-		// selected tab alone, in the browser of the tab omp used last on this relay.
+		// selected tab alone, in the browser of the tab oyp used last on this relay.
 		// Focus emulation keeps it interactive without raising it.
 		page = { kind: "create", nearTargetId: lastUsedTargetOn(browser) };
 	} else {
@@ -2014,7 +2014,7 @@ function attachTabWorker(tab: WorkerTabSession, worker: WorkerHandle): void {
 			.then(reattached => {
 				// No run was in flight to report the reset, so the next call on the tab does.
 				if (reattached && idle) {
-					tab.workerExitNotice = `${exited} since the last call; omp reattached the tab to a new worker on the same page, without reloading it. ${WORKER_RESETS}.`;
+					tab.workerExitNotice = `${exited} since the last call; oyp reattached the tab to a new worker on the same page, without reloading it. ${WORKER_RESETS}.`;
 				}
 				return reattached;
 			})

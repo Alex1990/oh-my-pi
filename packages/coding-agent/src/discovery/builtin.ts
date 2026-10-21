@@ -1,5 +1,5 @@
 /**
- * Builtin Provider (.omp)
+ * Builtin Provider (.oyp)
  *
  * Primary provider for OMP native configs. Supports all capabilities.
  */

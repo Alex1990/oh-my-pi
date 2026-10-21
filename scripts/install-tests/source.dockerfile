@@ -26,9 +26,9 @@ ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN pnpm --dir packages/coding-agent link --global
 
-# The repository manifest points bin.omp at the TypeScript entrypoint, so the
+# The repository manifest points bin.oyp at the TypeScript entrypoint, so the
 # linked command needs Node's type transform and the repo loader.
 ENV NODE_OPTIONS="--experimental-transform-types --import /repo/scripts/node-runtime-loader.mjs"
 
 # Verify
-RUN omp --version
+RUN oyp --version

@@ -1,5 +1,5 @@
 /**
- * omp theme colours → TSP tones. Components that only hold ANSI stylers
+ * oyp theme colours → TSP tones. Components that only hold ANSI stylers
  * (`(text) => string`) sample them with a probe string to recover the theme
  * token behind the escape, then map the token to a card/text tone.
  */
@@ -28,29 +28,29 @@ export interface BackgroundChrome {
 	selected?: boolean;
 }
 
-/** Map an omp background token to card tone/role. */
+/** Map an oyp background token to card tone/role. */
 export function backgroundChrome(bg: ThemeBg | undefined): BackgroundChrome {
 	switch (bg) {
 		case "userMessageBg":
-			return { tone: "user", role: "omp.user" };
+			return { tone: "user", role: "oyp.user" };
 		case "customMessageBg":
-			return { tone: "info", role: "omp.custom" };
+			return { tone: "info", role: "oyp.custom" };
 		case "toolPendingBg":
-			return { tone: "pending", role: "omp.tool" };
+			return { tone: "pending", role: "oyp.tool" };
 		case "toolSuccessBg":
-			return { tone: "success", role: "omp.tool" };
+			return { tone: "success", role: "oyp.tool" };
 		case "toolErrorBg":
-			return { tone: "error", role: "omp.tool" };
+			return { tone: "error", role: "oyp.tool" };
 		case "selectedBg":
 			return { tone: "accent", selected: true };
 		case "statusLineBg":
-			return { tone: "neutral", role: "omp.status" };
+			return { tone: "neutral", role: "oyp.status" };
 		default:
 			return {};
 	}
 }
 
-/** The omp theme colour an ANSI renderer draws a TSP tone with (the inverse of {@link colorTone}). */
+/** The oyp theme colour an ANSI renderer draws a TSP tone with (the inverse of {@link colorTone}). */
 export function toneColor(tone: TspTone): ThemeColor {
 	switch (tone) {
 		case "neutral":
@@ -73,7 +73,7 @@ export function toneColor(tone: TspTone): ThemeColor {
 }
 
 /**
- * Tone of an omp colour used as a severity or border colour; undefined for
+ * Tone of an oyp colour used as a severity or border colour; undefined for
  * colours that carry no tone (callers pick their own fallback).
  */
 export function colorTone(color: ThemeColor | undefined): TspTone | undefined {

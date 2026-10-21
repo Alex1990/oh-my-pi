@@ -1,8 +1,8 @@
 /**
- * Cross-process contract between omp processes and the broker-supervised IDA host daemon.
+ * Cross-process contract between oyp processes and the broker-supervised IDA host daemon.
  *
  * Each open database runs in one daemon named {@link idaDaemonName} under the project's daemon
- * broker (so it shows up in `oyp ps`). The daemon is an omp worker (`host.ts`) that owns the
+ * broker (so it shows up in `oyp ps`). The daemon is an oyp worker (`host.ts`) that owns the
  * IDB lock and one Python worker, and serves NDJSON requests on {@link idaHostEndpoint}.
  */
 import { ipcEndpoint } from "@oh-my-pi/pi-natives";
@@ -14,7 +14,7 @@ export { IDA_HOST_WORKER_ARG } from "../cli/worker-selectors";
 export const IDA_HOST_CONFIG_ENV = "OMP_IDA_HOST_CONFIG";
 
 /** Name prefix of every IDA daemon in a broker scope. */
-export const IDA_DAEMON_PREFIX = "omp.ida.";
+export const IDA_DAEMON_PREFIX = "oyp.ida.";
 
 /** Broker daemon names are capped at 48 characters (`broker.ts`). */
 const DAEMON_NAME_MAX = 48;
@@ -51,7 +51,7 @@ export function idaHostEndpoint(runtimeDir: string, daemonName: string): string 
 	return ipcEndpoint(runtimeDir, `ida-${hash16(daemonName)}`);
 }
 
-/** RPC methods an omp process may forward to the worker through `call`. */
+/** RPC methods an oyp process may forward to the worker through `call`. */
 export const IDA_CALL_METHODS = ["view", "exec", "rename", "comment", "set_type", "make_function", "save"] as const;
 
 /** A method forwarded with `call`. */
@@ -117,7 +117,7 @@ const hostStatusSchema = type({
 
 /**
  * A host's database as reported by `open`/`status`. `busy` counts queued and running requests
- * from every omp process; `lastUsed` drives LRU eviction; `dirty` means a close would save.
+ * from every oyp process; `lastUsed` drives LRU eviction; `dirty` means a close would save.
  */
 export type IdaHostStatus = typeof hostStatusSchema.infer;
 
@@ -142,7 +142,7 @@ const hostConfigSchema = type({
 	idleCloseMs: "number",
 });
 
-/** Everything the host needs to open its database; built by the omp process that starts it. */
+/** Everything the host needs to open its database; built by the oyp process that starts it. */
 export type IdaHostConfig = typeof hostConfigSchema.infer;
 
 /** Decode the host config from {@link IDA_HOST_CONFIG_ENV}; throws on a malformed value. */

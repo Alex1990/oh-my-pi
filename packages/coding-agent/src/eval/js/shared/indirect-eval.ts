@@ -25,7 +25,7 @@ export function indirectEval(source: string, filename?: string): unknown {
 	// giving dynamic `import()` a module loader. Plain eval cannot: V8 rejects
 	// `import()` there with "A dynamic import callback was not specified".
 	return runInThisContext(withPragma, {
-		filename: filename ?? "omp-eval",
+		filename: filename ?? "oyp-eval",
 		importModuleDynamically: USE_MAIN_CONTEXT_DEFAULT_LOADER,
 	});
 }

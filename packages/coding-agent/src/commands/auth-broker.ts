@@ -1,5 +1,5 @@
 /**
- * `oyp auth-broker` — manage the omp credential vault.
+ * `oyp auth-broker` — manage the oyp credential vault.
  */
 
 import { Args, Command, Flags, renderCommandHelp } from "@oh-my-pi/pi-utils/cli";
@@ -76,7 +76,7 @@ export default class AuthBroker extends Command {
 	async run(): Promise<void> {
 		const { args, flags } = await this.parse(AuthBroker);
 		if (!args.action) {
-			renderCommandHelp("omp", "auth-broker", AuthBroker);
+			renderCommandHelp("oyp", "auth-broker", AuthBroker);
 			return;
 		}
 		const action = args.action as AuthBrokerAction;

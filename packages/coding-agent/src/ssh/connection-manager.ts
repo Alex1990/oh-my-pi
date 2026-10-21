@@ -84,7 +84,7 @@ export function sshControlFallbackDir(canonicalDir: string, uid: number, tmpBase
 		.digest("hex")
 		.slice(0, 20);
 	// Only ControlMaster (POSIX) platforms reach this, so the socket dir is a POSIX path.
-	return path.posix.join(tmpBase, `omp-${key}`);
+	return path.posix.join(tmpBase, `oyp-${key}`);
 }
 
 interface ControlDirChoice {
@@ -186,10 +186,10 @@ async function validateKeyPermissions(keyPath?: string, platform: SshPlatform = 
 }
 
 /**
- * Who owns the ControlPath socket for a host: omp's private control directory,
+ * Who owns the ControlPath socket for a host: oyp's private control directory,
  * or the user's ssh_config (see {@link resolveControlPathOwner}).
  */
-type ControlPathOwner = "omp" | "config";
+type ControlPathOwner = "oyp" | "config";
 
 function buildCommonArgs(host: SSHConnectionTarget, owner: ControlPathOwner, options?: SSHArgsOptions): string[] {
 	const args = options?.allowStdin ? [] : ["-n"];
@@ -197,7 +197,7 @@ function buildCommonArgs(host: SSHConnectionTarget, owner: ControlPathOwner, opt
 	if (supportsSshControlMaster(options?.platform)) {
 		args.push("-o", "ControlMaster=auto");
 		// A config-owned socket keeps the user's ControlPath and ControlPersist.
-		if (owner === "omp") args.push("-o", `ControlPath=${CONTROL_PATH}`, "-o", "ControlPersist=3600");
+		if (owner === "oyp") args.push("-o", `ControlPath=${CONTROL_PATH}`, "-o", "ControlPersist=3600");
 	}
 
 	args.push("-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new");
@@ -273,15 +273,15 @@ const controlPathOwners = new Map<string, Promise<ControlPathOwner>>();
  * Decide whose ControlPath socket `host` uses.
  *
  * When the user's ssh_config resolves a `ControlPath` (`ssh -G` reports one
- * other than `none`), omp defers to it instead of injecting its own, so a
+ * other than `none`), oyp defers to it instead of injecting its own, so a
  * master the user already authenticated — e.g. interactively on an MFA host
- * that `BatchMode=yes` can never reach — serves omp too (#15974). Cached per
- * destination for the process lifetime; a failed lookup keeps omp's socket.
+ * that `BatchMode=yes` can never reach — serves oyp too (#15974). Cached per
+ * destination for the process lifetime; a failed lookup keeps oyp's socket.
  *
  * Throws when the username or host would be parsed as an ssh option.
  */
 function resolveControlPathOwner(host: SSHConnectionTarget, platform?: SshPlatform): Promise<ControlPathOwner> {
-	if (!supportsSshControlMaster(platform)) return Promise.resolve("omp");
+	if (!supportsSshControlMaster(platform)) return Promise.resolve("oyp");
 	const target = buildSshTarget(host.username, host.host);
 	const key = `${target}:${host.port ?? ""}`;
 	let owner = controlPathOwners.get(key);
@@ -297,18 +297,18 @@ async function lookupControlPathOwner(target: string, port?: number): Promise<Co
 	try {
 		const { exitCode, stdout, stderr } = await runSshCaptureSync(args);
 		if (exitCode !== 0) {
-			logger.debug("ssh -G failed; using omp ControlPath", { target, error: stderr });
-			return "omp";
+			logger.debug("ssh -G failed; using oyp ControlPath", { target, error: stderr });
+			return "oyp";
 		}
 		for (const line of stdout.split("\n")) {
 			if (!line.startsWith("controlpath ")) continue;
 			const value = line.slice("controlpath ".length).trim();
-			return value && value !== "none" ? "config" : "omp";
+			return value && value !== "none" ? "config" : "oyp";
 		}
-		return "omp";
+		return "oyp";
 	} catch (err) {
-		logger.debug("ssh -G failed; using omp ControlPath", { target, error: String(err) });
-		return "omp";
+		logger.debug("ssh -G failed; using oyp ControlPath", { target, error: String(err) });
+		return "oyp";
 	}
 }
 
@@ -770,7 +770,7 @@ export async function ensureConnection(host: SSHConnectionTarget): Promise<void>
 		const commonArgs = buildCommonArgs(host, owner);
 		const check = await runSshSync(["-O", "check", ...commonArgs, target]);
 		if (check.exitCode === 0 || owner === "config") {
-			// Only omp-owned sockets need an explicit master. Configured sockets
+			// Only oyp-owned sockets need an explicit master. Configured sockets
 			// use ssh_config's normal connection and ControlPersist policy.
 			activeHosts.set(key, host);
 			if (!hostInfoCache.has(key) && !(await loadHostInfoFromDisk(host))) {
@@ -823,7 +823,7 @@ async function closeConnectionInternal(host: SSHConnectionTarget): Promise<void>
 	const target = buildSshTarget(host.username, host.host);
 	const owner = await resolveControlPathOwner(host);
 	// Configured sockets may have been replaced by a user's master since the
-	// last check. Never exit a socket that omp doesn't own.
+	// last check. Never exit a socket that oyp doesn't own.
 	if (owner === "config") return;
 	await runSshSync(["-O", "exit", ...buildCommonArgs(host, owner), target]);
 }

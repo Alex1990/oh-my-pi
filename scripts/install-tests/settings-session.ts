@@ -12,7 +12,7 @@ assert(
 	cli.length > 0,
 	"Usage: node --experimental-transform-types scripts/install-tests/settings-session.ts <cli> [cli entrypoint]",
 );
-const work = await fs.mkdtemp(path.join(os.tmpdir(), "omp-settings-session-"));
+const work = await fs.mkdtemp(path.join(os.tmpdir(), "oyp-settings-session-"));
 const cwd = path.join(work, "project");
 const agentDir = path.join(work, "agent");
 const extensionPath = path.join(work, "probe.mjs");

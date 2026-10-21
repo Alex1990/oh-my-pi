@@ -240,12 +240,12 @@ describe("job renderer task-result preview", () => {
 			};
 			const view = waitToolRenderer.describeResult!(result, { expanded: true, isPartial });
 			const [strip, agent] = view!.body!;
-			expect(strip).toMatchObject({ k: "row", p: { role: "omp.job.tiles" } });
+			expect(strip).toMatchObject({ k: "row", p: { role: "oyp.job.tiles" } });
 			const [running] = (strip as NativeNode).c ?? [];
-			expect(byRole(running, "omp.job.tile.dot")?.p).toMatchObject({
+			expect(byRole(running, "oyp.job.tile.dot")?.p).toMatchObject({
 				spans: [isPartial ? { t: "●", fx: "pulse" } : { t: "●" }],
 			});
-			expect(flatten(byRole(running, "omp.job.tile.head")?.c).find(node => node.k === "elapsed")).toMatchObject({
+			expect(flatten(byRole(running, "oyp.job.tile.head")?.c).find(node => node.k === "elapsed")).toMatchObject({
 				p: isPartial ? { age: 1200 } : { age: 1200, stopped: 1200 },
 			});
 			expect(agent).toMatchObject({
@@ -283,9 +283,9 @@ describe("job renderer task-result preview", () => {
 				},
 			};
 			const view = waitToolRenderer.describeResult!(result, { expanded: true, isPartial: false });
-			const tile = byRole(view!.body![0], "omp.job.tile");
+			const tile = byRole(view!.body![0], "oyp.job.tile");
 			expect(tile).toMatchObject({ k: "col", p: { tone: "error" } });
-			expect(byRole(tile, "omp.job.tile.lead")?.p).toMatchObject({ spans: [{ t: "exit 1", s: "error" }] });
+			expect(byRole(tile, "oyp.job.tile.lead")?.p).toMatchObject({ spans: [{ t: "exit 1", s: "error" }] });
 			const json = JSON.stringify(view);
 			expect(json).toContain("hyperfine --runs 30 bench");
 			expect(json).not.toContain("Benchmark 1");
@@ -363,12 +363,12 @@ describe("job renderer task-result preview", () => {
 			});
 			const [strip] = view!.body! as NativeNode[];
 			const tiles = (strip!.c ?? []) as NativeNode[];
-			expect(tiles.map(tile => byRole(tile, "omp.job.tile.title")?.p)).toMatchObject([
+			expect(tiles.map(tile => byRole(tile, "oyp.job.tile.title")?.p)).toMatchObject([
 				{ spans: [{ t: "Bencher" }] },
 				{ spans: [{ t: "verb-bench · decode throughput" }] },
 			]);
 			const bench = tiles[1]!;
-			expect(byRole(bench, "omp.job.tile.chart")).toBeDefined();
+			expect(byRole(bench, "oyp.job.tile.chart")).toBeDefined();
 			expect(JSON.stringify(tiles[0])).toContain("profiling the decode loop");
 		});
 

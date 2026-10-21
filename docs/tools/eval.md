@@ -133,7 +133,7 @@ With `eval.autoBackground.enabled` (default `false`), a cell that outlives `eval
 
 - Retained kernels are keyed by `python:${sessionId}`, normalized cwd, and interpreter. `python.kernelMode="per-call"` instead creates and shuts down a fresh kernel for each invocation.
 - The runner uses one persistent asyncio event loop, so top-level `await` works; `asyncio.run(...)` is invalid there.
-- The runner replaces `builtins.print` for stdout: printed images (omp image dicts, matplotlib figures, PIL images, `_repr_png_`/`_repr_jpeg_` objects) attach as images, and DataFrames/Series, Markdown objects, and large dicts/lists/tuples add views. A non-`None` trailing expression prints its `repr` the same way.
+- The runner replaces `builtins.print` for stdout: printed images (oyp image dicts, matplotlib figures, PIL images, `_repr_png_`/`_repr_jpeg_` objects) attach as images, and DataFrames/Series, Markdown objects, and large dicts/lists/tuples add views. A non-`None` trailing expression prints its `repr` the same way.
 - Interactive stdin is rejected with `Kernel requested stdin; interactive input is not supported.`
 - Synchronous blocks use the default executor with copied ContextVars; Python bytecode still contends on the GIL.
 

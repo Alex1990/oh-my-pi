@@ -19,7 +19,7 @@ Primary implementation:
 ## Startup
 
 ```bash
-omp --mode rpc [regular CLI options]
+oyp --mode rpc [regular CLI options]
 ```
 
 Behavior notes:
@@ -1266,7 +1266,7 @@ Presentation methods and `open_url` are fire-and-forget and require no response.
 
 If a dialog has a timeout, RPC mode resolves to a default value when timeout/abort fires, and emits
 `{ method: "cancel", targetId }` so the host closes the dialog; a later answer to it is ignored. For `ask`, a timeout
-(omp's timer or a host `cancelled: true, timedOut: true` reply) answers every question with its recommended
+(oyp's timer or a host `cancelled: true, timedOut: true` reply) answers every question with its recommended
 option, else its first.
 
 `answers` must list one entry per question in request order, with each `id` equal to that question's `id`.
@@ -1642,4 +1642,4 @@ with RpcClient(provider="anthropic", model="claude-sonnet-4-5") as client:
     print(turn.require_assistant_text())
 ```
 
-By default, `RpcClient` starts `omp --mode rpc`; pass `command=[...]` to own the exact child command. It handles request correlation, typed notifications, v2 negotiation and chunk reassembly, message pagination, extension UI (including the opt-in `ask` dialog), and host-owned tools and URI schemes. Its command methods and `on_<frame type>` listeners are generated from the wire schema, so it wraps every command above; the `messageUpdates: "delta"` projection stays raw-protocol only. The Python package owns that client API and process lifecycle; this document and `rpc-types.ts` remain the canonical wire contract. Use raw protocol frames when a client library does not wrap the surface you need.
+By default, `RpcClient` starts `oyp --mode rpc`; pass `command=[...]` to own the exact child command. It handles request correlation, typed notifications, v2 negotiation and chunk reassembly, message pagination, extension UI (including the opt-in `ask` dialog), and host-owned tools and URI schemes. Its command methods and `on_<frame type>` listeners are generated from the wire schema, so it wraps every command above; the `messageUpdates: "delta"` projection stays raw-protocol only. The Python package owns that client API and process lifecycle; this document and `rpc-types.ts` remain the canonical wire contract. Use raw protocol frames when a client library does not wrap the surface you need.

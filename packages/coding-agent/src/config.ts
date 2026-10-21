@@ -51,8 +51,8 @@ export function walkUpForPackageDir(startDir: string): string | undefined {
  *
  * Callers MUST treat `undefined` as "no package assets available" and skip the
  * lookup. NEVER fall back to the user's `cwd` here: that conflates the host
- * project with omp's own assets and was the source of issue #1423 (the host
- * project's `CHANGELOG.md` rendered as omp's startup changelog).
+ * project with oyp's own assets and was the source of issue #1423 (the host
+ * project's `CHANGELOG.md` rendered as oyp's startup changelog).
  */
 export function getPackageDir(): string | undefined {
 	const envDir = process.env.PI_PACKAGE_DIR;
@@ -63,7 +63,7 @@ export function getPackageDir(): string | undefined {
 }
 
 /**
- * Path to omp's own `CHANGELOG.md`, or `undefined` when the package directory
+ * Path to oyp's own `CHANGELOG.md`, or `undefined` when the package directory
  * cannot be resolved (e.g. inside `bun --compile` binaries that don't bundle
  * package assets). Callers MUST skip changelog parsing when this is undefined;
  * see issue #1423.
@@ -79,7 +79,7 @@ export function getChangelogPath(): string | undefined {
 
 /**
  * User-level: ~/.oyp/agent, Claude's active config directory, ~/.codex, ~/.gemini
- * Project-level: .omp, .claude, .codex, .gemini
+ * Project-level: .oyp, .claude, .codex, .gemini
  */
 const USER_CONFIG_BASES = priorityList.map(({ dir, globalAgentDir }) => ({
 	base: () =>
@@ -94,7 +94,7 @@ const PROJECT_CONFIG_BASES = priorityList.map(({ dir }) => ({
 
 export interface ConfigDirEntry {
 	path: string;
-	source: string; // e.g., ".omp", ".claude"
+	source: string; // e.g., ".oyp", ".claude"
 	level: "user" | "project";
 }
 
@@ -119,7 +119,7 @@ export interface GetConfigDirsOptions {
  * @example
  * // Get all command directories
  * getConfigDirs("commands")
- * // → [{ path: "~/.oyp/agent/commands", source: ".omp", level: "user" }, ...]
+ * // → [{ path: "~/.oyp/agent/commands", source: ".oyp", level: "user" }, ...]
  *
  * @example
  * // Get only existing project skill directories
@@ -212,7 +212,7 @@ export function findConfigFileWithMeta(
 
 /**
  * Find all nearest config directories by walking up from cwd.
- * Returns one entry per config base (.omp, .claude) - the nearest one found.
+ * Returns one entry per config base (.oyp, .claude) - the nearest one found.
  * Results are in priority order (highest first).
  */
 export function findAllNearestProjectConfigDirs(subpath: string, cwd: string = getProjectDir()): ConfigDirEntry[] {

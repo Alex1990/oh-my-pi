@@ -32,7 +32,7 @@ export type WorkingRowVariant =
 	  }
 	| { readonly kind: "compaction" };
 
-/** What the dock's working row (§8.1, role `omp.working`) shows. */
+/** What the dock's working row (§8.1, role `oyp.working`) shows. */
 export interface WorkingRowSpec {
 	/** The intent, or the variant's label ("Retrying · attempt 1 of 3", "Compacting context…"). */
 	readonly label: string;
@@ -64,8 +64,8 @@ export function describeWorkingRow(spec: WorkingRowSpec, cx: DescribeContext, no
 	const label = describeShimmer([{ text: spec.label, palette: spec.palette }], "label");
 	children.push(
 		keyed(elapsed(now - spec.startedAt), "elapsed"),
-		node("text", { text: "·", role: "omp.working.sep" }, undefined, "sep"),
-		node(label.k, { ...label.p, role: "omp.working.label" } as TspProps, label.c, label.key),
+		node("text", { text: "·", role: "oyp.working.sep" }, undefined, "sep"),
+		node(label.k, { ...label.p, role: "oyp.working.label" } as TspProps, label.c, label.key),
 		node("row", { grow: 1 }, undefined, "fill"),
 	);
 	if (variant?.kind === "compaction") children.push(node("progress", { value: null }, undefined, "progress"));
@@ -75,7 +75,7 @@ export function describeWorkingRow(spec: WorkingRowSpec, cx: DescribeContext, no
 			node(
 				"row",
 				{
-					role: "omp.working.stop",
+					role: "oyp.working.stop",
 					gap: "xs",
 					align: "center",
 					title: `${verb}  ${formatTooltipKey(spec.interruptKey)}`,
@@ -86,7 +86,7 @@ export function describeWorkingRow(spec: WorkingRowSpec, cx: DescribeContext, no
 			),
 		);
 	}
-	return row(children, { role: "omp.working", align: "center", gap: "sm" });
+	return row(children, { role: "oyp.working", align: "center", gap: "sm" });
 }
 
 type ColorFn = (str: string) => string;
@@ -245,7 +245,7 @@ export class Loader extends Text {
 			: node("text", { spans: [span(message, "muted")] }, undefined, "message");
 		const children: NativeChild[] = [row([indicator, label], { gap: "sm", align: "baseline" })];
 		if (trailer) children.push(text(trailer, { wrap: "none", truncate: "end" }));
-		const described = row(children, { justify: "between", role: "omp.loader" });
+		const described = row(children, { justify: "between", role: "oyp.loader" });
 		this.#native = { message, trailer, shimmer, node: described };
 		return described;
 	}
@@ -291,7 +291,7 @@ export class Loader extends Text {
 		return described;
 	}
 
-	/** A TSP terminal clocks the spinner and timer, but a retry ring's fill is omp's: repaint it while counting down. */
+	/** A TSP terminal clocks the spinner and timer, but a retry ring's fill is oyp's: repaint it while counting down. */
 	#startNativeCountdown(): void {
 		if (this.#nativeTimer || !isNativeRendering() || this.#working?.spec().variant?.kind !== "retry") return;
 		this.#nativeTimer = setInterval(() => this.#requestPaint(), RETRY_METER_REPAINT_MS);

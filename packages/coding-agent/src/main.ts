@@ -244,7 +244,7 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 		return;
 	}
 	try {
-		// Checkouts update through git and a manager (Tern) updates its omp itself:
+		// Checkouts update through git and a manager (Tern) updates its oyp itself:
 		// "run oyp update" would be wrong advice for both.
 		if (isSourceCheckout() || (await managedInstallName(process.execPath))) return;
 		const channel = cfgUpdateChannel.get(settings);
@@ -935,7 +935,7 @@ async function openRelocatedSession(
 		// Its directory is gone, so it cannot be resumed in place either.
 		throw new SessionResolutionError(
 			err.message,
-			"Close the session in the other omp process, then resume it again.",
+			"Close the session in the other oyp process, then resume it again.",
 		);
 	}
 }
@@ -1205,7 +1205,7 @@ export function normalizeContinueSessionArgs(parsed: Args, rawArgs?: readonly st
 	parsed.messages.splice(messageIndex, 1);
 }
 const SESSION_NOT_FOUND_HINT =
-	"Run `oyp --resume` without an argument to pick from recent sessions, or `omp` to start a new one.";
+	"Run `oyp --resume` without an argument to pick from recent sessions, or `oyp` to start a new one.";
 
 function validateSessionPersistenceArgs(parsed: Pick<Args, "continue" | "noSession" | "resume">): void {
 	if (!parsed.noSession) return;

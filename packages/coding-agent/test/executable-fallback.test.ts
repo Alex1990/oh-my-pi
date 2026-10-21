@@ -58,7 +58,7 @@ describe("executable fallback on unlinked binary", () => {
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return otherOmpInPath;
+			if (cmd === "oyp") return otherOmpInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -75,13 +75,13 @@ describe("executable fallback on unlinked binary", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
 		const missingPath = "/opt/homebrew/Cellar/omp/18.1.8/bin/omp";
 		const originalLauncher = "/opt/homebrew/bin/omp";
-		const otherOmpInPath = "/usr/local/bin/omp";
+		const otherOmpInPath = "/usr/local/bin/oyp";
 
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return otherOmpInPath;
+			if (cmd === "oyp") return otherOmpInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -127,7 +127,7 @@ describe("executable fallback on unlinked binary", () => {
 		resolveExecutablePath();
 
 		// Should not pass "C:omp" to which as a bare name; only "omp" generic fallback is queried
-		expect(whichCalledWith).toBe("omp");
+		expect(whichCalledWith).toBe("oyp");
 	});
 
 	it("falls back to $which('omp') when original execPath was unlinked and argv0 has no path", () => {
@@ -136,9 +136,9 @@ describe("executable fallback on unlinked binary", () => {
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", "omp");
 
-		const mockUpgradedPath = "/opt/homebrew/bin/omp";
+		const mockUpgradedPath = "/opt/homebrew/bin/oyp";
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return mockUpgradedPath;
+			if (cmd === "oyp") return mockUpgradedPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {

@@ -269,13 +269,13 @@ export function formatJobWidgetGlance(view: JobWidgetView, theme: Theme, cells =
 // =============================================================================
 
 /**
- * A job's whole widget as a TSP subtree (role `omp.job.widget`), as the jobs
+ * A job's whole widget as a TSP subtree (role `oyp.job.widget`), as the jobs
  * sheet details it: a head row (title, stage, headline) over every block.
  */
 export function describeJobWidget(view: JobWidgetView): NativeNode {
 	return col(
 		[describeHead(view), ...view.blocks.map((block, index) => keyed(describeBlock(block), `${index}-${block.kind}`))],
-		{ role: "omp.job.widget", gap: "xs" },
+		{ role: "oyp.job.widget", gap: "xs" },
 	);
 }
 
@@ -301,12 +301,12 @@ export function describeJobWidgetsHovercard(entries: readonly JobWidgetEntry[]):
 	if (rest > 0) {
 		children.push(
 			text([span(`+${rest} more ${rest === 1 ? "job" : "jobs"} · /jobs`, "dim")], {
-				role: "omp.jobs.hovercard.more",
+				role: "oyp.jobs.hovercard.more",
 				wrap: "none",
 			}),
 		);
 	}
-	return propNode(col(children, { role: "omp.jobs.hovercard", gap: "md" }));
+	return propNode(col(children, { role: "oyp.jobs.hovercard", gap: "md" }));
 }
 
 /** The HUD's mini chart: the newest values of the widget's first spark; undefined without one. */
@@ -314,7 +314,7 @@ export function describeJobWidgetMiniSpark(view: JobWidgetView): NativeNode | un
 	const spark = jobWidgetSpark(view);
 	if (!spark) return undefined;
 	return node("chart", {
-		role: "omp.hud.spark",
+		role: "oyp.hud.spark",
 		kind: "spark",
 		size: "sm",
 		series: spark.values.map(value => ({ value })),
@@ -371,18 +371,18 @@ const TILE_TONE: Record<JobTileStatus, TspTone> = {
 const FIGURE_NUMBER = /^([-+]?(?:\d[\d,]*(?:\.\d+)?|\.\d+)[kKMGT]?%?)(?:\s+|(?=\/)|$)(.*)$/;
 
 /**
- * Jobs as one frame of equal tiles (role `omp.job.tiles`) that wraps onto
+ * Jobs as one frame of equal tiles (role `oyp.job.tiles`) that wraps onto
  * more rows when the frame runs out of width.
  */
 export function describeJobTiles(tiles: readonly JobTile[]): NativeNode {
 	return row(
 		tiles.map(tile => keyed(describeJobTile(tile), stableKey(tile.id))),
-		{ role: "omp.job.tiles", gap: "none", wrap: true },
+		{ role: "oyp.job.tiles", gap: "none", wrap: true },
 	);
 }
 
 /**
- * One job as a tile (role `omp.job.tile`): a head line (status, name, id,
+ * One job as a tile (role `oyp.job.tile`): a head line (status, name, id,
  * a task's own completion estimate as a ring, clock), then what a live
  * widget shows (the figure a glance takes away, its primary block, quiet
  * lines of stats) and the stage. With nothing to chart, the stage is the
@@ -399,18 +399,18 @@ export function describeJobTile(tile: JobTile): NativeNode {
 	const figure =
 		glance &&
 		text(figureSpans(glance), {
-			role: "omp.job.tile.figure",
+			role: "oyp.job.tile.figure",
 			wrap: "none",
 			truncate: "end",
 		});
 	const head = row(
 		compact([
 			text([span(TILE_GLYPH[tile.status], toneColor(TILE_TONE[tile.status]), pulse ? { fx: "pulse" } : undefined)], {
-				role: "omp.job.tile.dot",
+				role: "oyp.job.tile.dot",
 				wrap: "none",
 			}),
 			text([span(title)], {
-				role: "omp.job.tile.title",
+				role: "oyp.job.tile.title",
 				wrap: "none",
 				truncate: "end",
 				grow: 1,
@@ -418,7 +418,7 @@ export function describeJobTile(tile: JobTile): NativeNode {
 			id === title
 				? undefined
 				: text([span(id, "dim")], {
-						role: "omp.job.tile.id",
+						role: "oyp.job.tile.id",
 						wrap: "none",
 					}),
 			// Tern tints the ring by its value and shows the label on hover.
@@ -426,7 +426,7 @@ export function describeJobTile(tile: JobTile): NativeNode {
 				? undefined
 				: keyed(
 						node("meter", {
-							role: "omp.job.tile.ring",
+							role: "oyp.job.tile.ring",
 							style: "ring",
 							size: "sm",
 							value: fraction(percent, 100),
@@ -437,7 +437,7 @@ export function describeJobTile(tile: JobTile): NativeNode {
 					),
 			clock && keyed(clock, "clock"),
 		]),
-		{ role: "omp.job.tile.head", gap: "xs", align: "center" },
+		{ role: "oyp.job.tile.head", gap: "xs", align: "center" },
 	);
 	const visual = tileVisual(view?.blocks[0]);
 	return col(
@@ -448,7 +448,7 @@ export function describeJobTile(tile: JobTile): NativeNode {
 			...tileNotes(tile, view, !figure && !visual),
 		]),
 		{
-			role: "omp.job.tile",
+			role: "oyp.job.tile",
 			tone: TILE_TONE[tile.status],
 			gap: "xs",
 		},
@@ -485,7 +485,7 @@ function tileVisual(block: JobWidgetBlock | undefined): NativeNode | undefined {
 			if (block.values.length === 0) return undefined;
 			return node("chart", {
 				...sparkChartProps(block),
-				role: "omp.job.tile.chart",
+				role: "oyp.job.tile.chart",
 				size: "sm",
 			});
 		case "meter":
@@ -496,17 +496,17 @@ function tileVisual(block: JobWidgetBlock | undefined): NativeNode | undefined {
 					row(
 						[
 							text([span(plainLine(item.label), "dim")], {
-								role: "omp.job.tile.key",
+								role: "oyp.job.tile.key",
 								wrap: "none",
 								truncate: "end",
 							}),
 							tileMeter(fraction(item.value, block.max), item.tone),
 							text([span(plainLine(item.text))], {
-								role: "omp.job.tile.num",
+								role: "oyp.job.tile.num",
 								wrap: "none",
 							}),
 						],
-						{ role: "omp.job.tile.bar", gap: "sm", align: "center" },
+						{ role: "oyp.job.tile.bar", gap: "sm", align: "center" },
 					),
 					`${index}`,
 				),
@@ -515,11 +515,11 @@ function tileVisual(block: JobWidgetBlock | undefined): NativeNode | undefined {
 			if (rest > 0)
 				rows.push(
 					text([span(`+${rest} more`, "dim")], {
-						role: "omp.job.tile.more",
+						role: "oyp.job.tile.more",
 						wrap: "none",
 					}),
 				);
-			return rows.length > 0 ? col(rows, { role: "omp.job.tile.bars", gap: "xs" }) : undefined;
+			return rows.length > 0 ? col(rows, { role: "oyp.job.tile.bars", gap: "xs" }) : undefined;
 		}
 		case "grid": {
 			if (block.items.length === 0) return undefined;
@@ -532,7 +532,7 @@ function tileVisual(block: JobWidgetBlock | undefined): NativeNode | undefined {
 					span(plainLine(item.label).replaceAll(" ", "\u00a0"), "dim"),
 				);
 			}
-			return text(spans, { role: "omp.job.tile.grid", wrap: "word" });
+			return text(spans, { role: "oyp.job.tile.grid", wrap: "word" });
 		}
 		default:
 			return undefined;
@@ -541,7 +541,7 @@ function tileVisual(block: JobWidgetBlock | undefined): NativeNode | undefined {
 
 function tileMeter(value: number, tone: TspTone = DEFAULT_TONE): NativeNode {
 	return node("meter", {
-		role: "omp.job.tile.meter",
+		role: "oyp.job.tile.meter",
 		value: fraction(value, 1),
 		size: "sm",
 		tone,
@@ -564,7 +564,7 @@ function tileNotes(tile: JobTile, view: JobWidgetView | undefined, lead: boolean
 		if (block.kind === "stat" && block.items.length > 0) {
 			notes.push(
 				text(statSpans(block), {
-					role: "omp.job.tile.stats",
+					role: "oyp.job.tile.stats",
 					wrap: "none",
 					truncate: "end",
 				}),
@@ -572,7 +572,7 @@ function tileNotes(tile: JobTile, view: JobWidgetView | undefined, lead: boolean
 		} else if (block.kind === "text" && plainLine(block.text) && plainLine(block.text) !== stage) {
 			notes.push(
 				text([span(plainLine(block.text), "dim")], {
-					role: "omp.job.tile.note",
+					role: "oyp.job.tile.note",
 					wrap: "none",
 					truncate: "end",
 				}),
@@ -589,8 +589,8 @@ function tileNotes(tile: JobTile, view: JobWidgetView | undefined, lead: boolean
 					: span(stage, "dim")
 				: undefined,
 		]);
-		if (lead) notes.unshift(text(spans, { role: "omp.job.tile.lead", wrap: "word" }));
-		else notes.push(text(spans, { role: "omp.job.tile.stage", wrap: "none", truncate: "end" }));
+		if (lead) notes.unshift(text(spans, { role: "oyp.job.tile.lead", wrap: "word" }));
+		else notes.push(text(spans, { role: "oyp.job.tile.stage", wrap: "none", truncate: "end" }));
 	}
 	return notes.map((note, index) => keyed(note, `note-${index}`));
 }
@@ -601,14 +601,14 @@ function describeHead(view: JobWidgetView): NativeNode {
 	return row(
 		compact([
 			text([span(plainLine(view.title), "strong")], {
-				role: "omp.job.widget.title",
+				role: "oyp.job.widget.title",
 				wrap: "none",
 				truncate: "end",
 				...(stage ? {} : { grow: 1 }),
 			}),
 			stage
 				? text([span(stage, "muted")], {
-						role: "omp.job.widget.stage",
+						role: "oyp.job.widget.stage",
 						wrap: "none",
 						truncate: "end",
 						grow: 1,
@@ -616,11 +616,11 @@ function describeHead(view: JobWidgetView): NativeNode {
 				: undefined,
 			headline &&
 				text(jobWidgetGlanceSpans(headline), {
-					role: "omp.job.widget.headline",
+					role: "oyp.job.widget.headline",
 					wrap: "none",
 				}),
 		]),
-		{ role: "omp.job.widget.head", gap: "sm", align: "baseline" },
+		{ role: "oyp.job.widget.head", gap: "sm", align: "baseline" },
 	);
 }
 
@@ -640,11 +640,11 @@ function describeBlock(block: JobWidgetBlock): NativeNode {
 					grow: 1,
 					...(block.tone ? { tone: block.tone } : {}),
 				}),
-				"omp.job.widget.meter",
+				"oyp.job.widget.meter",
 			);
 		case "stat":
 			return text(statSpans(block), {
-				role: "omp.job.widget.stat",
+				role: "oyp.job.widget.stat",
 				wrap: "none",
 				truncate: "end",
 			});
@@ -652,7 +652,7 @@ function describeBlock(block: JobWidgetBlock): NativeNode {
 			return col(
 				[
 					text([span(plainLine(block.label), "dim")], {
-						role: "omp.job.widget.caption",
+						role: "oyp.job.widget.caption",
 						wrap: "none",
 						truncate: "end",
 					}),
@@ -670,15 +670,15 @@ function describeBlock(block: JobWidgetBlock): NativeNode {
 										`${index}`,
 									),
 								),
-								{ role: "omp.job.widget.cells", gap: "xs", wrap: true },
+								{ role: "oyp.job.widget.cells", gap: "xs", wrap: true },
 							)
 						: waiting(),
 				],
-				{ role: "omp.job.widget.grid", gap: "xs" },
+				{ role: "oyp.job.widget.grid", gap: "xs" },
 			);
 		case "text":
 			return text([span(plainLine(block.text), "muted")], {
-				role: "omp.job.widget.text",
+				role: "oyp.job.widget.text",
 				wrap: "none",
 				truncate: "end",
 			});
@@ -687,7 +687,7 @@ function describeBlock(block: JobWidgetBlock): NativeNode {
 
 /** A column chart with dashed reference lines, the latest value and the mark labels at its side. */
 function describeSpark(block: JobWidgetSparkBlock): NativeNode {
-	if (block.values.length === 0) return labelled(block.label, waiting(), "omp.job.widget.spark");
+	if (block.values.length === 0) return labelled(block.label, waiting(), "oyp.job.widget.spark");
 	const marks = block.marks ?? [];
 	const label = plainLine(block.label);
 	const last = plainLine(block.last);
@@ -708,12 +708,12 @@ function describeSpark(block: JobWidgetSparkBlock): NativeNode {
 							}),
 						),
 					]),
-					{ role: "omp.job.widget.side", gap: "none" },
+					{ role: "oyp.job.widget.side", gap: "none" },
 				),
 				"side",
 			),
 		],
-		{ role: "omp.job.widget.spark", gap: "sm", align: "center" },
+		{ role: "oyp.job.widget.spark", gap: "sm", align: "center" },
 	);
 }
 
@@ -755,18 +755,18 @@ function describeBars(block: JobWidgetBarsBlock): NativeNode {
 					grow: 1,
 					...(item.tone ? { tone: item.tone } : {}),
 				}),
-				"omp.job.widget.bar",
+				"oyp.job.widget.bar",
 			),
 			`${index}`,
 		),
 	);
 	const caption = text([span(plainLine(block.label), "dim")], {
-		role: "omp.job.widget.caption",
+		role: "oyp.job.widget.caption",
 		wrap: "none",
 		truncate: "end",
 	});
 	return col([caption, ...(rows.length > 0 ? rows : [waiting()])], {
-		role: "omp.job.widget.bars",
+		role: "oyp.job.widget.bars",
 		gap: "xs",
 	});
 }

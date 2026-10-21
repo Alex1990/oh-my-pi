@@ -366,7 +366,7 @@ reuse the same fullwidth pipe (`｜`, U+FF5C), but the body is an Anthropic-styl
   structured `tool_calls`. OMP's native healing is separate from selecting the owned
   `deepseek` dialect; its compatibility policy determines whether DSML recovery is enabled.
 
-## omp / pi converter behavior
+## oyp / pi converter behavior
 
 The repository's `deepseek` dialect is an **owned in-band converter**, not a
 vLLM parser wrapper. Select it with `PI_DIALECT=deepseek` or the agent's

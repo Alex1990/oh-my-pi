@@ -194,10 +194,10 @@ for await (const _event of agentLoop(
 }
 
 await flushTelemetryExport();
-assertSingleMetricPoint("omp.agent.chat.cost.estimated_usd");
-assertMetricPresent("omp.agent.chat.calls");
-assertSingleMetricPoint("omp.agent.tool.calls");
-assertSingleMetricPoint("omp.agent.tool.duration");
+assertSingleMetricPoint("oyp.agent.chat.cost.estimated_usd");
+assertMetricPresent("oyp.agent.chat.calls");
+assertSingleMetricPoint("oyp.agent.tool.calls");
+assertSingleMetricPoint("oyp.agent.tool.duration");
 await server.stop(true);
 
 const ok = seen.has("logs") && seen.has("metrics");

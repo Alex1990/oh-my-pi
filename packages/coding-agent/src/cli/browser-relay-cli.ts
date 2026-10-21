@@ -25,7 +25,7 @@ export interface BrowserRelayCommandArgs {
 	token?: string;
 	/** Install target directory; defaults to ~/.oyp/browser-relay/extension. */
 	dir?: string;
-	/** Gather tabs the agent actively drives into an 'omp' Chrome tab group (default true). */
+	/** Gather tabs the agent actively drives into an 'oyp' Chrome tab group (default true). */
 	group?: boolean;
 	verbose?: boolean;
 }
@@ -62,7 +62,7 @@ async function runInstall(dirOverride: string | undefined): Promise<void> {
 	console.log(`  2. Click "Load unpacked" and select: ${dir}`);
 	console.log("  3. Enable the mode:  oyp config set browser.relay true");
 	console.log("");
-	console.log("omp starts the relay automatically when the browser prelude needs it;");
+	console.log("oyp starts the relay automatically when the browser prelude needs it;");
 	console.log("run `oyp browser-relay` yourself only for --token or --no-group.");
 	console.log("The extension badge shows 'on' once it reaches a relay.");
 	console.log(

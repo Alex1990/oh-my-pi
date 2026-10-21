@@ -308,4 +308,4 @@ A rule with `question` is judged: its natural-language question goes to the `jud
 
 `/omfg` generates `condition`, `astCondition`, or `question` rules, instructed to prefer the pattern triggers. It validates candidates against conversation history through the same completed-output view (`TtsrToolInspector.outputs`); a `question` candidate must pass its scope/prefilter and get a yes from the judge on one of the 8 most recent in-scope outputs. With no judge available, the user decides whether to save it unconfirmed.
 
-`omp ttsr list` shows each rule's `question`. `omp ttsr test` never calls the judge, so question rules report as not triggered, with their question shown. `omp ttsr scan` skips question rules: their conditions are prefilters, not violations.
+`oyp ttsr list` shows each rule's `question`. `oyp ttsr test` never calls the judge, so question rules report as not triggered, with their question shown. `oyp ttsr scan` skips question rules: their conditions are prefilters, not violations.

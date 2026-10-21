@@ -280,7 +280,7 @@ function createGcsUploader(config: DestinationRuntimeConfig): BlobUploader {
 		destination,
 		async upload(uploadRequest) {
 			const key = objectKey(prefix, fileNameFor(uploadRequest));
-			const boundary = `omp-${crypto.randomUUID()}`;
+			const boundary = `oyp-${crypto.randomUUID()}`;
 			const metadata: Record<string, string> = { name: key, contentType: uploadRequest.mimeType };
 			if (cacheControl) metadata.cacheControl = cacheControl;
 			const opening = encoder.encode(

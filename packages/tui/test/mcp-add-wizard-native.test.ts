@@ -42,18 +42,18 @@ function plain(text: unknown): string {
 }
 
 function title(wizard: MCPAddWizard): string {
-	const [node] = byRole(wizard, "omp.mcpAdd.title");
+	const [node] = byRole(wizard, "oyp.mcpAdd.title");
 	return plain(prop(node, "text") ?? prop(node, "spans"));
 }
 
 /** Footer buttons by their tooltips (`Label  key`). */
 function buttons(wizard: MCPAddWizard): unknown[] {
-	return byRole(wizard, "omp.btn").map(b => prop(b, "title"));
+	return byRole(wizard, "oyp.btn").map(b => prop(b, "title"));
 }
 
 /** Phase tones of the progress strip, in order. */
 function phases(wizard: MCPAddWizard): unknown[] {
-	return byRole(wizard, "omp.mcpAdd.phase").map(p => prop(p, "tone"));
+	return byRole(wizard, "oyp.mcpAdd.phase").map(p => prop(p, "tone"));
 }
 
 function act(wizard: MCPAddWizard, name: string): void {
@@ -97,7 +97,7 @@ describe("MCP add wizard under a native surface", () => {
 		expect(phases(wizard)).toEqual(["accent", "muted", "muted", "muted", "muted", "muted"]);
 		// The first step has no Back: Esc cancels, so Cancel carries it.
 		expect(buttons(wizard)).toEqual(["Cancel  esc", "Continue  ⏎"]);
-		for (const button of byRole(wizard, "omp.btn")) {
+		for (const button of byRole(wizard, "oyp.btn")) {
 			expect((button.c ?? []).filter(isNode).map(child => child.k)).toEqual(["text", "kbd"]);
 		}
 	});
@@ -107,9 +107,9 @@ describe("MCP add wizard under a native surface", () => {
 		type(wizard, "bad name");
 		act(wizard, "next");
 		expect(title(wizard)).toBe("Name the server");
-		const [field] = byRole(wizard, "omp.mcpAdd.field");
+		const [field] = byRole(wizard, "oyp.mcpAdd.field");
 		expect(prop(field, "tone")).toBe("error");
-		expect(plain(prop(byRole(wizard, "omp.mcpAdd.note")[0], "spans"))).toContain("Use letters");
+		expect(plain(prop(byRole(wizard, "oyp.mcpAdd.note")[0], "spans"))).toContain("Use letters");
 		const input = field?.c?.[0];
 		expect(input && "getValue" in input && typeof input.getValue === "function" ? input.getValue() : "").toBe(
 			"bad name",
@@ -129,7 +129,7 @@ describe("MCP add wizard under a native surface", () => {
 		expect(items.map(item => plain(prop(item, "value")))).toEqual(["stdio", "http", "sse"]);
 
 		wizard.handleInput(DOWN);
-		expect(prop(byRole(wizard, "omp.mcpAdd.choices")[0], "selected")).toBe("1");
+		expect(prop(byRole(wizard, "oyp.mcpAdd.choices")[0], "selected")).toBe("1");
 		act(wizard, "next");
 		expect(title(wizard)).toBe("Server URL");
 
@@ -147,7 +147,7 @@ describe("MCP add wizard under a native surface", () => {
 		type(wizard, "https://mcp.linear.app/mcp");
 		wizard.handleInput(ENTER);
 		expect(title(wizard)).toBe("Trying the connection");
-		expect(byRole(wizard, "omp.mcpAdd.status")).toHaveLength(1);
+		expect(byRole(wizard, "oyp.mcpAdd.status")).toHaveLength(1);
 		expect(buttons(wizard)).toEqual(["Cancel  ⌃C", "Back  esc"]);
 
 		act(wizard, "back");
@@ -171,7 +171,7 @@ describe("MCP add wizard under a native surface", () => {
 
 		expect(title(wizard)).toBe("Review and save");
 		expect(phases(wizard)).toEqual(["success", "success", "success", "neutral", "success", "accent"]);
-		const rows = prop(byRole(wizard, "omp.mcpAdd.summary")[0], "items");
+		const rows = prop(byRole(wizard, "oyp.mcpAdd.summary")[0], "items");
 		expect(
 			Array.isArray(rows) ? rows.map(row => (row && typeof row === "object" && "k" in row ? row.k : "")) : [],
 		).toEqual(["Name", "Transport", "Command", "Arguments", "Auth", "Saved in"]);

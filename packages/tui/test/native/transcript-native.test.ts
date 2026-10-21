@@ -231,12 +231,12 @@ describe("native transcript", () => {
 			},
 		});
 		const h = await startWith(h => h.tui.addChild(component));
-		const card = h.find(node => node.p?.role === "omp.skill");
+		const card = h.find(node => node.p?.role === "oyp.skill");
 		expect(card?.p).not.toHaveProperty("collapsible");
 		expect(card?.c?.find(child => child.k === "md")?.p).toMatchObject({
 			text: "Organize the project foundation",
 		});
-		const prompt = h.find(node => node.p?.role === "omp.skill.prompt");
+		const prompt = h.find(node => node.p?.role === "oyp.skill.prompt");
 		expect(prompt?.p).toMatchObject({ collapsible: true, collapsed: true });
 		expect(prompt?.c).toBeUndefined();
 
@@ -260,7 +260,7 @@ describe("native transcript", () => {
 			builder.append(toolTranscript());
 			h.tui.addChild(builder.container);
 		});
-		const cardNode = h.find(node => node.k === "tool" && node.p?.role === "omp.tool.lookup_thing");
+		const cardNode = h.find(node => node.k === "tool" && node.p?.role === "oyp.tool.lookup_thing");
 		expect(cardNode?.p).toMatchObject({ status: "done", collapsible: true, collapsed: true });
 
 		h.event({ ev: "toggle", sf: h.terminal.surface!, id: cardNode!.id, collapsed: false });
@@ -345,7 +345,7 @@ describe("native transcript", () => {
 			builder.append(toolTranscript());
 			h.tui.addChild(builder.container);
 		});
-		const cardNode = h.find(node => node.k === "tool" && node.p?.role === "omp.tool.lookup_thing");
+		const cardNode = h.find(node => node.k === "tool" && node.p?.role === "oyp.tool.lookup_thing");
 		expect(opsSince(h, 0)).toContainEqual(["settle", cardNode!.id]);
 
 		const before = h.frames.length;
@@ -466,21 +466,21 @@ describe("native transcript", () => {
 		const roles = h.findAll(node => typeof node.p?.role === "string").map(node => node.p!.role);
 		expect(roles).toEqual(
 			expect.arrayContaining([
-				"omp.tool.lookup_thing",
-				"omp.user",
-				"omp.user.synthetic",
-				"omp.assistant",
-				"omp.thinking",
-				"omp.bash",
-				"omp.eval",
-				"omp.compaction",
-				"omp.custom",
-				"omp.notice.ttsr",
-				"omp.notice.todo",
-				"omp.diagnostics.late",
-				"omp.marker.cache-miss",
-				"omp.status-block",
-				"omp.advisor",
+				"oyp.tool.lookup_thing",
+				"oyp.user",
+				"oyp.user.synthetic",
+				"oyp.assistant",
+				"oyp.thinking",
+				"oyp.bash",
+				"oyp.eval",
+				"oyp.compaction",
+				"oyp.custom",
+				"oyp.notice.ttsr",
+				"oyp.notice.todo",
+				"oyp.diagnostics.late",
+				"oyp.marker.cache-miss",
+				"oyp.status-block",
+				"oyp.advisor",
 			]),
 		);
 		expect(h.errors).toEqual([]);

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Dev launcher for the omp CLI, installed by `pnpm run setup`.
+# Dev launcher for the oyp CLI, installed by `pnpm run setup`.
 #
 # Runs the TypeScript entrypoint directly on Node (which strips types natively);
 # `--experimental-transform-types` is required because a few modules use `enum`.

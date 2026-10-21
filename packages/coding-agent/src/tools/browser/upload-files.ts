@@ -44,8 +44,8 @@ export interface UploadSource {
 }
 
 /**
- * How a browser gets uploaded files: `paths` of staged copies it reads itself, or `contents` omp reads and streams in,
- * for a browser that may not open omp's files (a relay without file-URL access, a Chrome on another machine).
+ * How a browser gets uploaded files: `paths` of staged copies it reads itself, or `contents` oyp reads and streams in,
+ * for a browser that may not open oyp's files (a relay without file-URL access, a Chrome on another machine).
  */
 export type UploadRoute = "paths" | "contents";
 
@@ -90,7 +90,7 @@ export function refuseFolders(sources: UploadSource[]): void {
 	const folder = sources.find(source => source.directory);
 	if (!folder) return;
 	throw new ToolError(
-		`${folder.path} is a folder, and this browser cannot read omp's files (a relay without file-URL access, or a browser on another machine), so it takes files only; upload the files inside it instead`,
+		`${folder.path} is a folder, and this browser cannot read oyp's files (a relay without file-URL access, or a browser on another machine), so it takes files only; upload the files inside it instead`,
 	);
 }
 
@@ -149,20 +149,20 @@ function readFirstPickedFile(picker: PagePicker): Promise<string> | string {
 }
 
 /**
- * Staging folders are `omp-uploads-<pid>-<id>` in the temp directory; the pid names the omp process that owns one. The
+ * Staging folders are `oyp-uploads-<pid>-<id>` in the temp directory; the pid names the oyp process that owns one. The
  * route check's own folder shares the prefix, so one a crash left behind is swept the same way.
  */
-const STAGING_FOLDER = /^omp-uploads-(\d+)-/;
+const STAGING_FOLDER = /^oyp-uploads-(\d+)-/;
 
 /**
- * How long a staging folder no open tab owns stays after its last upload: a page omp let go of may still be open in the
+ * How long a staging folder no open tab owns stays after its last upload: a page oyp let go of may still be open in the
  * user's browser, and Chrome reads a picked file only when the page does.
  */
 const STAGING_KEPT_MS = 24 * 60 * 60 * 1000;
 
 /** The staging folder path for a new tab; it is created on the tab's first upload. */
 export function newUploadStagingDir(): string {
-	return path.join(os.tmpdir(), `omp-uploads-${process.pid}-${crypto.randomUUID().slice(0, 8)}`);
+	return path.join(os.tmpdir(), `oyp-uploads-${process.pid}-${crypto.randomUUID().slice(0, 8)}`);
 }
 
 /** Remove a tab's staging folder, once the page that may read its copies is gone. */
@@ -180,8 +180,8 @@ function processAlive(pid: number): boolean {
 }
 
 /**
- * Remove staging folders a day after their last upload once no open tab of this process owns them and the omp
- * process that made them is this one or gone. Another running omp sweeps its own.
+ * Remove staging folders a day after their last upload once no open tab of this process owns them and the oyp
+ * process that made them is this one or gone. Another running oyp sweeps its own.
  */
 export async function sweepUploadStaging(live: ReadonlySet<string>, now = Date.now()): Promise<void> {
 	const root = os.tmpdir();
@@ -308,7 +308,7 @@ export class UploadStaging {
 	async #checkRoute(page: Page): Promise<{ route: UploadRoute; decided: boolean }> {
 		const token = crypto.randomUUID();
 		// Its own folder, so a tab that never stages a file leaves no staging folder behind.
-		const checkDirectory = await fs.mkdtemp(path.join(os.tmpdir(), `omp-uploads-${process.pid}-check-`));
+		const checkDirectory = await fs.mkdtemp(path.join(os.tmpdir(), `oyp-uploads-${process.pid}-check-`));
 		try {
 			const tokenPath = path.join(checkDirectory, "route-check");
 			await bun.write(tokenPath, token);

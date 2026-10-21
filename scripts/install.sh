@@ -204,7 +204,7 @@ install_node() {
         exit 1
     fi
 
-    NODE_HOME="${PI_NODE_HOME:-$HOME/.omp/node}"
+    NODE_HOME="${PI_NODE_HOME:-$HOME/.oyp/node}"
     base_url="https://nodejs.org/dist/latest-v22.x"
     if ! sums="$(curl -fsSL --connect-timeout 10 --max-time 60 "$base_url/SHASUMS256.txt")"; then
         echo "Failed to download Node.js checksums from ${base_url}"
@@ -297,8 +297,8 @@ install_via_pnpm() {
         exit 1
     }
     echo ""
-    echo "✓ Installed omp via pnpm"
-    echo "Run 'omp' to get started!"
+    echo "✓ Installed oyp via pnpm"
+    echo "Run 'oyp' to get started!"
 }
 
 # Hex sha256 of file "$1".
@@ -347,13 +347,13 @@ install_binary() {
         fi
         RELEASE_PATH="download/${REF}"
         VERSION="${REF#v}"
-        echo "Fetching omp ${VERSION}..."
+        echo "Fetching oyp ${VERSION}..."
     else
         RELEASE_PATH="latest/download"
         VERSION=""
         echo "Fetching latest release..."
     fi
-    ASSET_NAME="omp-${TARGET}"
+    ASSET_NAME="oyp-${TARGET}"
     ASSET_URL="${RELEASE_BASE}/${RELEASE_PATH}/${ASSET_NAME}"
     SUMS_URL="${RELEASE_BASE}/${RELEASE_PATH}/SHA256SUMS.txt"
     if ! RELEASE_SUMS=$(curl -fsSL --connect-timeout 10 --max-time 60 "$SUMS_URL"); then
@@ -376,8 +376,8 @@ install_binary() {
 
     mkdir -p "$INSTALL_DIR"
     # Download next to the destinations and move them into place only once the
-    # checksums match, so a bad download never replaces a working omp.
-    DOWNLOAD_PATH="${INSTALL_DIR}/.omp.download.$$"
+    # checksums match, so a bad download never replaces a working oyp.
+    DOWNLOAD_PATH="${INSTALL_DIR}/.oyp.download.$$"
     CLI_DOWNLOAD_PATH="${INSTALL_DIR}/.cli.download.$$"
     trap 'rm -f "$DOWNLOAD_PATH" "$CLI_DOWNLOAD_PATH"' EXIT
     echo "Downloading ${ASSET_NAME}..."
@@ -396,7 +396,7 @@ install_binary() {
         exit 1
     fi
     chmod +x "$DOWNLOAD_PATH"
-    mv -f "$DOWNLOAD_PATH" "${INSTALL_DIR}/omp"
+    mv -f "$DOWNLOAD_PATH" "${INSTALL_DIR}/oyp"
     mv -f "$CLI_DOWNLOAD_PATH" "${INSTALL_DIR}/cli.js"
 
     # The launcher runs cli.js on Node.js. Install a usable runtime when the
@@ -413,13 +413,13 @@ install_binary() {
     # success. The musl launcher runs a payload that loads native addons, so a
     # download can succeed while startup fails. Never claim success for an
     # install that cannot run.
-    if ! SMOKE_OUTPUT="$("${INSTALL_DIR}/omp" --version 2>&1)"; then
+    if ! SMOKE_OUTPUT="$("${INSTALL_DIR}/oyp" --version 2>&1)"; then
         echo ""
-        echo "✗ omp was downloaded to ${INSTALL_DIR}/omp but cannot start:"
+        echo "✗ oyp was downloaded to ${INSTALL_DIR}/oyp but cannot start:"
         echo "$SMOKE_OUTPUT" | sed 's/^/    /'
         if [ "$PLATFORM" = "linux-musl" ]; then
             echo ""
-            echo "The musl build links libstdc++/libgcc dynamically. Install them, then re-run 'omp':"
+            echo "The musl build links libstdc++/libgcc dynamically. Install them, then re-run 'oyp':"
             if command -v apk >/dev/null 2>&1; then
                 echo "    apk add libstdc++ libgcc"
             else
@@ -430,12 +430,12 @@ install_binary() {
     fi
 
     echo ""
-    echo "✓ Installed omp to ${INSTALL_DIR}/omp"
+    echo "✓ Installed oyp to ${INSTALL_DIR}/oyp"
 
     # Check if in PATH
     case ":$PATH:" in
-        *":$INSTALL_DIR:"*) echo "Run 'omp' to get started!" ;;
-        *) echo "Add ${INSTALL_DIR} to your PATH, then run 'omp'" ;;
+        *":$INSTALL_DIR:"*) echo "Run 'oyp' to get started!" ;;
+        *) echo "Add ${INSTALL_DIR} to your PATH, then run 'oyp'" ;;
     esac
 }
 

@@ -550,7 +550,7 @@ async function leaseArtifacts(
 	}
 	const artifactsDir = path.join(
 		os.tmpdir(),
-		`${invocationKind === "eval" ? "omp-eval-agent" : "omp-task"}-${Snowflake.next()}`,
+		`${invocationKind === "eval" ? "oyp-eval-agent" : "oyp-task"}-${Snowflake.next()}`,
 	);
 	await fs.mkdir(artifactsDir, { recursive: true });
 	return { sessionFile: null, artifactsDir, temporary: true, unregister: registerArtifactsDir(artifactsDir) };

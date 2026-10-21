@@ -97,7 +97,7 @@ export class CollabController {
 	autoStart(): void {
 		// Observe session changes from now on even when auto-start is currently
 		// off: the setting is read live, so enabling it later applies to the
-		// next `/new`, `/resume`, or branch without restarting omp.
+		// next `/new`, `/resume`, or branch without restarting oyp.
 		this.#observeSessionChanges();
 		const access = this.autoStartMode;
 		if (access === "off" || this.#shutdown || this.host || this.#ctx.collabGuest) return;

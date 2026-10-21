@@ -80,7 +80,7 @@ export async function captureGalleryScreenshots(
 
 	const baseDir = options.out
 		? path.dirname(path.resolve(options.out))
-		: fs.mkdtempSync(path.join(os.tmpdir(), "omp-gallery-"));
+		: fs.mkdtempSync(path.join(os.tmpdir(), "oyp-gallery-"));
 	await fs.promises.mkdir(baseDir, { recursive: true });
 
 	const outPaths: string[] = [];
@@ -197,7 +197,7 @@ function buildVhsTheme(): string {
 	const foreground = theme.isLight ? "#1a1a1a" : "#d4d4d4";
 	const selection = theme.isLight ? "#c8d6ff" : "#404862";
 	return JSON.stringify({
-		name: "omp-gallery",
+		name: "oyp-gallery",
 		background,
 		foreground,
 		cursor: foreground,

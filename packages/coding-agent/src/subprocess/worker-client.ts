@@ -4,6 +4,7 @@ import * as path from "node:path";
 import {
 	$env,
 	$which,
+	APP_NAME,
 	isTestRuntime,
 	isCompiledBinary,
 	isExecutable,
@@ -140,8 +141,8 @@ export function resolveExecutablePath(): string {
 			// Prefer the original launcher when invoked with an absolute path
 			isFullyQualifiedPath(argv0) ? argv0 : null,
 			!isPath ? $which(argv0, { requireAbsolutePaths: true, cache: WhichCachePolicy.Bypass }) : null,
-			// Generic fallback to finding "omp" on PATH
-			$which("omp", { requireAbsolutePaths: true, cache: WhichCachePolicy.Bypass }),
+			// Generic fallback to finding the installed CLI on PATH
+			$which(APP_NAME, { requireAbsolutePaths: true, cache: WhichCachePolicy.Bypass }),
 		];
 		for (const candidate of candidates) {
 			if (candidate && isExecutable(candidate)) {
@@ -416,7 +417,7 @@ interface StderrCapture {
 /** Create a file-backed stderr target that does not pin Bun's event loop. */
 function createStderrCapture(exitLabel: string): StderrCapture {
 	try {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-worker-stderr-"));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "oyp-worker-stderr-"));
 		const fd = openCloexecSync(
 			path.join(dir, "stderr.log"),
 			fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_TRUNC,

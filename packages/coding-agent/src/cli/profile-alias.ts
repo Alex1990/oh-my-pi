@@ -25,10 +25,10 @@ export interface ProfileAliasProcessOptions {
 }
 
 const DEFAULT_ALIAS_COMMAND: ProfileAliasCommand = {
-	display: "omp",
-	posix: "omp",
-	fish: "omp",
-	powerShell: "omp",
+	display: APP_NAME,
+	posix: APP_NAME,
+	fish: APP_NAME,
+	powerShell: APP_NAME,
 };
 
 export interface ProfileAliasInstallOptions {
@@ -152,8 +152,8 @@ function validateAliasName(aliasName: string, shell: ProfileAliasShell): string 
 	if (!ALIAS_NAME_RE.test(normalized)) {
 		throw new Error(`Invalid alias "${aliasName}". Alias names must match ${ALIAS_NAME_RE.source}.`);
 	}
-	if (normalized.toLowerCase() === "omp") {
-		throw new Error('Invalid alias "omp". Refusing to shadow the base omp command.');
+	if (normalized.toLowerCase() === APP_NAME) {
+		throw new Error(`Invalid alias "${APP_NAME}". Refusing to shadow the base ${APP_NAME} command.`);
 	}
 	if (getReservedAliasNames(shell).has(normalized.toLowerCase())) {
 		throw new Error(`Invalid alias "${aliasName}". Refusing to create a ${shell} reserved word.`);

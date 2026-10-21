@@ -630,7 +630,7 @@ async function tryCreateGist(sealed: Uint8Array): Promise<{ id: string; url: str
 		return null;
 	}
 
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-share-"));
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "oyp-share-"));
 	try {
 		const file = path.join(dir, GIST_FILENAME);
 		await bun.write(file, Buffer.from(sealed).toString("base64"));

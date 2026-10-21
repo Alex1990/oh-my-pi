@@ -32,7 +32,7 @@ function bundle(scanId: string, findings: SecurityFinding[]): SecurityScanBundle
 	for (const item of findings) item.scanId = scanId;
 	return {
 		scan: {
-			documentType: "omp-security.scan",
+			documentType: "oyp-security.scan",
 			schemaVersion: "1.0",
 			id: scanId,
 			projectKey: "fixture",

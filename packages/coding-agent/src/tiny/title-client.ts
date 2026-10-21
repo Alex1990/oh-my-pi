@@ -210,7 +210,7 @@ function mlxLaunch(
 			const python = await ensureTinyMlxRuntime(phase =>
 				emitProgress({ modelKey, status: phase, name: `mlx-lm@${MLX_LM_VERSION}` }),
 			);
-			const script = await stageRunnerScript("omp-tiny-mlx", "py", MLX_SERVER_SCRIPT);
+			const script = await stageRunnerScript("oyp-tiny-mlx", "py", MLX_SERVER_SCRIPT);
 			const env = inferenceWorkerEnv({
 				PYTHONUNBUFFERED: "1",
 				PYTHONIOENCODING: "utf-8",

@@ -399,7 +399,7 @@
 		},
 		"terminal": {
 			"type": "object",
-			"description": "The terminal this theme was made for, for hosts that paint the terminal themselves (Tern); omp never sets the terminal's colors. Absent fields are derived from colors.",
+			"description": "The terminal this theme was made for, for hosts that paint the terminal themselves (Tern); oyp never sets the terminal's colors. Absent fields are derived from colors.",
 			"properties": {
 				"background": {
 					"$ref": "#/$defs/colorValue",

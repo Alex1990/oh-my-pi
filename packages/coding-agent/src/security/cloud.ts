@@ -632,7 +632,7 @@ export async function pullCodexSecurityCloudResults(
 	const revision = stats.lastScannedCommit;
 	const bundle: SecurityScanBundle = {
 		scan: {
-			documentType: "omp-security.scan",
+			documentType: "oyp-security.scan",
 			schemaVersion: "1.0",
 			id: scanId,
 			projectKey: input.store.projectKey,

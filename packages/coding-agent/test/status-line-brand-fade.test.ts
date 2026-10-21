@@ -86,7 +86,7 @@ describe("status line brand fade", () => {
 		const component = makeComponent();
 		try {
 			// Idle: omp icon settled in the dim color.
-			expect(component.renderBottomBar(80, "full")).toContain(`${dimAnsi}${theme.icon.omp}`);
+			expect(component.renderBottomBar(80, "full")).toContain(`${dimAnsi}${theme.icon.oyp}`);
 
 			// Turn start: the glyph becomes a spinner + whole-second timer at
 			// once, but the color starts from the on-screen dim — no instant swap.
@@ -94,7 +94,7 @@ describe("status line brand fade", () => {
 			now += 10;
 			const early = component.renderBottomBar(80, "full");
 			expect(early).toContain(" 0s");
-			expect(early).not.toContain(theme.icon.omp);
+			expect(early).not.toContain(theme.icon.oyp);
 			expect(early).toContain(dimAnsi);
 			expect(early).not.toContain(accentAnsi);
 
@@ -131,7 +131,7 @@ describe("status line brand fade", () => {
 			component.markActivityEnd();
 			now += 10;
 			const ending = component.renderBottomBar(80, "full");
-			expect(ending).toContain(theme.icon.omp);
+			expect(ending).toContain(theme.icon.oyp);
 			expect(ending).toContain(accentAnsi);
 
 			now += 215;
@@ -140,7 +140,7 @@ describe("status line brand fade", () => {
 			expect(mid).not.toContain(accentAnsi);
 
 			now += 300;
-			expect(component.renderBottomBar(80, "full")).toContain(`${dimAnsi}${theme.icon.omp}`);
+			expect(component.renderBottomBar(80, "full")).toContain(`${dimAnsi}${theme.icon.oyp}`);
 		} finally {
 			component.dispose();
 		}

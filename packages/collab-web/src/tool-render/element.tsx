@@ -1,5 +1,5 @@
 /**
- * `<omp-tool-view>` — web-component wrapper around ToolView for non-React
+ * `<oyp-tool-view>` — web-component wrapper around ToolView for non-React
  * hosts (the exported-session HTML page).
  *
  * Payload sources, in priority order:
@@ -66,6 +66,6 @@ export class OmpToolViewElement extends HTMLElement {
 	}
 }
 
-export function defineToolViewElement(tag = "omp-tool-view"): void {
+export function defineToolViewElement(tag = "oyp-tool-view"): void {
 	if (!customElements.get(tag)) customElements.define(tag, OmpToolViewElement);
 }

@@ -17,7 +17,7 @@ beforeEach(async () => {
 	await fs.mkdir(repositoryRoot);
 	store = await SecurityStore.open(repositoryRoot, { stateRoot: path.join(temporaryRoot, "state") });
 	plan = {
-		documentType: "omp-security.scan-plan",
+		documentType: "oyp-security.scan-plan",
 		schemaVersion: "1.0",
 		id: "secplan_fixture",
 		createdAt: "2026-07-29T00:00:00.000Z",

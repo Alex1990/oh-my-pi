@@ -70,7 +70,7 @@ describe("BashTool execution results", () => {
 			const output = (view.body ?? [])
 				.flatMap(node => ("k" in node ? (node.c ?? []) : []))
 				.find(node => "k" in node && node.k === "ansi");
-			expect(output).toMatchObject({ p: { role: "omp.tool.bash.output", text: timingOutput } });
+			expect(output).toMatchObject({ p: { role: "oyp.tool.bash.output", text: timingOutput } });
 		}
 	});
 

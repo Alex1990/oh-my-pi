@@ -894,7 +894,7 @@ export interface CreateAgentSessionOptions {
 	 */
 	settingsApproval?: boolean;
 	/**
-	 * Replies render in omp's own TUI transcript, which draws Mermaid, ```svg
+	 * Replies render in oyp's own TUI transcript, which draws Mermaid, ```svg
 	 * figures and table charts; only then does the system prompt mention them.
 	 * Print, RPC, ACP and subagent sessions read replies as text. Default: false.
 	 */
@@ -3927,7 +3927,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 			}
 			// Re-discover rules from disk on every session-scoped rebuild, mirroring the
 			// context-file refresh above. The rule buckets are otherwise frozen at
-			// session creation, so a `RULES.md` (or any rule) created or edited while omp
+			// session creation, so a `RULES.md` (or any rule) created or edited while oyp
 			// runs never reaches the prompt on /clear or /new until restart (issue #10940).
 			// resetCapabilities() clears the fs cache at those boundaries, so this observes
 			// the current file. TTSR registrations are replaced from the new snapshot while
@@ -5067,7 +5067,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 					for (const extensionPath of unloaded) announcedUnloadedExtensions.add(extensionPath);
 					session.emitNotice(
 						"warning",
-						`Restart omp to load newly enabled extensions: ${unloaded.join(", ")}`,
+						`Restart oyp to load newly enabled extensions: ${unloaded.join(", ")}`,
 						"extensions",
 					);
 				}

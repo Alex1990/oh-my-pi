@@ -37,7 +37,7 @@
  * **Coverage limits:**
  * - TS/TSX only — intercepting `node_modules` CJS `.js`/`.cjs` and forcing ESM
  *   breaks their default-export detection, so they are left to Bun's default path.
- * - **Dev runs only.** In the compiled `omp` binary every module is pre-bundled
+ * - **Dev runs only.** In the compiled `oyp` binary every module is pre-bundled
  *   into bunfs, so `onLoad` never fires; profile with a `bun --preload` dev run.
  */
 import { readFileSync } from "node:fs";
@@ -52,19 +52,19 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 // timing lives) is uniformly TypeScript, so a TS-only filter is both safe and
 // sufficient. Declaration files are imported as text assets, never evaluated.
 const MODULE_LOADER_FILTER = /^(?!.*\.d\.[mc]?ts$).*\.[mc]?tsx?$/;
-const MODULE_COMPLETE_KEY: symbol = Symbol.for("omp.moduleLoadComplete");
-const MODULE_BODY_START_KEY: symbol = Symbol.for("omp.moduleBodyStart");
+const MODULE_COMPLETE_KEY: symbol = Symbol.for("oyp.moduleLoadComplete");
+const MODULE_BODY_START_KEY: symbol = Symbol.for("oyp.moduleBodyStart");
 const STATIC_IMPORT_PATTERN =
 	/\b(?:import|export)\s+(?:type\s+)?(?:[^"']*?\s+from\s+)?["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
 
 type CompleteStore = Record<symbol, ((path: string) => void) | undefined>;
 
 function bodyStartMarker(path: string): string {
-	return `;globalThis[Symbol.for("omp.moduleBodyStart")]?.(${JSON.stringify(path)});\n`;
+	return `;globalThis[Symbol.for("oyp.moduleBodyStart")]?.(${JSON.stringify(path)});\n`;
 }
 
 function completionMarker(path: string): string {
-	return `\n;globalThis[Symbol.for("omp.moduleLoadComplete")]?.(${JSON.stringify(path)});\n`;
+	return `\n;globalThis[Symbol.for("oyp.moduleLoadComplete")]?.(${JSON.stringify(path)});\n`;
 }
 
 function instrumentContents(path: string, contents: string): string {

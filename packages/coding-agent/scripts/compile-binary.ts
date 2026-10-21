@@ -46,7 +46,7 @@ export interface CodingAgentCompileOptions {
 }
 
 const LAUNCHER_POSIX = `#!/bin/sh
-# omp launcher: runs the bundled CLI with the Node.js runtime.
+# oyp launcher: runs the bundled CLI with the Node.js runtime.
 set -e
 self=$0
 while [ -L "$self" ]; do
@@ -60,7 +60,7 @@ exec node "$(dirname "$self")/cli.js" "$@"
 `;
 
 const LAUNCHER_WINDOWS = `@echo off
-rem omp launcher: runs the bundled CLI with the Node.js runtime.
+rem oyp launcher: runs the bundled CLI with the Node.js runtime.
 node "%~dp0cli.js" %*
 `;
 

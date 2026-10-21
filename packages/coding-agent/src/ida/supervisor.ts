@@ -164,7 +164,7 @@ export class IdaWorker {
 		lock: FileLockHandle,
 		idleCloseMs: number,
 	): Promise<IdaWorker> {
-		const script = await stageRunnerScript("omp-ida-worker", "py", IDA_WORKER);
+		const script = await stageRunnerScript("oyp-ida-worker", "py", IDA_WORKER);
 		const proc = bun.spawn([runtime.pythonPath, "-u", script], {
 			cwd: loc.dir,
 			env: runtime.env,

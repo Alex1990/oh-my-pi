@@ -164,7 +164,7 @@ Because dedup is “first seen wins”, provider-local item order matters.
 - Gemini loader appends **user first**, then **project**.
 - Therefore, duplicate names between `~/.gemini/extensions` and `<cwd>/.gemini/extensions` keep the user entry and shadow the project entry.
 
-By contrast, the native provider scans `<cwd>/.omp/extensions` before
+By contrast, the native provider scans `<cwd>/.oyp/extensions` before
 `<getAgentDir()>/extensions`, so native intra-provider shadowing is
 project-first. It also reads `gemini-extension.json`, but skips dot-prefixed
 child directories and uses `manifest.name || directoryName` rather than `??`.
@@ -189,7 +189,7 @@ does **not** identify a runnable TS/JS entry point.
 
 The Gemini provider separately populates the `extension-module` capability by
 scanning the enabled roots for direct `.ts`/`.js` files,
-`<name>/index.ts` / `index.js`, and `package.json` `omp`/`pi` extension entries.
+`<name>/index.ts` / `index.js`, and `package.json` `oyp`/`pi` extension entries.
 Declared package entries take precedence over an implicit index; otherwise
 `index.ts` wins over `index.js`. The shared module scanner also supports
 top-level symlinked extension directories. Those module records are independent

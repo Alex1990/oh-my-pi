@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Alex1990/oh-my-pi/main/assets/hero.png" alt="omp">
+  <img src="https://raw.githubusercontent.com/Alex1990/oh-my-pi/main/assets/hero.png" alt="oyp">
 </p>
 
 <p align="center">
@@ -84,22 +84,22 @@ macOS · Linux · Windows · Node.js ≥ 22.12
 
 ### Shell completions
 
-`omp` generates its own completion scripts for **bash**, **zsh**, and **fish** from the live command/flag metadata, so they never drift from the actual CLI. Subcommands, flags, and enum values complete statically; model names (`--model`, `--smol`, `--slow`, `--plan`) resolve against the bundled model catalog and `--resume` against your on-disk sessions.
+`oyp` generates its own completion scripts for **bash**, **zsh**, and **fish** from the live command/flag metadata, so they never drift from the actual CLI. Subcommands, flags, and enum values complete statically; model names (`--model`, `--smol`, `--slow`, `--plan`) resolve against the bundled model catalog and `--resume` against your on-disk sessions.
 
 ```sh
 # zsh — add to ~/.zshrc (or write the output into a file on your $fpath)
-eval "$(omp completions zsh)"
+eval "$(oyp completions zsh)"
 
 # bash — add to ~/.bashrc
-eval "$(omp completions bash)"
+eval "$(oyp completions bash)"
 
 # fish
-omp completions fish > ~/.config/fish/completions/omp.fish
+oyp completions fish > ~/.config/fish/completions/oyp.fish
 ```
 
 ## Every tool, _benchmaxxed_.
 
-Edits that land on the first attempt. Reads that summarize files instead of dumping their content. Searches that return instantly. Pick any model — omp will get it right.
+Edits that land on the first attempt. Reads that summarize files instead of dumping their content. Searches that return instantly. Pick any model — oyp will get it right.
 
 | model            | metric       | what                                                                  |
 | ---------------- | ------------ | --------------------------------------------------------------------- |
@@ -117,19 +117,19 @@ Edits that land on the first attempt. Reads that summarize files instead of dump
 
 ## The Pi _you love_, with **batteries included**.
 
-Originally built on [Mario Zechner](https://github.com/mariozechner)'s wonderful [Pi](https://github.com/badlogic/pi-mono), omp adds everything you're missing.
+Originally built on [Mario Zechner](https://github.com/mariozechner)'s wonderful [Pi](https://github.com/badlogic/pi-mono), oyp adds everything you're missing.
 
 ### 01 · Code execution w/ tool-calling
 
 Most harnesses give the agent a Python sandbox and call it done. Ours runs persistent Python and a JavaScript worker, and either kernel can call back into the agent's own tools — read, search, task — over a loopback bridge. The agent loads a CSV with tool.read from inside Python, charts it from JavaScript, and never leaves the cell.
 
-![omp TUI running Python code and rendering a chart.](assets/python.webp)
+![oyp TUI running Python code and rendering a chart.](assets/python.webp)
 
 ### 02 · LSP wired into every write
 
 Ask for a rename and you get a rename. The call goes through workspace/willRenameFiles, so re-exports, barrel files, and aliased imports update before the file moves. Everything your IDE knows, the agent knows.
 
-![omp TUI with TypeScript and Biome language servers active.](assets/lspv.webp)
+![oyp TUI with TypeScript and Biome language servers active.](assets/lspv.webp)
 
 _[Read the LSP config docs](docs/lsp-config.md)_
 
@@ -137,7 +137,7 @@ _[Read the LSP config docs](docs/lsp-config.md)_
 
 A C binary segfaults: the agent attaches lldb, steps to the bad pointer, reads the frame. A Go service hangs: it attaches dlv and walks the goroutines. A Python process is wedged: debugpy, pause, inspect, evaluate. Most agents are still sprinkling print statements.
 
-![omp TUI: a live lldb-dap session against a native binary at /tmp/omp-native/demo. Adapter=lldb-dap, Status=stopped, Frame=xorshift32, Instruction pointer 0x10000055C, Location demo.c:6:10. Debug scopes and Debug variables cards show locals (x = 57351) and the agent confirms the math: x went from 7 → 57351 (= 7 ^ (7<<13)).](https://omp.sh/clips/dap-poster.webp)
+![oyp TUI: a live lldb-dap session against a native binary at /tmp/oyp-native/demo. Adapter=lldb-dap, Status=stopped, Frame=xorshift32, Instruction pointer 0x10000055C, Location demo.c:6:10. Debug scopes and Debug variables cards show locals (x = 57351) and the agent confirms the math: x went from 7 → 57351 (= 7 ^ (7<<13)).](https://omp.sh/clips/dap-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/dap.mp4)_
 
@@ -145,7 +145,7 @@ _[Watch the capture ↗](https://omp.sh/clips/dap.mp4)_
 
 Your rules sit dormant until the model goes off-script. A regex match aborts the stream mid-token, injects the rule as a system reminder, and retries from the same point. You get course-correction without paying context tax on every turn. Injections survive compaction, so the fix sticks.
 
-![omp TUI: agent reading src.rs and about to write Box::leak when the request aborts (red `Error: Request was aborted`), an amber `⚠ Injecting rule: box-leak` card injects the rule body `Don't reach for Box::leak in production code paths`, and the agent then course-corrects by proposing `Arc<str>` and asking the user to confirm.](https://omp.sh/clips/ttsr-poster.webp)
+![oyp TUI: agent reading src.rs and about to write Box::leak when the request aborts (red `Error: Request was aborted`), an amber `⚠ Injecting rule: box-leak` card injects the rule body `Don't reach for Box::leak in production code paths`, and the agent then course-corrects by proposing `Arc<str>` and asking the user to confirm.](https://omp.sh/clips/ttsr-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/ttsr.mp4)_
 
@@ -153,7 +153,7 @@ _[Watch the capture ↗](https://omp.sh/clips/ttsr.mp4)_
 
 Split a job across workers and get typed results back. task fans out into isolated worktrees, each worker runs its own tool surface, and the final yield is a schema-validated object the parent reads directly. No prose to parse, no merge conflicts between siblings, no orphaned edits.
 
-![omp TUI showing `task` spawning two subagents `ComponentsExports` and `RoutesExports`, the constraints block requiring an IRC DM between peers, the per-subagent status cards with cost and duration, and a final Findings section listing both exports plus an honest 'IRC coordination note' about a one-sided handshake.](https://omp.sh/clips/irc-poster.webp)
+![oyp TUI showing `task` spawning two subagents `ComponentsExports` and `RoutesExports`, the constraints block requiring an IRC DM between peers, the per-subagent status cards with cost and duration, and a final Findings section listing both exports plus an honest 'IRC coordination note' about a one-sided handshake.](https://omp.sh/clips/irc-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/irc.mp4)_
 
@@ -163,15 +163,15 @@ Watch the fan-out while it runs: `Alt+A` opens [Agent Hub](docs/agent-hub.md), w
 
 Pair a reviewer model to the 'advisor' role and it reads every turn the main agent takes, injecting notes inline — a quiet aside, a concern, or a hard blocker. It runs on its own context and its own model, so it catches what the doer rushed past. The main agent sees the note and course-corrects, or tells you why it won't.
 
-![omp TUI: /advisor status shows the advisor running on openai-codex/gpt-5.5; after the main agent scopes a catch to ENOENT instead of swallowing every error, an amber 'Advisor 1 note (concern)' card warns the fix no longer matches the user's literal acceptance criterion.](https://omp.sh/clips/advisor-poster.webp)
+![oyp TUI: /advisor status shows the advisor running on openai-codex/gpt-5.5; after the main agent scopes a catch to ENOENT instead of swallowing every error, an amber 'Advisor 1 note (concern)' card warns the fix no longer matches the user's literal acceptance criterion.](https://omp.sh/clips/advisor-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/advisor.mp4)_
 
 ### 07 · Hand someone the link, they're in.
 
-/collab puts your live session on a relay and hands back a link — and a QR. A teammate joins from another terminal with omp join, or just opens it in a browser. Share read-write to pair on the same agent, or /collab view for a read-only link anyone can watch but no one can steer. Frames are sealed client-side; the relay never sees your keys.
+/collab puts your live session on a relay and hands back a link — and a QR. A teammate joins from another terminal with oyp join, or just opens it in a browser. Share read-write to pair on the same agent, or /collab view for a read-only link anyone can watch but no one can steer. Frames are sealed client-side; the relay never sees your keys.
 
-![omp TUI: /collab view prints 'Collab session started!' with an omp join command, a my.omp.sh browser link, the note 'Anyone with this link can watch the session but cannot prompt the agent', and a large scannable QR code.](https://omp.sh/clips/collab-poster.webp)
+![oyp TUI: /collab view prints 'Collab session started!' with an oyp join command, a my.omp.sh browser link, the note 'Anyone with this link can watch the session but cannot prompt the agent', and a large scannable QR code.](https://omp.sh/clips/collab-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/collab.mp4)_
 
@@ -179,13 +179,13 @@ _[Watch the capture ↗](https://omp.sh/clips/collab.mp4)_
 
 web_search chains twenty-three ranked providers and hands whatever URLs it finds straight to read. Arxiv PDFs, GitHub pages, Stack Overflow threads come back as structured markdown with anchors intact — the same tool surface you use on local files. Cite, follow, quote, never lose where you came from.
 
-![omp TUI: web_search returns 10 ranked Perplexity sources for inference-time compute scaling, the agent picks an arxiv paper, calls read https://arxiv.org/pdf/2604.10739v1, and summarizes the paper's headline result with real numbers.](https://omp.sh/clips/web-poster.webp)
+![oyp TUI: web_search returns 10 ranked Perplexity sources for inference-time compute scaling, the agent picks an arxiv paper, calls read https://arxiv.org/pdf/2604.10739v1, and summarizes the paper's headline result with real numbers.](https://omp.sh/clips/web-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/web.mp4)_
 
 ### 09 · Unapologetically native. Even on Windows.
 
-Other agents shell out to rg, grep, find, and bash. On many machines those binaries don't exist, and on the ones where they do, every call costs a fork-exec round-trip. omp links the real implementations into the process. ripgrep, glob, find: in-process. brush is the bash — with sessions that survive across calls, and 58 command-line utilities (ls, sed, sort, xargs, even jq) ported into the builtins crate and run in-process, zero fork/exec. The same omp binary runs on macOS, Linux, and Windows — no WSL bridge.
+Other agents shell out to rg, grep, find, and bash. On many machines those binaries don't exist, and on the ones where they do, every call costs a fork-exec round-trip. oyp links the real implementations into the process. ripgrep, glob, find: in-process. brush is the bash — with sessions that survive across calls, and 58 command-line utilities (ls, sed, sort, xargs, even jq) ported into the builtins crate and run in-process, zero fork/exec. The same oyp binary runs on macOS, Linux, and Windows — no WSL bridge.
 
 ### 10 · Code review with priorities and a verdict
 
@@ -207,15 +207,15 @@ The agent remembers your codebase between sessions. It writes facts mid-run with
 
 ### 14 · ACP: editor-drivable agent
 
-Run omp inside Zed and you get the same agent you drive from the terminal — reading the buffer you're actually looking at, writing through the editor's save path, spawning shells in the editor's terminal. Destructive tools pause for a permission prompt you can answer once and forget. No bridge, no plugin, no second brain to keep in sync.
+Run oyp inside Zed and you get the same agent you drive from the terminal — reading the buffer you're actually looking at, writing through the editor's save path, spawning shells in the editor's terminal. Destructive tools pause for a permission prompt you can answer once and forget. No bridge, no plugin, no second brain to keep in sync.
 
 ### 15 · Inherits what your other tools already wrote
 
-Every other agent ships an importer and expects you to convert. omp reads the eight formats already on disk in their native shape — Cursor MDC, Cline .clinerules, Codex AGENTS.md, Copilot applyTo, and the rest. No migration script, no YAML-to-TOML port, no "supported subset" footnotes. The config your team wrote last quarter still works tonight.
+Every other agent ships an importer and expects you to convert. oyp reads the eight formats already on disk in their native shape — Cursor MDC, Cline .clinerules, Codex AGENTS.md, Copilot applyTo, and the rest. No migration script, no YAML-to-TOML port, no "supported subset" footnotes. The config your team wrote last quarter still works tonight.
 
-### 16 · omp commit: atomic splits, validated messages
+### 16 · oyp commit: atomic splits, validated messages
 
-omp reads the working tree through git_overview, git_file_diff, and git_hunk, then splits unrelated changes into atomic commits ordered by their dependencies. Cycles are rejected before anything is written. Source files score above tests, docs, and configs, so the headline commit is the one that matters. Lock files are excluded from analysis entirely.
+oyp reads the working tree through git_overview, git_file_diff, and git_hunk, then splits unrelated changes into atomic commits ordered by their dependencies. Cycles are rejected before anything is written. Source files score above tests, docs, and configs, so the headline commit is the one that matters. Lock files are excluded from analysis entirely.
 
 ### 17 · Read PRs. _Walk skills._ Pull JSON out of subagents.
 
@@ -225,7 +225,7 @@ Sixteen internal schemes — `pr://`, `issue://`, `agent://`, `skill://`, `ssh:/
 
 Each merge conflict becomes one URL. The agent writes `@theirs`, `@ours`, or `@base` to `conflict://N` and the file resolves cleanly. Bulk form: `conflict://*`.
 
-![omp TUI: ✓ Read src/session.ts (⚠ 1 conflict), then ✓ Write conflict://1 · 1 line with content @theirs, then a confirmation 'Resolved.'](https://omp.sh/clips/conflict-poster.webp)
+![oyp TUI: ✓ Read src/session.ts (⚠ 1 conflict), then ✓ Write conflict://1 · 1 line with content @theirs, then a confirmation 'Resolved.'](https://omp.sh/clips/conflict-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/conflict.mp4)_
 
@@ -233,7 +233,7 @@ _[Watch the capture ↗](https://omp.sh/clips/conflict.mp4)_
 
 `ast_edit` returns a _(proposed)_ card with the replacement count. The change is staged. The agent writes a one-line reason to `xd://resolve`; the TUI turns it into an **Accept** card and the disk move happens — atomic, all or nothing.
 
-![omp TUI: ✓ AST Edit: console.log($X) (proposed) 3 replacements · 1 file, then ✓ Accept: 3 replacements in 1 file (AST Edit), followed by 'Applied 3 replacements in src/auth.ts.'](https://omp.sh/clips/codemod-poster.webp)
+![oyp TUI: ✓ AST Edit: console.log($X) (proposed) 3 replacements · 1 file, then ✓ Accept: 3 replacements in 1 file (AST Edit), followed by 'Applied 3 replacements in src/auth.ts.'](https://omp.sh/clips/codemod-poster.webp)
 
 _[Watch the capture ↗](https://omp.sh/clips/codemod.mp4)_
 
@@ -344,7 +344,7 @@ Ollama `local` · Ollama Cloud · LM Studio `local` · llama.cpp `local` · vLLM
 
 ### Custom OpenAI-compatible providers
 
-Define custom providers in `~/.omp/agent/models.yml`:
+Define custom providers in `~/.oyp/agent/models.yml`:
 
 ```yaml
 providers:
@@ -359,9 +359,9 @@ providers:
         maxTokens: 32000
 ```
 
-Run `omp models spark` to verify discovery. Then run `omp setup` and choose the model in the default-model step, or open `/model` in a session and assign it to the `default` role.
+Run `oyp models spark` to verify discovery. Then run `oyp setup` and choose the model in the default-model step, or open `/model` in a session and assign it to the `default` role.
 
-To preconfigure the default without the picker, add the selector to `~/.omp/agent/config.yml`:
+To preconfigure the default without the picker, add the selector to `~/.oyp/agent/config.yml`:
 
 ```yaml
 modelRoles:
@@ -370,7 +370,7 @@ modelRoles:
 
 ### Four knobs that make routing useful
 
-- **Custom providers** — Declare anything that speaks `openai-completions`, `openai-responses`, `openai-codex-responses`, `azure-openai-responses`, `anthropic-messages`, `bedrock-converse-stream`, `google-generative-ai`, `google-gemini-cli`, `google-vertex`, `typesafe`, `openrouter-decisions`, `openai-decisions`, or `workers-ai-systemone` (the judge APIs) in `~/.omp/agent/models.yml`.
+- **Custom providers** — Declare anything that speaks `openai-completions`, `openai-responses`, `openai-codex-responses`, `azure-openai-responses`, `anthropic-messages`, `bedrock-converse-stream`, `google-generative-ai`, `google-gemini-cli`, `google-vertex`, `typesafe`, `openrouter-decisions`, `openai-decisions`, or `workers-ai-systemone` (the judge APIs) in `~/.oyp/agent/models.yml`.
 - **Fallback chains** — Per-role or per-model chains under `retry.fallbackChains`. When the primary throws 429s or hits a quota wall, the next entry takes the rest of the turn — restored on cooldown.
 - **Path-scoped models** — Scope `enabledModels` and `disabledProviders` entries to a `path:` prefix to pin a different model set on one repo without touching the global config. Scoped entries cover the path and everything under it.
 - **Round-robin credentials** — Stack API keys per provider and the runtime rotates with session affinity and per-credential backoff. Useful when one key would burn its quota by lunch.
@@ -484,7 +484,7 @@ Inside `pi-natives`, the per-module breakdown (glue and tests omitted):
 
 ## Four entry points: _interactive_, _one-shot_, RPC, and ACP.
 
-Same engine, four wrappers. `omp` runs the TUI. `omp -p` answers a single prompt and exits. The Node SDK embeds the session in your process. `omp --mode rpc` and `omp acp` hand the wheel to another program over stdio.
+Same engine, four wrappers. `oyp` runs the TUI. `oyp -p` answers a single prompt and exits. The Node SDK embeds the session in your process. `oyp --mode rpc` and `oyp acp` hand the wheel to another program over stdio.
 
 ### Interactive — when in doubt, the agent asks
 
@@ -492,7 +492,7 @@ The TUI is the default surface. Tool calls render as cards, edits preview before
 
 The same prompt cards surface over ACP, so editors get the picker without writing one.
 
-![omp TUI showing a multi-select question from the ask tool.](assets/ask.webp)
+![oyp TUI showing a multi-select question from the ask tool.](assets/ask.webp)
 
 ### SDK — embed in Node
 
@@ -522,12 +522,12 @@ await session.prompt("list .ts files");
 
 ### RPC — drive over stdio
 
-`omp --mode rpc`
+`oyp --mode rpc`
 
 For non-Node embedders, or when you want process isolation. NDJSON commands in, response and event frames out; each prompt ends with its own `prompt_result`. `--mode rpc-ui` adds tool cards, selectors, and dialogs as `extension_ui_request` frames the host must answer; `--no-ui` keeps even extension dialogs off the wire for hosts with no UI.
 
 ```
-$ omp --mode rpc --no-session
+$ oyp --mode rpc --no-session
 > {"id":"r1","type":"prompt","message":"list .ts files"}
 < {"id":"r1","type":"response", ...}
 > {"id":"r2","type":"set_model","provider":"anthropic","modelId":"sonnet-4.5"}
@@ -536,11 +536,11 @@ $ omp --mode rpc --no-session
 
 ### ACP — speak to editors
 
-`omp acp`
+`oyp acp`
 
 The [Agent Client Protocol](https://github.com/zed-industries/agent-client-protocol) over JSON-RPC. When the editor advertises capabilities, tool I/O routes through it and writes are gated by `session/request_permission`.
 
-| omp tool     | ACP route                           |
+| oyp tool     | ACP route                           |
 | ------------ | ----------------------------------- |
 | `bash`       | `terminal/create + terminal/output` |
 | `read`       | `fs/read_text_file`                 |
@@ -553,7 +553,7 @@ Full reference: [omp.sh/docs/sdk](https://omp.sh/docs/sdk).
 
 Pick it up at **[omp.sh](https://omp.sh)**.
 
-omp is a fork of [Pi](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), rewritten as a coding-first surface: sessions, subagents, slash commands, extensions — all TypeScript, all MIT, all on [GitHub](https://github.com/can1357/oh-my-pi). Shape it from config, hook it from outside, or read the source when you need to.
+oyp is a fork of [Pi](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), rewritten as a coding-first surface: sessions, subagents, slash commands, extensions — all TypeScript, all MIT, all on [GitHub](https://github.com/can1357/oh-my-pi). Shape it from config, hook it from outside, or read the source when you need to.
 
 ### Primitives
 
@@ -561,15 +561,15 @@ An extension is a TypeScript module. Same tool API, same slash-command registry,
 
 ### Discovery
 
-On first run omp inherits whatever is already on disk: rules, skills, and MCP servers from `.claude`, `.cursor`, `.windsurf`, `.gemini`, `.codex`, `.cline`, `.github/copilot`, and `.vscode`. No migration script.
+On first run oyp inherits whatever is already on disk: rules, skills, and MCP servers from `.claude`, `.cursor`, `.windsurf`, `.gemini`, `.codex`, `.cline`, `.github/copilot`, and `.vscode`. No migration script.
 
 ### Extensibility
 
-Ask omp to write the piece you're missing, then `/reload-plugins`. Keep it local, ship it in a `marketplace`, or publish it to npm.
+Ask oyp to write the piece you're missing, then `/reload-plugins`. Keep it local, ship it in a `marketplace`, or publish it to npm.
 
 ## Philosophy
 
-omp is a fork of [pi-mono](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), extended with a batteries-included coding workflow.
+oyp is a fork of [pi-mono](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), extended with a batteries-included coding workflow.
 
 Key ideas:
 
@@ -611,7 +611,7 @@ pnpm run setup
 pnpm run dev
 ```
 
-Build and smoke-test the distributable Nix package with `nix build .#omp`. Wayland screencast support is off by default (linking libpipewire adds ~750 MB of runtime closure); enable it with `omp.override { withWaylandScreencast = true; }`. The derivation installs dependencies from `pnpm-lock.yaml`; when that lockfile changes, refresh the `pnpmDeps` hash in `nix/package.nix` with the SRI hash Nix reports on the failed build.
+Build and smoke-test the distributable Nix package with `nix build .#oyp`. Wayland screencast support is off by default (linking libpipewire adds ~750 MB of runtime closure); enable it with `oyp.override { withWaylandScreencast = true; }`. The derivation installs dependencies from `pnpm-lock.yaml`; when that lockfile changes, refresh the `pnpmDeps` hash in `nix/package.nix` with the SRI hash Nix reports on the failed build.
 
 For a non-interactive smoke check:
 
@@ -642,7 +642,7 @@ For architecture and contribution guidelines, see [packages/coding-agent/DEVELOP
 | **[@oh-my-pi/omptype](packages/omptype)**                                     | ArkType-compatible schema validation with lazy JIT compilation              |
 | **[@oh-my-pi/pi-utils](packages/utils)**                                      | Shared utilities (logging, streams, dirs/env/process helpers)               |
 | **[@oh-my-pi/pi-wire](packages/wire)**                                        | Shared collab live-session protocol types and relay constants               |
-| **[@oh-my-pi/pi-mnemopi](packages/mnemopi)**                                  | Local SQLite memory engine for omp agents                                   |
+| **[@oh-my-pi/pi-mnemopi](packages/mnemopi)**                                  | Local SQLite memory engine for oyp agents                                   |
 | **[@oh-my-pi/snapcompact](packages/snapcompact)**                             | Bitmap-frame context compression package and SQuAD eval suite               |
 | **[@oh-my-pi/browser-relay](packages/browser-relay)**                         | Chrome extension that lets the Eval browser API drive your existing tabs    |
 | **[@oh-my-pi/pi-metaharness](packages/metaharness)**                          | Unified benchmark runners, Harbor run storage, REST/SSE API, live dashboard |

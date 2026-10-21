@@ -265,7 +265,7 @@ async function writeSyntheticTree(
 	patches: readonly string[],
 	options: SyntheticTreeOptions = {},
 ): Promise<string> {
-	const tempIndex = path.join(os.tmpdir(), `omp-task-index-${Snowflake.next()}`);
+	const tempIndex = path.join(os.tmpdir(), `oyp-task-index-${Snowflake.next()}`);
 	const repo = vcs.requireGit(repoDir);
 	try {
 		await repo.readTree(baseTreeish, tempIndex);
@@ -492,7 +492,7 @@ export async function applyNestedPatches(
 		// Preserve any pre-existing dirty state (tracked + untracked) so we
 		// commit only the agent delta, not the user's in-flight work.
 		const stashed = (await repository.isDirty())
-			? await repository.stashPush(`omp-isolation-${Snowflake.next()}`)
+			? await repository.stashPush(`oyp-isolation-${Snowflake.next()}`)
 			: false;
 		try {
 			for (const { patch } of repoPatches) {

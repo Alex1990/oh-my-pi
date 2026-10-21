@@ -78,7 +78,7 @@ export async function getProjectSkillsInstallPaths(cwd: string): Promise<SkillsI
 	if (!registryPath) {
 		throw new Error("This directory is not a project root; pass --global to install for your user.");
 	}
-	// `<root>/.oyp/plugins/installed_plugins.json` → `<root>/.omp`
+	// `<root>/.oyp/plugins/installed_plugins.json` → `<root>/.oyp`
 	return installPathsIn(path.dirname(path.dirname(registryPath)));
 }
 

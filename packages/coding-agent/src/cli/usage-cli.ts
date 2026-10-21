@@ -750,7 +750,7 @@ function formatResetExpiryBanner(
 		const command =
 			stored.length === 1 ? `/usage reset ${warning.provider}/${stored[0]!.credentialId}` : "/usage reset";
 		lines.push(
-			`    ${verdicts[index]!.kind === "off" ? "spend it" : "or now"}:  ${chalk.cyan(command)} ${chalk.dim("in omp")}`,
+			`    ${verdicts[index]!.kind === "off" ? "spend it" : "or now"}:  ${chalk.cyan(command)} ${chalk.dim("in oyp")}`,
 		);
 	});
 	return lines;
@@ -1079,7 +1079,7 @@ function formatNoProviderCredentials(provider: string, storedAccounts: UsageAcco
 	const hint =
 		stored.length > 0
 			? `Providers with stored credentials: ${stored.join(", ")}.`
-			: "Run `omp` and use /login to add accounts.";
+			: "Run `oyp` and use /login to add accounts.";
 	return `No credentials stored for provider "${provider}". ${hint}\n`;
 }
 
@@ -1378,7 +1378,7 @@ async function runUsageResetCommand(
 		}
 		if (accounts.length === 0) {
 			const names = providers.map(formatResetProviderName).join(" or ");
-			process.stderr.write(chalk.yellow(`No ${names} accounts found. Run \`omp\` and use /login to add one.\n`));
+			process.stderr.write(chalk.yellow(`No ${names} accounts found. Run \`oyp\` and use /login to add one.\n`));
 			process.exitCode = 1;
 			return;
 		}
@@ -1398,7 +1398,7 @@ async function runUsageResetCommand(
 	const lockKey = resetAccountLockKey(target);
 	if (!lockKey) {
 		failUsageReset(
-			`${who}: this login stores no account id or email to fence the spend against other omp processes, so nothing was spent. Run \`omp\` and use /login to sign in to it again.`,
+			`${who}: this login stores no account id or email to fence the spend against other oyp processes, so nothing was spent. Run \`oyp\` and use /login to sign in to it again.`,
 		);
 		return;
 	}
@@ -1433,8 +1433,8 @@ async function runUsageResetCommand(
 		const ago = formatDuration(Date.now() - result.atMs);
 		failUsageReset(
 			result.state === "reset"
-				? `${who}: another omp process spent a saved reset on this account ${ago} ago, so this one was not spent. Check \`oyp usage\` before spending another.`
-				: `${who}: another omp process started spending a saved reset on this account ${ago} ago, so nothing was spent. Try again in a minute.`,
+				? `${who}: another oyp process spent a saved reset on this account ${ago} ago, so this one was not spent. Check \`oyp usage\` before spending another.`
+				: `${who}: another oyp process started spending a saved reset on this account ${ago} ago, so nothing was spent. Try again in a minute.`,
 		);
 		return;
 	}
@@ -1500,7 +1500,7 @@ export async function runUsageCommand(cmd: UsageCommandArgs): Promise<void> {
 			if (rows.length === 0) {
 				const scope = cmd.provider ? ` for provider "${cmd.provider}"` : "";
 				process.stderr.write(
-					chalk.yellow(`No OAuth accounts found${scope}. Run \`omp\` and use /login to add accounts.\n`),
+					chalk.yellow(`No OAuth accounts found${scope}. Run \`oyp\` and use /login to add accounts.\n`),
 				);
 				process.exitCode = 1;
 				return;
@@ -1664,7 +1664,7 @@ export async function runUsageCommand(cmd: UsageCommandArgs): Promise<void> {
 			} else if (storedAccounts.length > 0) {
 				message = "No usage data. Stored credentials are for providers without a usage endpoint.\n";
 			} else {
-				message = "No credentials found. Run `omp` and use /login to add accounts.\n";
+				message = "No credentials found. Run `oyp` and use /login to add accounts.\n";
 			}
 			process.stderr.write(chalk.yellow(message));
 			process.exitCode = 1;

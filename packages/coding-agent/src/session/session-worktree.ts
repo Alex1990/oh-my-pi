@@ -292,7 +292,7 @@ export async function removeExitWorktrees(plan: readonly WorktreeExitPlan[]): Pr
 			if (holdsCwd) {
 				const commits = state.moved ? `; its commits are on branch ${worktree.branch}` : "";
 				messages.push(
-					`Removed worktree ${shortenPath(worktree.path)}. Resuming opens in the directory you launch omp from${commits}.`,
+					`Removed worktree ${shortenPath(worktree.path)}. Resuming opens in the directory you launch oyp from${commits}.`,
 				);
 			}
 		} catch (err) {

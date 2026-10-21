@@ -901,7 +901,7 @@ def _start_capture_drain() -> None:
     if _CAPTURE_READ_FD is None:
         return
     thread = threading.Thread(
-        target=_drain_captured_stdout, name="omp-fd1-capture", daemon=True
+        target=_drain_captured_stdout, name="oyp-fd1-capture", daemon=True
     )
     thread.start()
 
@@ -1711,7 +1711,7 @@ def _emit_image_dict(value: Any) -> bool:
 
 
 def _omp_image(value: Any) -> dict | None:
-    """Payload of an omp image dict ``{type: "image", mimeType, data, ...}``."""
+    """Payload of an oyp image dict ``{type: "image", mimeType, data, ...}``."""
     if isinstance(value, dict) and value.get("type") == "image":
         return _image_payload(value)
     return None
@@ -2494,7 +2494,7 @@ def _start_parent_watchdog() -> None:
                 return
             time.sleep(10)
 
-    thread = threading.Thread(target=watch, name="omp-parent-watchdog", daemon=True)
+    thread = threading.Thread(target=watch, name="oyp-parent-watchdog", daemon=True)
     thread.start()
 
 
@@ -2764,7 +2764,7 @@ def _read_stdin(loop: asyncio.AbstractEventLoop, queue: asyncio.Queue, stdin) ->
             threading.Thread(
                 target=_handle_tool_request,
                 args=(req,),
-                name=f"omp-tool-{req.get('id')}",
+                name=f"oyp-tool-{req.get('id')}",
                 daemon=True,
             ).start()
             continue
@@ -2787,7 +2787,7 @@ async def _serve_posix(loop: asyncio.AbstractEventLoop, stdin) -> None:
     reader = threading.Thread(
         target=_read_stdin,
         args=(loop, queue, stdin),
-        name="omp-stdin-reader",
+        name="oyp-stdin-reader",
         daemon=True,
     )
     reader.start()
@@ -2862,7 +2862,7 @@ async def _serve_windows(loop: asyncio.AbstractEventLoop, stdin) -> None:
             threading.Thread(
                 target=_handle_tool_request,
                 args=(req,),
-                name=f"omp-tool-{req.get('id')}",
+                name=f"oyp-tool-{req.get('id')}",
                 daemon=True,
             ).start()
             continue

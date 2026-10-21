@@ -35,7 +35,7 @@ export async function loadPinnedSessionIds(agentDir: string = getAgentDir()): Pr
  *
  * The read-modify-write runs under the shared cross-process file lock and
  * commits via write-temp-then-atomic-replace, mirroring the MCP config
- * writer: two omp instances toggling pins concurrently can no longer lose
+ * writer: two oyp instances toggling pins concurrently can no longer lose
  * each other's update (load-load-write-write), and a crash mid-write leaves
  * the previous pins file intact instead of a truncated one that degrades to
  * an empty set. The replace preserves the destination across Windows

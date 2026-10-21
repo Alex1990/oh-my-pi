@@ -135,7 +135,7 @@ export async function collectConfigCandidates(
 }
 
 /**
- * Discover and load WATCHDOG.md files walking up from cwd, project .omp folder, and user agent dir.
+ * Discover and load WATCHDOG.md files walking up from cwd, project .oyp folder, and user agent dir.
  * Returns formatted watchdog file blocks ready to be appended to the advisor system prompt.
  */
 export async function discoverWatchdogFiles(cwd: string, agentDir?: string): Promise<string[]> {

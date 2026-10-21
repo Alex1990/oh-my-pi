@@ -116,7 +116,7 @@ class DaemonConnection {
 	}
 }
 
-/** Connect and confirm the daemon speaks this omp version; `undefined` when nothing usable listens. */
+/** Connect and confirm the daemon speaks this oyp version; `undefined` when nothing usable listens. */
 async function connectDaemon(endpoint: string): Promise<DaemonConnection | undefined> {
 	let ipc: IpcConnection;
 	try {
@@ -128,7 +128,7 @@ async function connectDaemon(endpoint: string): Promise<DaemonConnection | undef
 	try {
 		const pong = await connection.request(id => ({ id, op: "ping" }), REQUEST_TIMEOUT_MS);
 		if (pong.ok && pong.op === "ping" && pong.version === VERSION) return connection;
-		// A daemon from another omp version: retire it so this version's starts.
+		// A daemon from another oyp version: retire it so this version's starts.
 		await connection.request(id => ({ id, op: "shutdown" }), REQUEST_TIMEOUT_MS).catch(() => undefined);
 	} catch (error) {
 		logger.debug("text-predict: daemon ping failed", { endpoint, error: String(error) });
@@ -321,7 +321,7 @@ export function syncTextPrediction(): void {
  * and shut it down.
  */
 export async function smokeTestTextPredictDaemon(): Promise<void> {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-text-predict-smoke-"));
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), "oyp-text-predict-smoke-"));
 	const endpoint = ipcEndpoint(root, "text-predict");
 	const spawn = resolveWorkerSpawnCmd(TEXT_PREDICT_WORKER_ARG);
 	const proc = ptree.spawn(spawn.cmd, {

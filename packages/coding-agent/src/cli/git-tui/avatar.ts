@@ -49,7 +49,7 @@ async function githubApiAvatarUrl(cwd: string, email: string): Promise<string | 
 	const match = remoteUrl?.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?$/);
 	if (!match) return null;
 	const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
-	const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "omp" };
+	const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "oyp" };
 	if (token) headers.Authorization = `Bearer ${token}`;
 	try {
 		const response = await fetch(

@@ -108,7 +108,7 @@ describe("security contracts", () => {
 		const finding = fixtureFinding();
 		const bundle: SecurityScanBundle = {
 			scan: {
-				documentType: "omp-security.scan",
+				documentType: "oyp-security.scan",
 				schemaVersion: "1.0",
 				id: finding.scanId,
 				projectKey: "fixture-project",

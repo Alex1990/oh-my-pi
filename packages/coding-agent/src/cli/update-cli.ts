@@ -2,7 +2,7 @@
  * Update CLI command handler.
  *
  * Handles `oyp update` to check for and install updates.
- * Uses the installer that owns the active omp executable when it can be detected.
+ * Uses the installer that owns the active oyp executable when it can be detected.
  */
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -358,7 +358,7 @@ function tryRealpath(p: string): string | undefined {
 }
 
 /**
- * Whether this omp runs from a source checkout (the dev launcher or a `pnpm link` of
+ * Whether this oyp runs from a source checkout (the dev launcher or a `pnpm link` of
  * `src/cli.ts`) rather than a compiled binary or a package-manager install, which
  * always lives under `node_modules`. Checkouts update through git, so update
  * prompts are noise there.
@@ -368,11 +368,11 @@ export function isSourceCheckout(): boolean {
 }
 
 /**
- * Name of the app that manages the omp at `binaryPath`, or undefined when none does.
+ * Name of the app that manages the oyp at `binaryPath`, or undefined when none does.
  *
  * A manager (Tern) keeps `manager.json` (`{"manager": "tern", "name": "Tern"}`) two
  * directories above every binary it installs (`<root>/versions/<version>`,
- * `<root>/bin/omp.exe`) and updates them itself, so `oyp update` must leave them alone.
+ * `<root>/bin/oyp.exe`) and updates them itself, so `oyp update` must leave them alone.
  * A missing or unreadable manifest means unmanaged.
  */
 export async function managedInstallName(binaryPath: string): Promise<string | undefined> {
@@ -415,11 +415,11 @@ function isPathInDirectory(filePath: string, directoryPath: string): boolean {
 	if (isPathInDirectoryLexical(filePath, directoryPath)) return true;
 	// Layer realpath resolution on top of the lexical guard. On Windows the
 	// package-manager global dir can be reached through a junction, so
-	// `pnpm bin -g` / `npm prefix -g` and the PATH-resolved omp path may name
+	// `pnpm bin -g` / `npm prefix -g` and the PATH-resolved oyp path may name
 	// the same directory through different strings. path.resolve does not
 	// traverse junctions/symlinks; realpath does.
 	// Resolve both the file and its parent directory: the file catches manager
-	// links like a package manager's `bin/omp -> .../bin/omp`; the parent fallback
+	// links like a package manager's `bin/oyp -> .../bin/oyp`; the parent fallback
 	// still tolerates fresh install paths where the file does not exist yet.
 	const dirReal = tryRealpath(path.resolve(directoryPath));
 	if (!dirReal) return false;
@@ -461,7 +461,7 @@ interface UpdateMethodResolutionOptions {
 	/** pnpm's global node_modules root (`pnpm root -g`), where its installed packages live. */
 	pnpmGlobalDir?: string;
 	/**
-	 * Whether the resolved omp path is a plain file (the standalone binary)
+	 * Whether the resolved oyp path is a plain file (the standalone binary)
 	 * rather than a package-manager symlink. Stops a binary install from being
 	 * misrouted to npm/pnpm when the global bin dir overlaps the installer's
 	 * target directory.
@@ -515,8 +515,8 @@ function resolveUpdateMethod(
 	// a binary install through npm/pnpm, whose reinstall then collides with the
 	// existing file (npm EEXIST). Fall through to binary replacement instead.
 	// On Windows every launcher is a regular file, so ownership keys off the
-	// manager's own artifacts instead: the shell/batch shims (`omp`, `omp.cmd`,
-	// `omp.ps1`) both npm and pnpm write. A bare `.exe` is the standalone binary
+	// manager's own artifacts instead: the shell/batch shims (`oyp`, `oyp.cmd`,
+	// `oyp.ps1`) both npm and pnpm write. A bare `.exe` is the standalone binary
 	// a binary-only release installed over the launcher — routing that back
 	// through pnpm reinstalls a package which no longer owns the launcher, and
 	// Windows cannot replace the running `.exe`, so the install would stay
@@ -828,7 +828,7 @@ async function getPnpmGlobalNodeModulesDir(): Promise<string | undefined> {
 }
 
 /**
- * Resolve the path that `omp` maps to in the user's PATH.
+ * Resolve the path that `oyp` maps to in the user's PATH.
  */
 function resolveOmpPath(): string | undefined {
 	return $which(APP_NAME) ?? undefined;
@@ -836,7 +836,7 @@ function resolveOmpPath(): string | undefined {
 
 /**
  * Parse the version a launcher reports from `oyp --version` output
- * (`omp/X.Y.Z`, or a prerelease such as `omp/X.Y.Z-canary.1`).
+ * (`oyp/X.Y.Z`, or a prerelease such as `oyp/X.Y.Z-canary.1`).
  *
  * The prerelease suffix is preserved so a correctly installed canary build
  * verifies as up to date instead of appearing to report a stale `X.Y.Z` and
@@ -888,7 +888,7 @@ async function validateExistingUpdateTarget(targetPath: string): Promise<void> {
 }
 
 /**
- * Run the PATH-resolved omp binary and check if it reports the expected version.
+ * Run the PATH-resolved oyp binary and check if it reports the expected version.
  */
 async function verifyInstalledVersion(expectedVersion: string): Promise<InstalledVersionVerification> {
 	const ompPath = resolveOmpPath();
@@ -1095,7 +1095,7 @@ function buildVersionedPackageInstallArgs(
 }
 
 /**
- * Build the pnpm argv used to globally install a specific omp version.
+ * Build the pnpm argv used to globally install a specific oyp version.
  *
  * The version is selected by querying the resolved registry in
  * {@link getLatestRelease} ({@link ReleaseInfo.registry}), so the install
@@ -1151,10 +1151,10 @@ export function buildPnpmInstallArgs(
  * Pins `--registry` to the checked registry for the same reason as
  * {@link buildPnpmInstallArgs}.
  *
- * `force` is set only for rename migrations: npm refuses to write the `omp`
+ * `force` is set only for rename migrations: npm refuses to write the `oyp`
  * bin while the old package still owns it (`EEXIST`), and the migration
  * installs the new package BEFORE removing the old one so a failed install
- * never leaves the user without a working `omp`.
+ * never leaves the user without a working `oyp`.
  */
 export function buildNpmInstallArgs(
 	expectedVersion: string,
@@ -1238,11 +1238,11 @@ export function buildRenameCleanupPackages(
 
 /** Injectable shell steps for {@link migrateRenamedInstall}; commands return process exit codes. */
 export interface RenameMigrationSteps {
-	/** Globally install the new package names. MUST be idempotent: re-running re-links the `omp` bin. */
+	/** Globally install the new package names. MUST be idempotent: re-running re-links the `oyp` bin. */
 	install(): Promise<number>;
 	/** Remove the old-name globals. */
 	removeOld(): Promise<number>;
-	/** Check the PATH-resolved `omp` against the expected version. */
+	/** Check the PATH-resolved `oyp` against the expected version. */
 	verify(): Promise<InstalledVersionVerification>;
 }
 
@@ -1286,13 +1286,13 @@ function packageManagerMigrationSteps(manager: "pnpm" | "npm", release: ReleaseI
 
 /**
  * Migrate a package-manager install across an `omp.rename` hop without a
- * window where no working `omp` exists:
+ * window where no working `oyp` exists:
  *
  * 1. Install the new package FIRST. Nothing has been removed yet, so a
  *    failure here leaves the old install fully functional.
  * 2. Remove the old-name globals. Failure is non-fatal: a stale package
  *    wastes disk, but the bin already points at the new install.
- * 3. Verify the PATH-resolved `omp`. If the removal deleted the shared bin
+ * 3. Verify the PATH-resolved `oyp`. If the removal deleted the shared bin
  *    link (manager-dependent), re-run the idempotent install to restore it
  *    and verify again; only a repeated failure aborts, with a recovery hint.
  */
@@ -1582,7 +1582,7 @@ export async function updateViaBinaryAt(
 /**
  * In-place forwarder bodies, by shim extension, for launchers that cannot be
  * renamed aside during a script-shim takeover; each execs the sibling
- * `omp.exe`. Rewriting matters for the shims that outrank `.exe` at command
+ * `oyp.exe`. Rewriting matters for the shims that outrank `.exe` at command
  * resolution: PowerShell prefers `.ps1` and Git Bash resolves the
  * extensionless sh shim first, so leaving the old body behind would keep
  * launching the replaced install.
@@ -1598,8 +1598,8 @@ const SHIM_FORWARDERS: Record<string, string> = {
  * Take over a Windows script-launcher install for a binary-only release.
  *
  * npm-managed Windows installs are launched through script shims
- * (`omp`/`omp.cmd`/`omp.ps1`) that cannot be overwritten with a native
- * executable. The release binary is installed as `omp.exe` beside them and
+ * (`oyp`/`oyp.cmd`/`oyp.ps1`) that cannot be overwritten with a native
+ * executable. The release binary is installed as `oyp.exe` beside them and
  * the shims are then renamed aside: cmd.exe would already prefer `.exe` via
  * PATHEXT, but PowerShell resolves `.ps1` first, so the takeover only sticks
  * once the shims are out of the way. A working launcher exists at every
@@ -1800,7 +1800,7 @@ async function runBinaryUpdate(
  * release is binary-only ({@link shouldForceBinaryUpdate}).
  *
  * The launcher is resolved again without package-manager routing: a manager
- * symlink is taken over in place, a Windows script launcher gets `omp.exe`
+ * symlink is taken over in place, a Windows script launcher gets `oyp.exe`
  * beside it. The binary is the newest release on the channel. A build older
  * than npm's release that would not move the install forward means the
  * release is still uploading, so the update stops instead of reinstalling or
@@ -1832,7 +1832,7 @@ async function updateToStandaloneBinary(
 	}
 	// A Windows script shim is the only manager-owned shape that reaches here
 	// without package-manager routing; its path is known, so it can be retired
-	// in favour of the sibling `omp.exe`.
+	// in favour of the sibling `oyp.exe`.
 	if ((target.method !== "pnpm" && target.method !== "npm") || !target.path) {
 		throw new Error(`Could not resolve ${APP_NAME} launcher path in PATH`);
 	}
@@ -1871,7 +1871,7 @@ async function runManagedUpdate(
 		}
 		if (target.method === "nix") {
 			console.log(chalk.yellow("This installation is managed by Nix and cannot update itself."));
-			console.log(chalk.dim("Update the flake input or profile that provides omp, then rebuild."));
+			console.log(chalk.dim("Update the flake input or profile that provides oyp, then rebuild."));
 			return;
 		}
 		if (target.method === "mise") {
@@ -1891,7 +1891,7 @@ async function runManagedUpdate(
 /**
  * Run the update command.
  *
- * The installer that owns the PATH `omp` decides where the version comes
+ * The installer that owns the PATH `oyp` decides where the version comes
  * from: a standalone binary asks GitHub Releases, a package-manager install
  * asks npm. When no target resolves, the running build's kind decides, so
  * `--check` still answers; installing then fails on the unresolved target.
