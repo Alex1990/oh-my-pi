@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { compileCodingAgent } from "./compile-binary";
@@ -46,7 +47,12 @@ export function resolveCrossBuild(value: string | undefined): CrossBuild | null 
 // first use. The `catalog:` spec cannot be resolved from inside the compiled
 // bundle (issue #1763), so embed the concrete installed version here for the
 // worker to pin its runtime install against.
-const transformersManifest: unknown = createRequire(import.meta.url)("@huggingface/transformers/package.json");
+const transformersEntry = createRequire(import.meta.url).resolve("@huggingface/transformers");
+// The package's exports map hides ./package.json, so resolve the entry point
+// (dist/…, one level below the package root) and read the manifest beside it.
+const transformersManifest: unknown = JSON.parse(
+	await fs.readFile(path.join(path.dirname(transformersEntry), "..", "package.json"), "utf8"),
+);
 if (
 	typeof transformersManifest !== "object" ||
 	transformersManifest === null ||

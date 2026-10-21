@@ -76,11 +76,13 @@ concurrency:
 
 env:
    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-   # native_addons builds the pair TS jobs need; native_addons_cross builds the
-   # rest. Together they must equal //:natives-all (checked in the cross job),
-   # so a filegroup addition cannot silently skip both.
+   # native_addons builds the linux-x64 pair every TS test job loads;
+   # native_addons_cross builds the addons the release matrix publishes.
+   # This fork ships only darwin-arm64 and win32-x64, so both lists are a
+   # subset of //:natives-all (checked in the cross job); an unknown target
+   # still fails the check before the long build runs.
    NATIVES_X64_TARGETS: natives-linux-x64-baseline natives-linux-x64-modern
-   NATIVES_CROSS_TARGETS: natives-darwin-arm64 natives-darwin-x64-baseline natives-linux-arm64 natives-linux-musl-arm64 natives-linux-musl-x64-baseline natives-win32-arm64 natives-win32-x64-baseline
+   NATIVES_CROSS_TARGETS: natives-darwin-arm64 natives-win32-x64-baseline
    # Per-test wall-clock ceiling (seconds) for scripts/ci-test-ts.ts. omp-kata
    # runners with reclaim_guest_freed_memory (infra/tune-kata-runtime.sh) run
    # the SQLite/subprocess-heavy coding-agent suites 1.5-2x slower, which put
@@ -155,7 +157,7 @@ jobs:
 
    check:
       name: Lint, type check & web build
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       steps:
          - uses: actions/checkout@v4
          - uses: ./.github/actions/pnpm-install
@@ -205,6 +207,7 @@ jobs:
       steps:
          - uses: actions/checkout@v4
          - uses: ./.github/actions/pnpm-install
+         - uses: ./.github/actions/bazelisk
          - name: Check crate_universe entry
            run: node --experimental-transform-types scripts/gen-bazel-lock.ts --check
          - name: Refresh MODULE.bazel.lock
@@ -225,10 +228,11 @@ jobs:
    rust_validate:
       name: Validate Rust workspace (bazel)
       if: github.event_name != 'pull_request'
-      runs-on: omp-kata
+      runs-on: ubuntu-22.04
       steps:
          - uses: actions/checkout@v4
          - uses: ./.github/actions/pnpm-install
+         - uses: ./.github/actions/bazelisk
          - id: cache
            uses: ./.github/actions/bazel-cache
          - name: Rust tests
@@ -280,7 +284,7 @@ jobs:
    # with required checks.
    native_addons:
       name: Build native addons (bazel)
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       # actions: write lets main prune superseded addon cache entries.
       permissions:
          contents: read
@@ -291,6 +295,9 @@ jobs:
          stash: ${{ steps.stage.outputs.stash }}
       steps:
          - uses: actions/checkout@v4
+         # PR runs restore prebuilt addons and never invoke Bazel.
+         - uses: ./.github/actions/bazelisk
+           if: github.event_name != 'pull_request'
          - name: Compute native addon cache key
            id: natives-key
            shell: bash
@@ -504,9 +511,10 @@ jobs:
    native_addons_cross:
       name: Build native addons (bazel, cross targets)
       if: github.event_name != 'pull_request'
-      runs-on: omp-kata
+      runs-on: ubuntu-22.04
       steps:
          - uses: actions/checkout@v4
+         - uses: ./.github/actions/bazelisk
          - id: cache
            uses: ./.github/actions/bazel-cache
          - name: Build cross-target native addons
@@ -518,25 +526,29 @@ jobs:
               for target in $NATIVES_CROSS_TARGETS; do
                 bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" build "//:$target" 2>&1 | tee -a "$RUNNER_TEMP/bazel-build.log"
               done
-         # The two jobs' target lists must together cover //:natives-all
-         # exactly; a target added to the filegroup but to neither list would
-         # otherwise silently never build or ship. cquery, not query: the rc's
-         # --config=ci is defined for build only, which cquery inherits and
-         # query rejects; this also reuses the warm server.
-         - name: Check addon target lists cover natives-all
+         # Both lists must name targets that actually exist in //:natives-all.
+         # This fork builds only the subset its release matrix publishes, so
+         # coverage is a subset check rather than equality; a typo or a renamed
+         # target still fails here instead of after a long Bazel build.
+         # cquery, not query: the rc's --config=ci is defined for build only,
+         # which cquery inherits and query rejects; this also reuses the warm
+         # server.
+         - name: Check addon targets exist in natives-all
            run: |
               set -euo pipefail
-              read -r -a listed <<< "$NATIVES_X64_TARGETS $NATIVES_CROSS_TARGETS"
-              expected="$(printf '%s\n' "${listed[@]}" | sort)"
-              actual="$(bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" cquery 'labels(srcs, //:natives-all)' 2>"$RUNNER_TEMP/query.err" | sed -E 's/ \(.*\)$//; s/.*://' | sort)" || {
+              read -r -a named <<< "$NATIVES_X64_TARGETS $NATIVES_CROSS_TARGETS"
+              listed="$(printf '%s\n' "${named[@]}" | sort -u)"
+              actual="$(bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" cquery 'labels(srcs, //:natives-all)' 2>"$RUNNER_TEMP/query.err" | sed -E 's/ \(.*\)$//; s/.*://' | sort -u)" || {
                 cat "$RUNNER_TEMP/query.err"
                 exit 1
               }
-              if [ "$expected" != "$actual" ]; then
-                echo "::error title=Native addon target lists::NATIVES_X64_TARGETS + NATIVES_CROSS_TARGETS must equal //:natives-all srcs"
-                diff <(echo "$expected") <(echo "$actual") || true
+              missing="$(comm -23 <(printf '%s\n' "$listed") <(printf '%s\n' "$actual") || true)"
+              if [ -n "$missing" ]; then
+                echo "::error title=Native addon target lists::targets missing from //:natives-all:"
+                echo "$missing"
                 exit 1
               fi
+              echo "Addon targets (${#named[@]}) are a subset of //:natives-all."
          - name: Verify Apple Foundation Models bridge
            run: |
               set -euo pipefail
@@ -569,7 +581,7 @@ jobs:
 
    test_coding_agent_native:
       name: "Test coding-agent native/unit (TS) ${{ matrix.shard }}"
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
@@ -600,7 +612,7 @@ jobs:
 
    test_workspace:
       name: Test TS workspace fast
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 20
@@ -623,7 +635,7 @@ jobs:
 
    test_coding_agent_singleton:
       name: Test coding-agent singleton/global-state (TS)
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 20
@@ -641,7 +653,7 @@ jobs:
 
    test_ts_native:
       name: Test TS native/integration packages
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
@@ -661,7 +673,7 @@ jobs:
 
    test_coding_agent_ui:
       name: Test coding-agent UI/TUI (TS)
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
@@ -679,7 +691,7 @@ jobs:
 
    test_coding_agent_runtime:
       name: Test coding-agent runtime/session (TS)
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
@@ -699,7 +711,7 @@ jobs:
 
    test_smoke:
       name: Test CLI smoke (TS)
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 15
@@ -715,7 +727,7 @@ jobs:
 
    install_methods:
       name: Install method smoke tests
-      runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-22.04' || 'omp-kata' }}
+      runs-on: ubuntu-22.04
       needs: [native_addons]
       if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       steps:
@@ -775,14 +787,9 @@ jobs:
          fail-fast: false
          matrix:
             include:
-               # Addons cross-built by Bazel (clang + ld64.lld against the
-               # Command Line Tools SDK) in native_addons_cross.
-               - {
-                    platform: darwin,
-                    target_id: darwin-x64,
-                    binary_path: packages/coding-agent/binaries/oyp-darwin-x64,
-                    native_targets: darwin-x64-baseline,
-                 }
+               # Only the platforms this fork publishes. The Apple Silicon
+               # addon comes from native_addons_cross; the Windows x64 one is
+               # cross-built there too (clang-cl + xwin).
                - {
                     platform: darwin,
                     target_id: darwin-arm64,
@@ -790,42 +797,10 @@ jobs:
                     native_targets: darwin-arm64,
                  }
                - {
-                    platform: linux,
-                    target_id: linux-x64,
-                    binary_path: packages/coding-agent/binaries/oyp-linux-x64,
-                    native_targets: linux-x64-baseline linux-x64-modern,
-                 }
-               - {
-                    platform: linux,
-                    target_id: linux-musl-x64,
-                    binary_path: packages/coding-agent/binaries/oyp-linux-musl-x64,
-                    native_targets: linux-musl-x64-baseline,
-                 }
-               - {
-                    platform: linux,
-                    target_id: linux-arm64,
-                    binary_path: packages/coding-agent/binaries/oyp-linux-arm64,
-                    native_targets: linux-arm64,
-                 }
-               - {
-                    platform: linux,
-                    target_id: linux-musl-arm64,
-                    binary_path: packages/coding-agent/binaries/oyp-linux-musl-arm64,
-                    native_targets: linux-musl-arm64,
-                 }
-               - {
                     platform: win32,
                     target_id: win32-x64,
                     binary_path: packages/coding-agent/binaries/oyp-windows-x64.cmd,
                     native_targets: win32-x64-baseline,
-                 }
-               # Addon cross-built by Bazel (clang-cl + xwin arm64 splat) in
-               # native_addons_cross.
-               - {
-                    platform: win32,
-                    target_id: win32-arm64,
-                    binary_path: packages/coding-agent/binaries/oyp-windows-arm64.cmd,
-                    native_targets: win32-arm64,
                  }
       runs-on: ubuntu-22.04
       permissions:
@@ -863,16 +838,10 @@ jobs:
          fail-fast: false
          matrix:
             include:
-               - { os: ubuntu-22.04, target_id: linux-x64, binary: oyp-linux-x64 }
-               - { os: ubuntu-24.04-arm, target_id: linux-arm64, binary: oyp-linux-arm64 }
-               # musl binaries need the musl loader, which glibc runners lack:
-               # they run in an Alpine container of the runner's arch.
-               - { os: ubuntu-22.04, target_id: linux-musl-x64, binary: oyp-linux-musl-x64, alpine: true }
-               - { os: ubuntu-24.04-arm, target_id: linux-musl-arm64, binary: oyp-linux-musl-arm64, alpine: true }
-               - { os: macos-15-intel, target_id: darwin-x64, binary: oyp-darwin-x64 }
+               # Mirrors release_binary: each published binary is executed on
+               # its own platform before anything publishes.
                - { os: macos-15, target_id: darwin-arm64, binary: oyp-darwin-arm64 }
                - { os: windows-2025, target_id: win32-x64, binary: oyp-windows-x64.cmd }
-               - { os: windows-11-arm, target_id: win32-arm64, binary: oyp-windows-arm64.cmd }
       runs-on: ${{ matrix.os }}
       permissions:
          contents: read

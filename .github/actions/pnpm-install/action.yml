@@ -1,6 +1,7 @@
 name: "Node install (shared pnpm store)"
 description: >
-   Ensure Node 24 and pnpm 10 are available, then run
+   Ensure Node 24 and the pnpm version pinned by package.json's
+   `packageManager` field are available, then run
    `pnpm install --frozen-lockfile` with the pnpm store cached by
    actions/setup-node.
 
@@ -10,7 +11,6 @@ runs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-           version: 10
            run_install: false
 
       - name: Setup Node with pnpm store cache

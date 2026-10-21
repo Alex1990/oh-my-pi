@@ -1,0 +1,33 @@
+name: "Install bazelisk"
+description: >
+   Puts bazelisk on PATH on GitHub-hosted runners. The self-hosted omp-kata
+   images bake it in (infra/reload-runner.sh verifies it), so this action is a
+   no-op there. Bazel itself is downloaded by bazelisk according to
+   .bazelversion.
+
+runs:
+   using: composite
+   steps:
+      - name: Install bazelisk
+        shell: bash
+        run: |
+           set -euo pipefail
+           if command -v bazelisk >/dev/null 2>&1; then
+             echo "bazelisk already on PATH: $(command -v bazelisk)"
+             exit 0
+           fi
+           # Pin the launcher: it must stay compatible with .bazelversion.
+           # Bump the version only together with the checksum fetched below.
+           ver=1.30.0
+           base="https://github.com/bazelbuild/bazelisk/releases/download/v${ver}"
+           tmp="$RUNNER_TEMP/bazelisk-linux-amd64"
+           curl -fsSL --retry 3 -o "$tmp" "$base/bazelisk-linux-amd64"
+           curl -fsSL --retry 3 -o "$tmp.sha256" "$base/bazelisk-linux-amd64.sha256"
+           expected="$(cut -d' ' -f1 < "$tmp.sha256")"
+           actual="$(sha256sum "$tmp" | cut -d' ' -f1)"
+           if [ "$expected" != "$actual" ]; then
+             echo "::error title=bazelisk checksum::expected $expected, got $actual"
+             exit 1
+           fi
+           sudo install -m 0755 "$tmp" /usr/local/bin/bazelisk
+           bazelisk version

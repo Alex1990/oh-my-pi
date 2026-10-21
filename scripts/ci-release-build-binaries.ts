@@ -10,7 +10,11 @@
 import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import * as path from "node:path";
-import { COMPILED_EXTERNAL_DEPENDENCIES, bundleCodingAgent, writeLauncher } from "../packages/coding-agent/scripts/compile-binary";
+import {
+	COMPILED_EXTERNAL_DEPENDENCIES,
+	bundleCodingAgent,
+	writeLauncher,
+} from "../packages/coding-agent/scripts/compile-binary";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 interface BinaryTarget {
@@ -23,7 +27,12 @@ interface BinaryTarget {
 const repoRoot = path.join(import.meta.dirname, "..");
 const binariesDir = path.join(repoRoot, "packages", "coding-agent", "binaries");
 const entrypoint = path.join(repoRoot, "packages", "coding-agent", "src", "cli.ts");
-const transformersManifest: unknown = createRequire(import.meta.url)("@huggingface/transformers/package.json");
+const transformersEntry = createRequire(import.meta.url).resolve("@huggingface/transformers");
+// The package's exports map hides ./package.json, so resolve the entry point
+// (dist/…, one level below the package root) and read the manifest beside it.
+const transformersManifest: unknown = JSON.parse(
+	await fs.readFile(path.join(path.dirname(transformersEntry), "..", "package.json"), "utf8"),
+);
 if (
 	typeof transformersManifest !== "object" ||
 	transformersManifest === null ||
@@ -35,7 +44,12 @@ if (
 const transformersVersion = transformersManifest.version;
 const isDryRun = process.argv.includes("--dry-run");
 
-function target(id: string, platform: BinaryTarget["platform"], arch: BinaryTarget["arch"], file: string): BinaryTarget {
+function target(
+	id: string,
+	platform: BinaryTarget["platform"],
+	arch: BinaryTarget["arch"],
+	file: string,
+): BinaryTarget {
 	return { id, platform, arch, outfile: `packages/coding-agent/binaries/${file}` };
 }
 
@@ -110,7 +124,8 @@ async function main(): Promise<void> {
 			console.log(
 				`DRY RUN bundle outfile=packages/coding-agent/binaries/cli.js external=${COMPILED_EXTERNAL_DEPENDENCIES.join(",")}`,
 			);
-			for (const selected of selectedTargets) console.log(`DRY RUN launcher ${selected.outfile} (${selected.platform})`);
+			for (const selected of selectedTargets)
+				console.log(`DRY RUN launcher ${selected.outfile} (${selected.platform})`);
 			return;
 		}
 		await bundleCodingAgent({

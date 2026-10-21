@@ -84,7 +84,11 @@ export async function bundleCodingAgent(options: CodingAgentCompileOptions): Pro
 		root: options.repoRoot,
 		external: [...COMPILED_EXTERNAL_DEPENDENCIES],
 		define: {
-			"process.env.PI_COMPILED": JSON.stringify("true"),
+			// Released artifacts are `cli.js` run by a Node launcher, not a
+			// `bun build --compile` executable. Marking them PI_COMPILED made
+			// `bun.main` resolve to process.execPath, so worker threads tried
+			// to load node.exe as JavaScript. PI_BUNDLED matches dist/cli.js.
+			"process.env.PI_BUNDLED": JSON.stringify("true"),
 			"process.env.PI_TINY_TRANSFORMERS_VERSION": JSON.stringify(options.transformersVersion),
 			"process.env.PI_DOCS_EMBED": JSON.stringify((await buildDocsIndexPayload()).payload),
 			"process.env.PI_USER_AGENT": JSON.stringify(USER_AGENT),
@@ -107,7 +111,10 @@ export async function bundleCodingAgent(options: CodingAgentCompileOptions): Pro
 /** Write the platform launcher that starts `cli.js` on Node. */
 export async function writeLauncher(outfile: string, platform: NodeJS.Platform): Promise<void> {
 	if (platform === "win32") {
-		await fs.writeFile(outfile.endsWith(".cmd") ? outfile : `${outfile}.cmd`, LAUNCHER_WINDOWS.replaceAll("\r\n", "\n"));
+		await fs.writeFile(
+			outfile.endsWith(".cmd") ? outfile : `${outfile}.cmd`,
+			LAUNCHER_WINDOWS.replaceAll("\r\n", "\n"),
+		);
 		return;
 	}
 	await fs.writeFile(outfile, LAUNCHER_POSIX, { mode: 0o755 });
