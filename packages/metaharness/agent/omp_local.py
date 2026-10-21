@@ -14,7 +14,7 @@ this runs the working tree at `/work/pi`. Install modes (`OMP_BENCH_INSTALL`):
     external deps + the platform native addon, and run `bun .../dist/cli.js`.
   * binary (`--binary`): a self-contained compiled omp binary is uploaded.
 
-Auth never enters the container: a generated `~/.omp/agent/models.yml` routes the
+Auth never enters the container: a generated `~/.oyp/agent/models.yml` routes the
 configured providers' `baseUrl` at the host's pm2 auth-gateway (default
 `http://host.docker.internal:4000`, `transport: pi-native`), so the gateway
 resolves credentials host-side. No provider API keys are passed in.
@@ -349,7 +349,7 @@ class OmpLocal(BaseInstalledAgent):
             else:
                 self._cli = await self._install_local(environment)
 
-        # 3) Auth + model config under $HOME/.omp/agent.
+        # 3) Auth + model config under $HOME/.oyp/agent.
         if self._gateway_on:
             # Gateway routing — no provider keys ever enter the container.
             await self._write_models_yaml(environment)
@@ -480,8 +480,8 @@ class OmpLocal(BaseInstalledAgent):
         await self.exec_as_agent(
             environment,
             command=(
-                f'mkdir -p "$HOME/.omp/agent"; '
-                f'cp {shlex.quote(staged)} "$HOME/.omp/agent/models.yml"'
+                f'mkdir -p "$HOME/.oyp/agent"; '
+                f'cp {shlex.quote(staged)} "$HOME/.oyp/agent/models.yml"'
             ),
         )
 
@@ -501,7 +501,7 @@ class OmpLocal(BaseInstalledAgent):
         return "\n".join(lines)
 
     async def _write_config(self, environment: BaseEnvironment) -> None:
-        """Write $HOME/.omp/agent/config.yml: the web_search and find toggles.
+        """Write $HOME/.oyp/agent/config.yml: the web_search and find toggles.
 
         web_search can't authenticate through the gateway, so it's off by default.
         find is off by default in omp; it is enabled only when the tool allowlist
@@ -525,8 +525,8 @@ class OmpLocal(BaseInstalledAgent):
         await self.exec_as_agent(
             environment,
             command=(
-                f'mkdir -p "$HOME/.omp/agent"; '
-                f'cp {shlex.quote(_CONFIG_DST)} "$HOME/.omp/agent/config.yml"'
+                f'mkdir -p "$HOME/.oyp/agent"; '
+                f'cp {shlex.quote(_CONFIG_DST)} "$HOME/.oyp/agent/config.yml"'
             ),
         )
 
