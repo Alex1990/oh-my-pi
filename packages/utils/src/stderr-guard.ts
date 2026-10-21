@@ -10,7 +10,7 @@
  * While the TUI owns the terminal, dup fd 2 aside and dup2 a redirect target
  * over it; restore the saved fd whenever terminal ownership is released
  * (external editor, Ctrl+Z suspend, shutdown, crash restore). This mirrors
- * openai/codex#24459, but redirects to the omp log file instead of /dev/null
+ * openai/codex#24459, but redirects to the oyp log file instead of /dev/null
  * so diagnostics stay greppable and Bun native-crash reports (which abort
  * before any JS cleanup can restore fd 2) are preserved.
  *
@@ -82,7 +82,7 @@ let redirectTarget: string | null = null;
 export interface SuppressTerminalStderrOptions {
 	/**
 	 * Redirect target path; defaults to the log file the rotating sink last
-	 * reported (see {@link setStderrRedirectTarget}), then today's omp log
+	 * reported (see {@link setStderrRedirectTarget}), then today's oyp log
 	 * file, then /dev/null.
 	 */
 	redirectPath?: string;

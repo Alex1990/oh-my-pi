@@ -309,7 +309,7 @@ export function parseWidgetValue(text: string): number {
  * enable the dry run, which rejects:
  * - rules matching none of the non-empty samples (an empty widget);
  * - a field read as a number whose sample captures hold none;
- * - rules reading omp's {@link TOOL_CALL_MARK} lines of a subagent's tool
+ * - rules reading oyp's {@link TOOL_CALL_MARK} lines of a subagent's tool
  *   calls (counting or naming tool calls is activity, not progress).
  *
  * With `brief` (the job's command, task and hints) as well, a constant meter
@@ -413,7 +413,7 @@ function dryRun(
 	}
 	for (const index of marked) {
 		errors.push(
-			`rules[${index}]: matches \`${TOOL_CALL_MARK}<tool> <intent>\` lines, which are omp's markers of the subagent's tool calls, not its output; read the result lines below them, or skip if none show progress`,
+			`rules[${index}]: matches \`${TOOL_CALL_MARK}<tool> <intent>\` lines, which are oyp's markers of the subagent's tool calls, not its output; read the result lines below them, or skip if none show progress`,
 		);
 	}
 	for (const [field, where] of numeric) {

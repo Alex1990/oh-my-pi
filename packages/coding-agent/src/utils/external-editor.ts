@@ -65,7 +65,7 @@ export async function openInEditor(
 	options?: OpenInEditorOptions,
 ): Promise<string | null> {
 	const ext = options?.extension ?? ".md";
-	const tmpFile = path.join(os.tmpdir(), `omp-editor-${Snowflake.next()}${ext}`);
+	const tmpFile = path.join(os.tmpdir(), `oyp-editor-${Snowflake.next()}${ext}`);
 
 	try {
 		await bun.write(tmpFile, content);

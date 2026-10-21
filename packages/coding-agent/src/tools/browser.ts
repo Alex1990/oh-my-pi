@@ -562,7 +562,7 @@ async function listTargets(
 	const kind = resolveBrowserKind({ ...params, app: { ...params.app, target: params.app?.target ?? "" } }, session);
 	if (kind.kind !== "tern" && kind.kind !== "relay") {
 		throw new ToolError(
-			`No pages to adopt here (the browser would be ${describeKind(kind)}): targets exist only inside a Tern pane (its browser blocks) or with the omp relay (app.relay: true or the browser.relay setting).`,
+			`No pages to adopt here (the browser would be ${describeKind(kind)}): targets exist only inside a Tern pane (its browser blocks) or with the oyp relay (app.relay: true or the browser.relay setting).`,
 		);
 	}
 	details.browser = kind.kind;
@@ -721,7 +721,7 @@ function ternNotes(tab: TernTabSession): string[] {
 		notes.push(
 			adopted
 				? `Not on screen: the user is viewing another Tern tab or session. Block ${adopted.block} shows once they switch to the tab holding it; tell them where it is.`
-				: `Not on screen: the user hid pictures in picture (⌃⌥⌘P), or this Tern shows them only in the tab holding this omp pane (block ${tab.browser.kind.pane}); tell them where it is.`,
+				: `Not on screen: the user hid pictures in picture (⌃⌥⌘P), or this Tern shows them only in the tab holding this oyp pane (block ${tab.browser.kind.pane}); tell them where it is.`,
 		);
 	}
 	return notes;

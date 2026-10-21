@@ -10,9 +10,9 @@ import { serve } from "@oh-my-pi/pi-utils/node-serve";
 // /usr/bin, so the stubs never win there.
 
 const repoRoot = path.join(import.meta.dirname, "..");
-const BINARY = '#!/bin/sh\necho "omp/1.0.0"\n';
-const CLI_JS = 'console.log("omp/1.0.0");\n';
-const ASSET = "omp-linux-musl-x64";
+const BINARY = '#!/bin/sh\necho "oyp/1.0.0"\n';
+const CLI_JS = 'console.log("oyp/1.0.0");\n';
+const ASSET = "oyp-linux-musl-x64";
 const cleanups: (() => Promise<void> | void)[] = [];
 
 afterEach(async () => {
@@ -65,7 +65,7 @@ async function runInstall(
 	stderr: string;
 	installDir: string;
 }> {
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-install-"));
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "oyp-install-"));
 	cleanups.push(() => fs.rm(dir, { recursive: true, force: true }));
 	const binDir = path.join(dir, "bin");
 	const installDir = path.join(dir, "install");
@@ -101,8 +101,8 @@ describe.skipIf(process.platform === "win32")("install.sh binary mode", () => {
 		expect(release.requests).toContain(`/releases/latest/download/${ASSET}`);
 		expect(release.requests).toContain("/releases/latest/download/cli.js");
 		expect(result.stdout).toContain("Using the latest release");
-		expect((await fs.readdir(result.installDir)).sort()).toEqual(["cli.js", "omp"]);
-		expect(await bun.file(path.join(result.installDir, "omp")).text()).toBe(BINARY);
+		expect((await fs.readdir(result.installDir)).sort()).toEqual(["cli.js", "oyp"]);
+		expect(await bun.file(path.join(result.installDir, "oyp")).text()).toBe(BINARY);
 		expect(await bun.file(path.join(result.installDir, "cli.js")).text()).toBe(CLI_JS);
 	});
 

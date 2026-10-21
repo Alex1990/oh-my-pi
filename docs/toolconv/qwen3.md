@@ -7,7 +7,7 @@ Verified against: Qwen's canonical function-calling guide (`qwen.readthedocs.io/
 The template/tokenizer details below refer to the Qwen3-8B reference listed
 above, not every later Qwen deployment. OMP's owned converter does not execute
 that template or apply `enable_thinking`; see
-[omp / pi converter behavior](#omp--pi-converter-behavior) for the implemented
+[oyp / pi converter behavior](#oyp--pi-converter-behavior) for the implemented
 request and scanner behavior.
 
 ## Special tokens
@@ -192,7 +192,7 @@ message.tool_calls = [
 ]
 ```
 
-## omp / pi converter behavior
+## oyp / pi converter behavior
 
 The repository's `qwen3` dialect is an **owned in-band converter**. Select it
 with `tools.format: qwen3` in agent configuration or `PI_DIALECT=qwen3`.
@@ -225,7 +225,7 @@ section closes. This is a recovery helper, not a selectable owned dialect.
 Automatic healer selection currently chooses Kimi, DSML, or thinking-only,
 not this mode.
 
-The omp renderer always writes a nested `arguments` object and renders
+The oyp renderer always writes a nested `arguments` object and renders
 parallel calls newline-separated. Results become newline-delimited
 `<tool_response>` blocks inside the synthetic user history message. Results
 carry neither name nor id and have no success/error marker; images are retained
@@ -275,7 +275,7 @@ double dispatch.
 - **Reasoning models + stopword templates:** Qwen warns against ReAct-style stopword tool templates for Qwen3, since reasoning text may contain the stopwords and corrupt parsing — use this native Hermes template instead.
 - **Robustness:** the format is prompt/template-driven, so malformed output is possible
   (truncated JSON, missing `</tool_call>`, prose mixed into a call, or stringified
-  arguments). vLLM may fall back to content depending on its parser path; omp's
+  arguments). vLLM may fall back to content depending on its parser path; oyp's
   owned scanner consumes recognized blocks; a block without a recoverable name
   produces no call, but an already-started partial call survives a later parse
   failure. Named / `required` tool choice can route

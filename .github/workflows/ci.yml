@@ -111,7 +111,7 @@ jobs:
       outputs:
          is-release: ${{ steps.detect.outputs.is-release }}
          release-tag: ${{ steps.detect.outputs.release-tag }}
-         # Canary tags mark the GitHub release prerelease and are what `omp
+         # Canary tags mark the GitHub release prerelease and are what `oyp
          # update --canary` resolves.
          channel: ${{ steps.detect.outputs.channel }}
       steps:
@@ -780,43 +780,43 @@ jobs:
                - {
                     platform: darwin,
                     target_id: darwin-x64,
-                    binary_path: packages/coding-agent/binaries/omp-darwin-x64,
+                    binary_path: packages/coding-agent/binaries/oyp-darwin-x64,
                     native_targets: darwin-x64-baseline,
                  }
                - {
                     platform: darwin,
                     target_id: darwin-arm64,
-                    binary_path: packages/coding-agent/binaries/omp-darwin-arm64,
+                    binary_path: packages/coding-agent/binaries/oyp-darwin-arm64,
                     native_targets: darwin-arm64,
                  }
                - {
                     platform: linux,
                     target_id: linux-x64,
-                    binary_path: packages/coding-agent/binaries/omp-linux-x64,
+                    binary_path: packages/coding-agent/binaries/oyp-linux-x64,
                     native_targets: linux-x64-baseline linux-x64-modern,
                  }
                - {
                     platform: linux,
                     target_id: linux-musl-x64,
-                    binary_path: packages/coding-agent/binaries/omp-linux-musl-x64,
+                    binary_path: packages/coding-agent/binaries/oyp-linux-musl-x64,
                     native_targets: linux-musl-x64-baseline,
                  }
                - {
                     platform: linux,
                     target_id: linux-arm64,
-                    binary_path: packages/coding-agent/binaries/omp-linux-arm64,
+                    binary_path: packages/coding-agent/binaries/oyp-linux-arm64,
                     native_targets: linux-arm64,
                  }
                - {
                     platform: linux,
                     target_id: linux-musl-arm64,
-                    binary_path: packages/coding-agent/binaries/omp-linux-musl-arm64,
+                    binary_path: packages/coding-agent/binaries/oyp-linux-musl-arm64,
                     native_targets: linux-musl-arm64,
                  }
                - {
                     platform: win32,
                     target_id: win32-x64,
-                    binary_path: packages/coding-agent/binaries/omp-windows-x64.cmd,
+                    binary_path: packages/coding-agent/binaries/oyp-windows-x64.cmd,
                     native_targets: win32-x64-baseline,
                  }
                # Addon cross-built by Bazel (clang-cl + xwin arm64 splat) in
@@ -824,7 +824,7 @@ jobs:
                - {
                     platform: win32,
                     target_id: win32-arm64,
-                    binary_path: packages/coding-agent/binaries/omp-windows-arm64.cmd,
+                    binary_path: packages/coding-agent/binaries/oyp-windows-arm64.cmd,
                     native_targets: win32-arm64,
                  }
       runs-on: ubuntu-22.04
@@ -844,7 +844,7 @@ jobs:
          - name: Upload release binary artifact
            uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
            with:
-              name: omp-binary-${{ matrix.target_id }}
+              name: oyp-binary-${{ matrix.target_id }}
               path: |
                  ${{ matrix.binary_path }}
                  packages/coding-agent/binaries/cli.js
@@ -863,23 +863,23 @@ jobs:
          fail-fast: false
          matrix:
             include:
-               - { os: ubuntu-22.04, target_id: linux-x64, binary: omp-linux-x64 }
-               - { os: ubuntu-24.04-arm, target_id: linux-arm64, binary: omp-linux-arm64 }
+               - { os: ubuntu-22.04, target_id: linux-x64, binary: oyp-linux-x64 }
+               - { os: ubuntu-24.04-arm, target_id: linux-arm64, binary: oyp-linux-arm64 }
                # musl binaries need the musl loader, which glibc runners lack:
                # they run in an Alpine container of the runner's arch.
-               - { os: ubuntu-22.04, target_id: linux-musl-x64, binary: omp-linux-musl-x64, alpine: true }
-               - { os: ubuntu-24.04-arm, target_id: linux-musl-arm64, binary: omp-linux-musl-arm64, alpine: true }
-               - { os: macos-15-intel, target_id: darwin-x64, binary: omp-darwin-x64 }
-               - { os: macos-15, target_id: darwin-arm64, binary: omp-darwin-arm64 }
-               - { os: windows-2025, target_id: win32-x64, binary: omp-windows-x64.cmd }
-               - { os: windows-11-arm, target_id: win32-arm64, binary: omp-windows-arm64.cmd }
+               - { os: ubuntu-22.04, target_id: linux-musl-x64, binary: oyp-linux-musl-x64, alpine: true }
+               - { os: ubuntu-24.04-arm, target_id: linux-musl-arm64, binary: oyp-linux-musl-arm64, alpine: true }
+               - { os: macos-15-intel, target_id: darwin-x64, binary: oyp-darwin-x64 }
+               - { os: macos-15, target_id: darwin-arm64, binary: oyp-darwin-arm64 }
+               - { os: windows-2025, target_id: win32-x64, binary: oyp-windows-x64.cmd }
+               - { os: windows-11-arm, target_id: win32-arm64, binary: oyp-windows-arm64.cmd }
       runs-on: ${{ matrix.os }}
       permissions:
          contents: read
       steps:
          - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
            with:
-              name: omp-binary-${{ matrix.target_id }}
+              name: oyp-binary-${{ matrix.target_id }}
               path: binaries
          # The launchers execute `node cli.js`, so the runtime must be present
          # on the smoke runner and inside the Alpine container below.
@@ -905,13 +905,13 @@ jobs:
               # The launcher runs the bundle on Node; Alpine users install the
               # nodejs package alongside the binary.
               docker run --rm \
-                -v "$(realpath "$BINARY"):/usr/local/bin/omp:ro" \
+                -v "$(realpath "$BINARY"):/usr/local/bin/oyp:ro" \
                 -v "$(realpath binaries/cli.js):/usr/local/bin/cli.js:ro" \
                 alpine:3.22 sh -ec '
                 apk add --no-cache nodejs >/dev/null
                 runtime_dir="$(mktemp -d)"
-                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" omp --version
-                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" omp --smoke-test
+                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" oyp --version
+                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" oyp --smoke-test
               '
          - name: Smoke release binary (Windows)
            if: runner.os == 'Windows'
@@ -919,7 +919,7 @@ jobs:
            env:
               BINARY: binaries/${{ matrix.binary }}
            run: |
-              $runtimeDir = Join-Path $env:RUNNER_TEMP "omp-smoke"
+              $runtimeDir = Join-Path $env:RUNNER_TEMP "oyp-smoke"
               $env:HOME = Join-Path $runtimeDir "home"
               $env:USERPROFILE = $env:HOME
               $env:LOCALAPPDATA = Join-Path $runtimeDir "local"
@@ -955,7 +955,7 @@ jobs:
          - name: Download release binaries
            uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
            with:
-              pattern: omp-binary-*
+              pattern: oyp-binary-*
               path: packages/coding-agent/binaries
               merge-multiple: true
          # The linux-x64 pair is also a release asset: PR runs with no
@@ -977,10 +977,10 @@ jobs:
          - name: Generate checksums
            run: |
               pnpm run ci:release:checksums SHA256SUMS.txt \
-                packages/coding-agent/binaries/omp-* \
+                packages/coding-agent/binaries/oyp-* \
                 packages/coding-agent/binaries/cli.js \
                 packages/coding-agent/binaries/natives-linux-x64.tar.gz \
-                packages/browser-relay/dist/omp-browser-relay-extension.zip \
+                packages/browser-relay/dist/oyp-browser-relay-extension.zip \
                 LICENSE \
                 THIRD-PARTY-NOTICES.txt
          - name: Create GitHub Release
@@ -989,10 +989,10 @@ jobs:
               tag_name: ${{ needs.release_metadata.outputs.release-tag }}
               prerelease: ${{ needs.release_metadata.outputs.channel == 'canary' }}
               files: |
-                 packages/coding-agent/binaries/omp-*
+                 packages/coding-agent/binaries/oyp-*
                  packages/coding-agent/binaries/cli.js
                  packages/coding-agent/binaries/natives-linux-x64.tar.gz
-                 packages/browser-relay/dist/omp-browser-relay-extension.zip
+                 packages/browser-relay/dist/oyp-browser-relay-extension.zip
                  LICENSE
                  THIRD-PARTY-NOTICES.txt
                  SHA256SUMS.txt

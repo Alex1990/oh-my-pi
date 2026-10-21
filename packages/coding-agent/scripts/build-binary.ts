@@ -71,7 +71,7 @@ async function runCommand(command: string[]): Promise<void> {
 
 async function main(): Promise<void> {
 	const crossBuild = resolveCrossBuild(bun.env.CROSS_TARGET);
-	const outName = crossBuild ? `omp-${crossBuild.id}` : "omp";
+	const outName = crossBuild ? `oyp-${crossBuild.id}` : "oyp";
 	const outputPath = path.join(packageDir, "dist", outName);
 	// Generate inside the try so the finally always restores the empty checked-in
 	// placeholders (stats client archive, docs index) even on failure.

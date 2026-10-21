@@ -15,7 +15,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 export const MLX_LM_VERSION = "0.31.3";
 /** Python range accepted for the venv; mlx publishes Metal wheels for these. */
 const MLX_PYTHON_SPEC = ">=3.10,<3.14";
-const READY_MARKER = ".omp-mlx-lm";
+const READY_MARKER = ".oyp-mlx-lm";
 
 /** Directory of the `mlx-lm` venv for {@link MLX_LM_VERSION}. */
 export function getTinyMlxRuntimeDir(): string {

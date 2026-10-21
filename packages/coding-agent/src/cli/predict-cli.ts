@@ -241,7 +241,7 @@ class PredictCompareComponent implements Component, Focusable {
 							actionButton("Quit", "quit", { keys: "escape" }),
 						]),
 					],
-					{ role: "omp.app.predict", gap: "md", grow: 1 },
+					{ role: "oyp.app.predict", gap: "md", grow: 1 },
 				),
 		);
 	}
@@ -253,12 +253,12 @@ class PredictCompareComponent implements Component, Focusable {
 				[
 					row(
 						[
-							text("omp predict", { role: "omp.app.title" }),
+							text("oyp predict", { role: "oyp.app.title" }),
 							text([span(`${this.#lanes.length} engines · comparison typing never teaches them`, "muted")], {
 								truncate: "end",
 							}),
 						],
-						{ gap: "sm", align: "center", role: "omp.app.where" },
+						{ gap: "sm", align: "center", role: "oyp.app.where" },
 					),
 					row(
 						compact([
@@ -266,20 +266,20 @@ class PredictCompareComponent implements Component, Focusable {
 								row([node("spinner", { style: "dots" }), text([span("predicting", "dim")])], {
 									gap: "xs",
 									align: "center",
-									role: "omp.app.fresh",
+									role: "oyp.app.fresh",
 								}),
 							node("icon", {
 								name: "x",
-								role: "omp.app.ibtn",
+								role: "oyp.app.ibtn",
 								title: "Quit  esc",
 								aria: "Quit",
 								actions: { click: "quit" },
 							}),
 						]),
-						{ gap: "md", align: "center", role: "omp.app.tools" },
+						{ gap: "md", align: "center", role: "oyp.app.tools" },
 					),
 				],
-				{ justify: "between", align: "center", role: "omp.app.head" },
+				{ justify: "between", align: "center", role: "oyp.app.head" },
 			),
 			"head",
 		);
@@ -313,7 +313,7 @@ class PredictCompareComponent implements Component, Focusable {
 
 	render(width: number): readonly string[] {
 		const value = this.#input.getValue();
-		const header = `${chalk.bold("omp predict")} ${chalk.dim(
+		const header = `${chalk.bold("oyp predict")} ${chalk.dim(
 			`· type to compare engines · ${formatKeyHint("tab")} accepts ${ENGINES[0]} · ${formatKeyHint("enter")} clears · ${formatKeyHint("escape")} quits`,
 		)}`;
 		const textWidth = Math.max(8, width - LABEL_WIDTH - STATS_WIDTH - 2);

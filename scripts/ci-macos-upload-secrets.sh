@@ -5,7 +5,7 @@
 # `gh secret set` over stdin, so nothing lands in argv, the shell history, or a
 # terminal transcript.
 #
-# Prepare a directory (default ~/omp-signing) containing:
+# Prepare a directory (default ~/oyp-signing) containing:
 #   *.p12                 Developer ID Application identity exported from Keychain
 #                         Access (right-click identity -> Export -> .p12).
 #   p12-password.txt      the password you set on that .p12 export.
@@ -16,7 +16,7 @@
 #
 # Usage:
 #   scripts/ci-macos-upload-secrets.sh [dir] [--dry-run]
-#   OMP_REPO=owner/repo scripts/ci-macos-upload-secrets.sh ~/omp-signing
+#   OMP_REPO=owner/repo scripts/ci-macos-upload-secrets.sh ~/oyp-signing
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ for arg in "$@"; do
 	*) DIR="$arg" ;;
 	esac
 done
-DIR="${DIR:-${OMP_SIGNING_DIR:-$HOME/omp-signing}}"
+DIR="${DIR:-${OMP_SIGNING_DIR:-$HOME/oyp-signing}}"
 REPO="${OMP_REPO:-Alex1990/oh-my-pi}"
 
 die() {

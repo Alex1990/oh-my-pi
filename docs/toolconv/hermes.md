@@ -1,6 +1,6 @@
 # Hermes tool-calling format
 
-Tool-calling convention originated by NousResearch's **Hermes 2 Pro** (Llama-3-based open models) and carried on by the **Hermes 3** line, plus a long tail of community fine-tunes. The envelope is **ChatML**: every turn is `<|im_start|>{role}\n{body}<|im_end|>\n`. Available tools are advertised in the system turn inside a `<tools>…</tools>` block as OpenAI-style JSON tool objects; the model emits each call as a `<tool_call>\n{json}\n</tool_call>` block whose `arguments` is a **nested JSON object** (not a stringified JSON); tool results are fed back inside a **dedicated `<|im_start|>tool` turn** as `<tool_response>…</tool_response>` wrapping a `{"name": …, "content": …}` object — the result carries the function name, so results are self-describing as to the function called, but remain order-bound because the wire format has no unique call ID. Qwen3 adopted this convention with two tweaks (results folded into `user` turns with bare content, and the `FunctionCall` schema line dropped) — see [qwen3.md](qwen3.md). Hermes 3 adds an optional GOAP `<scratch_pad>` reasoning framework in front of calls; the classic Hermes 2 Pro function-calling spec has **no** dedicated thinking channel, although the omp scanner also recognizes `<think>…</think>` from R1-style fine-tunes (see the omp section).
+Tool-calling convention originated by NousResearch's **Hermes 2 Pro** (Llama-3-based open models) and carried on by the **Hermes 3** line, plus a long tail of community fine-tunes. The envelope is **ChatML**: every turn is `<|im_start|>{role}\n{body}<|im_end|>\n`. Available tools are advertised in the system turn inside a `<tools>…</tools>` block as OpenAI-style JSON tool objects; the model emits each call as a `<tool_call>\n{json}\n</tool_call>` block whose `arguments` is a **nested JSON object** (not a stringified JSON); tool results are fed back inside a **dedicated `<|im_start|>tool` turn** as `<tool_response>…</tool_response>` wrapping a `{"name": …, "content": …}` object — the result carries the function name, so results are self-describing as to the function called, but remain order-bound because the wire format has no unique call ID. Qwen3 adopted this convention with two tweaks (results folded into `user` turns with bare content, and the `FunctionCall` schema line dropped) — see [qwen3.md](qwen3.md). Hermes 3 adds an optional GOAP `<scratch_pad>` reasoning framework in front of calls; the classic Hermes 2 Pro function-calling spec has **no** dedicated thinking channel, although the oyp scanner also recognizes `<think>…</think>` from R1-style fine-tunes (see the oyp section).
 
 The classic format examples below come from the NousResearch `Hermes-Function-Calling` README. OMP's current implementation is `packages/ai/src/dialect/hermes.ts`; its owned prompt and provider-history behavior differ from the classic template as described below.
 
@@ -18,7 +18,7 @@ Only the ChatML markers are control tokens; the tool and reasoning markers are t
 | `</tool_response>` | Text-level marker | Closes one tool result |
 | `<tools>` … `</tools>` | Plain text | Wrapper around the tool list in the system turn |
 | `<scratch_pad>` … `</scratch_pad>` | Text-level marker (Hermes 3) | GOAP reasoning sections before calls |
-| `<think>` … `</think>` | Not in the Hermes 2 Pro spec | Thinking markers recognized by the omp scanner (R1-style fine-tunes) |
+| `<think>` … `</think>` | Not in the Hermes 2 Pro spec | Thinking markers recognized by the oyp scanner (R1-style fine-tunes) |
 
 Notes on exactness:
 
@@ -134,7 +134,7 @@ Serving engines expose this convention through the **`hermes` tool-call parser**
 - `message.tool_calls[]`: one entry per `<tool_call>` block, each with a server-generated `id` (the model emits none), `type: "function"`, `function.name`, and `function.arguments` re-serialized as a **JSON string** at the API boundary (`json.loads(...)` it before use).
 - Feeding results back: append `{"role": "tool", "content": <result>, "tool_call_id": <id-from-the-call>}` for each result; the engine renders it into the `<tool_response>` shape above.
 
-## omp / pi converter behavior
+## oyp / pi converter behavior
 
 The `hermes` dialect is registered in `packages/ai/src/dialect/factory.ts` and implemented in `packages/ai/src/dialect/hermes.ts`. With tools present, owned mode appends a format guide/catalog to the system prompt, omits native tools and `tool_choice`, rewrites call/result history into text, and projects assistant output back into canonical pi events. `qwen3` is a separate selectable dialect despite sharing the basic JSON-in-`<tool_call>` shape.
 
@@ -174,7 +174,7 @@ The owned projector always passes `parseThinking: true`, so agent use routes `<t
 
 ## Parsing notes & gotchas
 
-- **Arguments object vs string:** on the wire `arguments` is a nested JSON object; the OpenAI layer hands it back as a JSON string. Code that reads the raw stream must parse an object; code that reads the API must `json.loads` the string. Do not double-encode. (omp's scanner tolerates the stringified form for robustness; its renderer never emits it.)
+- **Arguments object vs string:** on the wire `arguments` is a nested JSON object; the OpenAI layer hands it back as a JSON string. Code that reads the raw stream must parse an object; code that reads the API must `json.loads` the string. Do not double-encode. (oyp's scanner tolerates the stringified form for robustness; its renderer never emits it.)
 - **`<tools>` is not a control token.** Only `<|im_start|>`/`<|im_end|>` delimit turns; everything else is substring matching on decoded text.
 - **Regex/streaming parse:** the vLLM `hermes` parser keys on the literal `<tool_call>`/`</tool_call>` substrings and JSON-decodes the body, buffering from `<tool_call>` until it can incrementally parse `name` then `arguments` — full detail in [qwen3.md](qwen3.md) §Parsing notes.
 - **Result binding:** classic Hermes 2 Pro includes the function name as metadata in the `{"name": …, "content": …}` nesting under a `tool` turn, but call/result binding remains positional because names need not be unique. Qwen3 also relies on ordering, with bare content under a `user` turn.

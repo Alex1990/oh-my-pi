@@ -146,7 +146,7 @@ export const getSecurityContractSchemas = once(() => {
 	});
 
 	const securityScanPlanSchema = type({
-		documentType: "'omp-security.scan-plan'",
+		documentType: "'oyp-security.scan-plan'",
 		schemaVersion: "'1.0'",
 		id: "string > 0",
 		createdAt: "string > 0",
@@ -180,7 +180,7 @@ export const getSecurityContractSchemas = once(() => {
 	});
 
 	const securityScanSchema = type({
-		documentType: "'omp-security.scan'",
+		documentType: "'oyp-security.scan'",
 		schemaVersion: "'1.0'",
 		id: "string > 0",
 		projectKey: "string > 0",

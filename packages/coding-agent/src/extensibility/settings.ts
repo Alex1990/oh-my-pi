@@ -11,7 +11,7 @@ export const cfgExtensions = register({ id: "extensions", type: "array", default
 
 export const cfgDisabledExtensions = register({ id: "disabledExtensions", type: "array", default: EMPTY_STRING_ARRAY });
 
-// Skill registry (omp skill)
+// Skill registry (oyp skill)
 export const cfgSkillsRegistryUrl = register({
 	id: "skills.registryUrl",
 	type: "string",

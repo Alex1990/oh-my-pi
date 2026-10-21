@@ -9,10 +9,10 @@ Prewalk is off by default. Its default target is the model assigned to the `@smo
 Enable prewalk persistently in the global config:
 
 ```bash
-omp config set prewalk.enabled true
+oyp config set prewalk.enabled true
 ```
 
-The equivalent YAML in `~/.omp/agent/config.yml` or a project `.omp/config.yml` is:
+The equivalent YAML in `~/.oyp/agent/config.yml` or a project `.oyp/config.yml` is:
 
 ```yaml
 prewalk:
@@ -30,9 +30,9 @@ The configured setting arms new sessions, not resumed/imported sessions. Explici
 For example:
 
 ```bash
-omp --prewalk
-omp --prewalk-into @smol
-omp --prewalk-into openai/gpt-5-mini
+oyp --prewalk
+oyp --prewalk-into @smol
+oyp --prewalk-into openai/gpt-5-mini
 ```
 
 At startup, OMP resolves the target with the normal model-role and model-matching rules, trying configured role candidates in order for an authenticated, enabled provider. Extension-provided targets may resolve after extension registration. If no usable target remains, OMP prints a warning and starts with prewalk unarmed.

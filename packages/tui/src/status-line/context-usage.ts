@@ -762,10 +762,10 @@ function contextShareRow(
 		"row",
 		{ role, align: "center", title: `${label} · ${tokens.toLocaleString("en-US")} tokens` },
 		[
-			text([swatch], { role: "omp.context.swatch", wrap: "none" }),
-			text(label, { role: "omp.context.label", grow: 1, wrap: "none", truncate: "end" }),
-			text(formatNumber(tokens), { role: "omp.context.tokens", wrap: "none" }),
-			text(percentString(tokens, window), { role: "omp.context.share", wrap: "none" }),
+			text([swatch], { role: "oyp.context.swatch", wrap: "none" }),
+			text(label, { role: "oyp.context.label", grow: 1, wrap: "none", truncate: "end" }),
+			text(formatNumber(tokens), { role: "oyp.context.tokens", wrap: "none" }),
+			text(percentString(tokens, window), { role: "oyp.context.share", wrap: "none" }),
 		],
 		key,
 	);
@@ -780,11 +780,11 @@ function describeSnapcompact(breakdown: ContextBreakdown): NativeNode | undefine
 	const snap = breakdown.snapcompact;
 	if (!snap) return undefined;
 	const head = text([span("Snapcompact", "strong"), span(" · estimated savings on the wire", "dim")], {
-		role: "omp.context.snap.head",
+		role: "oyp.context.snap.head",
 	});
 	if (!snap.visionCapable) {
-		const note = text("Inactive: the model has no image input.", { role: "omp.context.snap.note" });
-		return node("col", { role: "omp.context.snap" }, [head, note], "snapcompact");
+		const note = text("Inactive: the model has no image input.", { role: "oyp.context.snap.note" });
+		return node("col", { role: "oyp.context.snap" }, [head, note], "snapcompact");
 	}
 	const lines: { label: string; detail: string; value?: TspSpan }[] = [];
 	const sp = snap.systemPrompt;
@@ -828,16 +828,16 @@ function describeSnapcompact(breakdown: ContextBreakdown): NativeNode | undefine
 	const rows = lines.map((line, index) =>
 		node(
 			"row",
-			{ role: "omp.context.snap.row", align: "baseline" },
+			{ role: "oyp.context.snap.row", align: "baseline" },
 			[
-				text(line.label, { role: "omp.context.label", wrap: "none" }),
-				text(line.detail, { role: "omp.context.detail", grow: 1, wrap: "none", truncate: "end" }),
-				...(line.value ? [text([line.value], { role: "omp.context.tokens", wrap: "none" })] : []),
+				text(line.label, { role: "oyp.context.label", wrap: "none" }),
+				text(line.detail, { role: "oyp.context.detail", grow: 1, wrap: "none", truncate: "end" }),
+				...(line.value ? [text([line.value], { role: "oyp.context.tokens", wrap: "none" })] : []),
 			],
 			`snap-${index}`,
 		),
 	);
-	return node("col", { role: "omp.context.snap" }, [head, ...rows], "snapcompact");
+	return node("col", { role: "oyp.context.snap" }, [head, ...rows], "snapcompact");
 }
 
 /**
@@ -860,16 +860,16 @@ function describeContextFrame(breakdown: ContextBreakdown): NativeNode {
 				: `${formatNumber(thresholdTokens - usedTokens)} left before auto-compaction at ${percentString(thresholdTokens, window, 0)}`;
 	const summary = node(
 		"row",
-		{ role: "omp.context.summary", align: "baseline", wrap: true },
+		{ role: "oyp.context.summary", align: "baseline", wrap: true },
 		[
 			text(
 				[
 					span(formatNumber(usedTokens), "strong"),
 					span(` of ${formatNumber(window)} tokens · ${percentString(usedTokens, window, 0)}`, "dim"),
 				],
-				{ role: "omp.context.used", grow: 1, wrap: "none" },
+				{ role: "oyp.context.used", grow: 1, wrap: "none" },
 			),
-			text(room, { role: "omp.context.room", wrap: "none" }),
+			text(room, { role: "oyp.context.room", wrap: "none" }),
 		],
 		"summary",
 	);
@@ -892,19 +892,19 @@ function describeContextFrame(breakdown: ContextBreakdown): NativeNode {
 	const shares = breakdown.categories.map(category =>
 		contextShareRow(
 			category.id,
-			"omp.context.cat",
+			"oyp.context.cat",
 			span("■", category.color),
 			category.label,
 			category.tokens,
 			window,
 		),
 	);
-	shares.push(contextShareRow("free", "omp.context.cat.free", span("□", "dim"), "Free space", freeTokens, window));
+	shares.push(contextShareRow("free", "oyp.context.cat.free", span("□", "dim"), "Free space", freeTokens, window));
 	if (autoCompactBufferTokens > 0) {
 		shares.push(
 			contextShareRow(
 				"buffer",
-				"omp.context.cat.buffer",
+				"oyp.context.cat.buffer",
 				span("▨", "warning"),
 				"Autocompact buffer",
 				autoCompactBufferTokens,
@@ -912,10 +912,10 @@ function describeContextFrame(breakdown: ContextBreakdown): NativeNode {
 			),
 		);
 	}
-	const children = [summary, bar, node("col", { role: "omp.context.cats" }, shares, "cats")];
+	const children = [summary, bar, node("col", { role: "oyp.context.cats" }, shares, "cats")];
 	const snap = describeSnapcompact(breakdown);
 	if (snap) children.push(snap);
-	return col(children, { role: "omp.context" });
+	return col(children, { role: "oyp.context" });
 }
 
 /** The `/context` title: the model once one is selected (the body leads with its window). */
@@ -950,7 +950,7 @@ export function describeContextUsage(breakdown: ContextBreakdown): NativeNode {
 	return row([col(grid), col(legend)], {
 		gap: "lg",
 		wrap: true,
-		role: "omp.context.usage",
+		role: "oyp.context.usage",
 	});
 }
 

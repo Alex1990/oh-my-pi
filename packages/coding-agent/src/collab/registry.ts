@@ -30,7 +30,7 @@ import { IpcConnection, IpcServer, ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { getBaseConfigRoot, isEnoent, isFsError } from "@oh-my-pi/pi-utils";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-/** Discovery metadata / IPC protocol version. Mixed omp versions fail safely. */
+/** Discovery metadata / IPC protocol version. Mixed oyp versions fail safely. */
 export const COLLAB_REGISTRY_VERSION = 1;
 
 /** Reject request lines beyond this size; a valid request is <300 bytes. */
@@ -88,7 +88,7 @@ export interface CollabHostSnapshot {
 	 * disappearing from discovery means the process died or became unreachable,
 	 * not that the agent finished.
 	 *
-	 * `null` when the host does not report it (an omp older than this field).
+	 * `null` when the host does not report it (an oyp older than this field).
 	 * Unknown is not idle: a consumer must not read the absence as a session
 	 * that stopped.
 	 */
@@ -584,7 +584,7 @@ async function pruneEntry(dir: string, name: string, meta: DiscoveryMetadata | n
 		await fs.promises.rm(path.join(dir, name), { force: true });
 		// Only unlink sockets this registry could have created: beside the
 		// metadata, or at the exact relocated endpoint this entry's publication
-		// derives (under the shared `/tmp/omp-<euid>/`, never another socket there).
+		// derives (under the shared `/tmp/oyp-<euid>/`, never another socket there).
 		const ownsEndpoint =
 			meta !== null &&
 			process.platform !== "win32" &&
@@ -616,7 +616,7 @@ async function listEntry(dir: string, name: string, timeoutMs: number): Promise<
 		return null;
 	}
 	if (meta.version !== COLLAB_REGISTRY_VERSION) {
-		// A different omp version owns this entry. Never show it; prune only
+		// A different oyp version owns this entry. Never show it; prune only
 		// once the owning process is gone so newer versions keep their state.
 		if (!pidAlive(meta.pid)) await pruneEntry(dir, name, meta);
 		return null;

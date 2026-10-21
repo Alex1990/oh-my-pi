@@ -116,7 +116,7 @@ export interface SyncOptions {
 
 function defaultWorkerCount(): number {
 	// Bun 1.3.x can abort the macOS process when stats sync workers re-enter
-	// the compiled `omp` binary. Keep macOS on the documented serial path.
+	// the compiled `oyp` binary. Keep macOS on the documented serial path.
 	if (process.platform === "darwin") return 1;
 	// `navigator.hardwareConcurrency` is the portable answer in Bun; fall
 	// back to a small fixed pool if it's somehow unavailable.
@@ -136,7 +136,7 @@ interface WorkerHandle {
 
 /**
  * Create a fresh sync worker. When the process was started from a
- * self-dispatching CLI entry (omp in source, npm-bundle, or compiled form),
+ * self-dispatching CLI entry (oyp in source, npm-bundle, or compiled form),
  * re-enter that entry with a worker argv selector; otherwise (standalone
  * omp-stats, bun test, SDK embedding) load the worker module directly, so this
  * package keeps zero runtime dependency on `@oh-my-pi/pi-coding-agent`.

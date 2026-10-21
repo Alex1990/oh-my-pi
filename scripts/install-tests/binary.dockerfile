@@ -26,8 +26,8 @@ RUN pnpm --dir packages/coding-agent run build
 
 # Install the launcher and bundle to PATH
 RUN mkdir -p /root/.local/bin && \
-    cp packages/coding-agent/dist/omp packages/coding-agent/dist/cli.js /root/.local/bin/
+    cp packages/coding-agent/dist/oyp packages/coding-agent/dist/cli.js /root/.local/bin/
 ENV PATH="/root/.local/bin:$PATH"
 
 # Verify
-RUN HOME=/tmp/omp-home XDG_DATA_HOME=/tmp/omp-xdg omp --version
+RUN HOME=/tmp/oyp-home XDG_DATA_HOME=/tmp/oyp-xdg oyp --version

@@ -56,7 +56,7 @@ vi.mock("@oh-my-pi/pi-utils/net-compat", async () => {
 	};
 });
 
-const DAEMON_NAME = "omp.browser.headless";
+const DAEMON_NAME = "oyp.browser.headless";
 /** The target id the incident log names for the tab whose close never landed. */
 const TARGET_ID = "D6895F960DB1F4D842FD7B0286F3F818";
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Bundle the shared React tool renderers + the `<omp-tool-view>` web component
+ * Bundle the shared React tool renderers + the `<oyp-tool-view>` web component
  * into a single self-contained script (React included, CSS inlined) for
  * embedding in coding-agent HTML session exports.
  *

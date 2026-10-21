@@ -11,7 +11,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /**
  * In-house document → markdown engine (replaces the `markit-ai` package).
  *
- * Only the document converters omp routes are registered (pdf, docx, pptx,
+ * Only the document converters oyp routes are registered (pdf, docx, pptx,
  * xlsx, epub). The first converter whose `accepts()` returns true and whose
  * `convert()` succeeds wins.
  */

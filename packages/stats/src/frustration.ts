@@ -13,7 +13,7 @@
  * The SQL implementing both lives in `db.ts` (`FRUSTRATION_COUNTS_SQL`).
  *
  * Verdicts come from a single process-wide judge run over the unjudged prose,
- * using the judge the omp host registered through `startServer`. Standalone
+ * using the judge the oyp host registered through `startServer`. Standalone
  * `omp-stats` has none and only shows the regex fallback.
  */
 import { type Judge, judgeQuestions, type Model } from "@oh-my-pi/pi-ai";
@@ -42,7 +42,7 @@ import type {
 } from "./shared-types";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-/** Judge supplied by the omp host process; `primaryModel` prices the pre-run estimate. */
+/** Judge supplied by the oyp host process; `primaryModel` prices the pre-run estimate. */
 export interface StatsJudge extends Judge {
 	primaryModel(): Model | undefined;
 }

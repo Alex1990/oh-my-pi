@@ -6,7 +6,7 @@
 #   natives-builder — Rust + Node.js → pi_natives.linux-<arch>.node
 #   wheel-builder   — omp_rpc Python wheel
 #   pi-base         — python + node + rustup launcher + natives + omp_rpc
-#                     + /usr/local/bin/omp shim
+#                     + /usr/local/bin/oyp shim
 #   pi-runtime      — pi-base + pi source + pnpm install   (DEFAULT, runnable)
 #
 # Build:
@@ -15,7 +15,7 @@
 #
 # Run:
 #     docker run --rm oh-my-pi/pi:dev --help
-#     docker run --rm -it -v "$PWD":/work oh-my-pi/pi:dev cli    # interactive omp
+#     docker run --rm -it -v "$PWD":/work oh-my-pi/pi:dev cli    # interactive oyp
 #
 # Consume as a base in another Dockerfile (see Dockerfile.robomp):
 #     ARG PI_BASE=oh-my-pi/pi:dev
@@ -110,7 +110,7 @@ COPY sdk/python/omp-rpc /src
 RUN python -m build --wheel --outdir /out
 
 ############################
-# 3) pi-base — python + node + rustup + natives + omp_rpc + omp shim
+# 3) pi-base — python + node + rustup + natives + omp_rpc + oyp shim
 #
 # Sharable runtime base. Derived images (pi-runtime below, Dockerfile.robomp)
 # extend this and overlay their own source tree. Default PI_ROOT=/work/pi is
@@ -164,9 +164,9 @@ COPY --from=wheel-builder /out/*.whl /tmp/wheels/
 RUN pip install /tmp/wheels/omp_rpc-*.whl && rm -rf /tmp/wheels
 
 # Legal payload for the reusable SDKs and the OMP product installed in this image.
-COPY LICENSE  THIRD-PARTY-NOTICES.txt /usr/share/doc/omp/
+COPY LICENSE  THIRD-PARTY-NOTICES.txt /usr/share/doc/oyp/
 
-# `omp` shim — runs the coding-agent CLI against $PI_ROOT via Node. Derived
+# `oyp` shim — runs the coding-agent CLI against $PI_ROOT via Node. Derived
 # images override PI_ROOT to point at wherever their pi source lives.
 RUN printf '%s\n' \
     '#!/usr/bin/env bash' \
@@ -177,13 +177,13 @@ RUN printf '%s\n' \
     '  exit 127' \
     'fi' \
     'exec node --experimental-transform-types --import "$PI_ROOT/scripts/text-loader.mjs" "$PI_ROOT/packages/coding-agent/src/cli.ts" "$@"' \
-    > /usr/local/bin/omp \
-    && chmod +x /usr/local/bin/omp
+    > /usr/local/bin/oyp \
+    && chmod +x /usr/local/bin/oyp
 
 ############################
 # 4) pi-runtime — pi-base + pi source + pnpm install (DEFAULT)
 #
-# A self-contained, runnable omp image. `docker run oh-my-pi/pi:dev --help`
+# A self-contained, runnable oyp image. `docker run oh-my-pi/pi:dev --help`
 # Just Works without a host checkout.
 ############################
 FROM pi-base AS pi-runtime
@@ -217,5 +217,5 @@ COPY --from=natives-builder /out/pi_natives.linux-*.node /pi/packages/natives/na
 # package.json's `prepare` script normally handles these on a vanilla install.
 RUN pnpm --dir packages/coding-agent run gen:tool-views
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/omp"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/oyp"]
 CMD ["--help"]

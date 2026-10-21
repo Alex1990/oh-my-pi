@@ -166,7 +166,7 @@ export function replayCachedReady<K, M>(
  */
 export async function installSharpStubResolver(runtimeDir: string): Promise<string> {
 	const nodeModules = path.join(runtimeDir, "node_modules");
-	const sharpStub = path.join(runtimeDir, "omp-sharp-stub.cjs");
+	const sharpStub = path.join(runtimeDir, "oyp-sharp-stub.cjs");
 	await bun.write(sharpStub, "module.exports = {};\n");
 	installRuntimeModuleResolver({ runtimeNodeModules: nodeModules, stubs: { sharp: sharpStub } });
 	return nodeModules;

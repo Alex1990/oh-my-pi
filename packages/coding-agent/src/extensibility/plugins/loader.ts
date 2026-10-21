@@ -65,7 +65,7 @@ async function loadRuntimeConfig(home?: string): Promise<PluginRuntimeConfig> {
 }
 
 /**
- * Load project-local plugin overrides (checks .omp and .pi directories).
+ * Load project-local plugin overrides (checks .oyp and .pi directories).
  */
 async function loadProjectOverrides(cwd: string): Promise<ProjectPluginOverrides> {
 	for (const overridesPath of getConfigDirPaths("plugin-overrides.json", { user: false, cwd })) {
@@ -194,7 +194,7 @@ async function collectPluginsAtRoot(
 
 		const manifest: PluginManifest | undefined = pluginPkg.omp || pluginPkg.pi;
 		if (!manifest) {
-			// Not an omp plugin, skip
+			// Not an oyp plugin, skip
 			continue;
 		}
 		manifest.version = pluginPkg.version;

@@ -1,5 +1,5 @@
 /**
- * Identity of the omp build running in this process, stamped into session files so a
+ * Identity of the oyp build running in this process, stamped into session files so a
  * transcript records which code produced each entry.
  *
  * Installed builds (compiled binary, package install) record only their version. A source
@@ -13,7 +13,7 @@ import type { SessionEntry } from "./session-entries";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 export interface RuntimeIdentity {
-	/** omp package version. */
+	/** oyp package version. */
 	version: string;
 	/** Source checkout commit; absent for installed builds. */
 	commit?: string;

@@ -1,7 +1,7 @@
 {
   "name": "hello-extension",
   "version": "1.0.0",
-  "description": "Minimal omp extension example",
+  "description": "Minimal oyp extension example",
   "homepage": "https://omp.sh",
   "omp": {
     "extensions": ["./index.ts"]

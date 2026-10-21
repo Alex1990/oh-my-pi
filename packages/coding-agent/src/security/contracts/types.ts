@@ -189,7 +189,7 @@ export interface SecurityOutputPlan {
 }
 
 export interface SecurityScanPlan {
-	documentType: "omp-security.scan-plan";
+	documentType: "oyp-security.scan-plan";
 	schemaVersion: "1.0";
 	id: string;
 	createdAt: string;
@@ -219,7 +219,7 @@ export interface SecurityScanMetrics {
 }
 
 export interface SecurityScan {
-	documentType: "omp-security.scan";
+	documentType: "oyp-security.scan";
 	schemaVersion: "1.0";
 	id: string;
 	projectKey: string;

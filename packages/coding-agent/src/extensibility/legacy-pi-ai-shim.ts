@@ -182,7 +182,7 @@ export function streamSimpleOpenAIResponses(
 }
 /**
  * Compatibility re-exports for runtime helpers that upstream
- * `@earendil-works/pi-ai` exposed from its package root but omp's
+ * `@earendil-works/pi-ai` exposed from its package root but oyp's
  * `@oh-my-pi/pi-ai` barrel no longer forwards. Each symbol still exists in the
  * host graph — only its root re-export was dropped — so bridging it here keeps
  * legacy extensions importing it from the pi-ai root resolving through Bun's
@@ -192,7 +192,7 @@ export function streamSimpleOpenAIResponses(
  * `@oh-my-pi/pi-ai/error`) and the JSON-repair helpers (relocated to
  * `@oh-my-pi/pi-utils`) still exist in the host graph and are re-exported.
  * Upstream pi-ai 1.x additionally exposes a transcript-replay module
- * (`src/utils/transcript.ts`, present since at least 1.0.2) that omp's fork
+ * (`src/utils/transcript.ts`, present since at least 1.0.2) that oyp's fork
  * predates and has no equivalent of anywhere; that family is ported verbatim
  * in `legacy-pi-transcript.ts` (observed consumer:
  * `pi-optchat` importing `getCurrentSystemMessage`).

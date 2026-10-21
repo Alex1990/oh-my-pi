@@ -546,7 +546,7 @@ class DaemonBroker {
 		let id = "unknown";
 		try {
 			const decoded: unknown = JSON.parse(line);
-			// Correlate before validating: an operation this broker cannot parse (a newer omp
+			// Correlate before validating: an operation this broker cannot parse (a newer oyp
 			// reaching a broker that predates it) must fail the caller's request, not strand it
 			// until the client-side timeout.
 			if (isRecord(decoded) && typeof decoded.id === "string") id = decoded.id;
@@ -1623,7 +1623,7 @@ export async function startDaemonBrokerFromEnvironment(options: DaemonBrokerStar
 	// releases on exit, so keeping `lease` referenced keeps the scope owned.
 	const lease = await acquireBrokerLease(runtimeDir, endpoint);
 	if (!lease) return;
-	setProcessName("omp daemon broker");
+	setProcessName("oyp daemon broker");
 	// Record the scope's project dir so `oyp ps` can map this hash-keyed runtime
 	// dir back to its project offline.
 	void writeDaemonScopeMeta(runtimeDir, projectDir).catch(error => {

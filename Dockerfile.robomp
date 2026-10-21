@@ -5,7 +5,7 @@
 # Extends `pi-base` (from /Dockerfile, default target oh-my-pi/pi:dev) and adds
 # the robomp Python package + a Vite-built SolidJS dashboard bundle. The pi
 # toolchain (python + node + rustup launcher + pi-natives + omp_rpc wheel +
-# /usr/local/bin/omp shim) all comes from PI_BASE; this file only layers what's
+# /usr/local/bin/oyp shim) all comes from PI_BASE; this file only layers what's
 # robomp-specific.
 #
 # Build (from pi root):
@@ -47,7 +47,7 @@ ENV PI_ROOT=/work/pi
 WORKDIR /app
 
 # robomp is an MIT product; OMP's dual-license payload remains available from
-# the inherited base image under /usr/share/doc/omp.
+# the inherited base image under /usr/share/doc/oyp.
 COPY LICENSE THIRD-PARTY-NOTICES.txt /usr/share/doc/robomp/
 
 # robomp itself. Drop the Vite-built dashboard into the package tree before
@@ -66,11 +66,11 @@ RUN pip install --no-cache-dir \
 # Host agent config is mounted read-only under /srv/agent-home-stage with
 # host-controlled permissions. The entrypoint copies it into root-owned
 # world-readable files under /srv/agent-home; the agent subprocess runs with
-# HOME=/srv/agent-home, so ~/.omp and ~/.agent resolve there without exposing
+# HOME=/srv/agent-home, so ~/.oyp and ~/.agent resolve there without exposing
 # mutable host mounts. pnpm's copy importer avoids hardlinking store files into
 # the mounted plugin tree.
-RUN mkdir -p /srv/agent-home/.agent /srv/agent-home/.omp/agent \
-    && mkdir -p /srv/agent-home-stage/.agent /srv/agent-home-stage/.omp/agent \
+RUN mkdir -p /srv/agent-home/.agent /srv/agent-home/.oyp/agent \
+    && mkdir -p /srv/agent-home-stage/.agent /srv/agent-home-stage/.oyp/agent \
     && printf 'package-import-method=copy\n' > /srv/agent-home/.npmrc
 
 COPY python/robomp/entrypoint.sh /usr/local/bin/robomp-entrypoint

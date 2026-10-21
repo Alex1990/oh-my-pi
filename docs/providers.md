@@ -1,6 +1,6 @@
 # Providers
 
-Providers are the model backends `omp` can route requests to: Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Mistral, xAI, local engines like Ollama, hosted gateways, custom `models.yml` providers, and providers registered by extensions.
+Providers are the model backends `oyp` can route requests to: Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Mistral, xAI, local engines like Ollama, hosted gateways, custom `models.yml` providers, and providers registered by extensions.
 
 A **provider** is the account or backend namespace, such as `anthropic`, `openai`, `google`, or `ollama`. A **model** is a concrete model under that provider, selected as `provider/model-id`, such as `anthropic/claude-opus-4-6`. Disabling a provider removes every model under it from selection; if you only want to narrow individual models, use model settings instead.
 
@@ -10,9 +10,9 @@ This page covers how providers become available, how credentials are resolved, t
 
 The `factory-droid` provider uses Factory's Droid subscription gateway directly. No `droid` binary, daemon, or SDK subprocess is needed for login or inference.
 
-1. Run `omp login factory-droid` or `/login factory-droid` in an interactive session.
+1. Run `oyp login factory-droid` or `/login factory-droid` in an interactive session.
 2. Open the printed `auth.factory.ai/device` link in your browser, enter the displayed device code, and approve the login.
-3. Select a model, for example `factory-droid/kimi-k3`, and send a prompt. The stored WorkOS session refreshes automatically. `omp auth-broker login factory-droid` supports broker-backed credentials.
+3. Select a model, for example `factory-droid/kimi-k3`, and send a prompt. The stored WorkOS session refreshes automatically. `oyp auth-broker login factory-droid` supports broker-backed credentials.
 
 Use subscription OAuth for this provider. It does not discover credentials from an installed Droid CLI or read `FACTORY_API_KEY`; Factory's separate API-key products are not part of this integration.
 
@@ -20,18 +20,18 @@ The roster ships as KDL (`packages/catalog/src/compat/rules/providers/factory-dr
 
 Organization identity and residency travel with the credential serving each request, including account rotation, and each account/residency scope has its own model cache. Residency chooses the API host; the independent inference region (`global`, `us`, or `eu`) constrains upstream eligibility.
 
-`/usage` and `omp usage` report Standard Credits and Droid Core quota windows when the account uses token-rate-limit billing. Accounts whose billing response explicitly disables that mode remain visible with a note that no quota windows are exposed; OMP does not invent a remaining balance. The model browser shows each model's base credit rate; dollar figures are upstream list-price references, not Factory billing, and neither includes temporary promotions. Models without a dollar reference display their credit rate rather than `free`. Extra balance alone does not establish that overage billing is enabled.
+`/usage` and `oyp usage` report Standard Credits and Droid Core quota windows when the account uses token-rate-limit billing. Accounts whose billing response explicitly disables that mode remain visible with a note that no quota windows are exposed; OMP does not invent a remaining balance. The model browser shows each model's base credit rate; dollar figures are upstream list-price references, not Factory billing, and neither includes temporary promotions. Models without a dollar reference display their credit rate rather than `free`. Extra balance alone does not establish that overage billing is enabled.
 
-If account rotation would narrow the selected model's context window, OMP stops before sending that retry rather than guessing whether the existing conversation fits. Refresh discovery with `omp models refresh factory-droid` and select the region-appropriate model before retrying.
+If account rotation would narrow the selected model's context window, OMP stops before sending that retry rather than guessing whether the existing conversation fits. Refresh discovery with `oyp models refresh factory-droid` and select the region-appropriate model before retrying.
 
 Factory's native context limits hold even when extended context is disabled. Factory GPT and Gemini routes omit output-token caps, so bounded ephemeral turns reject a `maxTokens` request instead of silently running uncapped.
 
-## How `omp` decides a provider is available
+## How `oyp` decides a provider is available
 
 The model registry composes these sources:
 
 1. The bundled model catalog.
-2. Custom provider and model entries from the active agent directory's `models.yml` (default: `~/.omp/agent/models.yml`).
+2. Custom provider and model entries from the active agent directory's `models.yml` (default: `~/.oyp/agent/models.yml`).
 3. Cached and runtime-discovered models for local engines and discovery-enabled hosted providers.
 4. Providers and models registered by extensions, including extension-owned discovery.
 
@@ -50,7 +50,7 @@ Implicit `ollama` and `lm-studio` discovery is keyless by default; implicit `lla
 
 ## Credentials and precedence
 
-When a provider needs an API key, `omp` resolves it in this order (first match wins):
+When a provider needs an API key, `oyp` resolves it in this order (first match wins):
 
 1. **Runtime override**: a key supplied for the current process, for example CLI `--api-key`. Never persisted.
 2. **`models.yml` config key**: an `apiKey` pinned on a custom provider, registered as a config-sourced bearer. This deliberately beats stored OAuth, so a key supplied for a custom `baseUrl` or gateway is honored instead of forwarding an upstream OAuth token the proxy would reject.
@@ -60,7 +60,7 @@ When a provider needs an API key, `omp` resolves it in this order (first match w
 6. **Provider environment variable**: including values loaded from `.env` files (see [the env-var table](#environment-variables-and-env-files)).
 7. **Other stored API key**: for example, a broker-migrated key. This is a last resort so an explicit environment variable wins.
 
-Local credentials live in the active auth store (default: `~/.omp/agent/agent.db`); broker mode uses the configured shared auth broker. Named profiles and Linux XDG layouts can relocate the store. In the default profile, `PI_CODING_AGENT_DIR` overrides the agent directory. See [Settings](./settings.md) and [Secrets and credentials](./secrets.md) for path resolution.
+Local credentials live in the active auth store (default: `~/.oyp/agent/agent.db`); broker mode uses the configured shared auth broker. Named profiles and Linux XDG layouts can relocate the store. In the default profile, `PI_CODING_AGENT_DIR` overrides the agent directory. See [Settings](./settings.md) and [Secrets and credentials](./secrets.md) for path resolution.
 
 ### OAuth vs API key, and provider-scoped logins
 
@@ -71,22 +71,22 @@ Use the interactive slash commands inside a session:
 - `/login` — opens the OAuth/key selector. `/login <provider>` jumps straight to one provider (e.g. `/login anthropic`); for an OAuth flow that needs a pasted callback, run `/login <redirect-url>` to complete it.
 - `/logout` — opens the provider selector to remove stored credentials.
 
-Outside a session, `omp login [<provider>]` runs the same login from the terminal, including extension-registered providers: it prints the auth URL (and opens it in your browser), reads any prompts from stdin, and saves to the same store sessions use — local `agent.db`, or the configured auth broker. Without a provider it shows a numbered picker. Successful login refreshes that provider's model catalog online so newly unlocked models are visible.
+Outside a session, `oyp login [<provider>]` runs the same login from the terminal, including extension-registered providers: it prints the auth URL (and opens it in your browser), reads any prompts from stdin, and saves to the same store sessions use — local `agent.db`, or the configured auth broker. Without a provider it shows a numbered picker. Successful login refreshes that provider's model catalog online so newly unlocked models are visible.
 
-For headless or remote setups backed by a shared auth broker, the CLI exposes `omp auth-broker login <provider>` / `omp auth-broker logout` (and `status`, `list`, `import`, `migrate`). See [Secrets and credentials](./secrets.md) for the broker model.
+For headless or remote setups backed by a shared auth broker, the CLI exposes `oyp auth-broker login <provider>` / `oyp auth-broker logout` (and `status`, `list`, `import`, `migrate`). See [Secrets and credentials](./secrets.md) for the broker model.
 
-When a model has no credentials, `omp` tells you to run `/login` or set the provider's environment variable.
+When a model has no credentials, `oyp` tells you to run `/login` or set the provider's environment variable.
 
-For ClinePass, set `CLINE_API_KEY` or run `/login cline-pass` to open the Cline dashboard and validate a newly created API key against `/users/me`, without a completion probe or subscription-quota charge. OMP refreshes membership from Cline's public recommended-models endpoint and bundles reviewed Cline metadata for offline startup. New live IDs are enriched from upstream references or use conservative metadata without invented reasoning controls. `omp usage` reports five-hour, weekly, and monthly quota windows. Free-tier models are marked `(free)` and use the same key; subscription models show API-equivalent reference pricing, while streamed gateway cost is authoritative for the actual charge. Requests mirror Cline CLI client headers and a stable per-session task ID; reasoning controls remain model-specific.
+For ClinePass, set `CLINE_API_KEY` or run `/login cline-pass` to open the Cline dashboard and validate a newly created API key against `/users/me`, without a completion probe or subscription-quota charge. OMP refreshes membership from Cline's public recommended-models endpoint and bundles reviewed Cline metadata for offline startup. New live IDs are enriched from upstream references or use conservative metadata without invented reasoning controls. `oyp usage` reports five-hour, weekly, and monthly quota windows. Free-tier models are marked `(free)` and use the same key; subscription models show API-equivalent reference pricing, while streamed gateway cost is authoritative for the actual charge. Requests mirror Cline CLI client headers and a stable per-session task ID; reasoning controls remain model-specific.
 
-For Command Code, set `COMMAND_CODE_API_KEY` or run `/login commandcode`; login checks the key against Command Code's `/alpha/whoami` endpoint and rejects it only on a 401, as the Command Code CLI does, so a 403 or an unreachable check keeps the key. Claude models use the Anthropic Messages endpoint, the ten GPT models use the OpenAI Responses endpoint, and every other model uses Chat Completions, the same split the Command Code CLI uses. Thinking levels, image input, output limits, and prices follow the Command Code CLI's model registry; Claude Sonnet 5.5, which that registry does not list yet, takes them from Anthropic's catalog. The GPT models can run hosted web search, but not hosted image generation, which Command Code does not serve. TypeSafe's `typesafe/jev` decision model is available to the `judge` role. `omp usage`, `/usage`, and the status line show the credit balance, plus the five-hour and weekly windows on plans that have them. These figures come from the account endpoints the Command Code CLI uses; the Provider API docs do not document them.
+For Command Code, set `COMMAND_CODE_API_KEY` or run `/login commandcode`; login checks the key against Command Code's `/alpha/whoami` endpoint and rejects it only on a 401, as the Command Code CLI does, so a 403 or an unreachable check keeps the key. Claude models use the Anthropic Messages endpoint, the ten GPT models use the OpenAI Responses endpoint, and every other model uses Chat Completions, the same split the Command Code CLI uses. Thinking levels, image input, output limits, and prices follow the Command Code CLI's model registry; Claude Sonnet 5.5, which that registry does not list yet, takes them from Anthropic's catalog. The GPT models can run hosted web search, but not hosted image generation, which Command Code does not serve. TypeSafe's `typesafe/jev` decision model is available to the `judge` role. `oyp usage`, `/usage`, and the status line show the credit balance, plus the five-hour and weekly windows on plans that have them. These figures come from the account endpoints the Command Code CLI uses; the Provider API docs do not document them.
 
 ### Pinning a key in `models.yml`
 
 A custom provider's `apiKey` is resolved as **environment-variable-name-or-literal**: if the value names an exact-case environment variable with a non-empty value, that value is used; otherwise the string itself is the key. Prefixing the value with `!` runs it as a shell command and uses the trimmed stdout (see [Model and Provider Configuration](./models.md) for the full value syntax).
 
 ```yaml
-# ~/.omp/agent/models.yml
+# ~/.oyp/agent/models.yml
 providers:
   my-gateway:
     baseUrl: https://gateway.example.com/v1
@@ -217,12 +217,12 @@ OAuth-backed providers such as `anthropic`, `openai-codex`, `github-copilot`, `c
 
 ### `.env` discovery and precedence
 
-`omp` eagerly loads four `.env` files into the process environment before provider lookup. For each variable, the first **non-empty** source wins. Effective precedence, high to low:
+`oyp` eagerly loads four `.env` files into the process environment before provider lookup. For each variable, the first **non-empty** source wins. Effective precedence, high to low:
 
 1. Non-empty values already in the process environment.
 2. `<project>/.env`
-3. The active agent directory's `.env` (default: `~/.omp/agent/.env`).
-4. The active config root's `.env` (default: `~/.omp/.env`).
+3. The active agent directory's `.env` (default: `~/.oyp/agent/.env`).
+4. The active config root's `.env` (default: `~/.oyp/.env`).
 5. `~/.env`
 
 Existing non-empty process values are not overwritten; empty values can be filled by a later file. A non-empty project value beats the agent, config-root, and home files. Named profiles use their own config root and agent directory. Bun may also preload project dotenv variants before this loader; values already present are treated as process values.
@@ -265,7 +265,7 @@ For installing and running these engines, see [Local models](./local-models.md).
 Use the `disabledProviders` setting to remove a provider's models from selection:
 
 ```yaml
-# ~/.omp/agent/config.yml or <project>/.omp/config.yml
+# ~/.oyp/agent/config.yml or <project>/.oyp/config.yml
 disabledProviders:
   - anthropic
   - openai
@@ -287,10 +287,10 @@ Disabling a provider does not delete its stored credentials — re-enable it by 
 
 ## Project-specific provider control
 
-Project settings live in `<project>/.omp/config.yml`. Use them when one repository must allow or hide a different provider set than your global default:
+Project settings live in `<project>/.oyp/config.yml`. Use them when one repository must allow or hide a different provider set than your global default:
 
 ```yaml
-# <project>/.omp/config.yml
+# <project>/.oyp/config.yml
 disabledProviders:
   - openai
   - openrouter
@@ -299,13 +299,13 @@ disabledProviders:
 Settings arrays are **replaced** wholesale by the higher-precedence layer, not merged or appended. If the global file disables three providers and the project file disables one, the project sees only the project list:
 
 ```yaml
-# ~/.omp/agent/config.yml
+# ~/.oyp/agent/config.yml
 disabledProviders:
   - anthropic
   - openai
   - google
 
-# <project>/.omp/config.yml
+# <project>/.oyp/config.yml
 disabledProviders:
   - groq
 ```
@@ -367,7 +367,7 @@ Watch the related names. The Google Gemini **API** models use the model provider
 
 ## Custom providers in `models.yml`
 
-Custom providers live in `~/.omp/agent/models.yml` under `providers:`. A provider ID defined there participates in the same selection, credential resolution, and `disabledProviders` rules as built-in providers.
+Custom providers live in `~/.oyp/agent/models.yml` under `providers:`. A provider ID defined there participates in the same selection, credential resolution, and `disabledProviders` rules as built-in providers.
 
 Minimal OpenAI-compatible provider:
 
@@ -401,7 +401,7 @@ providers:
         name: GLM-4.6 (BigModel)
 ```
 
-Set `BIGMODEL_API_KEY` to the `<id>.<secret>` key before starting `omp`, then select `bigmodel/glm-4.6`. The key does not use an `sk-` prefix.
+Set `BIGMODEL_API_KEY` to the `<id>.<secret>` key before starting `oyp`, then select `bigmodel/glm-4.6`. The key does not use an `sk-` prefix.
 
 Keyless local provider (no credentials required):
 
@@ -447,8 +447,8 @@ disabledProviders:
 
 **The wrong key is being used (a stale key from `.env`).** Resolution favors runtime `--api-key`, then a `models.yml` config key, stored OAuth, a key saved by `/login`, extension config fallbacks, environment or `.env`, and other stored API keys. A non-empty process environment variable also beats every `.env` file, and a non-empty `<project>/.env` value beats `~/.env`. If an unexpected key wins, check for an exported shell variable and the four `.env` files in precedence order, and clear the one that should not apply.
 
-**A provider still appears even though I disabled it.** `disabledProviders` arrays are replaced, not merged: a project `<project>/.omp/config.yml` array fully overrides the global one. Verify the _effective_ list for the directory you are in (path-scoped entries only apply at or under their configured path), and confirm the ID is spelled exactly. Use `omp config get disabledProviders` to inspect the merged value (see [Settings](./settings.md)).
+**A provider still appears even though I disabled it.** `disabledProviders` arrays are replaced, not merged: a project `<project>/.oyp/config.yml` array fully overrides the global one. Verify the _effective_ list for the directory you are in (path-scoped entries only apply at or under their configured path), and confirm the ID is spelled exactly. Use `oyp config get disabledProviders` to inspect the merged value (see [Settings](./settings.md)).
 
 **A discovery provider name had no effect on models (or vice-versa).** The ID namespace is shared. `gemini`, `codex`, `claude`, `native`, and `agents` are discovery-source IDs; the Google model backend is `google`. Make sure you are disabling the right kind of provider.
 
-**A custom `models.yml` provider does not load.** A YAML or schema error makes the registry skip the custom file. Validate the file with `omp models` (use `omp models find <substr>` to scope it to one provider). A provider with custom `models` needs `baseUrl`, authentication (`apiKey`, unless `auth: none` or `auth: oauth`), and `api` at provider level or on every model. A provider with no models is also valid when it defines at least one supported override (`baseUrl`, `headers`, `apiKey`, `auth: none`, `compat`, `disableStrictTools`, `guardrailIdentifier`, `requestMetadata`, `remoteCompaction`, `modelOverrides`, or `discovery`). Discovery providers may omit `models`, but need provider-level `api` unless `discovery.type` is `proxy`. An explicit `ollama`, `lm-studio`, or `llama.cpp` entry intentionally replaces built-in discovery for that ID. See [Model and Provider Configuration](./models.md).
+**A custom `models.yml` provider does not load.** A YAML or schema error makes the registry skip the custom file. Validate the file with `oyp models` (use `oyp models find <substr>` to scope it to one provider). A provider with custom `models` needs `baseUrl`, authentication (`apiKey`, unless `auth: none` or `auth: oauth`), and `api` at provider level or on every model. A provider with no models is also valid when it defines at least one supported override (`baseUrl`, `headers`, `apiKey`, `auth: none`, `compat`, `disableStrictTools`, `guardrailIdentifier`, `requestMetadata`, `remoteCompaction`, `modelOverrides`, or `discovery`). Discovery providers may omit `models`, but need provider-level `api` unless `discovery.type` is `proxy`. An explicit `ollama`, `lm-studio`, or `llama.cpp` entry intentionally replaces built-in discovery for that ID. See [Model and Provider Configuration](./models.md).

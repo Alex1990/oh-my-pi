@@ -32,7 +32,7 @@ export class Terminal {
 	constructor(options: TerminalOptions = {}) {
 		this.cols = options.cols ?? 80;
 		this.rows = options.rows ?? 24;
-		this.name = options.name ?? "omp-terminal";
+		this.name = options.name ?? "oyp-terminal";
 		this.#handlers = options;
 	}
 

@@ -643,7 +643,7 @@ export function createIrcMessageCard(
 	// Terminal-local collapse replaces `getExpanded`; the node never changes after creation.
 	const described = cardNode(
 		{
-			role: `omp.irc.${card.kind}`,
+			role: `oyp.irc.${card.kind}`,
 			tone: "info",
 			head: [
 				span(plainText(title), "toolTitle strong"),
@@ -705,7 +705,7 @@ function describeJobsResult(
 	}
 	if (sorted.length > TILES_SHOWN) {
 		const rest = sorted.length - TILES_SHOWN;
-		body.push(text([span(`+${rest} more ${rest === 1 ? "job" : "jobs"} · /jobs`, "dim")], { role: "omp.wait.more" }));
+		body.push(text([span(`+${rest} more ${rest === 1 ? "job" : "jobs"} · /jobs`, "dim")], { role: "oyp.wait.more" }));
 	}
 	for (const agent of agents) {
 		const spans: TspSpan[] = [span(plainText(agent.id), "muted")];
@@ -714,7 +714,7 @@ function describeJobsResult(
 		body.push(
 			node(
 				"row",
-				{ gap: "sm", role: "omp.wait.agent" },
+				{ gap: "sm", role: "oyp.wait.agent" },
 				[
 					node("badge", {
 						text: agent.live ? "agent" : "agent · no turn",

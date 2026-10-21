@@ -231,13 +231,13 @@ export function describeExecutionTool(input: ExecutionToolInput): NativeNode {
 	const box = runBox(
 		[
 			runInput(input.command, {
-				role: shell ? "omp.tool.bash.command" : "omp.tool.eval.input",
+				role: shell ? "oyp.tool.bash.command" : "oyp.tool.eval.input",
 				lang: input.lang,
 				wrap: shell,
 			}),
 			input.output.length > 0 &&
 				runOutput(input.output, {
-					role: shell ? "omp.tool.bash.output" : "omp.tool.eval.output",
+					role: shell ? "oyp.tool.bash.output" : "oyp.tool.eval.output",
 					previewLines: DEFAULT_TERMINAL_PREVIEW_LINES,
 				}),
 			runFoot({

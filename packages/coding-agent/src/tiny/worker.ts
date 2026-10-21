@@ -1,9 +1,9 @@
 /**
  * ONNX tiny-model worker: one process per local model, owning the model's
- * socket (see `title-protocol.ts`), serving every omp process on the machine,
+ * socket (see `title-protocol.ts`), serving every oyp process on the machine,
  * and exiting on its own once idle. Entered from `cli.ts` via
  * {@link TINY_WORKER_ARG} with the socket/model/tag env set by
- * `title-client.ts`. Runs `onnxruntime-node` outside every omp process so its
+ * `title-client.ts`. Runs `onnxruntime-node` outside every oyp process so its
  * NAPI finalizer never runs in a shared address space.
  */
 import * as path from "node:path";

@@ -10,7 +10,7 @@
  * which can be cheaper/faster than the main conversation model.
  *
  * Usage:
- *   omp --hook examples/hooks/custom-compaction.ts
+ *   oyp --hook examples/hooks/custom-compaction.ts
  */
 import { serializeConversation } from "@oh-my-pi/pi-agent-core/compaction";
 import { complete } from "@oh-my-pi/pi-ai";

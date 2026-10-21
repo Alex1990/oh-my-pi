@@ -806,7 +806,7 @@ function describeJobsSegment(running: number, entries: readonly JobWidgetEntry[]
 	return node(
 		"row",
 		{
-			role: "omp.hud.seg",
+			role: "oyp.hud.seg",
 			gap: "xs",
 			align: "center",
 			title,
@@ -821,7 +821,7 @@ function describeJobsSegment(running: number, entries: readonly JobWidgetEntry[]
 				node(
 					"text",
 					{
-						role: "omp.hud.glance",
+						role: "oyp.hud.glance",
 						spans: jobWidgetGlanceSpans({ text: glance.text, ...(glance.trend ? { trend: glance.trend } : {}) }),
 						wrap: "none",
 					},
@@ -840,7 +840,7 @@ function describeRunningSegment(spec: RunningSegmentSpec, running: number): Nati
 	return node(
 		"row",
 		{
-			role: "omp.hud.seg",
+			role: "oyp.hud.seg",
 			gap: "xs",
 			align: "center",
 			title: `${label}  ${spec.shortcut}`,
@@ -909,7 +909,7 @@ class DeferredCommandPreview implements Component {
 				col(this.items, { max: { h: `${this.maxRows}lines` } }),
 				text([span(`${queued} — shown in full in the transcript when the agent pauses`, "dim")]),
 			],
-			{ role: "omp.hud.deferred" },
+			{ role: "oyp.hud.deferred" },
 		);
 		return this.#native;
 	}
@@ -1492,7 +1492,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.editor.onEscape?.();
 	}
 	/**
-	 * The native HUD pills row: one running-work counter (`omp.hud.pill`) with
+	 * The native HUD pills row: one running-work counter (`oyp.hud.pill`) with
 	 * an agents segment, then a jobs segment, each present only while its
 	 * count is non-zero; the row is hidden while both are absent.
 	 */
@@ -1521,9 +1521,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		const memo = this.#hudPillsNative;
 		if (memo && sameItems(memo.children, segments)) return memo.node;
 		const counter =
-			segments.length > 0 ? [node("row", { role: "omp.hud.pill", align: "center" }, segments, "running")] : [];
+			segments.length > 0 ? [node("row", { role: "oyp.hud.pill", align: "center" }, segments, "running")] : [];
 		const described = row(counter, {
-			role: "omp.hud",
+			role: "oyp.hud",
 			justify: "end",
 			hidden: counter.length === 0 || undefined,
 		});
@@ -1531,9 +1531,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		return described;
 	}
 	/**
-	 * Native activity line (`omp.hud.activity`): the status rows (the working,
+	 * Native activity line (`oyp.hud.activity`): the status rows (the working,
 	 * retry and compaction loaders describe themselves as the working row;
-	 * other rows describe themselves) in an `omp.hud.status` column, then the
+	 * other rows describe themselves) in an `oyp.hud.status` column, then the
 	 * todo HUD, so the todo holds its place as the turn starts and ends.
 	 * Nothing to show describes the empty HUD.
 	 */
@@ -1543,10 +1543,10 @@ export class InteractiveMode implements InteractiveModeContext {
 		const memo = this.#statusHudNative;
 		if (memo && memo.todo === todo && sameItems(memo.children, children)) return memo.node;
 		const parts: NativeChild[] = [];
-		if (children.length > 0) parts.push(node("col", { role: "omp.hud.status" }, children.slice(), "status"));
+		if (children.length > 0) parts.push(node("col", { role: "oyp.hud.status" }, children.slice(), "status"));
 		if (todo) parts.push(todo);
 		const described =
-			parts.length === 0 ? EMPTY_HUD : row(parts, { role: "omp.hud.activity", align: "center", gap: "sm" });
+			parts.length === 0 ? EMPTY_HUD : row(parts, { role: "oyp.hud.activity", align: "center", gap: "sm" });
 		this.#statusHudNative = { children: children.slice(), todo, node: described };
 		return described;
 	}
@@ -2648,7 +2648,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		);
 		// The preset may have switched before this listener existed.
 		this.#refreshSlashCommandIcons();
-		// A confirmed Glyph Protocol handshake means omp's own icons render in
+		// A confirmed Glyph Protocol handshake means oyp's own icons render in
 		// this terminal without a Nerd Font, so the unconfigured `unicode` preset
 		// is upgraded to `nerd` for this session. The persisted setting is left
 		// alone: it travels to terminals (ssh, tmux) where the upgrade would
@@ -4558,7 +4558,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 		const fallback = node(
 			"col",
-			{ role: "omp.hud.todo" },
+			{ role: "oyp.hud.todo" },
 			[
 				row(
 					[
@@ -4598,7 +4598,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#todoHudNative = {
 			checklist: node(
 				"checklist",
-				{ phases: checklistPhases, mode: "hud", role: "omp.hud.todo" },
+				{ phases: checklistPhases, mode: "hud", role: "oyp.hud.todo" },
 				undefined,
 				"todo",
 			),
@@ -8042,7 +8042,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			row([node("icon", { name: "loop", tone: "muted" }), kbd(retryKey, "key"), text([span("to retry", "muted")])], {
 				gap: "sm",
 				align: "center",
-				role: "omp.hint.retry",
+				role: "oyp.hint.retry",
 			}),
 		);
 		this.statusContainer.addChild(this.#retryHintRow);
@@ -8317,7 +8317,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			await active.stop();
 			this.statusLine.setRecording(false);
 			this.showStatus(
-				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: omp play · share: oyp clip`,
+				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: oyp play · share: oyp clip`,
 			);
 			return;
 		}

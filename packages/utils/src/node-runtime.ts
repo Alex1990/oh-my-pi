@@ -459,7 +459,7 @@ export function gc(_force = false): void {
  */
 export function generateHeapSnapshot(format: "v8" = "v8"): string {
 	if (format !== "v8") throw new Error(`Unsupported heap snapshot format: ${format}`);
-	const filePath = path.join(tmpdir(), `omp-heap-${process.pid}-${Date.now().toString(36)}.heapsnapshot`);
+	const filePath = path.join(tmpdir(), `oyp-heap-${process.pid}-${Date.now().toString(36)}.heapsnapshot`);
 	try {
 		v8.writeHeapSnapshot(filePath);
 		return fs.readFileSync(filePath, "utf8");

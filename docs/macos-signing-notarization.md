@@ -1,6 +1,6 @@
 # macOS signing & notarization
 
-The compiled macOS `omp` binaries (attached to GitHub Releases) can be signed
+The compiled macOS `oyp` binaries (attached to GitHub Releases) can be signed
 with a **Developer ID Application** certificate and **notarized** by Apple.
 This makes them eligible for Gatekeeper acceptance when the notarization
 ticket is available.
@@ -18,14 +18,14 @@ script signs with the Developer ID and notarizes; with none, it signs ad hoc
 ## How it works
 
 1. `ci:release:build-binaries` builds the release artifacts on Linux: an
-   esbuild bundle (`cli.js`) plus the `omp` launcher. Neither is a Mach-O
+   esbuild bundle (`cli.js`) plus the `oyp` launcher. Neither is a Mach-O
    executable, so there is no linker or runtime signature to replace; the
    signature covers only native addons the bundle loads.
 2. `scripts/ci-macos-sign.sh` replaces it. With credentials it:
    - signs with the Developer ID certificate, the hardened runtime
      (`--code-signature-flags runtime`), a secure timestamp
      (`--for-notarization`), and `scripts/macos-entitlements.plist`, keeping
-     the file name (`omp-darwin-<arch>`) as the signing identifier;
+     the file name (`oyp-darwin-<arch>`) as the signing identifier;
    - packages the binary in a ZIP and submits it with
      `rcodesign notary-submit --wait`, retrying a failed submission up to three
      times. Credential files are removed on exit.
@@ -45,7 +45,7 @@ The launcher also starts Xcode's MCP bridge, so the hardened runtime needs:
 | `com.apple.security.cs.allow-jit`                        | The JavaScript runtime JITs at runtime.                                                                                                                                                                                                                                                                                               |
 | `com.apple.security.cs.allow-unsigned-executable-memory` | JSC executable memory pages.                                                                                                                                                                                                                                                                                                  |
 | `com.apple.security.automation.apple-events`             | Allows macOS to prompt for Automation permission when `xcrun mcpbridge` connects to Xcode; without it, first-time Xcode MCP initialization hangs until timeout.                                                                                                                                                                |
-| `com.apple.security.cs.disable-library-validation`       | omp extracts its native addon (`pi_natives.<triple>.node`) and other optional dylibs to a runtime cache and `dlopen()`s them. They do not share the main binary's Team ID, so without this the hardened runtime aborts with _"mapping process and mapped file have different Team IDs"_ — breaking effectively every command. |
+| `com.apple.security.cs.disable-library-validation`       | oyp extracts its native addon (`pi_natives.<triple>.node`) and other optional dylibs to a runtime cache and `dlopen()`s them. They do not share the main binary's Team ID, so without this the hardened runtime aborts with _"mapping process and mapped file have different Team IDs"_ — breaking effectively every command. |
 
 Without `disable-library-validation`, a signed+notarized binary signs and
 notarizes fine but **fails at first real use**. `release_smoke` runs
@@ -88,7 +88,7 @@ signing to engage.
 
 ### Producing the credential files
 
-Drop these into a working directory (default `~/omp-signing`):
+Drop these into a working directory (default `~/oyp-signing`):
 
 | File                 | How                                                                                                                                                                                                                                     |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -114,8 +114,8 @@ can appear in that subprocess's arguments. The script prints the filenames
 and Key ID.
 
 ```sh
-scripts/ci-macos-upload-secrets.sh ~/omp-signing --dry-run   # validate first
-scripts/ci-macos-upload-secrets.sh ~/omp-signing             # upload all five
+scripts/ci-macos-upload-secrets.sh ~/oyp-signing --dry-run   # validate first
+scripts/ci-macos-upload-secrets.sh ~/oyp-signing             # upload all five
 gh secret list --repo Alex1990/oh-my-pi                       # confirm
 ```
 
@@ -143,7 +143,7 @@ API key) by exporting the five env vars and running:
 RELEASE_TARGETS=darwin-arm64 pnpm run ci:release:build-binaries
 APPLE_CERTIFICATE_P12=… APPLE_CERTIFICATE_PASSWORD=… \
 APPLE_API_KEY_ID=… APPLE_API_ISSUER_ID=… APPLE_API_KEY=… \
-  bash scripts/ci-macos-sign.sh packages/coding-agent/binaries/omp-darwin-arm64
+  bash scripts/ci-macos-sign.sh packages/coding-agent/binaries/oyp-darwin-arm64
 ```
 
 Without the env vars the same command signs ad hoc.

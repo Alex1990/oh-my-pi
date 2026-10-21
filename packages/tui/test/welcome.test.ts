@@ -17,15 +17,15 @@ describe("WelcomeComponent", () => {
 		const tree = new WelcomeComponent("18.4.12").describe({} as never);
 		expect(tree.c?.[0]).toMatchObject({
 			key: "lockup",
-			p: { role: "omp.welcome.lockup" },
+			p: { role: "oyp.welcome.lockup" },
 			c: [
 				{ k: "image", key: "logo" },
 				{
 					k: "col",
-					p: { role: "omp.welcome.mark" },
+					p: { role: "oyp.welcome.mark" },
 					c: [
-						{ p: { role: "omp.welcome.wordmark" } },
-						{ p: { role: "omp.welcome.version", spans: [{ t: "v18.4.12" }] } },
+						{ p: { role: "oyp.welcome.wordmark" } },
+						{ p: { role: "oyp.welcome.version", spans: [{ t: "v18.4.12" }] } },
 					],
 				},
 			],

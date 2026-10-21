@@ -2,7 +2,7 @@
 /**
  * Build the release distribution for every target platform.
  *
- * A target is a Node launcher (`omp-<id>` on POSIX, `omp-<id>.cmd` on Windows)
+ * A target is a Node launcher (`oyp-<id>` on POSIX, `oyp-<id>.cmd` on Windows)
  * plus one shared `cli.js` bundle. The CLI itself is platform-independent, so
  * the bundle is produced once and every selected target shares it; only the
  * launcher differs.
@@ -40,14 +40,14 @@ function target(id: string, platform: BinaryTarget["platform"], arch: BinaryTarg
 }
 
 const targets: BinaryTarget[] = [
-	target("darwin-arm64", "darwin", "arm64", "omp-darwin-arm64"),
-	target("darwin-x64", "darwin", "x64", "omp-darwin-x64"),
-	target("linux-x64", "linux", "x64", "omp-linux-x64"),
-	target("linux-arm64", "linux", "arm64", "omp-linux-arm64"),
-	target("linux-musl-x64", "linux", "x64", "omp-linux-musl-x64"),
-	target("linux-musl-arm64", "linux", "arm64", "omp-linux-musl-arm64"),
-	target("win32-x64", "win32", "x64", "omp-windows-x64.cmd"),
-	target("win32-arm64", "win32", "arm64", "omp-windows-arm64.cmd"),
+	target("darwin-arm64", "darwin", "arm64", "oyp-darwin-arm64"),
+	target("darwin-x64", "darwin", "x64", "oyp-darwin-x64"),
+	target("linux-x64", "linux", "x64", "oyp-linux-x64"),
+	target("linux-arm64", "linux", "arm64", "oyp-linux-arm64"),
+	target("linux-musl-x64", "linux", "x64", "oyp-linux-musl-x64"),
+	target("linux-musl-arm64", "linux", "arm64", "oyp-linux-musl-arm64"),
+	target("win32-x64", "win32", "x64", "oyp-windows-x64.cmd"),
+	target("win32-arm64", "win32", "arm64", "oyp-windows-arm64.cmd"),
 ];
 
 function parseRequestedTargets(): Set<string> | null {

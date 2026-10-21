@@ -2,7 +2,7 @@
  * Cross-process contract for the broker-owned blob daemon.
  *
  * One blob daemon runs per project scope (launched through the same daemon
- * broker that owns the shared Chromium and LSP mux), so every omp process in
+ * broker that owns the shared Chromium and LSP mux), so every oyp process in
  * the project shares one exposure (tunnel or uploader) and one URL per blob.
  * Control traffic rides HTTP over a Unix socket in the daemon runtime dir;
  * public traffic reaches the same store through the exposure.
@@ -21,7 +21,7 @@ export const BLOB_BROKER_SOCKET_ENV = "OMP_BLOB_BROKER_SOCKET";
 export const BLOB_BROKER_CONFIG_ENV = "OMP_BLOB_BROKER_CONFIG";
 
 /** Stable broker daemon name for the shared blob broker. */
-export const BLOB_BROKER_DAEMON_NAME = "omp.blob.broker";
+export const BLOB_BROKER_DAEMON_NAME = "oyp.blob.broker";
 
 /** Broker readiness regex matched against the banner printed by the worker. */
 export const BLOB_BROKER_READY_PATTERN = String.raw`oyp blob broker serving \S+`;

@@ -108,7 +108,7 @@ const OBJECT_EXPORTS_REGISTRY = Symbol.for("oh-my-pi.module-hooks.exports");
 const EXPORT_IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
 /** Namespace serving `build.module()` virtual modules to the native loader. */
-const VIRTUAL_MODULE_NAMESPACE = "omp-virtual";
+const VIRTUAL_MODULE_NAMESPACE = "oyp-virtual";
 
 /** Registry backing generated `loader: "object"` modules (same realm as the loaded module). */
 function objectExportsRegistry(): Map<string, Record<string, unknown>> {
@@ -236,7 +236,7 @@ function ensureHooksInstalled(): void {
 						isFileParent && context.parentURL ? fileURLToPath(context.parentURL) : (context.parentURL ?? ""),
 					namespace: importerNamespace,
 					kind: context.conditions?.includes("require") ? "require-call" : "import-statement",
-					// Virtual namespaces have opaque URLs (`omp-legacy-pi-host:key`),
+					// Virtual namespaces have opaque URLs (`oyp-legacy-pi-host:key`),
 					// for which `new URL(".", …)` is not resolvable. Their hooks work
 					// on the registry key, so the cwd is the only meaningful fallback.
 					resolveDir:
@@ -324,11 +324,11 @@ function ensureHooksInstalled(): void {
 			// handler is async cannot serve this module, so degrade to an empty stub
 			// instead of aborting the host process.
 			if (asyncFallback && scheme !== "file" && scheme !== "data" && scheme !== "node") {
-				process.emitWarning(`[omp-module-hooks] async onLoad for ${url}; serving an empty module`);
+				process.emitWarning(`[oyp-module-hooks] async onLoad for ${url}; serving an empty module`);
 				return { format: "module", source: "export default undefined;", shortCircuit: true };
 			}
 			if (asyncFallback) {
-				process.emitWarning(`[omp-module-hooks] async onLoad for file ${url}; falling through`);
+				process.emitWarning(`[oyp-module-hooks] async onLoad for file ${url}; falling through`);
 			}
 			if (isFile) {
 				const cleanPath = resourcePath.includes("?")

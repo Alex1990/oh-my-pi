@@ -290,7 +290,7 @@ export const reflectToolRenderer = {
 			return {
 				head: toolHead("Reflect", query),
 				inline: true,
-				body: shown ? [md(shown, { role: "omp.memory.reflect" })] : [],
+				body: shown ? [md(shown, { role: "oyp.memory.reflect" })] : [],
 				preview: { lines: PREVIEW_LIMITS.OUTPUT_COLLAPSED },
 			};
 		});

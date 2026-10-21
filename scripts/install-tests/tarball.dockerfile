@@ -121,10 +121,10 @@ RUN verdaccio --config /root/.config/verdaccio/config.yaml &>/dev/null & \
 WORKDIR /test
 RUN verdaccio --config /root/.config/verdaccio/config.yaml &>/dev/null & \
     sleep 3 && \
-    node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'omp-install-smoke', private: true, version: '0.0.0' }, null, 2))" && \
+    node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'oyp-install-smoke', private: true, version: '0.0.0' }, null, 2))" && \
     pnpm add @oh-my-pi/pi-coding-agent --registry http://localhost:4873 && \
     pkill -f verdaccio
 
 # Verify the installed package works
 ENV PATH="/test/node_modules/.bin:$PATH"
-RUN omp --version
+RUN oyp --version

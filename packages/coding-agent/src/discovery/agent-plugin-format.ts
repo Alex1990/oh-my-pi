@@ -558,7 +558,7 @@ export async function legacyProviderAllowed(rootPath: string, surface: "skills" 
  * and Agent-Plugins-standard packages keep their selectors (#12028).
  *
  * The dialect is decided by the plugin's declared manifest, not by which
- * registry supplied the root — an omp-installed or `--plugin-dir` root can hold
+ * registry supplied the root — an oyp-installed or `--plugin-dir` root can hold
  * a `.claude-plugin` package. Precedence mirrors {@link resolvePluginMCPConfig}:
  * a `.omp-plugin/plugin.json` (OMP-native) or an Agent Plugins standard root
  * `plugin.json` wins over a sibling `.claude-plugin/plugin.json`.

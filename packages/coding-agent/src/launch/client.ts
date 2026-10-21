@@ -23,7 +23,7 @@ const CONNECT_TIMEOUT_MS = 10_000;
 const CONNECT_RETRY_MS = 50;
 const TOKEN_FILE = "broker.token";
 /**
- * The broker must outlive whichever omp process happened to spawn it: other
+ * The broker must outlive whichever oyp process happened to spawn it: other
  * clients (and persistent daemons) still hold its lease. Bun on Windows puts
  * every non-detached child in a kill-on-close job object owned by the parent,
  * so an undetached broker died with its spawner and took the scope's daemons
@@ -484,7 +484,7 @@ export async function daemonClientForGlobal(service: string): Promise<DaemonBrok
 	);
 }
 
-/** Close every project and machine-global broker connection held by this omp process. */
+/** Close every project and machine-global broker connection held by this oyp process. */
 export async function closeDaemonClients(): Promise<void> {
 	const pending = [...sharedClients.values()];
 	sharedClients.clear();
@@ -499,7 +499,7 @@ export async function smokeTestDaemonBroker(): Promise<void> {
 	// the broker's dead-scope sweep (pruneDeadDaemonRuntimeDirs, fired on startup)
 	// can only ever reclaim siblings inside it — never unrelated neighbours in
 	// os.tmpdir() such as tmux/ssh sockets or build trees (issue #8721).
-	const smokeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-daemon-smoke-"));
+	const smokeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "oyp-daemon-smoke-"));
 	const projectDir = path.join(smokeRoot, "project");
 	const runtimeDir = path.join(smokeRoot, "run");
 	await fs.mkdir(projectDir, { recursive: true });

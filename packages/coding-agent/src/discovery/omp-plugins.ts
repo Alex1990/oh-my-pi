@@ -4,12 +4,12 @@
  * When a user configures an extension via `extensions:` (in settings) or
  * `--extension`/`-e` (on the CLI), the docs promise that the package's
  * sibling directories — `skills/`, `hooks/pre|post/`, `tools/`, `commands/`,
- * `rules/`, `prompts/`, and `.mcp.json` — are picked up by omp's standard
- * discovery surfaces. The native `omp` provider in `builtin.ts` only walks
+ * `rules/`, `prompts/`, and `.mcp.json` — are picked up by oyp's standard
+ * discovery surfaces. The native `oyp` provider in `builtin.ts` only walks
  * `.oyp/` and `~/.oyp/agent/`, so without this provider those sub-trees are
  * silently ignored.
  *
- * Provider priority is set below the native `omp` provider (100) so an
+ * Provider priority is set below the native `oyp` provider (100) so an
  * extension package never shadows the user's own `.oyp/` configuration on
  * dedup.
  *

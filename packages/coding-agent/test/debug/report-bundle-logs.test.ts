@@ -60,9 +60,9 @@ describe("report bundle logs", () => {
 		// Log files are named with the local day (RotatingFileSink naming); same-day
 		// collection must match them with the local day too, not the UTC key.
 		const today = localDay(new Date());
-		const crashedName = `omp.${today}.4242.log`;
+		const crashedName = `oyp.${today}.4242.log`;
 		const rotatedName = `${crashedName}.1`;
-		const currentName = `omp.${today}.${process.pid}.log`;
+		const currentName = `oyp.${today}.${process.pid}.log`;
 		await bun.write(path.join(logsDir, crashedName), '{"pid":4242,"message":"fatal in crashed pid"}\n');
 		await fs.utimes(path.join(logsDir, crashedName), 1, 1);
 		await bun.write(path.join(logsDir, rotatedName), '{"pid":4242,"message":"earlier rotated crash output"}\n');
@@ -74,7 +74,7 @@ describe("report bundle logs", () => {
 		const utcToday = new Date().toISOString().slice(0, 10);
 		let staleUtcName: string | undefined;
 		if (utcToday !== today) {
-			staleUtcName = `omp.${utcToday}.4243.log`;
+			staleUtcName = `oyp.${utcToday}.4243.log`;
 			await bun.write(path.join(logsDir, staleUtcName), '{"pid":4243,"message":"stale utc-keyed"}\n');
 			await fs.utimes(path.join(logsDir, staleUtcName), 3, 3);
 		}
@@ -110,7 +110,7 @@ describe("report bundle logs", () => {
 		const archive = new Archive(await bun.file(result.path).bytes());
 		const logsText = (await (await archive.files()).get("logs.txt")?.text()) ?? "";
 		await fs.rm(result.path, { force: true });
-		expect(logsText).toContain(`omp.${localDay(new Date())}.${process.pid}.log`);
+		expect(logsText).toContain(`oyp.${localDay(new Date())}.${process.pid}.log`);
 		expect(logsText).toContain(marker);
 	});
 });

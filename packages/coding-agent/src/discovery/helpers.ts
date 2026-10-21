@@ -438,8 +438,8 @@ export interface ScanSkillsFromDirOptions {
 	includeSelf?: boolean;
 	/**
 	 * Registry/CLI origin of the plugin root supplying these skills, forwarded
-	 * to {@link SourceMeta.origin} so user-scope gating can tell omp's own
-	 * installs (`omp`, `plugin-dir`) from the foreign Claude tree (`claude`).
+	 * to {@link SourceMeta.origin} so user-scope gating can tell oyp's own
+	 * installs (`oyp`, `plugin-dir`) from the foreign Claude tree (`claude`).
 	 */
 	origin?: string;
 	/**
@@ -838,7 +838,7 @@ async function readExtensionModuleManifest(
  * Discovery rules:
  * 1. Direct files: `extensions/*.ts` or `*.js` → load
  * 2. Subdirectory with index: `extensions/<ext>/index.ts` or `index.js` → load
- * 3. Subdirectory with package.json: `extensions/<ext>/package.json` with "omp"/"pi" field → load declared paths
+ * 3. Subdirectory with package.json: `extensions/<ext>/package.json` with "oyp"/"pi" field → load declared paths
  *
  * No recursion beyond one level. Complex packages must use package.json manifest.
  * Uses native glob for fast filesystem scanning with gitignore support.
@@ -1015,7 +1015,7 @@ export interface ClaudePluginRoot {
 	/** Whether this is a user or project scope plugin */
 	scope: "user" | "project";
 	/** Registry or explicit CLI source that supplied this root. */
-	origin: "claude" | "omp" | "plugin-dir";
+	origin: "claude" | "oyp" | "plugin-dir";
 }
 
 /**
@@ -1377,7 +1377,7 @@ async function loadClaudePluginRoots({
 						version: entry.version || "unknown",
 						path: entry.installPath,
 						scope: entry.scope === "local" ? "project" : entry.scope || "user",
-						origin: "omp",
+						origin: "oyp",
 					});
 				}
 			}
@@ -1416,7 +1416,7 @@ async function loadClaudePluginRoots({
 							version: entry.version || "unknown",
 							path: entry.installPath,
 							scope: "project",
-							origin: "omp",
+							origin: "oyp",
 						});
 					}
 				}

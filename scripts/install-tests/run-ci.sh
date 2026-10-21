@@ -92,23 +92,23 @@ pnpm --dir packages/coding-agent run build
 
 BINARY_DIR="$WORK_DIR/binary-bin"
 mkdir -p "$BINARY_DIR"
-cp packages/coding-agent/dist/omp "$BINARY_DIR/omp"
+cp packages/coding-agent/dist/oyp "$BINARY_DIR/oyp"
 cp packages/coding-agent/dist/cli.js "$BINARY_DIR/cli.js"
 # cli.js keeps the native addon external and resolves it from node_modules next
 # to the payload; provide the workspace tree beside the copied launcher.
 ln -s "$ROOT_DIR/node_modules" "$BINARY_DIR/node_modules"
-smoke_cli "$BINARY_DIR/omp"
+smoke_cli "$BINARY_DIR/oyp"
 
 section "Source install smoke"
 SOURCE_PNPM_HOME="$WORK_DIR/pnpm-source"
 (
    export PNPM_HOME="$SOURCE_PNPM_HOME"
    export PATH="$PNPM_HOME:$PATH"
-   # The repository manifest points `bin.omp` at the TypeScript entrypoint, so
+   # The repository manifest points `bin.oyp` at the TypeScript entrypoint, so
    # the linked command needs Node's type transform and the repo loader.
    export NODE_OPTIONS="--experimental-transform-types --import $ROOT_DIR/scripts/node-runtime-loader.mjs"
    pnpm --dir "$ROOT_DIR/packages/coding-agent" link --global
-   smoke_cli "$(pnpm bin -g)/omp"
+   smoke_cli "$(pnpm bin -g)/oyp"
 )
 
 section "Tarball install smoke"
@@ -157,7 +157,7 @@ for pkg in utils wire omptype catalog ai mnemopi snapcompact agent tui stats col
 done
 
 # 4. Pack the coding agent with its *published* manifest: release swaps
-#    `bin.omp` from `src/cli.ts` to the prepack payload `dist/cli.js`. The repo
+#    `bin.oyp` from `src/cli.ts` to the prepack payload `dist/cli.js`. The repo
 #    manifest keeps pointing at source so `pnpm link`/`install.sh --source`
 #    work without a build, so the swap must be reproduced here for the smoke
 #    to exercise the embedded worker-host entry the published package ships.
@@ -199,7 +199,7 @@ mkdir -p "$TARBALL_APP_DIR"
    # A minimal manifest: `pnpm init` probes the registry for the latest pnpm
    # and pins it via packageManager, which would escape the repo's pinned
    # release (and fail offline).
-   node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'omp-install-smoke', private: true, version: '0.0.0' }, null, 2))"
+   node -e "require('fs').writeFileSync('package.json', JSON.stringify({ name: 'oyp-install-smoke', private: true, version: '0.0.0' }, null, 2))"
 
    # Point inter-package deps at the tarballs so nothing resolves from the
    # registry (the version under test has not necessarily been published yet).
@@ -243,12 +243,12 @@ PROBE
    cat > omptype-probe.mts <<'PROBE'
 import { type } from "@oh-my-pi/omptype";
 import { Type } from "@oh-my-pi/omptype/typebox";
-const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "omp" });
+const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "oyp" });
 const typebox = Type.Object({ name: Type.String() }).assert({ name: "tb" });
 process.stdout.write(`${root.name}:${root.enabled}:${typebox.name}`);
 PROBE
    omptype_probe="$(node --experimental-transform-types omptype-probe.mts)"
-   [ "$omptype_probe" = "omp:false:tb" ] || {
+   [ "$omptype_probe" = "oyp:false:tb" ] || {
       echo "Unexpected @oh-my-pi/omptype probe result: $omptype_probe"
       exit 1
    }
@@ -256,7 +256,7 @@ PROBE
       echo "Collab web tarball did not install built dist/index.html"
       exit 1
    }
-   smoke_cli ./node_modules/.bin/omp
+   smoke_cli ./node_modules/.bin/oyp
 )
 
 echo ""

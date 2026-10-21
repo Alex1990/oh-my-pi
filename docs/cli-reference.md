@@ -1,55 +1,55 @@
 # CLI reference
 
-`omp` is invoked as:
+`oyp` is invoked as:
 
 ```sh
-omp [command] [flags] [messages...]
+oyp [command] [flags] [messages...]
 ```
 
-When the first positional argument is **not** a registered subcommand, `omp`
+When the first positional argument is **not** a registered subcommand, `oyp`
 normally routes to the default [`launch`](#launch-the-default-command) command.
-So `omp "fix the build"` launches a session with that message, while `omp models`
+So `oyp "fix the build"` launches a session with that message, while `oyp models`
 runs the `models` subcommand. Bare plugin-management words such as `marketplace`,
-`uninstall`, or `extensions` instead produce a hint to use `omp plugin …`;
-use `omp launch <word>` when such a word is the intended prompt.
+`uninstall`, or `extensions` instead produce a hint to use `oyp plugin …`;
+use `oyp launch <word>` when such a word is the intended prompt.
 
 A recognized subcommand can follow leading launch flags. Those flags are
 forwarded to `launch` and `acp`, but recognized launch-only flags before other
-subcommands are stripped, not applied (for example, `omp --cwd dir update`).
+subcommands are stripped, not applied (for example, `oyp --cwd dir update`).
 
 `--profile` is applied before subcommand routing, so it also scopes commands
 such as `config`, `models`, and `update`.
 
 Runtime help is also available:
 
-- `omp --help` lists user-facing subcommands and common launch flags.
-- `omp <command> --help` prints that command's public flags and examples.
+- `oyp --help` lists user-facing subcommands and common launch flags.
+- `oyp <command> --help` prints that command's public flags and examples.
 
 This page is the consolidated reference for the shared **launch surface** (the
-flags accepted by `omp` / `omp launch`) and every top-level **subcommand**.
-Per-subcommand flags (for example `omp auth-broker --json`) are documented by
+flags accepted by `oyp` / `oyp launch`) and every top-level **subcommand**.
+Per-subcommand flags (for example `oyp auth-broker --json`) are documented by
 each command's `--help`.
 
 ## Launch (the default command)
 
-`omp` and `omp launch` start a coding session. Positional arguments become the
+`oyp` and `oyp launch` start a coding session. Positional arguments become the
 initial message(s):
 
 ```sh
 # Interactive session
-omp
+oyp
 
 # Interactive session with an initial prompt
-omp "List all .ts files in src/"
+oyp "List all .ts files in src/"
 
 # Attach files/images to the initial message (prefix with @)
-omp @prompt.md @image.png "What color is the sky?"
+oyp @prompt.md @image.png "What color is the sky?"
 
 # Non-interactive: process the prompt and exit (headless / print mode)
-omp -p "List all .ts files in src/"
+oyp -p "List all .ts files in src/"
 
 # Continue the previous session
-omp --continue "What did we discuss?"
+oyp --continue "What did we discuss?"
 ```
 
 Argument handling:
@@ -180,28 +180,28 @@ See [providers](./providers.md) and [models](./models.md) for model resolution.
 
 | Flag | Description |
 | --- | --- |
-| `--help`, `-h` | Show help for `omp` or a subcommand and exit. |
+| `--help`, `-h` | Show help for `oyp` or a subcommand and exit. |
 | `--version`, `-v` | Print the installed version and exit. |
 
 ### Headless / print mode
 
-`--print` / `-p` runs `omp` non-interactively: it processes the prompts, writes
+`--print` / `-p` runs `oyp` non-interactively: it processes the prompts, writes
 the last assistant response to stdout, and exits without entering the TUI. Text
 output is emitted after the turn completes, not token-by-token; a `Working...`
 indicator goes to stderr. This is the entry point for scripting and automation.
 
 ```sh
 # Print the answer and exit
-omp -p "Summarize the changes in the last commit"
+oyp -p "Summarize the changes in the last commit"
 
 # Include the model's thinking blocks in the printed text
-omp -p --print-thoughts "Explain your reasoning for this refactor"
+oyp -p --print-thoughts "Explain your reasoning for this refactor"
 
 # Machine-readable output for pipelines
-omp -p --mode json "List every TODO in src/" > todos.json
+oyp -p --mode json "List every TODO in src/" > todos.json
 
 # Pipe a prompt via stdin
-echo "review this diff" | omp -p
+echo "review this diff" | oyp -p
 ```
 
 Related flags for headless runs:
@@ -236,13 +236,13 @@ print-mode disposal semantics when the advisor runtime is enabled.
 
 ## Subcommands
 
-Run `omp <command> --help` for each command's own flags and examples.
+Run `oyp <command> --help` for each command's own flags and examples.
 
 | Command | Purpose | See also |
 | --- | --- | --- |
 | `launch` | Start a coding session (the default command). | [Launch flags](#launch-flags) |
-| `acp` | Run omp as an ACP (Agent Client Protocol) server over stdio. | [approval mode](./approval-mode.md#acp-sessions) |
-| `auth-broker` | Manage the omp auth-broker (credential vault). | [auth broker / gateway](./auth-broker-gateway.md) |
+| `acp` | Run oyp as an ACP (Agent Client Protocol) server over stdio. | [approval mode](./approval-mode.md#acp-sessions) |
+| `auth-broker` | Manage the oyp auth-broker (credential vault). | [auth broker / gateway](./auth-broker-gateway.md) |
 | `auth-gateway` | Run an auth-gateway: an HTTP forward proxy backed by the configured broker (`serve`), or JSON lines on stdin/stdout for a parent process with your own credentials (`stdio`). | [auth broker / gateway](./auth-broker-gateway.md) |
 | `agents` | Manage bundled task agents. | [task agent discovery](./task-agent-discovery.md) |
 | `bench` | Benchmark models: TTFT/prefill vs decode throughput with p50/p95 across chat, prefill, generation, and prompt-cache workloads, rendered in a live dashboard (`--prefill-bytes` sizes the synthetic prefill input). `--detailed` runs single-user, `--par`-way parallel (aggregate tok/s and scaling), and prefill phases per model. | |

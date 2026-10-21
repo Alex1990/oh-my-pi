@@ -29,7 +29,7 @@ packages/snapcompact/research/results/
 .wt/
 .opencode/
 .pi_config/
-.omp/plugins/
+.oyp/plugins/
 
 # VCS, editors, IDEs.
 .git/

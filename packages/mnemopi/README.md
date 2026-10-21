@@ -1,6 +1,6 @@
 # @oh-my-pi/pi-mnemopi
 
-Local SQLite memory engine for omp agents.
+Local SQLite memory engine for oyp agents.
 
 This package is the TypeScript port of the Mnemosyne memory engine. It provides:
 
@@ -74,7 +74,7 @@ const dynamicLlm = new Mnemopi({
 
 `Mnemopi` itself exposes banks directly through constructor options such as `bank`; it does not hard-code coding-agent project scoping.
 
-The omp coding-agent wrapper adds `mnemopi.scoping` on top of those constructor options:
+The oyp coding-agent wrapper adds `mnemopi.scoping` on top of those constructor options:
 
 - `global`: one shared bank
 - `per-project`: isolated project memory

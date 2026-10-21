@@ -4,7 +4,7 @@ Native tool-calling convention of Zhipu AI / Z.ai's **GLM-4.5** family (`zai-org
 
 This document was verified against the authoritative `chat_template.jinja` from the HF repo (fetched raw and **rendered locally with Jinja2** — `trim_blocks=True, lstrip_blocks=True`, transformers' `tojson` filter — to produce the byte-exact streams below), `tokenizer_config.json` and `generation_config.json` for the exact token IDs and stop tokens, the model card, and the vLLM (`Glm4MoeModelToolParser`) and SGLang (`Glm4MoeDetector`) parser sources. The HF `resolve`/`blob` web paths redirect to the model-card API; the byte-exact source was obtained via the `resolve/main/...:raw` cache (template commit `cbb2c7cfb52fa128a9660cb1a7a78e017899e115`). The GLM-4.5 and GLM-4.6 `chat_template.jinja` files are identical (same content hash `41478957…`).
 
-The native template/server sections below provide format background. OMP implements its own decoded-text `glm` scanner and renderer in `packages/ai/src/dialect/glm.ts`, not the upstream Jinja template or Python parsers. Its different history, thinking, coercion, and recovery behavior is described under *omp / pi converter behavior*.
+The native template/server sections below provide format background. OMP implements its own decoded-text `glm` scanner and renderer in `packages/ai/src/dialect/glm.ts`, not the upstream Jinja template or Python parsers. Its different history, thinking, coercion, and recovery behavior is described under *oyp / pi converter behavior*.
 
 ## Special tokens
 
@@ -286,11 +286,11 @@ With a server parser active (`--tool-call-parser glm45 --reasoning-parser glm45`
   structural newlines: the function name can sit directly before the first
   `<arg_key>`, zero-argument calls can be `<tool_call>func</tool_call>`, and
   parallel calls can abut. vLLM/SGLang require their distinct GLM-4.7
-  parsers for this variant. omp's repository scanner is intentionally broader:
+  parsers for this variant. oyp's repository scanner is intentionally broader:
   it accepts newline, `<arg_key>`, or `</tool_call>` as the name delimiter, so
   the same `glm` dialect scanner handles both layouts.
 
-## omp / pi converter behavior
+## oyp / pi converter behavior
 
 The repository's `glm` dialect is an **owned in-band converter**. Set
 `tools.format` to `glm` to force it. `PI_DIALECT=glm` (also `1` or `true`) is

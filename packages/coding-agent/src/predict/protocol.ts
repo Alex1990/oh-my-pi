@@ -3,7 +3,7 @@
  *
  * One daemon per agent directory runs under the `text-predict` global daemon
  * broker (`oyp ps --global text-predict`) and serves ghost-text word
- * completion to every omp process over newline-delimited JSON on a native IPC
+ * completion to every oyp process over newline-delimited JSON on a native IPC
  * endpoint (`ipcEndpoint`). Each request carries a numeric `id` echoed by its
  * response; responses may arrive out of order.
  */
@@ -39,7 +39,7 @@ export function textPredictReadyBanner(endpoint: string): string {
  */
 export function textPredictDaemon(runtimeDir: string, agentDir: string): { name: string; endpoint: string } {
 	const key = bun.hash.wyhash(path.resolve(agentDir)).toString(16).padStart(16, "0").slice(0, 12);
-	return { name: `omp.text-predict.${key}`, endpoint: ipcEndpoint(runtimeDir, `text-predict-${key}`) };
+	return { name: `oyp.text-predict.${key}`, endpoint: ipcEndpoint(runtimeDir, `text-predict-${key}`) };
 }
 
 /** Client → daemon request. */
@@ -57,7 +57,7 @@ export type TextPredictRequest =
 	  }
 	/** Ingest history rows newer than each open engine's cursor. */
 	| { id: number; op: "sync" }
-	/** Persist and exit (a client found a daemon from another omp version). */
+	/** Persist and exit (a client found a daemon from another oyp version). */
 	| { id: number; op: "shutdown" };
 
 /** Daemon → client response. */

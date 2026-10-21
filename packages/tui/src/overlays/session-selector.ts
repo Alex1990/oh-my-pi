@@ -166,7 +166,7 @@ function sessionPreview(session: SessionSelectorEntry, forkedFrom: string | unde
 		rest.length > 0 && md(rest.length > PREVIEW_EXCERPT_CHARS ? `…${rest.slice(-PREVIEW_EXCERPT_CHARS)}` : rest),
 	]);
 	return compact([
-		node("text", { text: sessionLabel(session), role: "omp.picker.title" }),
+		node("text", { text: sessionLabel(session), role: "oyp.picker.title" }),
 		kv([
 			["Folder", session.cwd ? cwdSpans(session.cwd) : undefined],
 			["Created", created && pickerDate(created)],
@@ -1737,7 +1737,7 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			hints.push({ keys: ["tab"], label: this.#scope === "all" ? "current folder" : "all projects" });
 		}
 		hints.push({ keys: [boundKeys("app.interrupt", ["escape"])[0] ?? "escape"], label: "cancel" });
-		const result = overlayCard("omp.overlay.sessions", tabs ? this.#title : this.title, [
+		const result = overlayCard("oyp.overlay.sessions", tabs ? this.#title : this.title, [
 			...children,
 			hintsRow(hints),
 		]);

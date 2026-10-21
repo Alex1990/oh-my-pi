@@ -58,7 +58,7 @@ export interface Recording {
 
 /** Directory `/record` writes into (temporary storage for now). */
 export function recordingsDir(): string {
-	return path.join(os.tmpdir(), "omp-recordings");
+	return path.join(os.tmpdir(), "oyp-recordings");
 }
 
 /** Fresh, sortable recording path for one session: `<recordingsDir>/<utc-stamp>-<session>.ompcast`. */

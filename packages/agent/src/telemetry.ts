@@ -126,47 +126,47 @@ export const enum OpenAIAttr {
 
 /** Project extension attributes. Kept out of the reserved `gen_ai.*` namespace. */
 export const enum OmpGenAIAttr {
-	AgentStepNumber = "omp.gen_ai.agent.step.number",
-	AgentStepCount = "omp.gen_ai.agent.step.count",
-	RequestReasoningEffort = "omp.gen_ai.request.reasoning.effort",
-	RequestToolChoice = "omp.gen_ai.request.tool.choice",
-	RequestAvailableTools = "omp.gen_ai.request.available_tools",
-	RequestMessages = "omp.gen_ai.request.messages",
-	ResponseText = "omp.gen_ai.response.text",
-	ResponseToolCalls = "omp.gen_ai.response.tool_calls",
-	ResponseUpstreamProvider = "omp.gen_ai.response.upstream_provider",
-	UsageTotalTokens = "omp.gen_ai.usage.total_tokens",
-	UsageServerSideTools = "omp.gen_ai.usage.server_tool_requests",
-	CostEstimatedUsd = "omp.gen_ai.cost.estimated_usd",
-	CostInputUsd = "omp.gen_ai.cost.input_usd",
-	CostOutputUsd = "omp.gen_ai.cost.output_usd",
-	CostUnavailableReason = "omp.gen_ai.cost.unavailable_reason",
-	ToolStatus = "omp.gen_ai.tool.status",
-	ToolCallIntent = "omp.gen_ai.tool.call.intent",
-	HandoffFromAgentName = "omp.gen_ai.handoff.from_agent.name",
-	HandoffFromAgentId = "omp.gen_ai.handoff.from_agent.id",
-	HandoffToAgentName = "omp.gen_ai.handoff.to_agent.name",
-	HandoffToAgentId = "omp.gen_ai.handoff.to_agent.id",
+	AgentStepNumber = "oyp.gen_ai.agent.step.number",
+	AgentStepCount = "oyp.gen_ai.agent.step.count",
+	RequestReasoningEffort = "oyp.gen_ai.request.reasoning.effort",
+	RequestToolChoice = "oyp.gen_ai.request.tool.choice",
+	RequestAvailableTools = "oyp.gen_ai.request.available_tools",
+	RequestMessages = "oyp.gen_ai.request.messages",
+	ResponseText = "oyp.gen_ai.response.text",
+	ResponseToolCalls = "oyp.gen_ai.response.tool_calls",
+	ResponseUpstreamProvider = "oyp.gen_ai.response.upstream_provider",
+	UsageTotalTokens = "oyp.gen_ai.usage.total_tokens",
+	UsageServerSideTools = "oyp.gen_ai.usage.server_tool_requests",
+	CostEstimatedUsd = "oyp.gen_ai.cost.estimated_usd",
+	CostInputUsd = "oyp.gen_ai.cost.input_usd",
+	CostOutputUsd = "oyp.gen_ai.cost.output_usd",
+	CostUnavailableReason = "oyp.gen_ai.cost.unavailable_reason",
+	ToolStatus = "oyp.gen_ai.tool.status",
+	ToolCallIntent = "oyp.gen_ai.tool.call.intent",
+	HandoffFromAgentName = "oyp.gen_ai.handoff.from_agent.name",
+	HandoffFromAgentId = "oyp.gen_ai.handoff.from_agent.id",
+	HandoffToAgentName = "oyp.gen_ai.handoff.to_agent.name",
+	HandoffToAgentId = "oyp.gen_ai.handoff.to_agent.id",
 	// Marks chat spans emitted outside the agent loop (compaction, handoff, branch
 	// summary, image inspection, …). Lets dashboards split oneshot cost / latency
 	// from main-turn cost without overloading the semconv `gen_ai.operation.name`.
-	OneshotKind = "omp.gen_ai.oneshot.kind",
+	OneshotKind = "oyp.gen_ai.oneshot.kind",
 	// Gateway / proxy (LiteLLM, Helicone, Portkey, …) — populated when a known
 	// gateway header pattern is detected on the upstream response. The base
 	// `gen_ai.provider.name` continues to track the *upstream* provider (e.g.
 	// `anthropic`) that the gateway routed to.
-	GatewayName = "omp.gen_ai.gateway.name",
-	GatewayEndpoint = "omp.gen_ai.gateway.endpoint",
-	GatewayCallId = "omp.gen_ai.gateway.call_id",
-	GatewayRoutedTo = "omp.gen_ai.gateway.routed_to",
+	GatewayName = "oyp.gen_ai.gateway.name",
+	GatewayEndpoint = "oyp.gen_ai.gateway.endpoint",
+	GatewayCallId = "oyp.gen_ai.gateway.call_id",
+	GatewayRoutedTo = "oyp.gen_ai.gateway.routed_to",
 	/** Cloudflare AI Gateway response-cache status (`cf-aig-cache-status`), never prompt-cache. */
-	GatewayResponseCacheStatus = "omp.gen_ai.gateway.response_cache.status",
+	GatewayResponseCacheStatus = "oyp.gen_ai.gateway.response_cache.status",
 	/** Caller-level reason a judgment ran (`find`, `ttsr`, `judge_batch`, …). */
-	JudgmentPurpose = "omp.gen_ai.judgment.purpose",
+	JudgmentPurpose = "oyp.gen_ai.judgment.purpose",
 	/** Questions the caller asked in one judgment request. */
-	JudgmentQuestions = "omp.gen_ai.judgment.questions",
+	JudgmentQuestions = "oyp.gen_ai.judgment.questions",
 	/** Questions answered from the local judgment cache instead of the provider. */
-	JudgmentCachedQuestions = "omp.gen_ai.judgment.cached_questions",
+	JudgmentCachedQuestions = "oyp.gen_ai.judgment.cached_questions",
 }
 
 /** GenAI operation names — values for {@link GenAIAttr.OperationName}. */
@@ -2119,28 +2119,28 @@ export function fireOnRunEnd(telemetry: AgentTelemetry, summary: AgentRunSummary
 
 /** Aggregate `omp.gen_ai.agent.*` attributes stamped on the `invoke_agent` span. */
 export const enum OmpGenAIAggregateAttr {
-	ChatsCount = "omp.gen_ai.agent.chats.count",
-	ChatsTotalLatencyMs = "omp.gen_ai.agent.chats.total_latency_ms",
-	ChatsStopReasonPrefix = "omp.gen_ai.agent.chats.stop_reason.",
-	ToolsCount = "omp.gen_ai.agent.tools.count",
-	ToolsOkCount = "omp.gen_ai.agent.tools.ok.count",
-	ToolsErrorCount = "omp.gen_ai.agent.tools.error.count",
-	ToolsSkippedCount = "omp.gen_ai.agent.tools.skipped.count",
-	ToolsBlockedCount = "omp.gen_ai.agent.tools.blocked.count",
-	ToolsTimeoutCount = "omp.gen_ai.agent.tools.timeout.count",
-	ToolsAbortedCount = "omp.gen_ai.agent.tools.aborted.count",
-	ToolsTotalLatencyMs = "omp.gen_ai.agent.tools.total_latency_ms",
-	ToolsInvoked = "omp.gen_ai.agent.tools.invoked",
-	ToolsAvailable = "omp.gen_ai.agent.tools.available",
-	ToolsUnused = "omp.gen_ai.agent.tools.unused",
-	UsageInputTokensTotal = "omp.gen_ai.agent.usage.input_tokens.total",
-	UsageOutputTokensTotal = "omp.gen_ai.agent.usage.output_tokens.total",
-	UsageCacheReadInputTokensTotal = "omp.gen_ai.agent.usage.cache_read.input_tokens.total",
-	UsageCacheCreationInputTokensTotal = "omp.gen_ai.agent.usage.cache_creation.input_tokens.total",
-	UsageReasoningOutputTokensTotal = "omp.gen_ai.agent.usage.reasoning.output_tokens.total",
-	UsageTotalTokensTotal = "omp.gen_ai.agent.usage.total_tokens.total",
-	CostEstimatedUsdTotal = "omp.gen_ai.agent.cost.estimated_usd.total",
-	ErrorsCount = "omp.gen_ai.agent.errors.count",
+	ChatsCount = "oyp.gen_ai.agent.chats.count",
+	ChatsTotalLatencyMs = "oyp.gen_ai.agent.chats.total_latency_ms",
+	ChatsStopReasonPrefix = "oyp.gen_ai.agent.chats.stop_reason.",
+	ToolsCount = "oyp.gen_ai.agent.tools.count",
+	ToolsOkCount = "oyp.gen_ai.agent.tools.ok.count",
+	ToolsErrorCount = "oyp.gen_ai.agent.tools.error.count",
+	ToolsSkippedCount = "oyp.gen_ai.agent.tools.skipped.count",
+	ToolsBlockedCount = "oyp.gen_ai.agent.tools.blocked.count",
+	ToolsTimeoutCount = "oyp.gen_ai.agent.tools.timeout.count",
+	ToolsAbortedCount = "oyp.gen_ai.agent.tools.aborted.count",
+	ToolsTotalLatencyMs = "oyp.gen_ai.agent.tools.total_latency_ms",
+	ToolsInvoked = "oyp.gen_ai.agent.tools.invoked",
+	ToolsAvailable = "oyp.gen_ai.agent.tools.available",
+	ToolsUnused = "oyp.gen_ai.agent.tools.unused",
+	UsageInputTokensTotal = "oyp.gen_ai.agent.usage.input_tokens.total",
+	UsageOutputTokensTotal = "oyp.gen_ai.agent.usage.output_tokens.total",
+	UsageCacheReadInputTokensTotal = "oyp.gen_ai.agent.usage.cache_read.input_tokens.total",
+	UsageCacheCreationInputTokensTotal = "oyp.gen_ai.agent.usage.cache_creation.input_tokens.total",
+	UsageReasoningOutputTokensTotal = "oyp.gen_ai.agent.usage.reasoning.output_tokens.total",
+	UsageTotalTokensTotal = "oyp.gen_ai.agent.usage.total_tokens.total",
+	CostEstimatedUsdTotal = "oyp.gen_ai.agent.cost.estimated_usd.total",
+	ErrorsCount = "oyp.gen_ai.agent.errors.count",
 }
 
 /** Stamp the aggregate `omp.gen_ai.agent.*` attributes on the given span. */

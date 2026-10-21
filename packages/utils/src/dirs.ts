@@ -1,14 +1,14 @@
 /**
  * Centralized path helpers for oyp config directories.
  *
- * Uses PI_CONFIG_DIR (default ".omp") for the config root and
+ * Uses PI_CONFIG_DIR (default ".oyp") for the config root and
  * PI_CODING_AGENT_DIR to override the agent directory.
  *
  * On Linux, if XDG_DATA_HOME / XDG_STATE_HOME / XDG_CACHE_HOME environment
  * variables are set, paths are redirected to XDG-compliant locations under
- * $XDG_*_HOME/omp/. This requires running `oyp config migrate` first to
+ * $XDG_*_HOME/oyp/. This requires running `oyp config migrate` first to
  * move data to the new locations. No filesystem existence checks are performed
- * — if the env var is set, omp trusts that the migration has been done.
+ * — if the env var is set, oyp trusts that the migration has been done.
  */
 
 import * as fs from "node:fs";
@@ -24,7 +24,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 /** App name (e.g. "oyp") */
 export const APP_NAME: string = "oyp";
 
-/** Public homepage that inference gateways (OpenRouter, Vercel AI Gateway) credit omp traffic to. */
+/** Public homepage that inference gateways (OpenRouter, Vercel AI Gateway) credit oyp traffic to. */
 export const APP_URL: string = "https://omp.sh/";
 
 /** Config directory name (e.g. ".oyp") */
@@ -90,8 +90,8 @@ export function normalizeProfileName(profile: string | undefined): string | unde
  * than silently inheriting `PI_PROFILE`. Delegates validation/normalization to
  * {@link normalizeProfileName} (which throws on a syntactically invalid value).
  */
-export function resolveProfileEnv(omp: string | undefined, pi: string | undefined): string | undefined {
-	return normalizeProfileName(omp !== undefined ? omp : pi);
+export function resolveProfileEnv(oyp: string | undefined, pi: string | undefined): string | undefined {
+	return normalizeProfileName(oyp !== undefined ? oyp : pi);
 }
 
 function getProfileFromEnv(): string | undefined {
@@ -334,7 +334,7 @@ export function getSafeProjectCwd(): string {
 	return os.homedir();
 }
 
-/** Get the config directory name relative to home (e.g. ".omp" or PI_CONFIG_DIR override). */
+/** Get the config directory name relative to home (e.g. ".oyp" or PI_CONFIG_DIR override). */
 export function getConfigDirName(): string {
 	return process.env.PI_CONFIG_DIR || CONFIG_DIR_NAME;
 }
@@ -352,8 +352,8 @@ export function getConfigAgentDirName(): string {
 type XdgCategory = "data" | "state" | "cache";
 
 /**
- * Resolves and caches all omp directory paths. On Linux, when XDG environment
- * variables are set, paths are redirected under $XDG_*_HOME/omp/. A new
+ * Resolves and caches all oyp directory paths. On Linux, when XDG environment
+ * variables are set, paths are redirected under $XDG_*_HOME/oyp/. A new
  * instance is created whenever the agent directory changes, which naturally
  * invalidates all cached paths.
  */
@@ -362,7 +362,7 @@ class DirResolver {
 	readonly agentDir: string;
 
 	// Per-category base dirs. Without XDG, all three equal configRoot / agentDir.
-	// With XDG on Linux, they point to $XDG_*_HOME/omp/.
+	// With XDG on Linux, they point to $XDG_*_HOME/oyp/.
 	readonly #rootDirs: Record<XdgCategory, string>;
 	readonly #agentDirs: Record<XdgCategory, string>;
 	readonly #baseRootDirs: Record<XdgCategory, string>;
@@ -380,14 +380,14 @@ class DirResolver {
 		const isDefault = this.agentDir === defaultAgent;
 
 		// XDG is a Linux convention. On supported platforms, default profile state
-		// resolves under $XDG_*_HOME/omp once `oyp config init-xdg` has migrated
+		// resolves under $XDG_*_HOME/oyp once `oyp config init-xdg` has migrated
 		// the user's data. Named profiles follow a stricter rule: the XDG choice
 		// is keyed on the profile-specific XDG path, never the base app root.
 		//
 		// Why: if we consulted the base app root for named profiles too, the same
 		// profile could resolve to `~/.oyp/profiles/<name>` on first activation
-		// (when no $XDG_*_HOME/omp exists yet) and then silently move to
-		// `$XDG_*_HOME/omp/profiles/<name>` the moment the base appeared, orphaning
+		// (when no $XDG_*_HOME/oyp exists yet) and then silently move to
+		// `$XDG_*_HOME/oyp/profiles/<name>` the moment the base appeared, orphaning
 		// the earlier state. Pinning on the profile path means a profile's location
 		// is decided at first activation and stays put until the user explicitly
 		// migrates it (e.g. by mkdir'ing the XDG profile dir).
@@ -417,7 +417,7 @@ class DirResolver {
 
 		// XDG choice for machine-global paths (daemon scopes shared by every
 		// process): keyed only on the base app root, independent of both the
-		// profile and any agent-dir override, so every omp process on the machine
+		// profile and any agent-dir override, so every oyp process on the machine
 		// agrees on one location. These hold process-scoped runtime state
 		// (sockets, tokens), so there is no migration to protect.
 		const resolveBase = (envVar: string) => {
@@ -436,7 +436,7 @@ class DirResolver {
 			state: xdgState ?? this.configRoot,
 			cache: xdgCache ?? this.configRoot,
 		};
-		// XDG flattens the agent/ prefix: ~/.oyp/agent/sessions → $XDG_DATA_HOME/omp/sessions
+		// XDG flattens the agent/ prefix: ~/.oyp/agent/sessions → $XDG_DATA_HOME/oyp/sessions
 		this.#agentDirs = {
 			data: xdgData ?? this.agentDir,
 			state: xdgState ?? this.agentDir,
@@ -651,7 +651,7 @@ export function getAgentDir(): string {
 	return dirs.agentDir;
 }
 
-/** Get the project-local config directory (.omp). */
+/** Get the project-local config directory (.oyp). */
 export function getProjectAgentDir(cwd: string = getProjectDir()): string {
 	return path.join(cwd, CONFIG_DIR_NAME);
 }
@@ -672,7 +672,7 @@ export function getLogsDir(): string {
 
 /**
  * Local-timezone `YYYY-MM-DD` day key (zero-padded), formatted exactly like
- * the rotating log sink's file naming: log files are named `omp.<day>.<pid>.log`
+ * the rotating log sink's file naming: log files are named `oyp.<day>.<pid>.log`
  * with the LOCAL day, not the UTC day `toISOString()` yields. Anything that
  * computes "today's" log path or matches same-day log files by name must use
  * this key, or between local midnight and UTC midnight it points at files that
@@ -682,7 +682,7 @@ export function localDay(date: Date): string {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** Get this process's dated log path (~/.oyp/logs/omp.YYYY-MM-DD.PID.log, local-day named like the rotating sink). */
+/** Get this process's dated log path (~/.oyp/logs/oyp.YYYY-MM-DD.PID.log, local-day named like the rotating sink). */
 export function getLogPath(date = new Date(), pid = process.pid): string {
 	return path.join(getLogsDir(), `${APP_NAME}.${localDay(date)}.${pid}.log`);
 }
@@ -732,7 +732,7 @@ export function getRemoteDir(): string {
  * is consumed by both creation (PR checkout, task isolation) and cleanup
  * (`oyp worktree`), and every launch extracts or loads the native addon from
  * the same natives directory. A relative value would resolve against whatever
- * cwd happened to launch `omp`, so those readers could disagree — we refuse it
+ * cwd happened to launch `oyp`, so those readers could disagree — we refuse it
  * rather than silently bind it to cwd.
  */
 function resolveAbsoluteDir(value: string | undefined): string | undefined {
@@ -788,7 +788,7 @@ export function getPythonEnvDir(): string {
 	return dirs.rootSubdir("python-env", "data");
 }
 
-/** Get the shared Python gateway state directory (~/.oyp/agent/python-gateway; XDG default: $XDG_STATE_HOME/omp/python-gateway). */
+/** Get the shared Python gateway state directory (~/.oyp/agent/python-gateway; XDG default: $XDG_STATE_HOME/oyp/python-gateway). */
 export function getPythonGatewayDir(): string {
 	return dirs.agentSubdir(undefined, "python-gateway", "state");
 }
@@ -813,7 +813,7 @@ export function getDocsRsCacheDir(): string {
 	return dirs.rootSubdir("webcache", "cache");
 }
 
-/** Get the auto-QA grievances SQLite database path (~/.oyp/autoqa.db; XDG: $XDG_DATA_HOME/omp/autoqa.db). */
+/** Get the auto-QA grievances SQLite database path (~/.oyp/autoqa.db; XDG: $XDG_DATA_HOME/oyp/autoqa.db). */
 export function getAutoQaDbPath(): string {
 	return dirs.rootSubdir("autoqa.db", "data");
 }
@@ -974,19 +974,19 @@ export function getTinyModelsCacheDir(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "tiny-models"), "cache");
 }
 
-/** Get the document conversion cache directory (~/.oyp/agent/cache/document-conversions; XDG default: $XDG_CACHE_HOME/omp/cache/document-conversions). */
+/** Get the document conversion cache directory (~/.oyp/agent/cache/document-conversions; XDG default: $XDG_CACHE_HOME/oyp/cache/document-conversions). */
 export function getDocumentConversionCacheDir(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "document-conversions"), "cache");
 }
-/** Get the composer speculative cache database (~/.oyp/agent/cache/composer.db; XDG default: $XDG_CACHE_HOME/omp/cache/composer.db). */
+/** Get the composer speculative cache database (~/.oyp/agent/cache/composer.db; XDG default: $XDG_CACHE_HOME/oyp/cache/composer.db). */
 export function getComposerCacheDbPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "composer.db"), "cache");
 }
-/** Get the skill descriptions database (~/.oyp/agent/skill-descriptions.db; XDG default: $XDG_DATA_HOME/omp/skill-descriptions.db). */
+/** Get the skill descriptions database (~/.oyp/agent/skill-descriptions.db; XDG default: $XDG_DATA_HOME/oyp/skill-descriptions.db). */
 export function getSkillDescriptionsDbPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, "skill-descriptions.db", "data");
 }
-/** Get the text-predict engine state directory (~/.oyp/agent/predict/<method>; XDG default: $XDG_DATA_HOME/omp/predict/<method>). Adopts legacy engine state on first XDG resolution. */
+/** Get the text-predict engine state directory (~/.oyp/agent/predict/<method>; XDG default: $XDG_DATA_HOME/oyp/predict/<method>). Adopts legacy engine state on first XDG resolution. */
 export function getPredictStateDir(agentDir: string | undefined, method: string): string {
 	const subdir = path.join("predict", method);
 	const stateDir = dirs.agentSubdir(agentDir, subdir, "data");
@@ -1054,7 +1054,7 @@ export function getCrashLogPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, `${APP_NAME}-crash.log`, "state");
 }
 
-/** Get the debug log path (~/.oyp/agent/omp-debug.log). */
+/** Get the debug log path (~/.oyp/agent/oyp-debug.log). */
 export function getDebugLogPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, `${APP_NAME}-debug.log`, "state");
 }
@@ -1063,7 +1063,7 @@ export function getDebugLogPath(agentDir?: string): string {
  * Best-effort one-time copy of a legacy config-root file to its redirected XDG
  * location. Existing installs that enable XDG after the file was created keep
  * their data (e.g. a placeholder key whose loss would break deobfuscation of
- * persisted transcripts). The legacy file is left in place for older omp
+ * persisted transcripts). The legacy file is left in place for older oyp
  * versions sharing the profile.
  */
 function adoptLegacyFile(legacyPath: string, targetPath: string): void {
@@ -1083,7 +1083,7 @@ function adoptLegacyFile(legacyPath: string, targetPath: string): void {
  * location, so learned state survives enabling XDG. The copy is staged next to
  * the target and renamed into place, so a reader never sees a partial tree and
  * a concurrent adopter cannot clobber a finished one. The legacy directory is
- * left in place for older omp versions sharing the profile.
+ * left in place for older oyp versions sharing the profile.
  */
 function adoptLegacyDir(legacyPath: string, targetPath: string): void {
 	if (targetPath === legacyPath) return;
@@ -1101,35 +1101,35 @@ function adoptLegacyDir(legacyPath: string, targetPath: string): void {
 	}
 }
 
-/** Get the secret placeholder key path (~/.oyp/agent/secret-placeholder.key; XDG default: $XDG_STATE_HOME/omp/secret-placeholder.key). Adopts a legacy key on first XDG resolution. */
+/** Get the secret placeholder key path (~/.oyp/agent/secret-placeholder.key; XDG default: $XDG_STATE_HOME/oyp/secret-placeholder.key). Adopts a legacy key on first XDG resolution. */
 export function getSecretPlaceholderKeyPath(): string {
 	const keyPath = dirs.agentSubdir(undefined, "secret-placeholder.key", "state");
 	adoptLegacyFile(path.join(dirs.agentDir, "secret-placeholder.key"), keyPath);
 	return keyPath;
 }
 
-/** Directory holding the per-model tiny-worker sockets and logs (~/.oyp/run/tiny; XDG default: $XDG_STATE_HOME/omp/run/tiny). */
+/** Directory holding the per-model tiny-worker sockets and logs (~/.oyp/run/tiny; XDG default: $XDG_STATE_HOME/oyp/run/tiny). */
 export function getTinyWorkerRuntimeDir(): string {
 	return dirs.rootSubdir(path.join("run", "tiny"), "state");
 }
 
-/** Directory holding the per-model mnemopi embedding server endpoints and logs (~/.oyp/run/mnemopi; XDG default: $XDG_STATE_HOME/omp/run/mnemopi). */
+/** Directory holding the per-model mnemopi embedding server endpoints and logs (~/.oyp/run/mnemopi; XDG default: $XDG_STATE_HOME/oyp/run/mnemopi). */
 export function getMnemopiEmbedRuntimeDir(): string {
 	return dirs.rootSubdir(path.join("run", "mnemopi"), "state");
 }
 
-/** Root directory containing every per-project daemon runtime scope (~/.oyp/run/daemons; XDG default: $XDG_STATE_HOME/omp/run/daemons). */
+/** Root directory containing every per-project daemon runtime scope (~/.oyp/run/daemons; XDG default: $XDG_STATE_HOME/oyp/run/daemons). */
 export function getDaemonRuntimeRoot(): string {
 	return dirs.rootSubdir(path.join("run", "daemons"), "state");
 }
 
-/** Get the daemon runtime directory for a project (~/.oyp/run/daemons/<hash>; XDG default: $XDG_STATE_HOME/omp/run/daemons/<hash>). */
+/** Get the daemon runtime directory for a project (~/.oyp/run/daemons/<hash>; XDG default: $XDG_STATE_HOME/oyp/run/daemons/<hash>). */
 export function getDaemonRuntimeDir(projectDir: string): string {
 	const key = bun.hash.wyhash(path.resolve(projectDir)).toString(16).padStart(16, "0");
 	return path.join(getDaemonRuntimeRoot(), key);
 }
 
-/** Root directory containing every machine-global daemon service scope (~/.oyp/run/daemons/global; XDG default: $XDG_STATE_HOME/omp/run/daemons/global). Shared across profiles. */
+/** Root directory containing every machine-global daemon service scope (~/.oyp/run/daemons/global; XDG default: $XDG_STATE_HOME/oyp/run/daemons/global). Shared across profiles. */
 export function getGlobalDaemonRuntimeRoot(): string {
 	return dirs.baseRootSubdir(path.join("run", "daemons", "global"), "state");
 }
@@ -1144,19 +1144,19 @@ export function getGlobalDaemonRuntimeDir(service: string): string {
 
 /**
  * Directory naming session ownership leases (~/.oyp/run/session-owners; XDG
- * default: $XDG_STATE_HOME/omp/run/session-owners). Shared across profiles:
- * every omp process that opens a session must meet the same lease.
+ * default: $XDG_STATE_HOME/oyp/run/session-owners). Shared across profiles:
+ * every oyp process that opens a session must meet the same lease.
  */
 export function getSessionOwnersDir(): string {
 	return dirs.baseRootSubdir(path.join("run", "session-owners"), "state");
 }
 
-/** Get the provider in-flight root directory (~/.oyp/run/provider-inflight; XDG default: $XDG_STATE_HOME/omp/run/provider-inflight). */
+/** Get the provider in-flight root directory (~/.oyp/run/provider-inflight; XDG default: $XDG_STATE_HOME/oyp/run/provider-inflight). */
 export function getProviderInFlightRoot(): string {
 	return dirs.rootSubdir(path.join("run", "provider-inflight"), "state");
 }
 
-/** Get the marketplaces registry path (~/.oyp/marketplaces.json; XDG default: $XDG_DATA_HOME/omp/marketplaces.json). Adopts a legacy registry on first XDG resolution. */
+/** Get the marketplaces registry path (~/.oyp/marketplaces.json; XDG default: $XDG_DATA_HOME/oyp/marketplaces.json). Adopts a legacy registry on first XDG resolution. */
 export function getMarketplacesRegistryPath(): string {
 	const registryPath = dirs.rootSubdir("marketplaces.json", "data");
 	adoptLegacyFile(path.join(dirs.configRoot, "marketplaces.json"), registryPath);
@@ -1211,7 +1211,7 @@ let cachedInstallId: string | null = null;
 const INSTALL_ID_FILE = "install-id";
 /**
  * Application label for usage attribution (`OMP_APP_NAME`), defaulting to
- * `omp`. Embedders that drive omp programmatically (robomp, CI bots, …) set
+ * `oyp`. Embedders that drive oyp programmatically (robomp, CI bots, …) set
  * the env var so broker-side per-client burn tracking can answer "what did
  * app X use" instead of folding everything into one install-wide bucket.
  */

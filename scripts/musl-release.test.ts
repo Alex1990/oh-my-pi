@@ -34,10 +34,10 @@ describe("musl release artifacts", () => {
 
 		expect(result.exitCode, result.stderr).toBe(0);
 		expect(result.stdout).toContain(
-			"DRY RUN launcher packages/coding-agent/binaries/omp-linux-musl-x64 (linux)",
+			"DRY RUN launcher packages/coding-agent/binaries/oyp-linux-musl-x64 (linux)",
 		);
 		expect(result.stdout).toContain(
-			"DRY RUN launcher packages/coding-agent/binaries/omp-linux-musl-arm64 (linux)",
+			"DRY RUN launcher packages/coding-agent/binaries/oyp-linux-musl-arm64 (linux)",
 		);
 	});
 });

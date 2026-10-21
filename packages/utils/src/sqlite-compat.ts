@@ -56,7 +56,7 @@ export interface RunResult {
 	lastInsertRowid: number;
 }
 
-const TRANSACTION_DEPTH = Symbol("omp.sqlite.transactionDepth");
+const TRANSACTION_DEPTH = Symbol("oyp.sqlite.transactionDepth");
 
 /**
  * Count bind-parameter slots in `sql`, matching `bun:sqlite`'s `paramsCount`.
@@ -346,7 +346,7 @@ export class Database {
 	}
 
 	static deserialize(bytes: Uint8Array, options: DatabaseOptions = {}): Database {
-		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omp-sqlite-"));
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oyp-sqlite-"));
 		const file = path.join(directory, "deserialized.db");
 		fs.writeFileSync(file, bytes);
 		const database = new Database(file, options);
@@ -457,7 +457,7 @@ export class Database {
 	/** Snapshot the database as SQLite file bytes. */
 	serialize(): Uint8Array {
 		if (this.#filename === ":memory:") {
-			const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omp-sqlite-dump-"));
+			const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oyp-sqlite-dump-"));
 			const target = path.join(directory, "snapshot.db");
 			try {
 				this.#db.exec(`VACUUM INTO '${target.replaceAll("'", "''")}'`);

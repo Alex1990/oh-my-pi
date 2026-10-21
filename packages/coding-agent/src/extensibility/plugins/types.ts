@@ -1,5 +1,5 @@
 // =============================================================================
-// Plugin Manifest Types (from package.json omp/pi field)
+// Plugin Manifest Types (from package.json oyp/pi field)
 // =============================================================================
 
 /**
@@ -22,7 +22,7 @@ export interface PluginFeature {
 }
 
 /**
- * Plugin manifest from package.json omp or pi field.
+ * Plugin manifest from package.json oyp or pi field.
  */
 export interface PluginManifest {
 	/** Plugin display name (defaults to package name) */
@@ -106,7 +106,7 @@ export interface InstalledPlugin {
 	version: string;
 	/** Absolute path to package directory */
 	path: string;
-	/** Parsed omp/pi manifest */
+	/** Parsed oyp/pi manifest */
 	manifest: PluginManifest;
 	/**
 	 * Enabled features:

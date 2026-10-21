@@ -61,7 +61,7 @@ export async function prepareAgentBinaries(opts: {
 	const arches = [...new Set(opts.arches)];
 	const cached: Partial<Record<GuestArch, string>> = {};
 	for (const arch of arches) {
-		cached[arch] = path.join(opts.cacheDir, `omp-linux-${arch}-${manifest.version}`);
+		cached[arch] = path.join(opts.cacheDir, `oyp-linux-${arch}-${manifest.version}`);
 	}
 	const missing: GuestArch[] = [];
 	for (const arch of arches) {
@@ -74,7 +74,7 @@ export async function prepareAgentBinaries(opts: {
 		const targets = missing.map(arch => `linux-${arch}`).join(",");
 		await run(["bun", "scripts/ci-release-build-binaries.ts", "--targets", targets], REPO_ROOT);
 		for (const arch of missing) {
-			const source = path.join(CODING_AGENT_DIR, "binaries", `omp-linux-${arch}`);
+			const source = path.join(CODING_AGENT_DIR, "binaries", `oyp-linux-${arch}`);
 			const destination = cached[arch]!;
 			if (!(await bun.file(source).exists())) throw new Error(`Binary build did not produce ${source}`);
 			await bun.write(destination, bun.file(source));

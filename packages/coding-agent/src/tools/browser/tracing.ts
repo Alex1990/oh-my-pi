@@ -49,7 +49,7 @@ interface NavigationTiming {
 
 function outputPath(requested: string | undefined, cwd: string, extension: string): string {
 	if (requested) return resolveToCwd(requested, cwd);
-	return path.join(os.tmpdir(), `omp-browser-${Snowflake.next()}.${extension}`);
+	return path.join(os.tmpdir(), `oyp-browser-${Snowflake.next()}.${extension}`);
 }
 
 /** Stateful trace and CPU-profile controller for one Puppeteer page. */

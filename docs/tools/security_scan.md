@@ -218,7 +218,7 @@ Plan an exact revision diff with an external output directory:
   "target_kind": "ref_diff",
   "base_revision": "origin/main",
   "head_revision": "HEAD",
-  "output_root": "/tmp/omp-security-review"
+  "output_root": "/tmp/oyp-security-review"
 }
 ```
 

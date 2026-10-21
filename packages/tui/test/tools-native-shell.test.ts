@@ -52,12 +52,12 @@ function sections(box: NativeNode | undefined): string[] {
 
 /** The foot a consumer reads: state word and tone, time (age / stopped), facts text. */
 function foot(box: NativeNode | undefined) {
-	const row = nodes(box?.c).find(child => role(child) === "omp.run.foot");
+	const row = nodes(box?.c).find(child => role(child) === "oyp.run.foot");
 	if (!row) return undefined;
 	const parts = nodes(row.c);
-	const state = parts.find(part => role(part) === "omp.run.state");
-	const time = parts.find(part => role(part) === "omp.run.time");
-	const facts = parts.find(part => role(part) === "omp.run.facts");
+	const state = parts.find(part => role(part) === "oyp.run.state");
+	const time = parts.find(part => role(part) === "oyp.run.time");
+	const facts = parts.find(part => role(part) === "oyp.run.facts");
 	return {
 		state: spansText(state),
 		tone: props(state).tone,
@@ -84,7 +84,7 @@ describe("bash native run box", () => {
 		expect(view.preview).toBe("children");
 		const [box, ...rest] = nodes(view.body);
 		expect(rest).toEqual([]);
-		expect(role(box)).toBe("omp.run");
+		expect(role(box)).toBe("oyp.run");
 		expect(box?.key).toBe("run");
 		expect(props(box).tone).toBeUndefined();
 		expect(sections(box)).toEqual(["code:omp.tool.bash.command", "ansi:omp.tool.bash.output", "row:omp.run.foot"]);
@@ -228,7 +228,7 @@ describe("bash native run box", () => {
 			const described = tool.describe(cx(["tool", "ansi", "code", "image"]));
 			expect(props(described).preview).toBe("children");
 			expect(props(described).command).toBe("plot");
-			expect(nodes(described.c).map(child => role(child) ?? child.k)).toEqual(["omp.run", "image"]);
+			expect(nodes(described.c).map(child => role(child) ?? child.k)).toEqual(["oyp.run", "image"]);
 		} finally {
 			tool.dispose();
 		}
@@ -472,7 +472,7 @@ describe("eval native run boxes", () => {
 		expect(foot(folded[3])).toBeUndefined();
 		expect(foot(folded[2])?.facts?.map(s => s.s)).toEqual(["warning"]);
 
-		const status = nodes(folded[2]?.c).find(child => role(child) === "omp.run.status");
+		const status = nodes(folded[2]?.c).find(child => role(child) === "oyp.run.status");
 		const lines = nodes(status?.c);
 		expect(lines).toHaveLength(9);
 		expect(spansText(lines[0])).toBe("3 earlier");
@@ -480,7 +480,7 @@ describe("eval native run boxes", () => {
 		expect(spansText(lines.at(-1))).toContain("n=10");
 
 		const expanded = describeCells({ expanded: true, isPartial: true, executionStarted: true, elapsedMs: 4000 });
-		const allLines = nodes(nodes(expanded[2]?.c).find(child => role(child) === "omp.run.status")?.c);
+		const allLines = nodes(nodes(expanded[2]?.c).find(child => role(child) === "oyp.run.status")?.c);
 		expect(allLines).toHaveLength(11);
 		expect(spansText(allLines[0])).toContain("n=0");
 	});
@@ -503,7 +503,7 @@ describe("eval native run boxes", () => {
 					{ expanded, isPartial: false },
 				).body,
 			);
-			return nodes(nodes(box?.c).find(child => role(child) === "omp.run.status")?.c).map(spansText);
+			return nodes(nodes(box?.c).find(child => role(child) === "oyp.run.status")?.c).map(spansText);
 		};
 
 		const folded = statusLines(false);
@@ -558,7 +558,7 @@ describe("eval native run boxes", () => {
 					{ expanded, isPartial: false },
 				).body,
 			);
-			return nodes(nodes(box?.c).find(child => role(child) === "omp.run.status")?.c);
+			return nodes(nodes(box?.c).find(child => role(child) === "oyp.run.status")?.c);
 		};
 
 		const folded = statusEntries(false);
@@ -569,12 +569,12 @@ describe("eval native run boxes", () => {
 
 		const [read, log] = statusEntries(true);
 		expect(read?.k).toBe("col");
-		expect(role(read)).toBe("omp.tool.eval.status.event");
+		expect(role(read)).toBe("oyp.tool.eval.status.event");
 		const [line, preview] = nodes(read?.c);
 		expect(spansText(line)).toBe("read path=src/rollup.ts:1:raw chars=2082");
 		expect(preview?.k).toBe("code");
 		expect(props(preview)).toMatchObject({
-			role: "omp.tool.eval.status.preview",
+			role: "oyp.tool.eval.status.preview",
 			path: "src/rollup.ts",
 			wrap: false,
 			preview: { lines: 3 },
@@ -675,7 +675,7 @@ describe("user shell runs", () => {
 		expect(p.collapsed).toBe(true);
 		expect((p.badges as { text: string }[]).map(badge => badge.text)).toEqual(["you", "not sent"]);
 		const [box, image] = nodes(described.c);
-		expect(role(box)).toBe("omp.run");
+		expect(role(box)).toBe("oyp.run");
 		expect(props(box).tone).toBe("error");
 		expect(sections(box)).toEqual(["code:omp.tool.bash.command", "ansi:omp.tool.bash.output", "row:omp.run.foot"]);
 		expect(props(nodes(box?.c)[1])).toMatchObject({ follow: true, preview: { lines: 10 } });

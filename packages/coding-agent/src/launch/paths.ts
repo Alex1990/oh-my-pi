@@ -4,7 +4,7 @@ import { ipcEndpoint } from "@oh-my-pi/pi-natives";
 import { getDaemonRuntimeDir, hasFsCode, isEacces, isEisdir, isEnoent } from "@oh-my-pi/pi-utils";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
-/** Resolve the private runtime directory shared by omp processes in one project directory. */
+/** Resolve the private runtime directory shared by oyp processes in one project directory. */
 export { getDaemonRuntimeDir as daemonRuntimeDir };
 
 /** File in a broker runtime dir recording which project (or global service dir) owns the scope. */

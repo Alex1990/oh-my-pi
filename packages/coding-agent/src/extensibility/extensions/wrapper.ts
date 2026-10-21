@@ -32,10 +32,10 @@ import type { ExtensionAgentIdentity, RegisteredTool, ToolCallEventResult } from
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 
 /**
- * Second `renderCall` argument that satisfies both the omp and the upstream-pi
+ * Second `renderCall` argument that satisfies both the oyp and the upstream-pi
  * renderer contracts.
  *
- * omp invokes renderers as `renderCall(args, options, theme)` (see
+ * oyp invokes renderers as `renderCall(args, options, theme)` (see
  * `packages/tui/src/tools/renderer.ts`), while pi-era renderers — including
  * every third-party plugin written against pi's published example — are
  * declared `renderCall(args, theme, context)`. Both shapes take three
@@ -153,7 +153,7 @@ export function wrapRegisteredTools(registeredTools: RegisteredTool[], runner: E
 	return registeredTools.map(rt => wrapRegisteredTool(rt, runner));
 }
 
-const LOOP_DISPATCH_CONTEXT = Symbol("omp.loop-dispatch");
+const LOOP_DISPATCH_CONTEXT = Symbol("oyp.loop-dispatch");
 type LoopAwareToolContext = AgentToolContext & { [LOOP_DISPATCH_CONTEXT]?: true };
 
 function computerSafetyChecks(context: AgentToolContext | undefined): ComputerSafetyCheck[] {

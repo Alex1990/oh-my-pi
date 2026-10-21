@@ -224,7 +224,7 @@ function describeHit(hit: FindHit, rangeLimit: number, cwd: string | undefined, 
 			`${range.start}-${range.end}`,
 		),
 	);
-	return keyed(col([head, ...snippets], { gap: "xs", role: "omp.tool.find.hit" }), hit.rel);
+	return keyed(col([head, ...snippets], { gap: "xs", role: "oyp.tool.find.hit" }), hit.rel);
 }
 
 /** Native find head: the query, then `meta` (result counts), or the call's keywords and scope. */
@@ -406,7 +406,7 @@ export const findToolRenderer = {
 			formatDuration(details.elapsedMs),
 		].join(" · ");
 		const failures = stats.failures.map((failure, i) =>
-			keyed(text([span(failure, "warning")], { wrap: "word", role: "omp.tool.notice" }), `fail${i}`),
+			keyed(text([span(failure, "warning")], { wrap: "word", role: "oyp.tool.notice" }), `fail${i}`),
 		);
 		if (hits.length === 0) {
 			return {
@@ -425,7 +425,7 @@ export const findToolRenderer = {
 		]);
 		// One quiet last line; the accounting ANSI prints in the head rides its tooltip.
 		const foot = keyed(
-			text([span(footParts.join(" · "), "muted")], { wrap: "word", role: "omp.tool.stats", title: accounting }),
+			text([span(footParts.join(" · "), "muted")], { wrap: "word", role: "oyp.tool.stats", title: accounting }),
 			"foot",
 		);
 		return {

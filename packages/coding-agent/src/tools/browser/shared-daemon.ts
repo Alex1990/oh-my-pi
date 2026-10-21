@@ -1,11 +1,11 @@
 /**
  * Shared automation Chromium owned by the per-project daemon broker.
  *
- * Instead of every omp process launching (and sometimes orphaning) a private
+ * Instead of every oyp process launching (and sometimes orphaning) a private
  * Chromium, the headless browser kind attaches to one broker-supervised Chrome
  * per project directory — sessions and subagents each open their own tabs in
- * it. The broker stops the daemon when the last omp client in the project
- * exits, so Chrome can never outlive omp, and concurrent acquisitions across
+ * it. The broker stops the daemon when the last oyp client in the project
+ * exits, so Chrome can never outlive oyp, and concurrent acquisitions across
  * processes converge on a single launch instead of a launch storm.
  */
 import * as fs from "node:fs/promises";
@@ -56,7 +56,7 @@ const PROBE_ATTEMPT_CAP_MS = PROBE_TIMEOUT_MS + 1_500;
 /** Marker for a probe the cap abandoned, as opposed to a probe that failed on its own terms. */
 const PROBE_STALLED = "Shared browser probe did not settle";
 
-/** Broker-owned browser endpoint one omp process can attach to. */
+/** Broker-owned browser endpoint one oyp process can attach to. */
 export interface SharedBrowserEndpoint {
 	wsEndpoint: string;
 	daemonName: string;
@@ -66,7 +66,7 @@ export interface SharedBrowserEndpoint {
 
 /** Stable broker daemon name for the shared automation browser. */
 export function sharedBrowserDaemonName(headless: boolean): string {
-	return headless ? "omp.browser.headless" : "omp.browser.headed";
+	return headless ? "oyp.browser.headless" : "oyp.browser.headed";
 }
 
 /** True for the broker daemon names of the project-shared browsers. */
@@ -181,7 +181,7 @@ export async function restartSharedBrowser(
 ): Promise<DaemonSnapshot> {
 	const userDataDir = sharedBrowserProfileDir(client.projectDir, name);
 	const claim = await claimProfile(userDataDir, signal);
-	if (!claim) throw new Error(`${name} is being started by another omp process; try again shortly`);
+	if (!claim) throw new Error(`${name} is being started by another oyp process; try again shortly`);
 	try {
 		const stopped = await client.request({ op: "stop", name, timeoutMs: RESTART_STOP_TIMEOUT_MS }, signal);
 		if (stopped.op !== "stop") throw new Error(`Unexpected broker response ${stopped.op}`);
@@ -291,7 +291,7 @@ const reachabilityChecks = new Map<string, Promise<boolean>>();
  *
  * `ensureSharedBrowser` makes this decision only while attaching, so a Chromium
  * that wedges *after* a session attached kept its whole process tree — and
- * every target whose close timed out — alive until the last omp client in the
+ * every target whose close timed out — alive until the last oyp client in the
  * project exited (a 9.1 GB, 44-process browser survived 19 h in the
  * 2026-09-27 incident). Cleanup failures re-run the same decision off the
  * acquire path: stop the daemon, so the next attach launches a fresh Chromium

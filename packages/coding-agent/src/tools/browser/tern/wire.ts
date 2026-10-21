@@ -1,7 +1,7 @@
 /**
  * Client for the Tern session daemon: a Unix socket speaking Tern's JSON
  * script protocol (`crates/tern/src/daemon/json.rs` in the stencil
- * repository), frames of a `u32` LE length then one UTF-8 JSON object. omp
+ * repository), frames of a `u32` LE length then one UTF-8 JSON object. oyp
  * greets with `{"hello":{}}` and waits for `{"welcome":{"ops":[…]}}`, whose
  * `ops` list the request kinds this Tern answers (an older Tern lists none
  * and answers only `browser`). Requests are `{"id":N,KIND:REQUEST}`, answered
@@ -12,7 +12,7 @@
  *   pane P's session in a new pane beside it; result `{"block":M}`.
  *
  * Members and message kinds either side does not know are skipped, so the
- * protocol does not tie omp to a Tern build. A Tern from before it cannot read
+ * protocol does not tie oyp to a Tern build. A Tern from before it cannot read
  * the hello and hangs up.
  */
 import * as net from "node:net";
@@ -50,7 +50,7 @@ export class TernError extends ToolError {
 	}
 }
 
-/** Error kinds meaning "this Tern cannot host a browser for omp right now". */
+/** Error kinds meaning "this Tern cannot host a browser for oyp right now". */
 const UNAVAILABLE_KINDS: Partial<Record<TernErrorKind, true>> = {
 	no_window: true,
 	unsupported: true,
@@ -292,7 +292,7 @@ export class TernSocketClient {
 		return this.#ops.has(op);
 	}
 
-	/** Open the socket and greet; resolves once the daemon welcomed omp. */
+	/** Open the socket and greet; resolves once the daemon welcomed oyp. */
 	async connect(): Promise<void> {
 		if (this.#closed) throw this.#closeError ?? new TernError("closed", "Tern connection closed");
 		if (this.#welcomed) return;
@@ -395,7 +395,7 @@ export class TernSocketClient {
 					? new TernError("closed", "Tern daemon closed the connection")
 					: new TernError(
 							"connect",
-							`Tern daemon at ${this.#socketPath} closed the connection before greeting: a Tern without omp's JSON protocol cannot read its hello (update Tern)`,
+							`Tern daemon at ${this.#socketPath} closed the connection before greeting: a Tern without oyp's JSON protocol cannot read its hello (update Tern)`,
 						),
 			);
 		});

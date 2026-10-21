@@ -208,7 +208,7 @@ export function describeReadUrlResult(result: {
 								"warning",
 							),
 						],
-						{ wrap: "word", role: "omp.tool.notice" },
+						{ wrap: "word", role: "oyp.tool.notice" },
 					)
 				: undefined,
 		]),

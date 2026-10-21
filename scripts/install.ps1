@@ -30,7 +30,7 @@ if ($PSVersionTable.PSVersion -lt [version]"5.1") {
 }
 
 $Repo = if ($env:OMP_RELEASE_REPO) { $env:OMP_RELEASE_REPO.Trim("/") } else { "Alex1990/oh-my-pi" }
-$InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\omp" }
+$InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\oyp" }
 $ReleaseBase = if ($env:OMP_RELEASE_BASE) { $env:OMP_RELEASE_BASE.TrimEnd("/") } else { "https://github.com/$Repo/releases" }
 # Windows PowerShell 5.1 (.NET Framework) does not reliably resolve
 # [System.Runtime.InteropServices.RuntimeInformation] without an
@@ -47,8 +47,8 @@ if (-not $RawArchitecture) {
     throw "Unable to determine Windows architecture"
 }
 $AssetName = switch ($RawArchitecture.ToUpperInvariant()) {
-    "AMD64" { "omp-windows-x64.cmd" }
-    "ARM64" { "omp-windows-arm64.cmd" }
+    "AMD64" { "oyp-windows-x64.cmd" }
+    "ARM64" { "oyp-windows-arm64.cmd" }
     default { throw "Unsupported Windows architecture: $RawArchitecture" }
 }
 $MinimumNodeVersion = "22.12.0"
@@ -152,7 +152,7 @@ function Find-BashShell {
 
 function Configure-BashShell {
     try {
-        $settingsDir = Join-Path $env:USERPROFILE ".omp\agent"
+        $settingsDir = Join-Path $env:USERPROFILE ".oyp\agent"
         $settingsFile = Join-Path $settingsDir "settings.json"
 
         # Check if settings.json already has a shellPath configured
@@ -237,7 +237,7 @@ function Install-Node {
         throw "Could not find a Node.js win-$nodeArch archive in $baseUrl/SHASUMS256.txt"
     }
 
-    $nodeHome = if ($env:PI_NODE_HOME) { $env:PI_NODE_HOME } else { Join-Path $env:LOCALAPPDATA "omp\node" }
+    $nodeHome = if ($env:PI_NODE_HOME) { $env:PI_NODE_HOME } else { Join-Path $env:LOCALAPPDATA "oyp\node" }
     $tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) ("node-" + [System.Guid]::NewGuid().ToString("N") + ".zip")
     $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("node-" + [System.Guid]::NewGuid().ToString("N"))
     try {
@@ -296,7 +296,7 @@ function Install-ViaPnpm {
         throw "git is required for -Ref when installing from source"
     }
 
-    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("omp-install-" + [System.Guid]::NewGuid().ToString("N"))
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("oyp-install-" + [System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
 
     try {
@@ -342,11 +342,11 @@ function Install-ViaPnpm {
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp via pnpm" -ForegroundColor Green
+    Write-Host "[OK] Installed oyp via pnpm" -ForegroundColor Green
 
     Configure-BashShell
 
-    Write-Host "Run 'omp' to get started!"
+    Write-Host "Run 'oyp' to get started!"
 }
 
 function Install-Binary {
@@ -356,7 +356,7 @@ function Install-Binary {
         }
         $Version = $Matches[1]
         $ReleasePath = "download/$Ref"
-        Write-Host "Fetching omp $Version..."
+        Write-Host "Fetching oyp $Version..."
     } else {
         $Version = ""
         $ReleasePath = "latest/download"
@@ -389,11 +389,11 @@ function Install-Binary {
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
     # Download next to the destinations and move them into place only once the
-    # checksums match, so a bad download never replaces a working omp.
+    # checksums match, so a bad download never replaces a working oyp.
     Write-Host "Downloading $AssetName..."
-    $OutPath = Join-Path $InstallDir "omp.cmd"
+    $OutPath = Join-Path $InstallDir "oyp.cmd"
     $CliPath = Join-Path $InstallDir "cli.js"
-    $DownloadPath = Join-Path $InstallDir ".omp.download.cmd"
+    $DownloadPath = Join-Path $InstallDir ".oyp.download.cmd"
     $CliDownloadPath = Join-Path $InstallDir ".cli.download.js"
     $CliUrl = "$ReleaseBase/$ReleasePath/cli.js"
     try {
@@ -422,7 +422,7 @@ function Install-Binary {
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp to $OutPath" -ForegroundColor Green
+    Write-Host "[OK] Installed oyp to $OutPath" -ForegroundColor Green
 
     # Add to PATH if not already there
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -435,9 +435,9 @@ function Install-Binary {
     Configure-BashShell
 
     if ($needsRestart) {
-        Write-Host "Restart your terminal, then run 'omp' to get started!"
+        Write-Host "Restart your terminal, then run 'oyp' to get started!"
     } else {
-        Write-Host "Run 'omp' to get started!"
+        Write-Host "Run 'oyp' to get started!"
     }
 }
 

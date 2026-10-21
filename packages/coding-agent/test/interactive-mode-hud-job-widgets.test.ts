@@ -85,7 +85,7 @@ describe("InteractiveMode HUD jobs segment with job widgets", () => {
 	});
 
 	const jobsSegment = (): NativeNode | undefined =>
-		nodes(mode.describeHudPills()).find(node => node.key === "jobs" && prop(node, "role") === "omp.hud.seg");
+		nodes(mode.describeHudPills()).find(node => node.key === "jobs" && prop(node, "role") === "oyp.hud.seg");
 
 	it("shows the freshest headline and a mini spark, lists every widget in the title and stacks them in a hover card", () => {
 		let entries: JobWidgetEntry[] = [
@@ -96,7 +96,7 @@ describe("InteractiveMode HUD jobs segment with job widgets", () => {
 		spyOn(session, "getRunningJobWidgets").mockImplementation(() => entries);
 
 		const segment = jobsSegment()!;
-		const glance = nodes(segment).find(node => prop(node, "role") === "omp.hud.glance");
+		const glance = nodes(segment).find(node => prop(node, "role") === "oyp.hud.glance");
 		expect(prop(glance, "spans")).toEqual([
 			{ t: "186 tok/s", s: "num strong" },
 			{ t: " ▲ 15%", s: "success" },
@@ -108,9 +108,9 @@ describe("InteractiveMode HUD jobs segment with job widgets", () => {
 			"2 jobs running  /jobs\nbg_1  eval · per model — trials 7/9 trials\nbg_2  verb-bench · decode — decode 186 tok/s ▲ 15%",
 		);
 		const card = prop(segment, "hovercard") as TspPropNode;
-		expect(card).toMatchObject({ k: "col", p: { role: "omp.jobs.hovercard" } });
-		expect(card.c?.map(child => prop(child, "role"))).toEqual(["omp.job.tiles"]);
-		expect(card.c?.[0]?.c?.map(child => prop(child, "role"))).toEqual(["omp.job.tile", "omp.job.tile"]);
+		expect(card).toMatchObject({ k: "col", p: { role: "oyp.jobs.hovercard" } });
+		expect(card.c?.map(child => prop(child, "role"))).toEqual(["oyp.job.tiles"]);
+		expect(card.c?.[0]?.c?.map(child => prop(child, "role"))).toEqual(["oyp.job.tile", "oyp.job.tile"]);
 
 		// Unchanged widget data keeps the described node; moved data re-describes it.
 		expect(jobsSegment()).toBe(segment);

@@ -2,7 +2,7 @@
  * Project-local `tui` tool: run and debug pi-tui apps headlessly. Each session
  * spawns a TypeScript/JavaScript entry or executable on a real PTY through
  * `@oh-my-pi/pi-natives` (ConPTY on Windows, openpty on POSIX). `OMP_TUI_DEBUG`
- * points at the local IPC endpoint served by an omp/pi-tui host. Injected input
+ * points at the local IPC endpoint served by an oyp/pi-tui host. Injected input
  * rides the app's own input path, while renderer and component queries inspect
  * the last painted frame.
  *
@@ -34,7 +34,7 @@ import type { Color, KittyEvent, KittyTerminal } from "kitty-vt-wasm";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-/** Minimal slice of the host schema builder (`omp.zod`) this tool uses. */
+/** Minimal slice of the host schema builder (`oyp.zod`) this tool uses. */
 interface Schema {
 	describe(text: string): Schema;
 	optional(): Schema;
@@ -106,7 +106,7 @@ function loadVt() {
 	// Lazy import: a missing optional install must degrade `start`, not fail tool load.
 	vtApi ??= import("kitty-vt-wasm").catch(error => {
 		vtApi = null;
-		throw new Error(`screen emulation needs kitty-vt-wasm — run \`pnpm install\` in .omp/tools (${error})`);
+		throw new Error(`screen emulation needs kitty-vt-wasm — run \`pnpm install\` in .oyp/tools (${error})`);
 	});
 	return vtApi;
 }
@@ -191,7 +191,7 @@ async function loadCanvas() {
 		// Lazy import: a missing optional install must degrade `shot`, not fail tool load.
 		mod = await import("@napi-rs/canvas");
 	} catch (error) {
-		throw new Error(`shot needs @napi-rs/canvas — run \`pnpm install\` in .omp/tools (${error})`);
+		throw new Error(`shot needs @napi-rs/canvas — run \`pnpm install\` in .oyp/tools (${error})`);
 	}
 	const families = mod.GlobalFonts.families.map(entry => entry.family);
 	const stack = ["Menlo"];
@@ -235,7 +235,7 @@ function lerpColor(from: number, to: number, t: number): number {
  * Terminal emulation fed every PTY byte: kitty's real core (screen.c +
  * vt-parser.c compiled to wasm via kitty-vt-wasm), so SGR, rewrap-on-resize,
  * scrollback, graphemes, and wide chars behave exactly as in kitty. Any
- * session — omp-tui host or not — can be read as plain text (`snapshot`) or
+ * session — oyp-tui host or not — can be read as plain text (`snapshot`) or
  * rasterized to pixels (`png`). Backs the `screen`/`shot` ops, the socketless
  * `text` fallback, and the after-screenshot on input ops. Query replies the
  * core emits (DA, DECRQSS, XTGETTCAP, OSC color queries) surface on
@@ -692,7 +692,7 @@ function request(
 		return Promise.reject(
 			new Error(
 				`session "${session.name}" has no debug socket — the app is not an ` +
-					"omp-tui host (or exited). screen/raw/send/resize/stop still work.",
+					"oyp-tui host (or exited). screen/raw/send/resize/stop still work.",
 			),
 		);
 	}
@@ -747,7 +747,7 @@ async function stopSession(session: Session): Promise<number | null> {
 		if (session.sock) {
 			await request(session, { op: "quit" }, 2_000);
 		} else if (session.exit === null) {
-			// Non-omp-tui apps have no debug socket; Ctrl-C is the
+			// Non-oyp-tui apps have no debug socket; Ctrl-C is the
 			// conventional quit chord.
 			session.proc.terminal.write("\x03");
 		}
@@ -979,7 +979,7 @@ function ptyDimensions(cols: number, rows: number): PtyDimensions {
 	return process.platform === "win32" ? normalizePtyDimensions(cols, rows) : { cols, rows };
 }
 
-const factory = (omp: ToolHost) => {
+const factory = (oyp: ToolHost) => {
 	const startSession = async (params: TuiParams): Promise<string> => {
 		const name = params.name ?? "main";
 		if (sessions.has(name)) {
@@ -988,15 +988,15 @@ const factory = (omp: ToolHost) => {
 		if (params.file && params.bin) {
 			throw new Error("start takes `file` or `bin`, not both");
 		}
-		// Default target: this repo's own TUI, omp itself.
+		// Default target: this repo's own TUI, oyp itself.
 		const file = params.bin ? undefined : (params.file ?? "packages/coding-agent/src/cli.ts");
 		const target = file ?? params.bin ?? "";
 		const command = file
-			? [process.execPath, resolve(omp.cwd, file), ...(params.args ?? [])]
+			? [process.execPath, resolve(oyp.cwd, file), ...(params.args ?? [])]
 			: [target, ...(params.args ?? [])];
 
 		const { cols, rows } = ptyDimensions(params.cols ?? 100, params.rows ?? 30);
-		const dir = mkdtempSync(join(tmpdir(), `omp-tui-${name}-`));
+		const dir = mkdtempSync(join(tmpdir(), `oyp-tui-${name}-`));
 		let screen: Screen | undefined;
 		let session: Session | undefined;
 		// Native output may arrive before the PID promise resumes. Buffer it until
@@ -1018,7 +1018,7 @@ const factory = (omp: ToolHost) => {
 				{
 					application: command[0],
 					args: command.slice(1),
-					cwd: omp.cwd,
+					cwd: oyp.cwd,
 					env,
 					cols,
 					rows,
@@ -1100,7 +1100,7 @@ const factory = (omp: ToolHost) => {
 				text += `\n${screenshotText(shot)}`;
 			} else {
 				text +=
-					"\n(no debug socket: app is not an omp-tui host; `send` injects " +
+					"\n(no debug socket: app is not an oyp-tui host; `send` injects " +
 					"input, `screen` renders the emulated display)" +
 					`\n${session.screen.snapshot()}`;
 			}
@@ -1121,10 +1121,10 @@ const factory = (omp: ToolHost) => {
 		name: "tui",
 		label: "TUI Debug",
 		description:
-			"Run and debug omp/pi-tui apps headlessly on a real PTY plus the " +
-			"OMP_TUI_DEBUG socket. Start defaults to omp itself " +
+			"Run and debug oyp/pi-tui apps headlessly on a real PTY plus the " +
+			"OMP_TUI_DEBUG socket. Start defaults to oyp itself " +
 			"(packages/coding-agent/src/cli.ts); override with file (a TS/JS entry, e.g. " +
-			'file: "packages/tui/examples/debug-demo.ts") or bin (an executable name/path), plus optional rows/cols and args. Any omp/pi-tui app serves ' +
+			'file: "packages/tui/examples/debug-demo.ts") or bin (an executable name/path), plus optional rows/cols and args. Any oyp/pi-tui app serves ' +
 			"OMP_TUI_DEBUG. Ops: text (viewport screenshot as plain text), screen " +
 			"(plain-text screen from kitty's real terminal core — works for any app, no " +
 			"debug socket needed; peek=N prepends N scrollback lines), frame (full " +
@@ -1141,35 +1141,35 @@ const factory = (omp: ToolHost) => {
 			"resize) return an after-screenshot of the resulting display (quiet:true " +
 			"skips it). Sessions persist across calls; injected input rides the " +
 			"app's real input path.",
-		parameters: omp.zod.object({
-			op: omp.zod
+		parameters: oyp.zod.object({
+			op: oyp.zod
 				.string()
 				.describe(
 					"operation: start | stop | list | text | screen | shot | frame | tree | values | info | keys | type | paste | mouse | send | resize | raw",
 				),
-			name: omp.zod.string().optional().describe("session name (default: main)"),
-			file: omp.zod
+			name: oyp.zod.string().optional().describe("session name (default: main)"),
+			file: oyp.zod
 				.string()
 				.optional()
 				.describe(
-					"start: TS/JS entry path relative to cwd (default: packages/coding-agent/src/cli.ts — omp itself)",
+					"start: TS/JS entry path relative to cwd (default: packages/coding-agent/src/cli.ts — oyp itself)",
 				),
-			bin: omp.zod.string().optional().describe("start: executable name or path"),
-			args: omp.zod.array(omp.zod.string()).optional().describe("start: program argv"),
-			rows: omp.zod.number().optional().describe("start/resize: pty rows (default 30)"),
-			cols: omp.zod.number().optional().describe("start/resize: pty cols (default 100)"),
-			keys: omp.zod.string().optional().describe("keys: spec, e.g. \"tab tab enter C-c pgdn 'hello'\""),
-			text: omp.zod.string().optional().describe("type/paste/send: payload text"),
-			x: omp.zod.number().optional().describe("mouse: zero-based column"),
-			y: omp.zod.number().optional().describe("mouse: zero-based viewport row"),
-			action: omp.zod.string().optional().describe("mouse: gesture (default click)"),
-			peek: omp.zod
+			bin: oyp.zod.string().optional().describe("start: executable name or path"),
+			args: oyp.zod.array(oyp.zod.string()).optional().describe("start: program argv"),
+			rows: oyp.zod.number().optional().describe("start/resize: pty rows (default 30)"),
+			cols: oyp.zod.number().optional().describe("start/resize: pty cols (default 100)"),
+			keys: oyp.zod.string().optional().describe("keys: spec, e.g. \"tab tab enter C-c pgdn 'hello'\""),
+			text: oyp.zod.string().optional().describe("type/paste/send: payload text"),
+			x: oyp.zod.number().optional().describe("mouse: zero-based column"),
+			y: oyp.zod.number().optional().describe("mouse: zero-based viewport row"),
+			action: oyp.zod.string().optional().describe("mouse: gesture (default click)"),
+			peek: oyp.zod
 				.number()
 				.optional()
 				.describe("screen: scrollback lines to include; raw: tail bytes (default 2000)"),
-			clear: omp.zod.boolean().optional().describe("raw: reset capture after reading"),
-			quiet: omp.zod.boolean().optional().describe("input ops: skip the after-screenshot"),
-			timeout: omp.zod.number().optional().describe("start: socket wait seconds (default 15)"),
+			clear: oyp.zod.boolean().optional().describe("raw: reset capture after reading"),
+			quiet: oyp.zod.boolean().optional().describe("input ops: skip the after-screenshot"),
+			timeout: oyp.zod.number().optional().describe("start: socket wait seconds (default 15)"),
 		}),
 
 		async execute(
@@ -1211,7 +1211,7 @@ const factory = (omp: ToolHost) => {
 				}
 				case "shot": {
 					const session = need(params.name);
-					const png = join(tmpdir(), `omp-tui-${session.name}-${Date.now()}.png`);
+					const png = join(tmpdir(), `oyp-tui-${session.name}-${Date.now()}.png`);
 					const bytes = await session.screen.png();
 					writeFileSync(png, bytes);
 					return {

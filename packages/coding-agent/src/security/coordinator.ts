@@ -211,7 +211,7 @@ function initialBundle(
 	});
 	return {
 		scan: {
-			documentType: "omp-security.scan",
+			documentType: "oyp-security.scan",
 			schemaVersion: "1.0",
 			id: scanId,
 			projectKey: store.projectKey,

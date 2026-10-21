@@ -1,7 +1,7 @@
     (function() {
       'use strict';
 
-      const THEME_STORAGE_KEY = 'omp-export-theme';
+      const THEME_STORAGE_KEY = 'oyp-export-theme';
       const themeSelect = document.getElementById('theme-select');
       let themePreference = 'auto';
       try {
@@ -916,7 +916,7 @@
       // TOOL CALL RENDERING
       // ============================================================
       //
-      // Tool calls render through the bundled <omp-tool-view> web component
+      // Tool calls render through the bundled <oyp-tool-view> web component
       // (tool-views.generated.js — the same React renderers collab-web uses).
       // Payloads are handed over via a global store keyed by data-key, which
       // survives innerHTML serialization and cloneNode round trips.
@@ -938,7 +938,7 @@
             openAgent: (id) => openSubSession(joinKey(sctx.prefix, id)),
           },
         });
-        return '<omp-tool-view class="tool-execution ' + statusClass + '" id="' + blockId + '" data-key="' + key + '" open></omp-tool-view>';
+        return '<oyp-tool-view class="tool-execution ' + statusClass + '" id="' + blockId + '" data-key="' + key + '" open></oyp-tool-view>';
       }
 
       // ============================================================

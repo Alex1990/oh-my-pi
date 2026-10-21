@@ -410,7 +410,7 @@ export async function captureFrameScreenshot(
 				session.browserScreenshotDir,
 				`frame-screenshot-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -1)}.${ext}`,
 			)
-		: path.join(os.tmpdir(), `omp-frame-sshots-${Snowflake.next()}.${ext}`);
+		: path.join(os.tmpdir(), `oyp-frame-sshots-${Snowflake.next()}.${ext}`);
 	await fs.promises.mkdir(path.dirname(dest), { recursive: true });
 	await bun.write(dest, savedBuffer);
 	screenshots.push({

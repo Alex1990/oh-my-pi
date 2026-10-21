@@ -3,7 +3,7 @@
  *
  * `connectSharedLspTransport` ensures the per-project mux daemon is running
  * under the daemon broker (same lifecycle as the shared Chromium: started on
- * first use, stopped when the last omp process in the project exits), dials
+ * first use, stopped when the last oyp process in the project exits), dials
  * its socket, performs the `omp/muxConnect` handshake, and returns an
  * {@link LspTransport} the ordinary LSP client machinery drives exactly like
  * a locally spawned server. Every failure degrades to `null` so callers fall
@@ -328,7 +328,7 @@ export async function connectSharedLspTransport(opts: {
 
 /** Exercise worker-host mux startup and the ping handshake for distribution smoke tests. */
 export async function smokeTestLspMux(): Promise<void> {
-	const endpoint = ipcEndpoint(os.tmpdir(), `omp-lsp-mux-smoke-${process.pid.toString(36)}`);
+	const endpoint = ipcEndpoint(os.tmpdir(), `oyp-lsp-mux-smoke-${process.pid.toString(36)}`);
 	const spawn = resolveWorkerSpawnCmd(LSP_MUX_WORKER_ARG);
 	const proc = ptree.spawn(spawn.cmd, {
 		cwd: spawn.cwd,

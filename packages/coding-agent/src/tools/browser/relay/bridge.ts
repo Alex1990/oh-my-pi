@@ -43,7 +43,7 @@ interface CdpCommand {
 /**
  * Per-pseudo-session Runtime domain state.
  * - `default`: never toggled Runtime — still receives the relay's legacy
- *   root-event fan-out, so omp's own patched-puppeteer client (which
+ *   root-event fan-out, so oyp's own patched-puppeteer client (which
  *   pull-acquires contexts and never sends `Runtime.enable`) keeps getting
  *   `Runtime.executionContextCreated`.
  * - `enabled`: ran `Runtime.enable`; gets the existing-context replay.
@@ -185,12 +185,12 @@ class TabState {
 	reattachedAfterDetach = false;
 	/** The relay asked the extension to close this tab (`Target.closeTarget`); its coming detach is not Chrome's own. */
 	closing = false;
-	/** True after the relay put this tab in the omp group; `ompGroupId` holds that group. */
+	/** True after the relay put this tab in the oyp group; `ompGroupId` holds that group. */
 	grouped = false;
 	/** Group RPC in flight — suppresses duplicate requests from load-time tabUpdated bursts. */
 	grouping = false;
 	ompGroupId: number | undefined;
-	/** User pulled the tab out of the omp group — never re-group it. */
+	/** User pulled the tab out of the oyp group — never re-group it. */
 	groupOptOut = false;
 	/**
 	 * Real Chrome sessions (OOPIF/worker children) under this tab's attachment: the child session
@@ -271,7 +271,7 @@ export class RelayBridge {
 	#lastHelloInstance: string | null = null;
 	#extensionSeen = false;
 	/**
-	 * Tabs omp opened whose close failed while their browser was offline (see {@link #closeTab}), by tab key, with
+	 * Tabs oyp opened whose close failed while their browser was offline (see {@link #closeTab}), by tab key, with
 	 * the URL the tab showed: closed at that browser's next hello, unless the tab is gone or shows another page.
 	 */
 	#closeOnHello = new Map<string, string>();
@@ -282,7 +282,7 @@ export class RelayBridge {
 		{ resolve: (value: unknown) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
 	>();
 	/**
-	 * Timed-out RPCs whose late success still needs undoing (a tab Chrome created after omp gave up), by
+	 * Timed-out RPCs whose late success still needs undoing (a tab Chrome created after oyp gave up), by
 	 * `instance:id`.
 	 */
 	#lateRpc = new Map<string, { onResult: (result: unknown) => void; timer: NodeJS.Timeout }>();
@@ -331,7 +331,7 @@ export class RelayBridge {
 
 	/**
 	 * The browser the caller's tabs live in: the one named by `nearTargetId` (a tab the caller drives on another
-	 * connection; omp gives every tab its own), else one holding a tab this connection drives. Offline or not.
+	 * connection; oyp gives every tab its own), else one holding a tab this connection drives. Offline or not.
 	 */
 	#affineInstance(conn: CdpConnection, nearTargetId: unknown): ExtInstance | undefined {
 		const near = typeof nearTargetId === "string" ? parseTargetId(nearTargetId) : null;
@@ -465,7 +465,7 @@ export class RelayBridge {
 			tab.attached = false;
 			tab.attaching = null;
 			this.#resetRuntime(tab);
-			// The extension dissolves omp groups on disconnect (or died along
+			// The extension dissolves oyp groups on disconnect (or died along
 			// with them); grouping state is unknowable until the next hello.
 			tab.grouped = false;
 			tab.grouping = false;
@@ -650,7 +650,7 @@ export class RelayBridge {
 		}
 		conn.sessions.clear();
 		for (const tabKey of intercepting) this.#releaseFileChooserInterception(tabKey);
-		// Tabs this client claimed leave the omp group unless another claimant
+		// Tabs this client claimed leave the oyp group unless another claimant
 		// remains — session holders don't count: the long-lived registry
 		// connection holds sessions on every tab without driving any of them.
 		for (const tabId of conn.claims) {
@@ -875,7 +875,7 @@ export class RelayBridge {
 			this.#reply(conn, msg, {});
 			return true;
 		}
-		// Relay-private claim: the omp tab worker marks the page it was spawned
+		// Relay-private claim: the oyp tab worker marks the page it was spawned
 		// to drive. Never forwarded — real Chrome rejects the unknown method.
 		if (msg.method === "OMP.claimTarget") {
 			this.#claimTab(conn, tabKey);
@@ -1106,7 +1106,7 @@ export class RelayBridge {
 					});
 				})) as { tab: TabSnapshot };
 				this.#onTabUpsert(result.tab, inst.instanceId);
-				// The client left while Chrome created the tab (omp gave up on a slow open), so nobody
+				// The client left while Chrome created the tab (oyp gave up on a slow open), so nobody
 				// can learn its id to close it later: close it now instead of leaving it in the user's browser.
 				if (this.#conns.get(conn.id) !== conn) {
 					await this.#closeTab(tabKeyOf(inst.code, result.tab.tabId), result.tab.tabId, inst);
@@ -1303,7 +1303,7 @@ export class RelayBridge {
 		// stays adoptable and is announced again at once; an attach Chrome refuses still bans it (#ensureAttached).
 		const cancelledByUser = reason === "canceled_by_user";
 		if (cancelledByUser) tab.banned = true;
-		// A user cancel releases the tab's omp-group membership; any other detach keeps it.
+		// A user cancel releases the tab's oyp-group membership; any other detach keeps it.
 		this.#syncTabGrouping(tab);
 		// Relay-private event, ahead of the sessions' detach: a client driving the tab learns that Chrome
 		// ended the attachment, not the page, and can re-adopt it instead of waiting on a dead session. A tab
@@ -1341,7 +1341,7 @@ export class RelayBridge {
 			this.#tabs.set(key, tab);
 		} else {
 			if (tab.url !== snap.url) tab.banned = false;
-			// The user dragging a tab out of the omp group is an opt-out; the
+			// The user dragging a tab out of the oyp group is an opt-out; the
 			// relay never fights the user over grouping.
 			if (tab.grouped && tab.ompGroupId !== undefined && snap.groupId !== tab.ompGroupId) {
 				tab.grouped = false;
@@ -1422,7 +1422,7 @@ export class RelayBridge {
 
 	// ---- tab grouping -----------------------------------------------------------
 
-	/** A tab belongs in the omp group when claimed by a client, controllable, unpinned, not user-opted-out, and not already in a user group. */
+	/** A tab belongs in the oyp group when claimed by a client, controllable, unpinned, not user-opted-out, and not already in a user group. */
 	#groupWorthy(tab: TabState): boolean {
 		if (!this.#claimed(tab.tabKey) || !this.#eligible(tab) || tab.pinned || tab.groupOptOut) return false;
 		return tab.grouped || tab.groupId === -1;
@@ -1452,7 +1452,7 @@ export class RelayBridge {
 	/**
 	 * Queue tabs for grouping and drain serially. Overlapping group RPCs race
 	 * the extension's non-atomic query→create→set-title sequence and mint
-	 * duplicate omp groups, so at most one group RPC is ever in flight.
+	 * duplicate oyp groups, so at most one group RPC is ever in flight.
 	 */
 	#requestGroup(tabs: TabState[]): void {
 		if (!this.#group) return;
@@ -1808,7 +1808,7 @@ export class RelayBridge {
 	}
 
 	/**
-	 * Close a tab omp opened. The extension retries a close Chrome refuses before answering, so the caller holds
+	 * Close a tab oyp opened. The extension retries a close Chrome refuses before answering, so the caller holds
 	 * its relay lease through the retry. One whose close still fails (its browser offline, the socket dropping
 	 * mid-call, or Chrome refusing every try) is closed at that browser's next hello, unless the user closed it.
 	 */

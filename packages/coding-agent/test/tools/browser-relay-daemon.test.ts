@@ -301,7 +301,7 @@ console.log(\`omp browser relay listening on http://127.0.0.1:\${port}\`);
 import { closeDaemonClients, daemonClientForGlobal } from ${sourceUrl("src/launch/client.ts")};
 import { restartRelayDaemon } from ${sourceUrl("src/tools/browser/relay/daemon.ts")};
 const [ownedPort, manualPort, standIn] = [process.env.OMP_TEST_OWNED_PORT!, process.env.OMP_TEST_MANUAL_PORT!, process.env.OMP_TEST_STALE_RELAY!];
-const name = \`omp.browser.relay.\${ownedPort}\`;
+const name = \`oyp.browser.relay.\${ownedPort}\`;
 const ownedUrl = \`http://127.0.0.1:\${ownedPort}\`;
 const versionAt = async (port: string) => {
 	const response = await fetch(\`http://127.0.0.1:\${port}/json/version\`).catch(() => null);
@@ -365,7 +365,7 @@ try {
 	const newerVersion = await versionAt(ownedPort);
 	const manualRestarted = await restartRelayDaemon({ cdpUrl: \`http://127.0.0.1:\${manualPort}\` });
 	const manualRecord = await client
-		.request({ op: "describe", name: \`omp.browser.relay.\${manualPort}\` })
+		.request({ op: "describe", name: \`oyp.browser.relay.\${manualPort}\` })
 		.then(response => response.daemon ?? null, () => null);
 	process.stdout.write(
 		JSON.stringify({
@@ -441,7 +441,7 @@ console.log(\`omp browser relay listening on http://127.0.0.1:\${port}\`);
 import { closeDaemonClients, daemonClientForGlobal } from ${sourceUrl("src/launch/client.ts")};
 import { restartRelayDaemon } from ${sourceUrl("src/tools/browser/relay/daemon.ts")};
 const [ownedPort, manualPort, standIn] = [process.env.OMP_TEST_OWNED_PORT!, process.env.OMP_TEST_MANUAL_PORT!, process.env.OMP_TEST_STALE_RELAY!];
-const name = \`omp.browser.relay.\${ownedPort}\`;
+const name = \`oyp.browser.relay.\${ownedPort}\`;
 const ownedUrl = \`http://127.0.0.1:\${ownedPort}\`;
 const manual = bun.spawn([process.execPath, ...nodeSourceFlags(), standIn, manualPort, "18.0.0", "0"], { stdout: "pipe" });
 try {
@@ -531,7 +531,7 @@ console.log(\`omp browser relay listening on http://127.0.0.1:\${port}\`);
 import { closeDaemonClients, daemonClientForGlobal } from ${sourceUrl("src/launch/client.ts")};
 import { restartRelayDaemon } from ${sourceUrl("src/tools/browser/relay/daemon.ts")};
 const [port, standIn] = [process.env.OMP_TEST_PORT!, process.env.OMP_TEST_STALE_RELAY!];
-const name = \`omp.browser.relay.\${port}\`;
+const name = \`oyp.browser.relay.\${port}\`;
 const cdpUrl = \`http://127.0.0.1:\${port}\`;
 try {
 	const client = await daemonClientForGlobal("browser-relay");
@@ -686,7 +686,7 @@ if (process.argv[2] === "browser-relay") {
 	console.log(\`omp browser relay listening on http://127.0.0.1:\${port}\`);
 } else {
 	const [port, standIn] = [process.env.OMP_TEST_PORT!, process.env.OMP_TEST_STALE_RELAY!];
-	const name = \`omp.browser.relay.\${port}\`;
+	const name = \`oyp.browser.relay.\${port}\`;
 	const cdpUrl = \`http://127.0.0.1:\${port}\`;
 	// Stands in for the extension: redials until a relay accepts it, as the real one does after its relay stops.
 	const connectExtension = async (): Promise<WebSocket> => {

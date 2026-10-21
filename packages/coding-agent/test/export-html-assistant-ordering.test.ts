@@ -178,7 +178,7 @@ function renderedBlockOrder({ assistant, context }: RenderedSession): string[] {
 			order.push(child.querySelector(".thinking-text")?.textContent?.trim() ?? "");
 		} else if (child.classList.contains("message-images")) {
 			order.push("image");
-		} else if (child.tagName.toLowerCase() === "omp-tool-view") {
+		} else if (child.tagName.toLowerCase() === "oyp-tool-view") {
 			order.push(toolName(child, context));
 		} else if (child.classList.contains("error-text")) {
 			order.push(child.textContent?.trim() ?? "");

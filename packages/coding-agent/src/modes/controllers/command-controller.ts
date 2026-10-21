@@ -1586,7 +1586,7 @@ export class CommandController {
 				return false;
 			}
 			if (!client.supports("fork")) return false;
-			// The new pane's omp reads the session file as it starts.
+			// The new pane's oyp reads the session file as it starts.
 			await this.ctx.session.flushToDisk();
 			try {
 				await client.fork({ block: tern.pane }, { timeoutMs: TERN_FORK_TIMEOUT_MS });

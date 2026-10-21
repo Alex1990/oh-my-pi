@@ -67,7 +67,7 @@ export class SkillMessageComponent extends Container {
 	}
 
 	/**
-	 * A user-toned card (role `omp.skill`): the skill chip and prompt size in
+	 * A user-toned card (role `oyp.skill`): the skill chip and prompt size in
 	 * the head, the user's draft always visible, and only the loaded skill
 	 * prompt behind a disclosure.
 	 */
@@ -103,7 +103,7 @@ export class SkillMessageComponent extends Container {
 					"section",
 					{
 						head: [span("prompt", "muted")],
-						role: "omp.skill.prompt",
+						role: "oyp.skill.prompt",
 						collapsible: true,
 						collapsed: !this.#expanded,
 					},
@@ -111,7 +111,7 @@ export class SkillMessageComponent extends Container {
 					"prompt",
 				),
 			);
-			return card({ role: "omp.skill", tone: "user", head }, children);
+			return card({ role: "oyp.skill", tone: "user", head }, children);
 		});
 	}
 

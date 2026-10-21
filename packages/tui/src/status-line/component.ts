@@ -63,7 +63,7 @@ import type {
 /** Sparkline cells the ANSI jobs segment draws after the freshest widget's headline. */
 const JOBS_SEGMENT_SPARK_CELLS = 8;
 
-/** What a click on a native status segment asks omp to open. */
+/** What a click on a native status segment asks oyp to open. */
 export type StatusLineNativeAction = "status.model" | "status.context" | "status.git" | "status.cost" | "status.path";
 
 /** Click action per native segment: quick model picker, `/context`, `/git`, `/usage`, the project directory. */
@@ -154,9 +154,9 @@ const GIT_STATUS_TTL_MS = 10_000;
 const JJ_REFRESH_TTL_MS = 5000;
 const JJ_COMMAND_TIMEOUT_MS = 5_000;
 const WATCHER_FAILURE_POLL_TTL_MS = 5000;
-/** Brand-color fade duration across working-state edges (rust omp's `BRAND_FADE`). */
+/** Brand-color fade duration across working-state edges (rust oyp's `BRAND_FADE`). */
 const BRAND_FADE_MS = 450;
-/** Repaint cadence while the brand fade is in flight (rust omp's `FADE_FRAME`). */
+/** Repaint cadence while the brand fade is in flight (rust oyp's `FADE_FRAME`). */
 const BRAND_FADE_FRAME_MS = 40;
 /** Repaint cadence while a turn's active-processing window is open: keeps the
  * status bar's clock-driven readouts (pi spinner, turn timer) animating when
@@ -1345,7 +1345,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	/**
 	 * Foreground ANSI for the `pi` brand segment: dim gray while idle, fading
 	 * to the accent (session accent when enabled, else theme accent) while a
-	 * turn runs — a port of rust omp's status-band brand fade (450ms cubic
+	 * turn runs — a port of rust oyp's status-band brand fade (450ms cubic
 	 * ease-in-out). A working-state edge retargets the tween from the color
 	 * currently on screen, so interrupting a running fade never jumps, and arms
 	 * a 40ms frame timer so the fade keeps animating after the working loader
@@ -1385,7 +1385,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			this.#brandFade = null;
 			return settledHex;
 		}
-		// Cubic ease-in-out, matching rust omp's Easing::EaseInOut.
+		// Cubic ease-in-out, matching rust oyp's Easing::EaseInOut.
 		const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 		const from = hexToRgb(fade.fromHex);
 		const to = hexToRgb(fade.toHex);
@@ -3094,7 +3094,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const leftCapWidth = capsVisible ? separators.leftCapWidth : 0;
 		const rightCapWidth = capsVisible ? separators.rightCapWidth : 0;
 		// The band layout opens flush against the terminal edge with a soft cap
-		// (rust omp's status band). Like the other caps it needs an opaque
+		// (rust oyp's status band). Like the other caps it needs an opaque
 		// background to bridge, and only powerline separator styles carry caps.
 		const bandCap = layout === "band" && capsVisible ? theme.sep.powerlineCapLeft : "";
 		const bandCapWidth = bandCap ? separators.bandCapWidth : 0;
@@ -3677,7 +3677,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 				const view = describeSegment(id, ctx);
 				if (!view) return;
 				const props: TspProps<"seg"> = {
-					role: "omp.composer.fact",
+					role: "oyp.composer.fact",
 					priority:
 						(PINNED_NATIVE_SEGMENTS[id] === true ? PINNED_NATIVE_PRIORITY : 0) +
 						statusSegmentPriority(side, index, ids.length),
@@ -3694,7 +3694,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			this.#sortedHookStatuses.forEach((status, index) => {
 				const text = sanitizeStatusText(status);
 				if (!text) return;
-				const props: TspProps<"seg"> = { role: "omp.composer.fact", priority: 0 };
+				const props: TspProps<"seg"> = { role: "oyp.composer.fact", priority: 0 };
 				facts.push(describeSeg(`hook-${index}`, props, { spans: [span(text)] }, dim));
 			});
 		}
@@ -3710,7 +3710,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const speculation = ctx.compactionSpeculation;
 		if (speculation === "running") lines.push("Compaction summary in progress");
 		else if (speculation === "armed") lines.push("Compaction summary ready");
-		// The line spans the whole window: omp's boundary symbols sit where speculation
+		// The line spans the whole window: oyp's boundary symbols sit where speculation
 		// starts and compaction fires, and the share past the speculation point is accent.
 		const used = pct === null ? null : Math.min(1, pct / 100);
 		const speculationAt =
@@ -3736,7 +3736,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const context = node(
 			"meter",
 			{
-				role: "omp.composer.context",
+				role: "oyp.composer.context",
 				value: used,
 				style: "bar",
 				thresholds: getContextMeterThresholds(window),
@@ -3761,7 +3761,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const usage = node(
 			"text",
 			{
-				role: "omp.composer.usage",
+				role: "oyp.composer.usage",
 				text: cost,
 				wrap: "none",
 				...(cost ? { title: `Session cost ${cost}` } : {}),
@@ -3779,7 +3779,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		return {
 			context,
 			model: describeSegment("model", modelCtx) ?? { spans: [] },
-			extras: node("status", { role: "omp.composer.extras", transparent: true, grow: 1 }, facts, "extras"),
+			extras: node("status", { role: "oyp.composer.extras", transparent: true, grow: 1 }, facts, "extras"),
 			usage,
 		};
 	}
@@ -3820,7 +3820,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const push = (key: string, side: "left" | "right", priority: number, view: SegmentView): void => {
 			const pinned = PINNED_NATIVE_SEGMENTS[key] === true;
 			const props: TspProps<"seg"> = {
-				role: `omp.status.${key}`,
+				role: `oyp.status.${key}`,
 				side,
 				priority: pinned ? PINNED_NATIVE_PRIORITY + priority : priority,
 			};
@@ -3858,7 +3858,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		});
 		const bar = node(
 			"status",
-			{ role: "omp.status", transparent: effectiveSettings.transparent === true },
+			{ role: "oyp.status", transparent: effectiveSettings.transparent === true },
 			segs,
 			"bar",
 		);
@@ -3870,13 +3870,13 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 				...this.#sortedHookStatuses.map((status, index) =>
 					node(
 						"text",
-						{ text: sanitizeStatusText(status), wrap: "none", role: "omp.status.hook" },
+						{ text: sanitizeStatusText(status), wrap: "none", role: "oyp.status.hook" },
 						undefined,
 						`hook-${index}`,
 					),
 				),
 			],
-			{ role: "omp.status.panel" },
+			{ role: "oyp.status.panel" },
 		);
 	}
 

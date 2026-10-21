@@ -77,7 +77,7 @@ const STRING_ABANDON_MS = 5000;
 // so a stale packet cannot absorb unrelated multi-byte input later on; a
 // resumed head that is abandoned again is dropped for good.
 const STRING_DORMANT_MS = 10_000;
-// Openings of the string replies omp receives, matched while still partial
+// Openings of the string replies oyp receives, matched while still partial
 // (each alternative accepts any prefix of its opener) so a legacy Alt chord
 // that diverges is recognized as soon as it does:
 // - OSC: numeric command then `;` (`\x1b]11;`, `\x1b]5522;`).
@@ -908,7 +908,7 @@ export class StdinBuffer extends EventEmitter<StdinBufferEventMap> {
 	 * protocol data (OSC 5522 clipboard read, graphics reply), never a key.
 	 * Without the kitty keyboard protocol `\x1b]`/`\x1bP`/`\x1b_` may be
 	 * Alt+]/Alt+P/Alt+_, alone or batched with the next keys, so a head counts
-	 * only while it follows the opening of a reply omp actually receives
+	 * only while it follows the opening of a reply oyp actually receives
 	 * ({@link LEGACY_STRING_REPLY_OPENER}); the moment it diverges it falls
 	 * back to the key flush timer.
 	 */

@@ -33,7 +33,7 @@ describe("CLI command help metadata", () => {
 			constructors.set(entry.name, await entry.load());
 		}
 
-		const base = { bin: "omp", version: "test" };
+		const base = { bin: "oyp", version: "test" };
 		const metadataConfig: CliConfig<CommandMetadata> = { ...base, commands: metadata };
 		const constructorConfig: CliConfig = { ...base, commands: constructors };
 		const metadataRoot = captureStdout(() => renderRootHelp(metadataConfig));

@@ -259,15 +259,15 @@ describe("live completion surface", () => {
 		expect(stdout).toContain(":value:(off minimal low medium high xhigh max auto)");
 		expect(stdout).toContain(":value:(always-ask always-ask-cached write yolo)");
 		// Real subcommands present; dynamic callbacks wired.
-		expect(stdout).toContain("_omp_cmd_commit");
+		expect(stdout).toContain("_oyp_cmd_commit");
 		expect(stdout).toContain("'completions:");
-		// zsh routes single-value dynamic flags through the _omp_call action, which
+		// zsh routes single-value dynamic flags through the _oyp_call action, which
 		// itself shells out to `omp __complete $kind`.
-		expect(stdout).toContain("_omp_call models");
-		expect(stdout).toContain("_omp_call sessions");
-		expect(stdout).toContain("command omp __complete $kind");
+		expect(stdout).toContain("_oyp_call models");
+		expect(stdout).toContain("_oyp_call sessions");
+		expect(stdout).toContain("command oyp __complete $kind");
 		// Hidden/default commands must NOT surface as completable subcommands.
-		expect(stdout).not.toContain("_omp_cmd_launch");
-		expect(stdout).not.toContain("_omp_cmd___complete");
+		expect(stdout).not.toContain("_oyp_cmd_launch");
+		expect(stdout).not.toContain("_oyp_cmd___complete");
 	}, 30_000);
 });

@@ -23,7 +23,7 @@ it.skipIf(process.platform === "win32")(
 	"exits 0 without a fatal dump when the stdout consumer closes early",
 	async () => {
 		const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cli-epipe-"));
-		const errPath = path.join(tmpDir, "omp.err");
+		const errPath = path.join(tmpDir, "oyp.err");
 		try {
 			// `| true` closes the read end of the pipe immediately, so `omp`'s help
 			// write hits a broken pipe regardless of output size. PIPESTATUS[0] is
