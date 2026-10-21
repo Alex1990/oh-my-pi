@@ -67,12 +67,12 @@ try {
 	process.title = APP_NAME;
 } catch {}
 
-// `build`-API compiled Windows executables report `isMainModule(import.meta.url) ===
+// Compiled Windows executables can report `isMainModule(import.meta.url) ===
 // false`: the standalone loader keys the entry module with native backslashes
 // (`B:\~BUN\root\cli.js`) but registers the main path with forward slashes
-// (`B:/~BUN/root/cli.js`), so Bun's internal match fails. `bun build --compile`
-// CLI builds are unaffected. A compiled binary's entry module is by definition
-// the process entry, so the define-folded PI_COMPILED marker stands in.
+// (`B:/~BUN/root/cli.js`), so the loader's internal match fails. A compiled
+// binary's entry module is by definition the process entry, so the
+// define-folded PI_COMPILED marker stands in.
 const isProcessEntry = isMainModule(import.meta.url) || process.env.PI_COMPILED === "true";
 
 /**

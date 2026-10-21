@@ -5,7 +5,7 @@
  * - A fixtures directory (for development)
  * - A fixtures.tar.gz tarball (for distribution)
  */
-/// <reference types="./bun-imports.d.ts" />
+/// <reference types="./assets.d.ts" />
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";

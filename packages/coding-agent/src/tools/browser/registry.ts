@@ -225,7 +225,7 @@ async function openBrowserHandle(kind: BrowserKind, opts: AcquireBrowserOptions)
 		// worker host) MUST go through the project-shared broker-owned Chromium:
 		// per-process launches are what produced launch storms and orphaned
 		// process trees. The process-local launch survives only for hosts that
-		// cannot spawn the broker (bun test, SDK embedding without a CLI entry).
+		// cannot spawn the broker (Vitest, SDK embedding without a CLI entry).
 		if (isCompiledBinary() || workerHostEntry() !== null) {
 			return await openSharedHeadlessHandle(kind, opts);
 		}
@@ -266,7 +266,7 @@ async function openBrowserHandle(kind: BrowserKind, opts: AcquireBrowserOptions)
 		const cdpUrl = normalizeConnectedCdpUrl(kind.cdpUrl);
 		// Loopback relays are owned by a machine-global broker and auto-started
 		// on demand (the extension dials in on its own). Hosts without a CLI
-		// worker entry (bun test, SDK embedding) never spawn brokers. Remote
+		// worker entry (Vitest, SDK embedding) never spawn brokers. Remote
 		// relay URLs must already be serving.
 		const autoStart = isLoopbackRelayUrl(cdpUrl) && (isCompiledBinary() || workerHostEntry() !== null);
 		if (autoStart) {

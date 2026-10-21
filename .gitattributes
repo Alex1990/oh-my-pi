@@ -37,8 +37,6 @@
 *.lock -text
 Cargo.lock -text
 package-lock.json -text
-bun.lock -text
-bun.lockb -text
 yarn.lock -text
 pnpm-lock.yaml -text
 poetry.lock -text

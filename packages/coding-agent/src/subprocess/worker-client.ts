@@ -176,7 +176,7 @@ export function nodeSourceFlags(): string[] {
  * binary itself, or the runtime plus the declared worker-host entry. Used by
  * the TUI `/restart` relaunch; workers go through {@link resolveWorkerSpawnCmd},
  * whose no-host fallback deliberately differs (cwd-relative entry pinned to the
- * package root for `bun test` IPC). Outside a CLI host this falls back to the
+ * package root for test IPC). Outside a CLI host this falls back to the
  * absolute path of `src/cli.ts` so the relaunch keeps the caller's cwd.
  */
 export function resolveCliEntryCmd(): string[] {
@@ -194,9 +194,9 @@ export function resolveCliEntryCmd(): string[] {
  * without a pinned cwd there: they share the parent's foreground process
  * group, and terminal cwd heuristics (kitty's new_tab_with_cwd) read the
  * newest process in that group, so anchoring them to the install dir leaks
- * into newly opened terminal tabs. With no declared host entry (bun test, SDK
- * embedding) fall back to a cwd-relative `src/cli.ts`, which Bun subprocess
- * IPC handles more reliably under `bun test`.
+ * into newly opened terminal tabs. With no declared host entry (Vitest, SDK
+ * embedding) fall back to a cwd-relative `src/cli.ts`, which the subprocess
+ * IPC handles more reliably under the test runner.
  */
 export function resolveWorkerSpawnCmd(workerArg: string): WorkerSpawnCommand {
 	const executable = resolveExecutablePath();

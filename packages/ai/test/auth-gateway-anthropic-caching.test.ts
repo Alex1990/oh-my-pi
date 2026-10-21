@@ -9,7 +9,7 @@
  * (override via `OMP_E2E_GATEWAY_URL`) AND the bearer token file exists at
  * `~/.oyp/auth-gateway.token`.
  *
- * To run: `bun --cwd packages/ai test test/auth-gateway-anthropic-caching.test.ts`
+ * To run: `pnpm --dir packages/ai test -- test/auth-gateway-anthropic-caching.test.ts`
  * with the gateway live (`omp auth-gateway serve` or pm2).
  */
 import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";

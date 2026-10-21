@@ -21,8 +21,10 @@ Regenerate the front-coded binaries, then compress them here:
 
 ```sh
 cd ../tools
-bun gen-ctok-vocab.ts   # fetch upstream, emit raw bins into cache/
-bun pack-ctok.ts        # zstd -19 into ../data/
+node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs \
+  gen-ctok-vocab.ts   # fetch upstream, emit raw bins into cache/
+node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs \
+  pack-ctok.ts        # zstd -19 into ../data/
 ```
 
 If the upstream pin moves, also regenerate
@@ -49,5 +51,6 @@ blobs from the measured sets with:
 
 ```sh
 cd ../tools
-bun pack-jev.ts   # cache/jev-1.13.vocab.json + cache/o200k_base.tiktoken → ../data/jev_*.bin.zst
+node --experimental-transform-types --import ../../../scripts/node-runtime-loader.mjs \
+  pack-jev.ts   # cache/jev-1.13.vocab.json + cache/o200k_base.tiktoken → ../data/jev_*.bin.zst
 ```

@@ -1,14 +1,14 @@
 ---
-description: Do not use real timers (Bun.sleep, setTimeout, setInterval) in tests — drive time with fake timers instead
+description: Do not use real timers (bun.sleep, setTimeout, setInterval) in tests — drive time with fake timers instead
 condition:
-  - "Bun\\.sleep\\("
+  - "bun\\.sleep\\("
   - "\\bsetInterval\\("
   - "\\bsetTimeout\\("
 scope: "tool:edit(*.test.ts), tool:write(*.test.ts)"
 interruptMode: never
 ---
 
-**Avoid real wall-clock timers in test files.** `Bun.sleep(...)`, `setTimeout(...)`, and `setInterval(...)` bind duration to real time → fixed latency each invocation; CI pays every run. “Long enough” sleeps guess at and mask races; under load, races resurface and flake. Fixed waits hide the awaited condition, so failures point to a timeout, not the cause.
+**Avoid real wall-clock timers in test files.** `bun.sleep(...)`, `setTimeout(...)`, and `setInterval(...)` bind duration to real time → fixed latency each invocation; CI pays every run. “Long enough” sleeps guess at and mask races; under load, races resurface and flake. Fixed waits hide the awaited condition, so failures point to a timeout, not the cause.
 
 ## Avoid
 
@@ -16,7 +16,7 @@ interruptMode: never
 test("debounce fires once", async () => {
 	const fn = debounce(handler, 100);
 	fn();
-	await Bun.sleep(150); // real delay — slow and timing-dependent
+	await bun.sleep(150); // real delay — slow and timing-dependent
 	expect(handler).toHaveBeenCalledTimes(1);
 });
 ```
@@ -26,7 +26,7 @@ test("debounce fires once", async () => {
 Drive time deterministically with fake timers:
 
 ```typescript
-import { expect, test, vi } from "bun:test";
+import { expect, test, vi } from "@oh-my-pi/pi-utils/test-runtime";
 
 test("debounce fires once", () => {
 	vi.useFakeTimers();

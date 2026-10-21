@@ -142,7 +142,7 @@ import * as os from "node:os";
 
 ### File I/O
 
-Prefer Bun:
+Prefer the compatibility layer:
 
 ```typescript
 const text = await bun.file(path).text();
@@ -150,7 +150,7 @@ const data = await bun.file(path).json();
 await bun.write(path, data); // auto-creates parent dirs
 ```
 
-Use `node:fs/promises` for directory ops (`fs.mkdir`, `fs.rm`, `fs.readdir`) — Bun has no native directory APIs. Avoid sync APIs in async flows; use sync only when forced by a synchronous interface.
+Use `node:fs/promises` for directory ops (`fs.mkdir`, `fs.rm`, `fs.readdir`) — the compatibility layer has no directory APIs. Avoid sync APIs in async flows; use sync only when forced by a synchronous interface.
 
 **Anti-patterns:**
 
@@ -187,7 +187,7 @@ Manual reader loops only when the protocol requires it (SSE, streaming JSON-RPC)
 ### Misc
 
 - **Sleep**: `await bun.sleep(ms)` (keeps the loop referenced), never a bare `new Promise(r => setTimeout(r, ms))`.
-- **Password hashing**: `Bun.password.hash(pw, "bcrypt")` / `Bun.password.verify(pw, hash)` is not exposed on Node — use `node:crypto` (`scrypt`, `timingSafeEqual`).
+- **Password hashing**: use `node:crypto` (`scrypt`, `timingSafeEqual`); the Bun-style `password.hash/verify` helpers are not exposed.
 - **String width**: `bun.stringWidth(text, { countAnsiEscapeCodes?: false })`.
 - **Wrapping**: `bun.wrapAnsi(text, width, { wordWrap, hard, trim })`.
 
@@ -314,7 +314,7 @@ Test the contract the system exposes — not the easiest internal detail to asse
 - Prefer contract-level tests over implementation details. Avoid asserting internal helper wiring, field assignment, singleton identity, incidental ordering, prompt boilerplate, or passthrough option forwarding unless another component depends on that exact detail.
 - Don't duplicate coverage across abstraction levels. If an integration test already proves the behavior, drop the narrower unit test that restates it through mocks.
 - Tests **must be full-suite safe**, not just file-local safe. No long-lived file-wide mutations of `bun.*`, `process.platform`, or `process.env` when a narrower seam exists. Prefer per-test `vi.spyOn(...)` with `vi.restoreAllMocks()` in `afterEach`. A test that passes alone but poisons later files is broken.
-- **Never use `mock.module()`**. Bun's `mock.module()` mutates the global module registry and leaks across files ([oven-sh/bun#12823](https://github.com/oven-sh/bun/issues/12823)). Use `spyOn` on the imported module object instead. For pass deps, import the pass and spy on `.run`. For package deps, namespace-import and spy on the exported function.
+- **Never use module-registry mocks** (Bun's `mock.module()`, or any API that mutates a global module registry): they leak across files ([oven-sh/bun#12823](https://github.com/oven-sh/bun/issues/12823)). Use `spyOn` on the imported module object instead. For pass deps, import the pass and spy on `.run`. For package deps, namespace-import and spy on the exported function.
 - For lifecycle/stateful code, prefer one test per invariant or transition over several tiny tests asserting one field each from the same transition.
 - For error handling, trigger the real failure path and assert the surfaced contract — don't instantiate error classes directly or inspect internal metadata.
 - Smoke tests are acceptable only when they catch a failure mode narrower tests would miss. "Package boots" or "command starts" alone is not enough.

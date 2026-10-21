@@ -22,7 +22,7 @@
  * (override via `OMP_E2E_GATEWAY_URL`) AND the bearer token file exists at
  * `~/.oyp/auth-gateway.token`.
  *
- * To run: `bun --cwd packages/ai test test/auth-gateway-anthropic-to-codex-caching.test.ts`
+ * To run: `pnpm --dir packages/ai test -- test/auth-gateway-anthropic-to-codex-caching.test.ts`
  */
 import { describe, expect, it } from "@oh-my-pi/pi-utils/test-runtime";
 import { AUTH_GATEWAY_E2E_URL, checkAuthGatewayE2EAvailable } from "./helpers";

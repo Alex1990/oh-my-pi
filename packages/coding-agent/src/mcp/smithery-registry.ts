@@ -357,7 +357,7 @@ function toSearchResult(entry: SmitherySearchEntry, details: SmitheryServerDetai
 	const requiredInputs = getSchemaInputs(selected.connection.configSchema);
 	const warnings: string[] = [];
 	if (config.type === "stdio") {
-		warnings.push("Runs through Smithery CLI at runtime (`bunx @smithery/cli run ...`).");
+		warnings.push("Runs through Smithery CLI at runtime (`npx @smithery/cli run ...`).");
 	}
 	if (requiredInputs.length > 0) {
 		warnings.push("Provider requires configuration input defined by Smithery schema.");

@@ -48,7 +48,7 @@ const RESTART_STOP_TIMEOUT_MS = 5_000;
 const HEALTH_CHECK_BUDGET_MS = 15_000;
 /**
  * Hard cap on one probe attempt: the probe's own HTTP budget plus the connect
- * window that runs before that budget starts. `rawHttpGet` awaits `Bun.connect`
+ * window that runs before that budget starts. `rawHttpGet` awaits `connect()`
  * before its timer can settle the call, so without this cap a stalled TCP
  * connect outlives the whole health budget.
  */
@@ -355,7 +355,7 @@ async function checkSharedBrowserReachable(scope: SharedTargetScope, deps: Share
 		 * stalled connect, a non-2xx status, an answer slower than the probe's
 		 * own 1.5 s budget, or an attempt the cap abandoned — `answered` only on
 		 * a 2xx, and `unknown` when the health budget was already spent.
-		 * `rawHttpGet` awaits `Bun.connect` before its own timer can settle the
+		 * `rawHttpGet` awaits `connect()` before its own timer can settle the
 		 * call, so the cap — not the probe's HTTP budget — is what a stalled
 		 * connect runs into.
 		 */

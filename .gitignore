@@ -33,8 +33,6 @@ target/
 
 # OS
 *.tmp
-# Bundler scratch files left in cwd when a build is killed mid-write
-*.bun-build
 .DS_Store
 
 # Logs & profiling

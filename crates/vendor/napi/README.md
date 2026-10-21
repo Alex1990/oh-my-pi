@@ -57,4 +57,4 @@ upstream covers it) and regenerate them against the new release.
 Restore the `Cargo.toml` and `CHANGELOG.md` edits above, bump `version` in
 `BUILD.bazel` and sync its `crate_features` with
 `cargo tree -p pi-natives -i napi -e normal -f '{p} [{f}]'`, then run
-`cargo update -p napi -p napi-derive` and `bun scripts/gen-bazel-lock.ts`.
+`cargo update -p napi -p napi-derive` and `pnpm run gen:bazel-lock`.

@@ -306,7 +306,7 @@ export function parseGitUrl(source: string): GitSource | null {
 	// Accept: explicit protocol URL, `git:` shorthand, or scp-like SSH
 	// (`git@host:user/repo`). The scp form is unambiguous — no local path
 	// starts with `git@` — and matches the syntax that `git clone` itself
-	// accepts, which `bun install` forwards through.
+	// accepts, which the installer forwards through.
 	if (!hasGitPrefix && !/^(https?|ssh|git):\/\//i.test(url) && !/^git@[^:]+:.+\/.+/i.test(url)) {
 		return null;
 	}

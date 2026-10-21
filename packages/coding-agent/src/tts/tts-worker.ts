@@ -31,10 +31,11 @@ import type { TtsTransport, TtsWorkerInbound } from "./tts-protocol";
 
 const TTS_TASK = "text-to-speech";
 // kokoro-js is NEVER a dependency of the main tree: its transformers@3.8.1 +
-// onnxruntime-node@1.21 graph must not pollute it (1.21 segfaults Bun on session
-// creation). It is lazily `bun install`ed into a side runtime dir on first use,
-// with onnxruntime-node force-pinned to the Bun-safe version the rest of the
-// stack runs. Bump KOKORO_VERSION to roll the cached runtime + model wrapper.
+// onnxruntime-node@1.21 graph must not pollute it (1.21 crashed on session
+// creation under the previous runtime). It is lazily installed into a side
+// runtime dir on first use, with onnxruntime-node force-pinned to the
+// known-good version the rest of the stack runs. Bump KOKORO_VERSION to roll
+// the cached runtime + model wrapper.
 
 const ttsDevicePreference = resolveTinyModelDevicePreference();
 const ttsDtypeOverride = resolveTinyModelDtypeOverride();
@@ -124,7 +125,7 @@ function configureTransformers(transformers: TransformersEnv): void {
 }
 
 /**
- * Lazily `bun install` `kokoro-js` into a side runtime dir (idempotent, version-
+ * Lazily install `kokoro-js` into a side runtime dir (idempotent, version-
  * keyed) and return its module, with the `@huggingface/transformers` instance it
  * loads configured (cache dir + quiet logging). `kokoro-js` is NEVER a dependency
  * of the main tree: its transformers@3.8.1 graph pulls onnxruntime-node@1.21,

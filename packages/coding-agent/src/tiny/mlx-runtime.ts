@@ -8,7 +8,8 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
  * Side-installed Python runtime for the MLX tiny-model backend: a private venv
  * under the agent cache holding a pinned `mlx-lm`. Installed on first use the
  * same way the compiled binary side-installs `@huggingface/transformers`
- * (`ensureRuntimeInstalled`), just with `uv`/`python3 -m venv` instead of bun.
+ * (`ensureRuntimeInstalled`), just with `uv`/`python3 -m venv` instead of
+ * pnpm/npm.
  */
 
 /** Pinned `mlx-lm` release; the venv directory is keyed by it so bumps reinstall cleanly. */

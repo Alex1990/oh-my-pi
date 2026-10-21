@@ -824,9 +824,9 @@ public licenses.
 
 Creative Commons may be contacted at creativecommons.org.
 
-BUN / NPM DEPENDENCY INVENTORY
+NPM DEPENDENCY INVENTORY
 ==============================
-This inventory is traversed from bun.lock, not from the host node_modules tree.
+This inventory is traversed from pnpm-lock.yaml, not from the host node_modules tree.
 The locked all-target package names remain stable when a platform leaf is not
 installed on this host. Package license and NOTICE/ThirdPartyNotices payloads
 are read from the frozen install; generation fails explicitly when an

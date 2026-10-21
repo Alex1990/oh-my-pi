@@ -11,7 +11,7 @@ afterEach(() => {
 /**
  * Build a gate over an injected clock and a counting sleep so the test drives
  * the gate logic without spying on process-global `Date.now`/`scheduler.wait`.
- * Those globals are shared across files, so under concurrent `bun test` a
+ * Those globals are shared across files, so under a concurrent test run a
  * sibling file's `vi.restoreAllMocks()` could wipe the spies mid-run — the
  * exact race that made the previous singleton-based test flake.
  */

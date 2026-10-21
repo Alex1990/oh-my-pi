@@ -8,7 +8,7 @@
  *   pattern as tool-views.generated.js). Re-run this script after touching
  *   anything under `extension/` and commit the regenerated assets.
  *
- * Dependency-free on purpose: CI runs this without `bun install`.
+ * Dependency-free on purpose: CI runs this without a package install.
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";

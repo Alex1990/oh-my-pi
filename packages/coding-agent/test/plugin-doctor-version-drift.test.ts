@@ -82,12 +82,13 @@ describe("PluginManager.doctor version drift", () => {
 
 		const checks = await new PluginManager(tmpRoot).doctor({ fix: true });
 
-		// Targeted repair: bare `bun install` (no global `--force` that would
-		// re-extract sibling plugins).
-		expect(spawnSpy).toHaveBeenCalledWith(
-			[process.execPath, "install"],
-			expect.objectContaining({ cwd: pluginsDir }),
-		);
+		// Targeted repair: a bare `install` through the resolved package manager
+		// (no global `--force`, which would re-extract sibling plugins).
+		const [spawnArgs, spawnOptions] = spawnSpy.mock.calls.at(-1)!;
+		const argv = spawnArgs as string[];
+		expect(path.basename(argv[0]!)).toMatch(/^(?:pnpm|npm)(?:\.cmd|\.exe)?$/i);
+		expect(argv.slice(1)).toEqual(["install"]);
+		expect(spawnOptions).toEqual(expect.objectContaining({ cwd: pluginsDir }));
 		expect(checks.find(c => c.name === `plugin:${name}:version`)).toEqual({
 			name: `plugin:${name}:version`,
 			status: "ok",

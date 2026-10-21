@@ -42,9 +42,9 @@ export function resolveCrossBuild(value: string | undefined): CrossBuild | null 
 }
 
 // Transformers.js is an optional, native-heavy dependency that is never bundled
-// into the binary; the tiny-model worker `bun install`s it into a runtime cache
-// on first use. The `catalog:` spec cannot be resolved from inside the compiled
-// bunfs (issue #1763), so embed the concrete installed version here for the
+// into the binary; the tiny-model worker installs it into a runtime cache on
+// first use. The `catalog:` spec cannot be resolved from inside the compiled
+// bundle (issue #1763), so embed the concrete installed version here for the
 // worker to pin its runtime install against.
 const transformersManifest: unknown = createRequire(import.meta.url)("@huggingface/transformers/package.json");
 if (

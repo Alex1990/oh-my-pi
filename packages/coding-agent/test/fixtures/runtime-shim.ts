@@ -1,7 +1,8 @@
 /**
  * Preload for child processes that run repository test scripts written against
- * Bun's runtime globals. It exposes the two globals those scripts use (`bun`
- * and `serve`) on top of Node built-ins, so the scripts stay runtime-agnostic.
+ * the compatibility globals. It exposes the two globals those scripts use
+ * (`bun` and `serve`) on top of Node built-ins, so the scripts stay
+ * runtime-agnostic.
  */
 import { spawn as nodeSpawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";

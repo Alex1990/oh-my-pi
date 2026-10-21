@@ -12,12 +12,12 @@ import {
 	logger,
 	normalizePathForComparison,
 } from "@oh-my-pi/pi-utils";
-import { JSONC } from "@oh-my-pi/pi-utils/node-runtime";
 import { resolveActiveProjectRegistryPath } from "../../discovery/helpers";
 import { loadExtensions } from "../extensions/loader";
-import { runPackageManagerCli } from "./package-manager-cli";
 import { type GitSource, parseGitUrl } from "./git-url";
+import { type LockfileSnapshot, readLockResolution, restoreLockfiles, snapshotLockfiles } from "./lockfile";
 import { resolvePluginManifestEntries } from "./loader";
+import { runPackageManagerCli } from "./package-manager-cli";
 import { getInstalledPluginsRegistryPath, readInstalledPluginsRegistry } from "./marketplace/registry";
 import { parsePluginId } from "./marketplace/types";
 import { extractPackageName, parsePluginSpec } from "./parser";
@@ -65,9 +65,9 @@ function validatePackageName(name: string): void {
 /**
  * Validate a git install spec — accepts `:`, `/`, `#`, `+`, `.`, `-`, `_`,
  * `~`, `@` (which would all fail {@link validatePackageName}) but rejects
- * shell metacharacters so the spec stays safe when forwarded to bun install.
- * `bun.spawn` does not invoke a shell, but defense-in-depth keeps things
- * obvious for future readers.
+ * shell metacharacters so the spec stays safe when forwarded to the
+ * package-manager CLI. `bun.spawn` does not invoke a shell, but
+ * defense-in-depth keeps things obvious for future readers.
  */
 function validateGitSpec(spec: string): void {
 	if (SHELL_METACHARS.test(spec)) {
@@ -76,20 +76,19 @@ function validateGitSpec(spec: string): void {
 }
 
 function gitInstallSpec(original: string, source: GitSource): string {
-	// bun resolves GitHub specs natively (shorthand → tarball, inline-credential
-	// URLs → git clone with those credentials); forward them untouched.
+	// pnpm/npm resolve `github:` shorthand, GitHub URLs, and `git+ssh://` URLs
+	// natively; forward GitHub specs untouched.
 	if (source.host === "github.com") {
 		return original;
 	}
 	const withRef = !source.ref || source.repo.includes("#") ? source.repo : `${source.repo}#${source.ref}`;
 	if (/^(https?|ssh):\/\//i.test(withRef) && !/^git\+/i.test(withRef)) {
-		// bun auto-detects git only for GitHub-hosted URLs — prefix `git+` so any
-		// git host is cloned via git instead of being misread as an npm tarball
-		// (e.g. private CodeHub instances).
+		// Prefix `git+` so any host is cloned through git instead of being
+		// misread as an npm tarball (e.g. private CodeHub instances).
 		//
 		// Inline userinfo credentials (`https://user:token@host/...`) are
-		// deliberately not forwarded: `bun install` persists the spec verbatim
-		// into plugins/package.json and bun.lock, and a long-lived repository
+		// deliberately not forwarded: the installer persists the spec verbatim
+		// into plugins/package.json and its lockfile, and a long-lived repository
 		// token must not land in those user files. Private repos authenticate
 		// via SSH, a git credential helper, or .netrc instead.
 		return `git+${withRef}`;
@@ -108,24 +107,6 @@ function findGitPackageName(source: GitSource, deps: Record<string, string>): st
 		}
 	}
 	return undefined;
-}
-
-/**
- * Read a plugin's resolved identity from `plugins/bun.lock` — e.g.
- * `ida-mcp@github:HexRaysSA/ida-mcp#<commit>` for git sources, `foo@1.2.3` for
- * npm. Returns `undefined` when the lockfile or the entry is missing.
- */
-async function readBunLockResolution(name: string): Promise<string | undefined> {
-	let text: string;
-	try {
-		text = await bun.file(path.join(getPluginsDir(), "bun.lock")).text();
-	} catch (err) {
-		if (isEnoent(err)) return undefined;
-		throw err;
-	}
-	const lock = JSONC.parse(text) as { packages?: Record<string, unknown> } | null;
-	const entry = lock?.packages?.[name];
-	return Array.isArray(entry) && typeof entry[0] === "string" ? entry[0] : undefined;
 }
 
 interface PluginPackageSnapshot {
@@ -398,23 +379,19 @@ export class PluginManager {
 	async #rollbackFailedInstall(
 		actualName: string | undefined,
 		packageJsonBefore: string,
-		bunLockBefore: string | null,
+		lockfilesBefore: LockfileSnapshot,
 		snapshot: PluginPackageSnapshot | null,
 	): Promise<void> {
 		await bun.write(getPluginsPackageJson(), packageJsonBefore);
 
-		// Restore (or remove) bun's lockfile. Without this, a `bun install` +
-		// `bun update` pair that successfully rewrote `bun.lock` would leave the
-		// rejected commit pinned even when validation rolls everything else back.
-		const bunLockPath = path.join(getPluginsDir(), "bun.lock");
-		if (bunLockBefore === null) {
-			await fs.promises.rm(bunLockPath, { force: true });
-		} else {
-			await bun.write(bunLockPath, bunLockBefore);
-		}
+		// Restore (or remove) the installers' lockfiles. Without this, a
+		// successful install + update pair that rewrote `pnpm-lock.yaml` or
+		// `package-lock.json` would leave the rejected commit pinned even when
+		// validation rolls everything else back.
+		await restoreLockfiles(lockfilesBefore);
 
 		// `actualName` may be undefined when the install failed before the dep
-		// key was resolved — package.json + bun.lock restoration above is the
+		// key was resolved — package.json + lockfile restoration above is the
 		// complete rollback in that case.
 		if (!actualName) {
 			return;
@@ -501,19 +478,11 @@ export class PluginManager {
 		}
 		const pkgJsonPath = getPluginsPackageJson();
 		const packageJsonBefore = await bun.file(pkgJsonPath).text();
-		// Snapshot bun's lockfile so the rollback path can restore the pin. Every
-		// step below — `bun install`, `bun update`, feature/extension validation,
-		// runtime-config save — must either complete entirely or leave the
-		// lockfile pointing at its pre-install state. Absent before install means
-		// "remove on rollback".
-		const bunLockPath = path.join(getPluginsDir(), "bun.lock");
-		let bunLockBefore: string | null;
-		try {
-			bunLockBefore = await bun.file(bunLockPath).text();
-		} catch (err) {
-			if (!isEnoent(err)) throw err;
-			bunLockBefore = null;
-		}
+		// Snapshot the package-manager lockfiles so the rollback path can restore
+		// the pin. Every step below — install, update, feature/extension
+		// validation, runtime-config save — must either complete entirely or
+		// leave the lockfiles at their pre-install state.
+		const lockfilesBefore = await snapshotLockfiles(getPluginsDir());
 		const depsBefore = await this.#readDeps(pkgJsonPath);
 		const packageInstallSpec = gitSource ? gitInstallSpec(spec.packageName, gitSource) : spec.packageName;
 		const existingActualName = gitSource
@@ -522,25 +491,25 @@ export class PluginManager {
 		const packageSnapshot = await this.#snapshotInstalledPackage(existingActualName);
 
 		// `actualName` is hoisted so the rollback handler can clean up the right
-		// node_modules entry even if a step between `bun install` and the final
+		// node_modules entry even if a step between the install and the final
 		// validation throws.
 		let actualName: string | undefined;
 		try {
-			// Bun treats a dependency replacement from `repo#old-ref` to the same
-			// package at `repo`/`repo#new-ref` as a self-edge and bails with
-			// DependencyLoop. Remove only the stale manifest edge; rollback restores
-			// the original package.json and node_modules snapshot on failure.
+			// A dependency replacement from `repo#old-ref` to the same package at
+			// `repo`/`repo#new-ref` can leave a self-edge the installer rejects.
+			// Remove only the stale manifest edge; rollback restores the original
+			// package.json and node_modules snapshot on failure.
 			if (gitSource && existingActualName) {
 				const installedSource = parseGitUrl(depsBefore[existingActualName] ?? "");
 				if (installedSource && installedSource.ref !== gitSource.ref) {
 					await this.#removeDependencyEntries(pkgJsonPath, [existingActualName]);
 				}
 			}
-			// `bun install` appends a manifest edge rather than replacing it, so
+			// The installer appends a manifest edge rather than replacing it, so
 			// reinstalling over a stale, malformed, or duplicated entry leaves bad
-			// keys and the next install dies with DependencyLoop. Prune the edges
-			// first; rollback restores the original package.json on failure, and
-			// the parse/rewrite also collapses any pre-existing duplicates (#12296).
+			// keys and the next install fails. Prune the edges first; rollback
+			// restores the original package.json on failure, and the parse/rewrite
+			// also collapses any pre-existing duplicates (#12296).
 			if (!gitSource) {
 				const npmName = extractPackageName(spec.packageName);
 				const staleNames: string[] = [];
@@ -555,23 +524,17 @@ export class PluginManager {
 			}
 
 			// Step 1: write the spec into plugins/package.json + node_modules.
-			// npm specs resolve through bun's manifest (packument) cache, which honors
-			// the registry's Cache-Control TTL and so keeps serving a stale version
-			// after a new one is published — an uninstall/reinstall or an explicit
-			// `pkg@newVersion` then resolves the old version or fails outright (#11634).
-			// `--no-cache` re-fetches the manifest while leaving the tarball cache
-			// intact. Git specs re-resolve on the `update` below.
+			// npm specs resolve through the manager's manifest (packument) cache,
+			// which honors the registry's Cache-Control TTL and can keep serving a
+			// stale version after a new one is published; an uninstall/reinstall or
+			// an explicit `pkg@newVersion` then resolves the old version or fails
+			// outright (#11634). Git specs re-resolve on the `update` below.
 			const install = await runPackageManagerCli(
-				[
-					"install",
-					...(gitSource ? [] : ["--no-cache"]),
-					...(options.force ? ["--force"] : []),
-					packageInstallSpec,
-				],
+				["install", ...(options.force ? ["--force"] : []), packageInstallSpec],
 				getPluginsDir(),
 			);
 			if (install.exitCode !== 0) {
-				throw new Error(`bun install failed: ${install.stderr}`);
+				throw new Error(`installing ${packageInstallSpec} failed: ${install.stderr}`);
 			}
 			// Resolve actual package name. npm specs encode the name (strip version);
 			// git specs do not, so diff plugins/package.json deps to find the new entry.
@@ -686,7 +649,7 @@ export class PluginManager {
 				await this.#rollbackFailedInstall(
 					actualName ?? existingActualName,
 					packageJsonBefore,
-					bunLockBefore,
+					lockfilesBefore,
 					packageSnapshot,
 				);
 			} catch (rollbackErr) {
@@ -709,7 +672,7 @@ export class PluginManager {
 	 * @returns The previously installed version, the upgraded plugin, and whether
 	 * anything changed — a git plugin on a moving ref can pick up new commits
 	 * without bumping its `package.json` version, so this also compares the
-	 * `bun.lock` resolution.
+	 * lockfile resolution.
 	 */
 	async upgrade(name: string): Promise<{ from: string | undefined; plugin: InstalledPlugin; changed: boolean }> {
 		validatePackageName(name);
@@ -737,13 +700,13 @@ export class PluginManager {
 			if (!isEnoent(err)) throw err;
 		}
 
-		const resolutionBefore = await readBunLockResolution(name);
+		const resolutionBefore = await readLockResolution(getPluginsDir(), name);
 		const source = parseGitUrl(recorded) ? recorded : name;
 		const plugin = await this.install(
 			source,
 			previous ? { preserveState: { enabled: previous.enabled, enabledFeatures: previous.enabledFeatures } } : {},
 		);
-		const resolutionAfter = await readBunLockResolution(name);
+		const resolutionAfter = await readLockResolution(getPluginsDir(), name);
 		const changed = from !== plugin.version || resolutionBefore !== resolutionAfter;
 		return { from, plugin, changed };
 	}
@@ -760,8 +723,9 @@ export class PluginManager {
 			throw new Error(`npm uninstall failed for ${name}`);
 		}
 
-		// Linked plugins have no package.json dependency, so Bun has no entry to
-		// remove. Clean the runtime path explicitly after Bun updates its lockfile.
+		// Linked plugins have no package.json dependency, so the manager has no
+		// entry to remove. Clean the runtime path explicitly after the manager
+		// updates its lockfile.
 		await fs.promises.rm(path.join(getPluginsNodeModules(), name), { recursive: true, force: true });
 
 		// Remove from runtime config
@@ -1213,18 +1177,11 @@ export class PluginManager {
 	 * then confirming node_modules matches the lock-recorded version. Removing
 	 * the package first guarantees a real reinstall — a stale or already-satisfied
 	 * range cannot no-op — while leaving sibling plugins untouched, unlike a
-	 * global `bun install --force`, which re-extracts every dependency.
+	 * global forced install, which re-extracts every dependency.
 	 */
 	async #reconcileVersionDrift(name: string, expected: string): Promise<boolean> {
 		const packageJsonBefore = await bun.file(getPluginsPackageJson()).text();
-		const bunLockPath = path.join(getPluginsDir(), "bun.lock");
-		let bunLockBefore: string | null;
-		try {
-			bunLockBefore = await bun.file(bunLockPath).text();
-		} catch (err) {
-			if (!isEnoent(err)) throw err;
-			bunLockBefore = null;
-		}
+		const lockfilesBefore = await snapshotLockfiles(getPluginsDir());
 		const snapshot = await this.#snapshotInstalledPackage(name);
 		let fixed = false;
 		try {
@@ -1242,7 +1199,7 @@ export class PluginManager {
 		} finally {
 			try {
 				if (!fixed) {
-					await this.#rollbackFailedInstall(name, packageJsonBefore, bunLockBefore, snapshot);
+					await this.#rollbackFailedInstall(name, packageJsonBefore, lockfilesBefore, snapshot);
 				}
 			} finally {
 				await this.#cleanupSnapshot(snapshot);

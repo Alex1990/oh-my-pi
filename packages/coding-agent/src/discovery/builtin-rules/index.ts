@@ -2,8 +2,8 @@
  * Bundled default rules shipped with the coding agent.
  *
  * Each markdown source is embedded via `with { type: "text" }` so it survives
- * `bun build --compile` (the compiled binary ships no loose rule files; only
- * the embedded text). The native source/tarball installs read the same modules.
+ * bundling (the bundled CLI ships no loose rule files; only the embedded text).
+ * The native source/tarball installs read the same modules.
  *
  * Registered by the lowest-priority `builtin-defaults` rule provider so any
  * user/project/tool rule with the same name overrides the bundled copy.

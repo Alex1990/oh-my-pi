@@ -16,7 +16,6 @@ import type {
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { connect, listen, type NodeSocket } from "@oh-my-pi/pi-utils/net-compat";
 
-
 interface DapSpawnOptions {
 	adapter: DapResolvedAdapter;
 	cwd: string;
@@ -325,7 +324,7 @@ export class DapClient {
 		);
 		try {
 			const rawSocket = await Promise.race([connPromise, timeoutPromise]);
-			const { readable, writeSink, socket } = wrapBunSocket(rawSocket);
+			const { readable, writeSink, socket } = wrapNodeSocket(rawSocket);
 			const client = new DapClient(adapter, cwd, proc, { readable, writeSink, socket });
 			proc.exited.then(() => client.#handleProcessExit());
 			void client.#startMessageReader();
@@ -933,7 +932,7 @@ interface SocketTransport {
 	socket: { end(): void };
 }
 
-/** Adapt a Bun.Socket to DapWriteSink. */
+/** Adapt a NodeSocket to DapWriteSink. */
 function socketToSink(socket: NodeSocket): DapWriteSink {
 	return {
 		write(data: string | Uint8Array) {
@@ -1013,7 +1012,7 @@ export async function connectSocket(options: { unix: string }, timeoutMs: number
 			},
 		},
 	}).catch(err => {
-		// Bun.connect rejects the returned promise on synchronous connect
+		// `connect()` rejects the returned promise on synchronous connect
 		// failures (e.g. ENOENT) without always firing the `error` handler.
 		if (!opened) {
 			reject(err);
@@ -1023,8 +1022,8 @@ export async function connectSocket(options: { unix: string }, timeoutMs: number
 	return promise;
 }
 
-/** Wrap an already-connected Bun.Socket into DAP transport streams. */
-function wrapBunSocket(rawSocket: NodeSocket): SocketTransport {
+/** Wrap an already-connected NodeSocket into DAP transport streams. */
+function wrapNodeSocket(rawSocket: NodeSocket): SocketTransport {
 	let streamController: ReadableStreamDefaultController<Uint8Array>;
 
 	const readable = new ReadableStream<Uint8Array>({

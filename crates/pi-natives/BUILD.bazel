@@ -111,7 +111,7 @@ rust_binary(
 # link args are hardcoded below, and the OAuth relay executable and the
 # `:syntax_set` genrule output are separate targets embedded as compile data.
 # TypeScript typedef regeneration stays a cargo-side dev flow
-# (`bun --cwd packages/natives run build:bindings`); index.js/index.d.ts are
+# (`pnpm --dir packages/natives run build:bindings`); index.js/index.d.ts are
 # committed, so artifact builds never need the napi CLI.
 rust_shared_library(
     name = "pi_natives",

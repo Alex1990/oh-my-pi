@@ -122,13 +122,13 @@ export default defineConfig({
 		testTimeout: 120_000,
 		hookTimeout: 60_000,
 		pool: "forks",
-		// Bun's JS stack is larger than V8's default; the inline-lexer
-		// stress tests recurse through thousands of nested delimiters.
+		// V8's default JS stack is smaller than the previous runtime's; the
+		// inline-lexer stress tests recurse through thousands of nested
+		// delimiters.
 		poolOptions: {
 			// `--experimental-vm-modules` lets `vm`-compiled eval code resolve
-			// dynamic imports; Bun's eval allowed them without a flag. The source
-			// loader is inherited by worker_threads so `.ts` workers can resolve
-			// extensionless imports.
+			// dynamic imports; the source loader is inherited by worker_threads
+			// so `.ts` workers can resolve extensionless imports.
 			forks: {
 				execArgv: [
 					"--stack-size=4096",

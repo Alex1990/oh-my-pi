@@ -4,7 +4,7 @@
  * Orchestrates benchmark runs by launching RPC clients, sending prompts,
  * and verifying results. Supports parallel runs for reliability measurement.
  */
-/// <reference types="./bun-imports.d.ts" />
+/// <reference types="./assets.d.ts" />
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { EditStore, hashlineCountOps, hashlineFormatHeader } from "@oh-my-pi/pi-natives";

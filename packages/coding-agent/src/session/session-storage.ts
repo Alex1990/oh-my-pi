@@ -539,11 +539,11 @@ const TEST_SESSION_OWNERS_DIR_ENV = "PI_TEST_SESSION_OWNERS_DIR";
 
 /**
  * A test run never touches the real state dir for session ownership leases:
- * bun test processes use one per-user directory in the OS temp dir. It is
+ * test processes use one per-user directory in the OS temp dir. It is
  * exported when this module loads, before a test can spawn an omp process,
  * so spawned processes meet the same leases. Session ids are unique, so
- * concurrent test processes can share it, and it is reused across runs (bun
- * test fires no exit hook to remove it).
+ * concurrent test processes can share it, and it is reused across runs (Vitest
+ * fires no exit hook to remove it).
  */
 function testSessionOwnersDir(): string | undefined {
 	const exported = process.env[TEST_SESSION_OWNERS_DIR_ENV];

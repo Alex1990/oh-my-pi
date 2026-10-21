@@ -23,6 +23,7 @@
 
 ### Fixed
 
+- Fixed git plugin upgrades and rollback reading the removed `plugins/bun.lock`; both now follow the pnpm/npm lockfile the installer writes
 - Fixed first-launch onboarding routing users into provider sign-in (OpenAI first): startup never recommends a login, even on a fresh install without credentials; sign-in opens only through `/login` or an explicit setup run
 - Fixed the bundled CLI failing at startup with `Cannot find module './browser/prelude-definition'` by loading the browser and computer prelude assets through static imports instead of runtime `require`
 - Fixed `yield` reporting success while silently omitting unsupported root fields; such calls are now rejected with an error naming the fields ([#16317](https://github.com/can1357/oh-my-pi/issues/16317))

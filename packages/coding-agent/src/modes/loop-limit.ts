@@ -30,7 +30,7 @@ const TIME_UNITS_MS = new Map<string, number>([
 ]);
 
 const LOOP_USAGE =
-	"Usage: /loop [count|duration] [--while|--until '<command>'] [prompt]. Examples: /loop 10, /loop 10m, /loop 20 --until 'bun test' fix the failing tests.";
+	"Usage: /loop [count|duration] [--while|--until '<command>'] [prompt]. Examples: /loop 10, /loop 10m, /loop 20 --until 'pnpm test' fix the failing tests.";
 
 /**
  * Flag → `until` polarity. `--while` continues while the command succeeds;
@@ -132,7 +132,7 @@ function takeLoopCondition(input: string): { condition?: LoopConditionConfig; re
 		const value = readShellWord(valueText);
 		if (value === "unterminated") return `${name} has an unterminated quote.`;
 		if (value === undefined || !value.value.trim() || valueText.trim().startsWith("-")) {
-			return `${name} needs a shell command. Quote it when it contains spaces: /loop ${name} 'bun test'.`;
+			return `${name} needs a shell command. Quote it when it contains spaces: /loop ${name} 'pnpm test'.`;
 		}
 		condition = { command: value.value.trim(), until };
 		rest = value.rest;
