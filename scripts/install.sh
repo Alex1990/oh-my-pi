@@ -353,7 +353,7 @@ install_binary() {
         VERSION=""
         echo "Fetching latest release..."
     fi
-    ASSET_NAME="oyp-${TARGET}"
+    ASSET_NAME="oyp-${TARGET}.tar.gz"
     ASSET_URL="${RELEASE_BASE}/${RELEASE_PATH}/${ASSET_NAME}"
     SUMS_URL="${RELEASE_BASE}/${RELEASE_PATH}/SHA256SUMS.txt"
     if ! RELEASE_SUMS=$(curl -fsSL --connect-timeout 10 --max-time 60 "$SUMS_URL"); then
@@ -362,10 +362,8 @@ install_binary() {
     fi
     EXPECTED_SHA256=$(printf '%s\n' "$RELEASE_SUMS" |
         awk -v name="$ASSET_NAME" '$1 ~ /^[0-9a-fA-F]{64}$/ && ($2 == name || $2 == "*" name) { print tolower($1); exit }')
-    CLI_SHA256=$(printf '%s\n' "$RELEASE_SUMS" |
-        awk '$1 ~ /^[0-9a-fA-F]{64}$/ && ($2 == "cli.js" || $2 == "*cli.js") { print tolower($1); exit }')
-    if [ -z "$EXPECTED_SHA256" ] || [ -z "$CLI_SHA256" ]; then
-        echo "No checksum for ${ASSET_NAME} or cli.js in ${SUMS_URL}"
+    if [ -z "$EXPECTED_SHA256" ]; then
+        echo "No checksum for ${ASSET_NAME} in ${SUMS_URL}"
         exit 1
     fi
     if [ -n "$VERSION" ]; then
@@ -375,11 +373,11 @@ install_binary() {
     fi
 
     mkdir -p "$INSTALL_DIR"
-    # Download next to the destinations and move them into place only once the
-    # checksums match, so a bad download never replaces a working oyp.
+    # Download next to the destination and unpack into a scratch tree; only a
+    # verified archive replaces the working install.
     DOWNLOAD_PATH="${INSTALL_DIR}/.oyp.download.$$"
-    CLI_DOWNLOAD_PATH="${INSTALL_DIR}/.cli.download.$$"
-    trap 'rm -f "$DOWNLOAD_PATH" "$CLI_DOWNLOAD_PATH"' EXIT
+    EXTRACT_DIR="${INSTALL_DIR}/.oyp.extract.$$"
+    trap 'rm -rf "$DOWNLOAD_PATH" "$EXTRACT_DIR"' EXIT
     echo "Downloading ${ASSET_NAME}..."
     curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$ASSET_URL" -o "$DOWNLOAD_PATH"
     ACTUAL_SHA256="$(sha256_of "$DOWNLOAD_PATH")"
@@ -387,27 +385,20 @@ install_binary() {
         echo "Checksum mismatch for ${ASSET_NAME}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
         exit 1
     fi
-    echo "Downloading cli.js..."
-    curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 \
-        "${RELEASE_BASE}/${RELEASE_PATH}/cli.js" -o "$CLI_DOWNLOAD_PATH"
-    CLI_ACTUAL_SHA256="$(sha256_of "$CLI_DOWNLOAD_PATH")"
-    if [ "$CLI_ACTUAL_SHA256" != "$CLI_SHA256" ]; then
-        echo "Checksum mismatch for cli.js: expected ${CLI_SHA256}, got ${CLI_ACTUAL_SHA256}"
+    mkdir -p "$EXTRACT_DIR"
+    tar -xzf "$DOWNLOAD_PATH" -C "$EXTRACT_DIR"
+    SRC_DIR="${EXTRACT_DIR}/oyp-${TARGET}"
+    if [ ! -f "${SRC_DIR}/oyp" ] || [ ! -f "${SRC_DIR}/runtime/node" ]; then
+        echo "Archive ${ASSET_NAME} is missing oyp or runtime/node"
         exit 1
     fi
-    chmod +x "$DOWNLOAD_PATH"
-    mv -f "$DOWNLOAD_PATH" "${INSTALL_DIR}/oyp"
-    mv -f "$CLI_DOWNLOAD_PATH" "${INSTALL_DIR}/cli.js"
-
-    # The launcher runs cli.js on Node.js. Install a usable runtime when the
-    # host has none (or one older than the CLI supports), and make a privately
-    # installed node reachable by the launcher.
-    if ! has_node || ! node_version_ok; then
-        install_node
-        ln -sf "$NODE_HOME/bin/node" "${INSTALL_DIR}/node"
-        PATH="${INSTALL_DIR}:${PATH}"
-        export PATH
-    fi
+    # Replace only what this distribution owns; other files in INSTALL_DIR stay.
+    rm -rf "${INSTALL_DIR}/app" "${INSTALL_DIR}/runtime"
+    mv "${SRC_DIR}/app" "${INSTALL_DIR}/app"
+    mv "${SRC_DIR}/runtime" "${INSTALL_DIR}/runtime"
+    mv -f "${SRC_DIR}/oyp" "${INSTALL_DIR}/oyp"
+    chmod +x "${INSTALL_DIR}/oyp" "${INSTALL_DIR}/runtime/node"
+    rm -rf "$EXTRACT_DIR"
 
     # Verify the freshly installed launcher can actually start before reporting
     # success. The musl launcher runs a payload that loads native addons, so a

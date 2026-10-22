@@ -16,10 +16,14 @@
 param(
     [switch]$Source,
     [switch]$Binary,
-    [string]$Ref
+    [string]$Ref,
+    [string]$Archive
 )
 
 $ErrorActionPreference = "Stop"
+# PS 5.1's Invoke-WebRequest progress bar throttles large downloads; the
+# ~130 MB release archive otherwise crawls for minutes.
+$ProgressPreference = "SilentlyContinue"
 
 # Fail fast on hosts older than Windows PowerShell 5.1: cmdlets used below
 # (e.g. Invoke-WebRequest -TimeoutSec) are missing or unreliable there and
@@ -46,11 +50,12 @@ $RawArchitecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW643
 if (-not $RawArchitecture) {
     throw "Unable to determine Windows architecture"
 }
-$AssetName = switch ($RawArchitecture.ToUpperInvariant()) {
-    "AMD64" { "oyp-windows-x64.cmd" }
-    "ARM64" { "oyp-windows-arm64.cmd" }
+$TargetId = switch ($RawArchitecture.ToUpperInvariant()) {
+    "AMD64" { "win32-x64" }
+    "ARM64" { "win32-arm64" }
     default { throw "Unsupported Windows architecture: $RawArchitecture" }
 }
+$AssetName = "oyp-$TargetId.zip"
 $MinimumNodeVersion = "22.12.0"
 $PnpmVersion = "10.18.0"
 
@@ -350,75 +355,107 @@ function Install-ViaPnpm {
 }
 
 function Install-Binary {
-    if ($Ref) {
-        if ($Ref -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?)$') {
-            throw "Binary installs take a release tag (v<version>) for -Ref, got: $Ref`nFor branch/commit installs, use -Source with -Ref."
+    $DownloadedArchive = $false
+    if ($Archive) {
+        if (-not (Test-Path -LiteralPath $Archive)) {
+            throw "Archive not found: $Archive"
         }
-        $Version = $Matches[1]
-        $ReleasePath = "download/$Ref"
-        Write-Host "Fetching oyp $Version..."
+        $DownloadPath = (Resolve-Path -LiteralPath $Archive).Path
+        Write-Host "Installing from $DownloadPath"
     } else {
-        $Version = ""
-        $ReleasePath = "latest/download"
-        Write-Host "Fetching latest release..."
-    }
-    $AssetUrl = "$ReleaseBase/$ReleasePath/$AssetName"
-    $SumsUrl = "$ReleaseBase/$ReleasePath/SHA256SUMS.txt"
-    try {
-        $Sums = (Invoke-WebRequest -Uri $SumsUrl -TimeoutSec 60 -UseBasicParsing).Content
-    } catch {
-        throw "Failed to fetch ${SumsUrl}: $_"
-    }
-    $Checksums = @{}
-    foreach ($line in ($Sums -split "`r?`n")) {
-        if ($line -match '^([0-9a-fA-F]{64})\s+\*?(.+)$') {
-            $Checksums[$Matches[2].Trim()] = $Matches[1].ToLowerInvariant()
+        if ($Ref) {
+            if ($Ref -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?)$') {
+                throw "Binary installs take a release tag (v<version>) for -Ref, got: $Ref`nFor branch/commit installs, use -Source with -Ref."
+            }
+            $Version = $Matches[1]
+            $ReleasePath = "download/$Ref"
+            Write-Host "Fetching oyp $Version..."
+        } else {
+            $Version = ""
+            $ReleasePath = "latest/download"
+            Write-Host "Fetching latest release..."
         }
-    }
-    $ExpectedSha256 = $Checksums[$AssetName]
-    $CliSha256 = $Checksums["cli.js"]
-    if (-not $ExpectedSha256 -or -not $CliSha256) {
-        throw "No checksum for $AssetName or cli.js in $SumsUrl"
-    }
-    if ($Version) {
-        Write-Host "Using version: $Version"
-    } else {
-        Write-Host "Using the latest release"
-    }
+        $AssetUrl = "$ReleaseBase/$ReleasePath/$AssetName"
+        $SumsUrl = "$ReleaseBase/$ReleasePath/SHA256SUMS.txt"
+        try {
+            $SumsRaw = (Invoke-WebRequest -Uri $SumsUrl -TimeoutSec 60 -UseBasicParsing).Content
+            # GitHub's redirect target is served as octet-stream: PS 5.1 then hands
+            # back byte[] instead of text.
+            $Sums = if ($SumsRaw -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($SumsRaw) } else { [string]$SumsRaw }
+        } catch {
+            throw "Failed to fetch ${SumsUrl}: $_"
+        }
+        $Checksums = @{}
+        foreach ($line in ($Sums -split "`r?`n")) {
+            if ($line -match '^([0-9a-fA-F]{64})\s+\*?(.+)$') {
+                $Checksums[$Matches[2].Trim()] = $Matches[1].ToLowerInvariant()
+            }
+        }
+        $ExpectedSha256 = $Checksums[$AssetName]
+        if (-not $ExpectedSha256) {
+            throw "No checksum for $AssetName in $SumsUrl"
+        }
+        if ($Version) {
+            Write-Host "Using version: $Version"
+        } else {
+            Write-Host "Using the latest release"
+        }
 
-    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-
-    # Download next to the destinations and move them into place only once the
-    # checksums match, so a bad download never replaces a working oyp.
-    Write-Host "Downloading $AssetName..."
-    $OutPath = Join-Path $InstallDir "oyp.cmd"
-    $CliPath = Join-Path $InstallDir "cli.js"
-    $DownloadPath = Join-Path $InstallDir ".oyp.download.cmd"
-    $CliDownloadPath = Join-Path $InstallDir ".cli.download.js"
-    $CliUrl = "$ReleaseBase/$ReleasePath/cli.js"
-    try {
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+        $DownloadPath = Join-Path $InstallDir ".oyp.download.zip"
+        $DownloadedArchive = $true
+        Write-Host "Downloading $AssetName..."
         Invoke-WebRequest -Uri $AssetUrl -OutFile $DownloadPath -TimeoutSec 900 -UseBasicParsing
-        $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $DownloadPath).Hash.ToLowerInvariant()
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $stream = [System.IO.File]::OpenRead($DownloadPath)
+            try {
+                $ActualSha256 = [System.BitConverter]::ToString($sha256.ComputeHash($stream)).Replace("-", "").ToLowerInvariant()
+            } finally {
+                $stream.Dispose()
+            }
+        } finally {
+            $sha256.Dispose()
+        }
         if ($ActualSha256 -ne $ExpectedSha256) {
             throw "Checksum mismatch for ${AssetName}: expected $ExpectedSha256, got $ActualSha256"
         }
-        Write-Host "Downloading cli.js..."
-        Invoke-WebRequest -Uri $CliUrl -OutFile $CliDownloadPath -TimeoutSec 900 -UseBasicParsing
-        $CliActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CliDownloadPath).Hash.ToLowerInvariant()
-        if ($CliActualSha256 -ne $CliSha256) {
-            throw "Checksum mismatch for cli.js: expected $CliSha256, got $CliActualSha256"
-        }
-        Move-Item -Force -LiteralPath $DownloadPath -Destination $OutPath
-        Move-Item -Force -LiteralPath $CliDownloadPath -Destination $CliPath
-    } finally {
-        Remove-Item -Force -LiteralPath $DownloadPath -ErrorAction SilentlyContinue
-        Remove-Item -Force -LiteralPath $CliDownloadPath -ErrorAction SilentlyContinue
     }
 
-    # The launcher runs cli.js on Node.js; install a usable runtime when the
-    # host has none (or one older than the CLI supports).
-    if (-not (Test-NodeInstalled) -or -not (Test-NodeVersion $MinimumNodeVersion)) {
-        Install-Node
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+    $OutPath = Join-Path $InstallDir "oyp.cmd"
+    $ExtractDir = Join-Path $InstallDir ".oyp.extract"
+    try {
+        if (Test-Path $ExtractDir) {
+            Remove-Item -Recurse -Force $ExtractDir
+        }
+        New-Item -ItemType Directory -Force -Path $ExtractDir | Out-Null
+        Expand-Archive -LiteralPath $DownloadPath -DestinationPath $ExtractDir -Force
+        $SrcDir = Join-Path $ExtractDir "oyp-$TargetId"
+        foreach ($required in @("oyp.cmd", "runtime\node.exe")) {
+            if (-not (Test-Path (Join-Path $SrcDir $required))) {
+                throw "Archive is missing $required"
+            }
+        }
+        foreach ($owned in @("app", "runtime")) {
+            $existing = Join-Path $InstallDir $owned
+            if (Test-Path $existing) {
+                Remove-Item -Recurse -Force $existing
+            }
+            Move-Item -Force -LiteralPath (Join-Path $SrcDir $owned) -Destination $existing
+        }
+        Move-Item -Force -LiteralPath (Join-Path $SrcDir "oyp.cmd") -Destination $OutPath
+    } finally {
+        if ($DownloadedArchive) {
+            Remove-Item -Force -LiteralPath $DownloadPath -ErrorAction SilentlyContinue
+        }
+        Remove-Item -Recurse -Force -LiteralPath $ExtractDir -ErrorAction SilentlyContinue
+    }
+
+    # The archive carries its own Node runtime and addons: verify it starts.
+    $Smoke = & $OutPath --version 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Installed oyp cannot start: $Smoke"
     }
 
     Write-Host ""
