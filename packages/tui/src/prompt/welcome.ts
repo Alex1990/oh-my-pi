@@ -419,7 +419,7 @@ const LOGO_WIDTH = Math.max(...PI_LOGO.map(row => row.length));
  * The `oyp` wordmark in half-blocks, set beside {@link PI_LOGO} from its second
  * row: the `p` descends into the fourth, the version takes the fifth.
  */
-const WORDMARK = ["▄▀▀▄ █▀▄▀▄ █▀▀▄", "▀▄▄▀ █ █ █ █▄▄▀", "           █"];
+const WORDMARK = ["▄▀▀▄ █   █ █▀▀▄", "▀▄▄▀  ▀█▀  █▄▄▀", "           █"];
 
 /** Columns of {@link WORDMARK}. */
 const WORDMARK_WIDTH = Math.max(...WORDMARK.map(row => row.length));
