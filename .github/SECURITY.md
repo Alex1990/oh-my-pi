@@ -9,7 +9,7 @@ Only the latest release is supported with security updates.
 To report a security issue, either:
 
 - Email [alexchao1990@gmail.com](mailto:alexchao1990@gmail.com), or
-- Open a [private security advisory](https://github.com/Alex1990/oh-my-pi/security/advisories/new) on GitHub
+- Open a [private security advisory](https://github.com/Alex1990/oh-your-pi/security/advisories/new) on GitHub
 
 Include steps to reproduce and any relevant details. Do not open a public issue for security vulnerabilities.
 

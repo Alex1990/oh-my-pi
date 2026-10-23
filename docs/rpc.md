@@ -1602,7 +1602,7 @@ type as omptype schemas. `pnpm run gen:rpc` emits:
 - `sdk/rust/omp-rpc/src/wire.rs`: Rust serde types, frame decoders, and a `Command`
   trait implemented by one params struct per command (crate `omp-rpc`).
 - `sdk/go/omp-rpc/wire.go`: Go types, frame decoders, and one `Commands` method per
-  command (module `github.com/can1357/oh-my-pi/sdk/go/omp-rpc`).
+  command (module `github.com/Alex1990/oh-your-pi/sdk/go/omp-rpc`).
 
 The Rust and Go packages ship hand-written process transports on top of the
 generated types: they negotiate v2 and reassemble chunks, page message history,

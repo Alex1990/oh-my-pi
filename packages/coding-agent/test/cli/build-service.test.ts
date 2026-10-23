@@ -193,7 +193,7 @@ describe("fetchBuild", () => {
 	it("defaults to the release repository", () => {
 		delete process.env.OMP_RELEASE_API;
 		delete process.env.OMP_RELEASE_REPO;
-		expect(releaseRepo()).toBe("Alex1990/oh-my-pi");
-		expect(releaseApiBase()).toBe("https://api.github.com/repos/Alex1990/oh-my-pi");
+		expect(releaseRepo()).toBe("Alex1990/oh-your-pi");
+		expect(releaseApiBase()).toBe("https://api.github.com/repos/Alex1990/oh-your-pi");
 	});
 });

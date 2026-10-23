@@ -1,6 +1,6 @@
 # @oh-my-pi/pi-utils
 
-Shared utilities for [oyp](https://github.com/can1357/oh-my-pi) packages. Zero ceremony, Node-first.
+Shared utilities for [oyp](https://github.com/Alex1990/oh-your-pi) packages. Zero ceremony, Node-first.
 
 ## Notable modules
 
@@ -33,5 +33,5 @@ Ships TypeScript source directly (no build step); requires Node.js ≥ 22.12.
 
 ## References
 
-- [Monorepo README](https://github.com/can1357/oh-my-pi#readme)
+- [Monorepo README](https://github.com/Alex1990/oh-your-pi#readme)
 - [CHANGELOG](./CHANGELOG.md)

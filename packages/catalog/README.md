@@ -1,6 +1,6 @@
 # @oh-my-pi/pi-catalog
 
-Model catalog for [oyp](https://github.com/can1357/oh-my-pi): bundled model database, provider discovery, model identity, classification, and equivalence.
+Model catalog for [oyp](https://github.com/Alex1990/oh-your-pi): bundled model database, provider discovery, model identity, classification, and equivalence.
 
 ## What's inside
 
@@ -62,5 +62,5 @@ Schedules are materialized from the [`time-based-cost` KDL axis](src/compat/rule
 
 ## References
 
-- [Monorepo README](https://github.com/can1357/oh-my-pi#readme)
+- [Monorepo README](https://github.com/Alex1990/oh-your-pi#readme)
 - [CHANGELOG](./CHANGELOG.md)

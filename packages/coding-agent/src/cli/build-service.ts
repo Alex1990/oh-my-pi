@@ -33,7 +33,7 @@ export type UpdateChannel = "stable" | "canary";
 export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 /** Repository that hosts oyp's releases. */
-export const DEFAULT_RELEASE_REPO = "Alex1990/oh-my-pi";
+export const DEFAULT_RELEASE_REPO = "Alex1990/oh-your-pi";
 
 /** The product name upstream builds are published under. */
 export const UPSTREAM_PRODUCT = "omp";

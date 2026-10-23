@@ -19,6 +19,7 @@
 ### Changed
 
 - Standalone installs and `oyp update` now download release binaries from this repository's GitHub Releases and verify them against `SHA256SUMS.txt`; npm publishing, the Homebrew tap, and the external build service are gone
+- Release downloads, install scripts, `mise`/Nix references, and package metadata now point at the renamed `Alex1990/oh-your-pi` repository
 - `collab-web` builds with Vite and plugin git installs resolve refs through pnpm/npm; the CI runner image no longer installs Bun, and `.oyp` tests run under Vitest
 - The installer, release assets, shell completions, desktop notifications, ACP/editor labels, and documentation now use the `oyp` name consistently; every remaining default that pointed at `~/.omp` or `.omp` now resolves through the `oyp` config root
 

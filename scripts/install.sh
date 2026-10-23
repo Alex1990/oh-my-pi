@@ -18,7 +18,7 @@ set -e
 # selects the repository and `OMP_RELEASE_BASE` overrides the release base
 # (mirrors and tests).
 
-REPO="${OMP_RELEASE_REPO:-Alex1990/oh-my-pi}"
+REPO="${OMP_RELEASE_REPO:-Alex1990/oh-your-pi}"
 RELEASE_BASE="${OMP_RELEASE_BASE:-https://github.com/${REPO}/releases}"
 while [ "${RELEASE_BASE%/}" != "$RELEASE_BASE" ]; do
     RELEASE_BASE="${RELEASE_BASE%/}"

@@ -33,7 +33,7 @@ if ($PSVersionTable.PSVersion -lt [version]"5.1") {
     throw "Windows PowerShell 5.1 or newer is required (found $($PSVersionTable.PSVersion)). Install PowerShell 7 from https://aka.ms/powershell and re-run the installer."
 }
 
-$Repo = if ($env:OMP_RELEASE_REPO) { $env:OMP_RELEASE_REPO.Trim("/") } else { "Alex1990/oh-my-pi" }
+$Repo = if ($env:OMP_RELEASE_REPO) { $env:OMP_RELEASE_REPO.Trim("/") } else { "Alex1990/oh-your-pi" }
 $InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\oyp" }
 $ReleaseBase = if ($env:OMP_RELEASE_BASE) { $env:OMP_RELEASE_BASE.TrimEnd("/") } else { "https://github.com/$Repo/releases" }
 # Windows PowerShell 5.1 (.NET Framework) does not reliably resolve

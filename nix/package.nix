@@ -279,7 +279,7 @@ stdenv.mkDerivation {
   meta = {
     description = "Terminal-based coding agent with multi-model support";
     homepage = "https://omp.sh";
-    changelog = "https://github.com/can1357/oh-my-pi/releases/tag/v${packageJson.version}";
+    changelog = "https://github.com/Alex1990/oh-your-pi/releases/tag/v${packageJson.version}";
     license = lib.licenses.mit;
     mainProgram = "omp";
     platforms = [

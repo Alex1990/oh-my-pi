@@ -37,7 +37,7 @@ import { bun } from "@oh-my-pi/pi-utils/node-runtime";
 import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
 
 const changelogGlob = new Glob("packages/*/CHANGELOG.md");
-const REPO = process.env.OMP_REPO ?? process.env.GITHUB_REPOSITORY ?? "can1357/oh-my-pi";
+const REPO = process.env.OMP_REPO ?? process.env.GITHUB_REPOSITORY ?? "Alex1990/oh-your-pi";
 
 // Canonical ordering used by `fix-changelogs`; unknown categories sort
 // alphabetically after these.

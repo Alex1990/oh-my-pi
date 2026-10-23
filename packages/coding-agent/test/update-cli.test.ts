@@ -528,13 +528,13 @@ describe("update-cli install target detection", () => {
 
 describe("update-cli package manager commands", () => {
 	it("targets the mise GitHub backend and overrides release-age settings for attended updates", () => {
-		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:Alex1990/oh-my-pi", "--bump", "--before", "0s"]);
-		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:Alex1990/oh-my-pi", "--bump"]);
+		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:Alex1990/oh-your-pi", "--bump", "--before", "0s"]);
+		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:Alex1990/oh-your-pi", "--bump"]);
 		expect(buildMiseUpdateEnv({ PATH: "/bin", MISE_MINIMUM_RELEASE_AGE: "24h" })).toEqual({
 			PATH: "/bin",
 			MISE_MINIMUM_RELEASE_AGE: "0s",
 		});
-		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:Alex1990/oh-my-pi@15.10.5"]);
+		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:Alex1990/oh-your-pi@15.10.5"]);
 	});
 
 	it.skipIf(!miseBinary)("overrides per-tool release age during actual mise upgrade resolution", async () => {
@@ -558,7 +558,7 @@ describe("update-cli package manager commands", () => {
 			await bun.write(
 				path.join(root, "mise.toml"),
 				`[tools]
-"github:Alex1990/oh-my-pi" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
+"github:Alex1990/oh-your-pi" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
 `,
 			);
 			const env = {
@@ -589,11 +589,11 @@ describe("update-cli package manager commands", () => {
 				return stdout + stderr;
 			};
 
-			const blocked = await run(["upgrade", "github:Alex1990/oh-my-pi", "--bump", "--dry-run"]);
-			expect(blocked).not.toContain("Would install github:Alex1990/oh-my-pi@2.0.0");
+			const blocked = await run(["upgrade", "github:Alex1990/oh-your-pi", "--bump", "--dry-run"]);
+			expect(blocked).not.toContain("Would install github:Alex1990/oh-your-pi@2.0.0");
 
 			const allowed = await run([...buildMiseUpgradeArgs(), "--dry-run"]);
-			expect(allowed).toContain("Would install github:Alex1990/oh-my-pi@2.0.0");
+			expect(allowed).toContain("Would install github:Alex1990/oh-your-pi@2.0.0");
 		} finally {
 			server.stop(true);
 		}

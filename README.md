@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Alex1990/oh-my-pi/main/assets/hero.png" alt="oyp">
+  <img src="https://raw.githubusercontent.com/Alex1990/oh-your-pi/main/assets/hero.png" alt="oyp">
 </p>
 
 <p align="center">
@@ -8,9 +8,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Alex1990/oh-my-pi/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
-  <a href="https://github.com/Alex1990/oh-my-pi/actions"><img src="https://img.shields.io/github/actions/workflow/status/Alex1990/oh-my-pi/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
-  <a href="https://github.com/Alex1990/oh-my-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Alex1990/oh-my-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
+  <a href="https://github.com/Alex1990/oh-your-pi/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
+  <a href="https://github.com/Alex1990/oh-your-pi/actions"><img src="https://img.shields.io/github/actions/workflow/status/Alex1990/oh-your-pi/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
+  <a href="https://github.com/Alex1990/oh-your-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Alex1990/oh-your-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&colorA=222222&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-DEA584?style=flat&colorA=222222&logo=rust&logoColor=white" alt="Rust"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/runtime-Node.js%2024-339933?style=flat&colorA=222222&logo=node.js&logoColor=white" alt="Node.js"></a>
@@ -47,17 +47,17 @@ Without a usable Node.js runtime (or with `--binary`), the install scripts downl
 
 ```sh
 # Run without installing
-nix run github:Alex1990/oh-my-pi
+nix run github:Alex1990/oh-your-pi
 
 # Or install into the active profile (Nix < 2.30: `nix profile install`)
-nix profile add github:Alex1990/oh-my-pi
+nix profile add github:Alex1990/oh-your-pi
 ```
 
 Flake consumers can use `packages.<system>.omp`, `overlays.default`, `nixosModules.default`, or `homeManagerModules.default`. A Home Manager configuration can install OMP and own its settings declaratively:
 
 ```nix
 {
-  inputs.omp.url = "github:Alex1990/oh-my-pi";
+  inputs.omp.url = "github:Alex1990/oh-your-pi";
 
   # In your Home Manager module:
   imports = [ inputs.omp.homeManagerModules.default ];
@@ -77,7 +77,7 @@ irm https://omp.sh/install.ps1 | iex
 **Pinned versions (mise)**
 
 ```sh
-mise use -g github:can1357/oh-my-pi
+mise use -g github:Alex1990/oh-your-pi
 ```
 
 macOS · Linux · Windows · Node.js ≥ 22.12
@@ -553,7 +553,7 @@ Full reference: [omp.sh/docs/sdk](https://omp.sh/docs/sdk).
 
 Pick it up at **[omp.sh](https://omp.sh)**.
 
-oyp is a fork of [Pi](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), rewritten as a coding-first surface: sessions, subagents, slash commands, extensions — all TypeScript, all MIT, all on [GitHub](https://github.com/can1357/oh-my-pi). Shape it from config, hook it from outside, or read the source when you need to.
+oyp is a fork of [Pi](https://github.com/badlogic/pi-mono) by [Mario Zechner](https://github.com/mariozechner), rewritten as a coding-first surface: sessions, subagents, slash commands, extensions — all TypeScript, all MIT, all on [GitHub](https://github.com/Alex1990/oh-your-pi). Shape it from config, hook it from outside, or read the source when you need to.
 
 ### Primitives
 
@@ -688,8 +688,8 @@ _made for terminals that stay open_
 
 - [omp.sh](https://omp.sh)
 - [Stencil Labs](https://stencil.so)
-- [GitHub](https://github.com/can1357/oh-my-pi)
-- [Changelog](https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/CHANGELOG.md)
+- [GitHub](https://github.com/Alex1990/oh-your-pi)
+- [Changelog](https://github.com/Alex1990/oh-your-pi/blob/main/packages/coding-agent/CHANGELOG.md)
 - [npm](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent)
 - [Discord](https://discord.gg/4NMW9cdXZa)
-- [MIT](https://github.com/can1357/oh-my-pi/blob/main/LICENSE)
+- [MIT](https://github.com/Alex1990/oh-your-pi/blob/main/LICENSE)

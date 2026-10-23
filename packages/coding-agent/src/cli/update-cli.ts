@@ -43,7 +43,7 @@ import {
 import { cfgUpdateChannel } from "../modes/settings";
 
 const PACKAGE = "@oh-my-pi/pi-coding-agent";
-const MISE_TOOL = "github:Alex1990/oh-my-pi";
+const MISE_TOOL = "github:Alex1990/oh-your-pi";
 const NIX_STORE_DIR = "/nix/store";
 const RELEASE_METADATA_TIMEOUT_MS = 30_000;
 const BINARY_DOWNLOAD_TIMEOUT_MS = 15 * 60_000;
