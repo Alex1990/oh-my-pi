@@ -17,13 +17,22 @@ export interface LocalHostAddon {
 	readonly x64Variant: "modern" | "baseline" | null;
 }
 
-/** Resolve the exact filename and x86-64 ISA emitted by the local N-API build. */
+/**
+ * Resolve the exact filename and x86-64 ISA emitted by the local N-API build.
+ *
+ * Windows ships no `-modern` addon: `BUILD.bazel` has only
+ * `win32-x64-baseline`, and `hostTargetName` in `bazel-natives.ts` agrees. A
+ * local Windows build that picked `modern` left
+ * `pi_natives.win32-x64-baseline.node` frozen at whatever release artifact
+ * shipped it, while the Node runtime — which cannot detect AVX2 without Bun's
+ * FFI — always loaded that stale baseline file.
+ */
 export function resolveLocalHostAddon(host: {
 	readonly platform: string;
 	readonly arch: string;
 	readonly avx2: boolean;
 }): LocalHostAddon {
-	const x64Variant = host.arch === "x64" ? (host.avx2 ? "modern" : "baseline") : null;
+	const x64Variant = host.arch === "x64" ? (host.platform === "win32" || !host.avx2 ? "baseline" : "modern") : null;
 	const variantSuffix = x64Variant ? `-${x64Variant}` : "";
 	return {
 		filename: `pi_natives.${host.platform}-${host.arch}${variantSuffix}.node`,

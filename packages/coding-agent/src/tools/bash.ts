@@ -854,10 +854,12 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 		// keep a finished `:async:` Shell (and its background children) alive.
 		let pids: () => readonly number[] = NO_PIDS;
 		// Outlives the run with the job row, so a finished pipeline stays readable.
-		const streams = new PipeStreams();
+		// A native addon older than this tree has no `PipeStreams` export; the
+		// command still runs, only its `proc://<id>/streams` view is unavailable.
+		const streams = typeof PipeStreams === "function" ? new PipeStreams() : undefined;
 		// The job's widget reads the command's own output and every pipe it opens.
 		const outputTap = new TextTap("out", "the command's own stdout+stderr");
-		const pipeSources = new PipeTextSources(streams);
+		const pipeSources = streams ? new PipeTextSources(streams) : undefined;
 		let latestText = "";
 		let latestProgressDetails: BashProgressDetails | undefined;
 		let backgrounded = !options.foreground;
@@ -960,7 +962,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 				foreground: options.foreground,
 				process: { command: options.command, cwd: options.commandCwd, pids: () => pids(), streams },
 				widgetInputs: {
-					sources: () => [outputTap, ...pipeSources.list()],
+					sources: () => [outputTap, ...(pipeSources?.list() ?? [])],
 					brief: () => ({ kind: "bash", command: options.command, intent: options.intent }),
 				},
 			},

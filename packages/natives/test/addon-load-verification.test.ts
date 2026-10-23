@@ -119,6 +119,25 @@ describe("verifyHostAddonLoads", () => {
 	);
 });
 
+describe("resolveLocalHostAddon", () => {
+	// Windows ships only `win32-x64-baseline`; the Node runtime cannot detect
+	// AVX2 without Bun's FFI and loads baseline. A local build that emitted
+	// `-modern` here never refreshed the baseline file the runtime reads.
+	test("emits the baseline name on Windows even when AVX2 is available", () => {
+		expect(resolveLocalHostAddon({ platform: "win32", arch: "x64", avx2: true })).toEqual({
+			filename: "pi_natives.win32-x64-baseline.node",
+			x64Variant: "baseline",
+		});
+	});
+
+	test("keeps the modern name on other AVX2 x64 hosts", () => {
+		expect(resolveLocalHostAddon({ platform: "linux", arch: "x64", avx2: true })).toEqual({
+			filename: "pi_natives.linux-x64-modern.node",
+			x64Variant: "modern",
+		});
+	});
+});
+
 describe("hostProbeFilename", () => {
 	const glibcArm64: HostInfo = { platform: "linux", arch: "arm64", avx2: false, musl: false };
 	const glibcX64Baseline: HostInfo = { platform: "linux", arch: "x64", avx2: false, musl: false };
