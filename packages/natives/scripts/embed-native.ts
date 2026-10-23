@@ -1,12 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import packageJson from "../package.json" with { type: "json" };
-import {
-	containsLegacyVersionSentinel,
-	containsVersionStamp,
-	VERSION_STAMP_MAGIC,
-} from "../native/version-sentinel.js";
 import { bun } from "@oh-my-pi/pi-utils/node-runtime";
+import { assertAddonVersioned } from "./addon-version";
 
 const defaultNativeDir = path.join(import.meta.dirname, "../native");
 
@@ -73,17 +69,10 @@ export async function embeddedAddonFiles({
 		const expected = candidates.map(candidate => `  - ${candidate.filename}`).join("\n");
 		throw new Error(`No native addons found for ${platformTag}. Expected one of:\n${expected}`);
 	}
+	// Pre-stamp addons (npm releases and main builds before the stamp slot)
+	// identify their release by the legacy export, which the loader accepts.
 	for (const { filename, bytes } of available) {
-		// Pre-stamp addons (npm releases and main builds before the stamp slot)
-		// identify their release by the legacy export, which the loader accepts.
-		if (!containsVersionStamp(bytes, version) && !containsLegacyVersionSentinel(bytes, version)) {
-			const addonPath = path.join(dir, filename);
-			throw new Error(
-				`Native addon ${addonPath} does not carry the @oh-my-pi/pi-natives@${version} version stamp ` +
-					`\`${VERSION_STAMP_MAGIC}${version}\`. Rebuild it (installs stamp automatically), run ` +
-					`\`bun scripts/stamp-native-version.ts ${addonPath}\`, or fetch @oh-my-pi/pi-natives-${platformTag}@${version} before embedding.`,
-			);
-		}
+		assertAddonVersioned(path.join(dir, filename), bytes, version);
 	}
 
 	// Variants compress concurrently on Bun's thread pool.

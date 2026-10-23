@@ -6,6 +6,10 @@
 		"emitDeclarationOnly": false,
 		"allowImportingTsExtensions": true
 	},
-	"include": ["scripts", "packages/natives/scripts/gen-npm-packages.ts"],
+	"include": [
+		"scripts",
+		"packages/natives/scripts/gen-npm-packages.ts",
+		"packages/natives/scripts/addon-version.ts"
+	],
 	"exclude": ["node_modules"]
 }

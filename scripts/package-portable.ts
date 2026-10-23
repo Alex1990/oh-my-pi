@@ -23,6 +23,8 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { isMainModule } from "@oh-my-pi/pi-utils/node-runtime";
+import { assertAddonVersioned } from "../packages/natives/scripts/addon-version";
 
 interface TargetSpec {
 	readonly platform: "win32" | "darwin";
@@ -231,6 +233,29 @@ async function installRuntimePackage(
 	}
 }
 
+/**
+ * Refuse to package an addon the archive's own loader would reject at startup.
+ *
+ * The loader validates node_modules installs against the shipping
+ * `@oh-my-pi/pi-natives` version, but only workspace loads are exempt — so a
+ * raw `bazel-bin` output (stamp slot present, never filled) copies cleanly and
+ * then fails on the user's first `oyp --version`. Catch it here, where the
+ * message can name the file and the command that fixes it.
+ */
+export async function verifyPackagedAddon(addonPath: string, version: string): Promise<void> {
+	let bytes: Buffer;
+	try {
+		bytes = await fs.readFile(addonPath);
+	} catch (err) {
+		const detail = err instanceof Error ? err.message : String(err);
+		throw new Error(
+			`Native addon ${addonPath} is missing (${detail}). Build this target's addon first: ` +
+				"`bun scripts/bazel-natives.ts <target> --dest packages/natives/native`.",
+		);
+	}
+	assertAddonVersioned(addonPath, bytes, version);
+}
+
 async function main(): Promise<void> {
 	const targetId = arg("target") ?? "win32-x64";
 	const spec = TARGETS[targetId];
@@ -244,6 +269,17 @@ async function main(): Promise<void> {
 	const outRoot = path.resolve(arg("out") ?? path.join(os.tmpdir(), "oyp-portable"));
 	const stage = path.join(outRoot, `oyp-${targetId}`);
 	const appDir = path.join(stage, "app");
+
+	// Every shipped .node must identify this release before anything is staged.
+	const nativesManifest = JSON.parse(await fs.readFile(path.join(nativesDir, "package.json"), "utf8")) as {
+		version?: unknown;
+	};
+	if (typeof nativesManifest.version !== "string" || nativesManifest.version.length === 0) {
+		throw new Error(`packages/natives/package.json has no string version`);
+	}
+	for (const addon of spec.addons) {
+		await verifyPackagedAddon(path.join(nativesDir, "native", addon), nativesManifest.version);
+	}
 
 	await fs.rm(stage, { recursive: true, force: true });
 	await fs.mkdir(appDir, { recursive: true });
@@ -320,4 +356,6 @@ async function directorySize(root: string): Promise<number> {
 	return total;
 }
 
-await main();
+if (isMainModule(import.meta.url)) {
+	await main();
+}
