@@ -350,7 +350,13 @@ Location: `packages/*/CHANGELOG.md` (per package).
 
 ## Releasing
 
-1. Ensure all changes since last release are in each affected package's `[Unreleased]` section.
-2. Run `pnpm run release`.
+**This repository releases from Windows: build artifacts and upload the GitHub Release
+locally, and do not gate on CI.** Follow [`docs/releasing.md`](docs/releasing.md) for the
+full procedure — version bumps, the WSL-only `MODULE.bazel.lock` refresh, changelog
+finalization, local portable packaging, checksums, and `gh release create`.
 
-The script handles version bump, CHANGELOG finalization, commit, tag, publish, and adding new `[Unreleased]` sections.
+Do not run `pnpm run release` on Windows: its `sd` invocations fail under `cmd.exe`
+quoting, and its bazel step needs GitHub release downloads that are blocked here.
+
+On upstream (Linux/macOS) checkouts the script still applies: ensure every affected package
+has its changes under `[Unreleased]`, then run `pnpm run release`.
