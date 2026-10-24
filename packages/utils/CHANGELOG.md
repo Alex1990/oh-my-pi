@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [18.12.3] - 2026-10-23
+
 ### Breaking Changes
 
 - `APP_NAME` is now `oyp` and `CONFIG_DIR_NAME` is `.oyp`, so every derived path (config root, logs, caches, install id, sessions, plugin lock) lives under `~/.oyp` and `./.oyp`
